@@ -2,203 +2,148 @@
 //  MokoTabBar.swift
 //  Moko
 //
-//  Native iOS floating tab bar adhering exactly to the design specifications.
+//  Floating Liquid Glass tab bar styled like the system tab bar:
+//  glass capsule with a sliding glass selection pill, plus a separate
+//  round glass search tab. Search is a regular tab: tapping it only
+//  changes the selection, like the other three.
+//  Requires iOS 26+. API: MokoTabBar(selectedTab: $selectedTab)
 //
 
 import SwiftUI
 
-enum MokoTab: CaseIterable {
+enum MokoTab: Hashable {
     case overview
     case quests
     case relax
+    case search
 }
 
-struct MokoFloatingTabBar: View {
+struct MokoTabBar: View {
     @Binding var selectedTab: MokoTab
-    var onSearchTap: (() -> Void)? = nil
-    
-    // Palette
-    private let activePillBg = Color(red: 237/255, green: 237/255, blue: 237/255) // #EDEDED
+
+    // Layout
+    private let barWidth: CGFloat = 278
+    private let barHeight: CGFloat = 64.5
+    private let pillSize = CGSize(width: 90, height: 55)
+    /// Pushes the whole bar lower. Raise this to move it further down.
+    private let verticalNudge: CGFloat = 10
+
     private let activeGreen = Color(red: 54/255, green: 89/255, blue: 72/255) // #365948
-    private let inactiveColor = Color.black
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            // Main 3-Tab Segmented Capsule
-            HStack(spacing: 0) {
-                // Overview Tab
-                tabButton(
-                    tab: .overview,
-                    label: "Overview",
-                    iconName: "square.grid.2x2.fill",
-                    isCustomMeditation: false
-                )
-                
-                // Quests Tab
-                tabButton(
-                    tab: .quests,
-                    label: "Quests",
-                    iconName: "clipboard.fill",
-                    isCustomMeditation: false
-                )
-                
-                // Relax Tab
-                tabButton(
-                    tab: .relax,
-                    label: "Relax",
-                    iconName: "figure.mind.and.body",
-                    isCustomMeditation: true
-                )
-            }
-            .frame(width: 278, height: 64.5)
-            .background(
-                Capsule()
-                    .fill(Color.white)
-                    .shadow(color: Color.black.opacity(0.10), radius: 10, x: 0, y: 2)
-            )
-            
-            // Search Circle Button
-            Button(action: {
-                onSearchTap?()
-            }) {
-                ZStack {
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 60, height: 60)
-                        .shadow(color: Color.black.opacity(0.10), radius: 10, x: 0, y: 2)
-                    
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 21, weight: .regular))
-                        .foregroundColor(.black)
-                }
-            }
-            .buttonStyle(MokoTabPressStyle())
+    private let selectionTint = Color(red: 54/255, green: 89/255, blue: 72/255).opacity(0.14)
+
+    private var tabWidth: CGFloat { barWidth / 3 }
+
+    private var selectedIndex: Int? {
+        switch selectedTab {
+        case .overview: return 0
+        case .quests:   return 1
+        case .relax:    return 2
+        case .search:   return nil
         }
     }
-    
-    @ViewBuilder
-    private func tabButton(tab: MokoTab, label: String, iconName: String, isCustomMeditation: Bool) -> some View {
-        let isSelected = selectedTab == tab
-        let tint = isSelected ? activeGreen : inactiveColor
-        
-        Button(action: {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.78)) {
-                selectedTab = tab
+
+    var body: some View {
+        GlassEffectContainer(spacing: 16) {
+            HStack(spacing: 16) {
+                tabCapsule
+                searchTab
             }
-        }) {
-            ZStack {
-                // Active Capsule Highlight
-                if isSelected {
-                    Capsule()
-                        .fill(activePillBg)
-                        .frame(width: 90, height: 55)
-                        .transition(.scale(scale: 0.95).combined(with: .opacity))
-                }
-                
-                VStack(spacing: 4) {
-                    if isCustomMeditation {
-                        MeditationYogaIcon(color: tint)
-                            .frame(width: 24, height: 21)
-                    } else if tab == .quests {
-                        QuestsClipboardIcon(color: tint)
-                            .frame(width: 17, height: 22)
-                    } else {
-                        // Overview Icon
-                        Image(systemName: iconName)
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(tint)
-                    }
-                    
-                    Text(label)
-                        .font(.system(size: 10, weight: isSelected ? .medium : .regular))
-                        .foregroundColor(tint)
-                }
+        }
+        .offset(y: verticalNudge)
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: selectedTab)
+    }
+
+    // MARK: - Glass capsule with sliding selection pill
+    private var tabCapsule: some View {
+        ZStack(alignment: .leading) {
+            // Selection pill: one view that slides, hidden while search is selected
+            Capsule()
+                .fill(Color.clear)
+                .frame(width: pillSize.width, height: pillSize.height)
+                .glassEffect(.regular.tint(selectionTint), in: Capsule())
+                .offset(x: pillOffset)
+                .opacity(selectedIndex == nil ? 0 : 1)
+
+            HStack(spacing: 0) {
+                tabButton(.overview, label: "Overview", icon: "square.grid.2x2.fill")
+                tabButton(.quests, label: "Quests", icon: "list.clipboard.fill")
+                tabButton(.relax, label: "Relax", icon: "figure.mind.and.body")
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .frame(width: barWidth, height: barHeight)
+        .glassEffect(.regular, in: Capsule())
+    }
+
+    private var pillOffset: CGFloat {
+        let index = CGFloat(selectedIndex ?? 0)
+        return index * tabWidth + (tabWidth - pillSize.width) / 2
+    }
+
+    private func tabButton(_ tab: MokoTab, label: String, icon: String) -> some View {
+        let tint = selectedTab == tab ? activeGreen : Color.black
+
+        return Button {
+            selectedTab = tab
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .frame(width: 28, height: 24)
+                Text(label)
+                    .font(.system(size: 10, weight: .medium))
+            }
+            .foregroundStyle(tint)
+            .frame(width: tabWidth, height: barHeight)
             .contentShape(Rectangle())
         }
-        .buttonStyle(MokoTabPressStyle())
+        .buttonStyle(MokoNoFeedbackButtonStyle())
+    }
+
+    // MARK: - Separate glass search tab (same behavior as the other tabs)
+    private var searchTab: some View {
+        let isSelected = selectedTab == .search
+
+        return Button {
+            selectedTab = .search
+        } label: {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 21, weight: isSelected ? .semibold : .regular))
+                .foregroundStyle(isSelected ? activeGreen : Color.black)
+                .frame(width: 60, height: 60)
+                .contentShape(Circle())
+        }
+        .buttonStyle(MokoNoFeedbackButtonStyle())
+        .glassEffect(isSelected ? .regular.tint(selectionTint) : .regular, in: Circle())
     }
 }
 
-// MARK: - Native Tactile Button Style
-struct MokoTabPressStyle: ButtonStyle {
+// No scale or dimming on press
+struct MokoNoFeedbackButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
-            .opacity(configuration.isPressed ? 0.9 : 1.0)
-            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 
-// MARK: - Custom Vector Icons Matching Design Specs
-struct QuestsClipboardIcon: View {
-    var color: Color = .black
-    
+// MARK: - Preview (tab bar on its own)
+private struct MokoTabBarPreviewHost: View {
+    @State private var tab: MokoTab = .overview
+
     var body: some View {
-        ZStack {
-            Image(systemName: "list.clipboard.fill")
-                .font(.system(size: 19, weight: .semibold))
-                .foregroundColor(color)
-        }
-    }
-}
-
-struct MeditationYogaIcon: View {
-    var color: Color = .black
-    
-    var body: some View {
-        // Precise meditation/lotus pose vector
-        ZStack {
-            // Head
-            Circle()
-                .fill(color)
-                .frame(width: 5.5, height: 5.5)
-                .offset(y: -7)
-            
-            // Body + Crossed Legs
-            MeditationPoseShape()
-                .fill(color)
-                .frame(width: 24, height: 16)
-                .offset(y: 2)
-        }
-    }
-}
-
-struct MeditationPoseShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let w = rect.width
-        let h = rect.height
-        
-        // Torso and outward hands resting on knees
-        path.move(to: CGPoint(x: w * 0.5, y: h * 0.15))
-        path.addLine(to: CGPoint(x: w * 0.62, y: h * 0.35))
-        path.addLine(to: CGPoint(x: w * 0.88, y: h * 0.5))
-        path.addLine(to: CGPoint(x: w * 0.98, y: h * 0.38))
-        path.addLine(to: CGPoint(x: w * 0.82, y: h * 0.65))
-        path.addLine(to: CGPoint(x: w * 0.65, y: h * 0.72))
-        path.addLine(to: CGPoint(x: w * 0.5, y: h * 0.88))
-        path.addLine(to: CGPoint(x: w * 0.35, y: h * 0.72))
-        path.addLine(to: CGPoint(x: w * 0.18, y: h * 0.65))
-        path.addLine(to: CGPoint(x: w * 0.02, y: h * 0.38))
-        path.addLine(to: CGPoint(x: w * 0.12, y: h * 0.5))
-        path.addLine(to: CGPoint(x: w * 0.38, y: h * 0.35))
-        path.closeSubpath()
-        
-        return path
-    }
-}
-
-#Preview {
-    ZStack {
-        Color(red: 242/255, green: 242/255, blue: 247/255)
+        ZStack(alignment: .bottom) {
+            // Content behind the bar so the glass has something to refract
+            LinearGradient(
+                colors: [Color(red: 242/255, green: 242/255, blue: 247/255),
+                         Color(red: 200/255, green: 220/255, blue: 208/255)],
+                startPoint: .top, endPoint: .bottom
+            )
             .ignoresSafeArea()
-        
-        VStack {
-            Spacer()
-            MokoFloatingTabBar(selectedTab: .constant(.overview))
-                .padding(.bottom, 20)
+
+            MokoTabBar(selectedTab: $tab)
+                .padding(.bottom, 4)
         }
     }
+}
+
+#Preview("Tab bar only") {
+    MokoTabBarPreviewHost()
 }
