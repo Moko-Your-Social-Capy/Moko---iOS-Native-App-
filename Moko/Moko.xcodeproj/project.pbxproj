@@ -65,7 +65,6 @@
 			isa = PBXGroup;
 			children = (
 				177E22F53089D968002C18EB /* Moko */,
-				297922813089E1E60016BAEE /* Frameworks */,
 				177E22F43089D968002C18EB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -76,13 +75,6 @@
 				177E22F33089D968002C18EB /* Moko.app */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		297922813089E1E60016BAEE /* Frameworks */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
