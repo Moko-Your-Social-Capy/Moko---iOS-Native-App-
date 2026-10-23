@@ -72,6 +72,7 @@ struct OverviewDebriefDone: View {
         }
     }
 
+    
     // MARK: - Today's Mission Section
     private var todaysMissionSection: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -80,43 +81,93 @@ struct OverviewDebriefDone: View {
                 .foregroundColor(titleDark)
 
             VStack(alignment: .leading, spacing: 0) {
-                // Mission Title
+
+                // Card Header
                 Text("No Active Quest")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundColor(primaryGreen)
                     .padding(.top, 24)
                     .padding(.horizontal, 20)
 
-                // Mission Subtitle / Description
-                Text("You can find more interesting quests to\nlevel up in quest library.")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundColor(subtextGray)
-                    .lineSpacing(4)
-                    .padding(.top, 12)
+                // Completion Icon
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 42, weight: .regular))
+                    .foregroundColor(
+                        Color(red: 0.20, green: 0.55, blue: 0.38)
+                    )
+                    .padding(12)
+                    .background(
+                        Color(red: 0.20, green: 0.55, blue: 0.38)
+                            .opacity(0.10),
+                        in: Circle()
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 24)
+
+                // Main Message
+                Text("All quests completed!")
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundColor(titleDark)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 16)
                     .padding(.horizontal, 20)
 
-                // Bottom Timer Line: "New quest in 12 hrs 48 mins"
-                HStack(spacing: 4) {
-                    Spacer()
+                // Description
+                Text("You've finished today's quests. Discover more interesting challenges in the quest library.")
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundColor(subtextGray)
+                    .lineSpacing(4)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 10)
+                    .padding(.horizontal, 24)
 
-                    Text("New quest in")
+                // Countdown Footer
+                HStack(spacing: 7) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 14, weight: .medium))
+
+                    Text("New quests in")
                         .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(subtextGray)
 
                     Text("12 hrs 48 mins")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(timerBlue)
                 }
+                .foregroundColor(subtextGray)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 13)
+                .background(
+                    Color(red: 0.96, green: 0.96, blue: 0.97),
+                    in: RoundedRectangle(
+                        cornerRadius: 12,
+                        style: .continuous
+                    )
+                )
                 .padding(.horizontal, 20)
-                .padding(.top, 64)
+                .padding(.top, 26)
                 .padding(.bottom, 20)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
+            .clipShape(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(Color.black.opacity(0.035), lineWidth: 1)
+            }
+            .shadow(
+                color: Color.black.opacity(0.045),
+                radius: 12,
+                x: 0,
+                y: 4
+            )
         }
     }
+
 
     // MARK: - Statistics Section
     private var statisticsSection: some View {
