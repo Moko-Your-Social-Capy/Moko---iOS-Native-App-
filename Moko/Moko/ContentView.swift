@@ -15,298 +15,339 @@ struct ContentView: View {
     @Query private var profiles: [Profile]
     @Query private var onboardingResponses: [OnboardingResponse]
     @Query private var onboardingQuestions: [OnboardingQuestion]
-    
-    enum AppScreen: Equatable {
+
+    // MARK: - App Flow
+
+    private enum AppScreen: Equatable {
         case splash
         case intro
         case auth
-        case onboardingFlow
+        case onboardingInfo      // Carousel -> Name -> Age -> Welcome
+        case onboardingQuestions // Swipeable Onboarding Questions
+        case done
+        case reflection
         case home(userEmail: String)
     }
-    
+
     @State private var currentScreen: AppScreen = .splash
     @State private var signedInEmail: String = ""
-    
+
+    // Stores answers from the onboarding questions
+    @State private var answers: [Int: OnboardingAnswer] = [:]
+
     private let auth = AuthService()
-    
+
     private var isUserFullyRegistered: Bool {
         return !profiles.isEmpty && !onboardingResponses.isEmpty && (onboardingStates.first?.isCompleted == true)
     }
-    
+
+    // MARK: - Body
+
     var body: some View {
         ZStack {
             MokoTheme.background
                 .ignoresSafeArea()
-            
+
             switch currentScreen {
+
+            // MARK: Splash
+
             case .splash:
-                SplashScreenView(autoAdvance: true, onFinished: {
-                    checkInitialRegistrationAndNavigate()
-                })
-                .transition(.opacity)
-                
-            case .intro:
-                OnboardingIntroView(onLetsBegin: {
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
-                        currentScreen = .auth
+                SplashScreenView(
+                    autoAdvance: true,
+                    onFinished: {
+                        withAnimation(
+                            .spring(
+                                response: 0.55,
+                                dampingFraction: 0.82
+                            )
+                        ) {
+                            checkInitialRegistrationAndNavigate()
+                        }
                     }
-                })
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-                
+                )
+                .transition(
+                    .asymmetric(
+                        insertion: .opacity,
+                        removal: .opacity
+                            .combined(with: .scale(scale: 1.04))
+                    )
+                )
+
+            // MARK: Intro
+
+            case .intro:
+                OnboardingIntroView(
+                    onLetsBegin: {
+                        withAnimation(
+                            .spring(
+                                response: 0.5,
+                                dampingFraction: 0.82
+                            )
+                        ) {
+                            currentScreen = .auth
+                        }
+                    }
+                )
+                .transition(
+                    .asymmetric(
+                        insertion: .move(edge: .trailing)
+                            .combined(with: .opacity),
+                        removal: .move(edge: .leading)
+                            .combined(with: .opacity)
+                    )
+                )
+
+            // MARK: Authentication
+
             case .auth:
                 OnboardingAuthView(
                     onAuthenticated: { user in
-                        handleAuthSuccess(email: user.email ?? "User")
+                        completeAuthentication(
+                            email: user.email ?? "User"
+                        )
                     },
+
                     onContinueWithEmail: { email in
-                        handleAuthSuccess(email: email)
+                        completeAuthentication(email: email)
                     },
+
                     onContinueWithApple: {
-                        handleAuthSuccess(email: "Apple User")
+                        completeAuthentication(
+                            email: "Apple User"
+                        )
                     },
+
                     onContinueWithGoogle: {
                         Task {
                             if let user = try? await auth.getCurrentUser() {
-                                handleAuthSuccess(email: user.email ?? "Google User")
+                                completeAuthentication(
+                                    email: user.email ?? "Google User"
+                                )
                             } else {
-                                handleAuthSuccess(email: "Google User")
+                                completeAuthentication(
+                                    email: "Google User"
+                                )
                             }
                         }
                     },
+
                     onBack: {
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
+                        withAnimation(
+                            .spring(
+                                response: 0.5,
+                                dampingFraction: 0.82
+                            )
+                        ) {
                             currentScreen = .intro
                         }
                     }
                 )
-                .transition(.move(edge: .trailing).combined(with: .opacity))
-                
-            case .onboardingFlow:
+                .transition(
+                    .asymmetric(
+                        insertion: .move(edge: .trailing)
+                            .combined(with: .opacity),
+                        removal: .move(edge: .trailing)
+                            .combined(with: .opacity)
+                    )
+                )
+
+            // MARK: Onboarding Info Screens (Carousel -> Name -> Age -> Welcome)
+
+            case .onboardingInfo:
                 OnboardingFlowContainer(onComplete: { name, age in
-                    finishOnboarding(name: name, age: age)
+                    finishOnboardingInfo(name: name, age: age)
                 })
                 .transition(.move(edge: .trailing).combined(with: .opacity))
-                
-            case .home(let email):
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // Header
-                        HStack(spacing: 16) {
-                            Image("moko_splash_icon_raw")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 56, height: 56)
-                                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                .shadow(color: MokoTheme.primaryText.opacity(0.08), radius: 8, x: 0, y: 4)
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Welcome, \(email)")
-                                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                                    .foregroundColor(MokoTheme.textPrimary)
-                                Text("SwiftData Inspector & Home")
-                                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                                    .foregroundColor(MokoTheme.textSecondary)
-                            }
-                            Spacer()
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 24)
-                        
-                        // SwiftData Tables Section
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("SwiftData Database Records")
-                                .font(.system(size: 17, weight: .bold, design: .rounded))
-                                .foregroundColor(MokoTheme.textPrimary)
-                                .padding(.horizontal, 20)
-                            
-                            // 1. Profiles Table Card
-                            SwiftDataTableCard(
-                                title: "Profiles Table",
-                                systemImage: "person.crop.circle.fill",
-                                count: profiles.count
+
+            // MARK: Onboarding Questions (Mapped to SwiftData OnboardingResponse & OnboardingQuestion)
+
+            case .onboardingQuestions:
+                NavigationStack {
+                    OnboardingFlowView(
+                        questions: OnboardingCardQuestion.all,
+                        totalSteps: OnboardingCardQuestion.totalSteps,
+                        onFinish: { result in
+                            answers = result
+                            mapAndSaveQuestionsToSwiftData(results: result)
+
+                            withAnimation(
+                                .easeInOut(duration: 0.3)
                             ) {
-                                if profiles.isEmpty {
-                                    Text("No profile records found.")
-                                        .font(.system(size: 13, design: .rounded))
-                                        .foregroundColor(MokoTheme.textSecondary)
-                                        .padding(.vertical, 8)
-                                } else {
-                                    ForEach(profiles, id: \.id) { profile in
-                                        VStack(alignment: .leading, spacing: 6) {
-                                            HStack {
-                                                Text("Username:")
-                                                    .fontWeight(.semibold)
-                                                Spacer()
-                                                Text(profile.username)
-                                                    .foregroundColor(MokoTheme.forestGreen)
-                                            }
-                                            HStack {
-                                                Text("Age:")
-                                                    .fontWeight(.semibold)
-                                                Spacer()
-                                                Text("\(profile.age)")
-                                            }
-                                            HStack {
-                                                Text("Updated:")
-                                                    .fontWeight(.semibold)
-                                                Spacer()
-                                                Text(profile.updatedAt.formatted(date: .abbreviated, time: .standard))
-                                                    .font(.system(size: 12))
-                                            }
-                                        }
-                                        .font(.system(size: 14, design: .rounded))
-                                        .padding(12)
-                                        .background(Color.cardFill)
-                                        .cornerRadius(10)
-                                    }
-                                }
-                            }
-                            
-                            // 2. Onboarding Responses Table Card
-                            SwiftDataTableCard(
-                                title: "Onboarding Responses Table",
-                                systemImage: "text.document.fill",
-                                count: onboardingResponses.count
-                            ) {
-                                if onboardingResponses.isEmpty {
-                                    Text("No onboarding responses recorded yet.")
-                                        .font(.system(size: 13, design: .rounded))
-                                        .foregroundColor(MokoTheme.textSecondary)
-                                        .padding(.vertical, 8)
-                                } else {
-                                    ForEach(onboardingResponses, id: \.id) { resp in
-                                        VStack(alignment: .leading, spacing: 6) {
-                                            HStack {
-                                                Text("User ID:")
-                                                    .fontWeight(.semibold)
-                                                Spacer()
-                                                Text(resp.userID)
-                                                    .foregroundColor(MokoTheme.forestGreen)
-                                            }
-                                            HStack {
-                                                Text("Question ID:")
-                                                    .fontWeight(.semibold)
-                                                Spacer()
-                                                Text(resp.questionID)
-                                            }
-                                            HStack {
-                                                Text("Response:")
-                                                    .fontWeight(.semibold)
-                                                Spacer()
-                                                Text(resp.userResponse)
-                                                    .multilineTextAlignment(.trailing)
-                                            }
-                                            HStack {
-                                                Text("Updated:")
-                                                    .fontWeight(.semibold)
-                                                Spacer()
-                                                Text(resp.updatedAt.formatted(date: .abbreviated, time: .standard))
-                                                    .font(.system(size: 12))
-                                            }
-                                        }
-                                        .font(.system(size: 14, design: .rounded))
-                                        .padding(12)
-                                        .background(Color.cardFill)
-                                        .cornerRadius(10)
-                                    }
-                                }
-                            }
-                            
-                            // 3. Onboarding States Table Card
-                            SwiftDataTableCard(
-                                title: "Onboarding States Table",
-                                systemImage: "checklist",
-                                count: onboardingStates.count
-                            ) {
-                                if onboardingStates.isEmpty {
-                                    Text("No onboarding state records found.")
-                                        .font(.system(size: 13, design: .rounded))
-                                        .foregroundColor(MokoTheme.textSecondary)
-                                        .padding(.vertical, 8)
-                                } else {
-                                    ForEach(onboardingStates, id: \.id) { state in
-                                        VStack(alignment: .leading, spacing: 6) {
-                                            HStack {
-                                                Text("Is Completed:")
-                                                    .fontWeight(.semibold)
-                                                Spacer()
-                                                Text(state.isCompleted ? "True" : "False")
-                                                    .foregroundColor(state.isCompleted ? .green : .orange)
-                                            }
-                                            HStack {
-                                                Text("Current Step:")
-                                                    .fontWeight(.semibold)
-                                                Spacer()
-                                                Text("\(state.currentStep)")
-                                            }
-                                            HStack {
-                                                Text("Updated:")
-                                                    .fontWeight(.semibold)
-                                                Spacer()
-                                                Text(state.updatedAt.formatted(date: .abbreviated, time: .standard))
-                                                    .font(.system(size: 12))
-                                            }
-                                        }
-                                        .font(.system(size: 14, design: .rounded))
-                                        .padding(12)
-                                        .background(Color.cardFill)
-                                        .cornerRadius(10)
-                                    }
-                                }
+                                currentScreen = .done
                             }
                         }
-                        .padding(.horizontal, 20)
-                        
-                        Spacer(minLength: 24)
-                        
-                        // Actions
-                        VStack(spacing: 12) {
-                            Button(action: {
-                                Task {
-                                    try? await auth.signOut()
-                                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                        currentScreen = .auth
-                                    }
-                                }
-                            }) {
-                                Text("Sign Out")
-                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                    .foregroundColor(MokoTheme.white)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 52)
-                                    .background(Capsule().fill(MokoTheme.forestGreen))
-                            }
-                            
-                            Button(action: {
-                                MokoTheme.playFeedback(.light)
-                                withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                    currentScreen = .splash
-                                }
-                            }) {
-                                Text("Replay Onboarding")
-                                    .font(.system(size: 15, weight: .medium, design: .rounded))
-                                    .foregroundColor(MokoTheme.textSecondary)
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 36)
+                    )
+                }
+                .transition(.opacity)
+
+            // MARK: Onboarding Done
+
+            case .done:
+                OnboardingDoneView(
+                    completed: answers.count
+                ) {
+                    withAnimation(
+                        .easeInOut(duration: 0.3)
+                    ) {
+                        currentScreen = .reflection
                     }
                 }
-                .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                .transition(.opacity)
+
+            // MARK: Reflection
+
+            case .reflection:
+                ReflectionView {
+                    withAnimation(
+                        .spring(
+                            response: 0.55,
+                            dampingFraction: 0.8
+                        )
+                    ) {
+                        currentScreen = .home(
+                            userEmail: signedInEmail.isEmpty ? (profiles.first?.username ?? "User") : signedInEmail
+                        )
+                    }
+                }
+                .transition(.opacity)
+
+            // MARK: Home
+
+            case .home(let email):
+                VStack(spacing: 24) {
+                    Spacer()
+
+                    Image("moko_splash_icon_raw")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(
+                            width: 120,
+                            height: 120
+                        )
+                        .clipShape(
+                            RoundedRectangle(
+                                cornerRadius: 28,
+                                style: .continuous
+                            )
+                        )
+                        .shadow(
+                            color: MokoTheme.primaryText
+                                .opacity(0.08),
+                            radius: 16,
+                            x: 0,
+                            y: 8
+                        )
+
+                    Text("Welcome to Moko!")
+                        .font(
+                            .system(
+                                size: 28,
+                                weight: .bold,
+                                design: .rounded
+                            )
+                        )
+                        .foregroundColor(
+                            MokoTheme.textPrimary
+                        )
+
+                    Text("Signed in as \(email)")
+                        .font(
+                            .system(
+                                size: 16,
+                                weight: .medium,
+                                design: .rounded
+                            )
+                        )
+                        .foregroundColor(
+                            MokoTheme.textSecondary
+                        )
+
+                    Spacer()
+
+                    // Sign Out Button
+                    Button(action: {
+                        Task {
+                            try? await auth.signOut()
+
+                            withAnimation(
+                                .spring(
+                                    response: 0.5,
+                                    dampingFraction: 0.8
+                                )
+                            ) {
+                                currentScreen = .auth
+                            }
+                        }
+                    }) {
+                        Text("Sign Out")
+                            .font(
+                                .system(
+                                    size: 16,
+                                    weight: .semibold,
+                                    design: .rounded
+                                )
+                            )
+                            .foregroundColor(
+                                MokoTheme.white
+                            )
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(
+                                Capsule()
+                                    .fill(
+                                        MokoTheme.forestGreen
+                                    )
+                            )
+                    }
+                    .padding(.horizontal, 32)
+
+                    // Replay Start Screens Button
+                    Button(action: {
+                        MokoTheme.playFeedback(.light)
+
+                        withAnimation(
+                            .spring(
+                                response: 0.5,
+                                dampingFraction: 0.8
+                            )
+                        ) {
+                            currentScreen = .splash
+                        }
+                    }) {
+                        Text("Replay Onboarding")
+                            .font(
+                                .system(
+                                    size: 15,
+                                    weight: .medium,
+                                    design: .rounded
+                                )
+                            )
+                            .foregroundColor(
+                                MokoTheme.textSecondary
+                            )
+                    }
+                    .padding(.bottom, 24)
+                }
+                .padding(.horizontal, 24)
+                .transition(
+                    .opacity
+                        .combined(
+                            with: .scale(scale: 0.96)
+                        )
+                )
             }
         }
         .onAppear {
             if isUserFullyRegistered {
                 let email = profiles.first?.username.isEmpty == false ? profiles.first!.username : "User"
                 currentScreen = .home(userEmail: email)
-            } else {
-                currentScreen = .splash
             }
         }
     }
-    
-    // MARK: - Registration & Authentication Logic
-    
+
+    // MARK: - Navigation & Registration Logic
+
     private func checkInitialRegistrationAndNavigate() {
         withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
             if isUserFullyRegistered {
@@ -317,82 +358,78 @@ struct ContentView: View {
             }
         }
     }
-    
-    private func handleAuthSuccess(email: String) {
+
+    private func completeAuthentication(email: String) {
         signedInEmail = email
-        
-        // By default after sign in, show the onboarding screens so user completes the onboarding flow
-        withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) {
-            currentScreen = .onboardingFlow
+
+        // After authentication, start onboarding info screens
+        withAnimation(
+            .spring(
+                response: 0.55,
+                dampingFraction: 0.8
+            )
+        ) {
+            currentScreen = .onboardingInfo
         }
     }
-    
-    private func finishOnboarding(name: String, age: Int) {
+
+    private func finishOnboardingInfo(name: String, age: Int) {
         let username = name.isEmpty ? (signedInEmail.isEmpty ? "Moko User" : signedInEmail) : name
-        
-        // Properly store Profile in SwiftData
+
+        // Store Profile in SwiftData
         let newProfile = Profile(username: username, age: age)
         modelContext.insert(newProfile)
-        
-        // Properly store OnboardingState in SwiftData
-        let newState = OnboardingState(isCompleted: true)
+
+        // Store OnboardingState in SwiftData
+        let newState = OnboardingState(currentStep: 1, isCompleted: false)
         modelContext.insert(newState)
-        
-        // Properly store OnboardingResponse in SwiftData
-        let response = OnboardingResponse(
-            userID: signedInEmail.isEmpty ? username : signedInEmail,
-            questionID: "onboarding_completed",
-            userResponse: "Completed onboarding successfully. Name: \(username), Age: \(age)"
-        )
-        modelContext.insert(response)
-        
+
         try? modelContext.save()
-        
+
+        // After finishing onboarding info screens, transition to onboarding questions flow
         withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) {
-            currentScreen = .home(userEmail: username)
+            currentScreen = .onboardingQuestions
         }
+    }
+
+    private func mapAndSaveQuestionsToSwiftData(results: [Int: OnboardingAnswer]) {
+        let userID = signedInEmail.isEmpty ? (profiles.first?.username ?? "User") : signedInEmail
+
+        // Map and insert OnboardingQuestion and OnboardingResponse records into SwiftData
+        for cardQ in OnboardingCardQuestion.all {
+            let qModel = OnboardingQuestion(
+                questionText: cardQ.text,
+                options: ["Yes", "No"],
+                isRequired: true
+            )
+            modelContext.insert(qModel)
+
+            let answer = results[cardQ.id] ?? .no
+            let responseStr = answer == .yes ? "Yes" : "No"
+
+            let respModel = OnboardingResponse(
+                userID: userID,
+                questionID: "q_\(cardQ.id)",
+                userResponse: responseStr
+            )
+            modelContext.insert(respModel)
+        }
+
+        // Update OnboardingState to completed
+        if let state = onboardingStates.first {
+            state.isCompleted = true
+            state.currentStep = OnboardingCardQuestion.totalSteps
+            state.updatedAt = .now
+        } else {
+            let newState = OnboardingState(currentStep: OnboardingCardQuestion.totalSteps, isCompleted: true)
+            modelContext.insert(newState)
+        }
+
+        try? modelContext.save()
     }
 }
 
-// MARK: - SwiftData Table Card Helper
-
-struct SwiftDataTableCard<Content: View>: View {
-    let title: String
-    let systemImage: String
-    let count: Int
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: systemImage)
-                    .foregroundColor(MokoTheme.forestGreen)
-                    .font(.system(size: 15, weight: .semibold))
-                Text(title)
-                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundColor(MokoTheme.textPrimary)
-                Spacer()
-                Text("\(count) items")
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(MokoTheme.forestGreen.opacity(0.1))
-                    .foregroundColor(MokoTheme.forestGreen)
-                    .clipShape(Capsule())
-            }
-            
-            Divider()
-            
-            content
-        }
-        .padding(16)
-        .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.white))
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.cardStroke, lineWidth: 1))
-        .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 3)
-    }
-}
-
-// MARK: - OnboardingFlow Container helper
+// MARK: - OnboardingFlow Container helper (Carousel -> Name -> Age -> Welcome)
 
 struct OnboardingFlowContainer: View {
     var onComplete: (String, Int) -> Void
