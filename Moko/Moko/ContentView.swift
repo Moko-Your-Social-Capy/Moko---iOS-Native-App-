@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import Auth
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -16,21 +17,23 @@ struct ContentView: View {
         case splash
         case intro
         case auth
-        case home(userIdentifier: String)
+        case home(userEmail: String)
     }
     
-    @State private var currentScreen: AppScreen = .auth
-    @State private var signedInUser: String = ""
+    @State private var currentScreen: AppScreen = .splash
+    @State private var signedInEmail: String = ""
+    
+    private let auth = AuthService()
     
     var body: some View {
         ZStack {
-            // Background to prevent white flash during screen transitions
+            // Theme background prevents screen flashes during transitions
             MokoTheme.background
                 .ignoresSafeArea()
             
             switch currentScreen {
             case .splash:
-                SplashScreenView(autoAdvance: false, onFinished: {
+                SplashScreenView(autoAdvance: true, onFinished: {
                     withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
                         currentScreen = .intro
                     }
@@ -53,14 +56,21 @@ struct ContentView: View {
                 
             case .auth:
                 OnboardingAuthView(
+                    onAuthenticated: { user in
+                        completeAuthentication(email: user.email ?? "User")
+                    },
                     onContinueWithEmail: { email in
-                        completeOnboarding(identifier: email)
+                        completeAuthentication(email: email)
                     },
                     onContinueWithApple: {
-                        completeOnboarding(identifier: "Apple ID User")
+                        completeAuthentication(email: "Apple User")
                     },
                     onContinueWithGoogle: {
-                        completeOnboarding(identifier: "Google User")
+                        Task {
+                            if let user = try? await auth.getCurrentUser() {
+                                completeAuthentication(email: user.email ?? "Google User")
+                            }
+                        }
                     },
                     onBack: {
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
@@ -73,8 +83,7 @@ struct ContentView: View {
                     removal: .move(edge: .trailing).combined(with: .opacity)
                 ))
                 
-            case .home(let user):
-                // Home / Connected Welcome Screen
+            case .home(let email):
                 VStack(spacing: 24) {
                     Spacer()
                     
@@ -83,19 +92,40 @@ struct ContentView: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 120, height: 120)
                         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                        .shadow(color: Color.black.opacity(0.08), radius: 16, x: 0, y: 8)
+                        .shadow(color: MokoTheme.primaryText.opacity(0.08), radius: 16, x: 0, y: 8)
                     
                     Text("Welcome to Moko!")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundColor(MokoTheme.textPrimary)
                     
-                    Text("Connected as \(user)")
+                    Text("Signed in as \(email)")
                         .font(.system(size: 16, weight: .medium, design: .rounded))
                         .foregroundColor(MokoTheme.textSecondary)
                     
                     Spacer()
                     
-                    // Button to replay start screens (helpful for presentation and testing)
+                    // Sign Out Button
+                    Button(action: {
+                        Task {
+                            try? await auth.signOut()
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                currentScreen = .auth
+                            }
+                        }
+                    }) {
+                        Text("Sign Out")
+                            .font(.system(size: 16, weight: .semibold, design: .rounded))
+                            .foregroundColor(MokoTheme.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(
+                                Capsule()
+                                    .fill(MokoTheme.forestGreen)
+                            )
+                    }
+                    .padding(.horizontal, 32)
+                    
+                    // Replay Start Screens Button (convenient for testing & review)
                     Button(action: {
                         MokoTheme.playFeedback(.light)
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
@@ -103,29 +133,23 @@ struct ContentView: View {
                         }
                     }) {
                         Text("Replay Onboarding")
-                            .font(.system(size: 16, weight: .semibold, design: .rounded))
-                            .foregroundColor(MokoTheme.forestGreen)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(
-                                Capsule()
-                                    .stroke(MokoTheme.forestGreen, lineWidth: 1.5)
-                            )
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                            .foregroundColor(MokoTheme.textSecondary)
                     }
-                    .padding(.horizontal, 32)
                     .padding(.bottom, 24)
                 }
                 .padding(.horizontal, 24)
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
     }
     
-    // MARK: - Onboarding Completion Helper
-    private func completeOnboarding(identifier: String) {
-        signedInUser = identifier
+    // MARK: - Authentication Completion Helper
+    
+    private func completeAuthentication(email: String) {
+        signedInEmail = email
         
-        // Update SwiftData state if present, or create new state
+        // Update SwiftData onboarding state
         if let state = onboardingStates.first {
             state.isCompleted = true
             state.updatedAt = .now
@@ -135,7 +159,7 @@ struct ContentView: View {
         }
         
         withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) {
-            currentScreen = .home(userIdentifier: identifier)
+            currentScreen = .home(userEmail: email)
         }
     }
 }

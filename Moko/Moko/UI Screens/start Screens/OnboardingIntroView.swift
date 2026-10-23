@@ -30,7 +30,7 @@ struct OnboardingIntroView: View {
                     ZStack {
                         // Soft Floor Shadow
                         Ellipse()
-                            .fill(Color.black.opacity(0.05))
+                            .fill(MokoTheme.primaryText.opacity(0.05))
                             .frame(width: 170, height: 18)
                             .offset(y: 112)
                             .blur(radius: 2)
@@ -77,7 +77,7 @@ struct OnboardingIntroView: View {
                     }) {
                         Text("Let's Begin")
                             .font(.system(size: 17, weight: .semibold, design: .rounded))
-                            .foregroundColor(.white)
+                            .foregroundColor(MokoTheme.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 56)
                             .background(

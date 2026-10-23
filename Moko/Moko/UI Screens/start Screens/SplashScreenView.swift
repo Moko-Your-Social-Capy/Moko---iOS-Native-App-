@@ -70,7 +70,7 @@ struct SplashScreenView: View {
                     ZStack {
                         // Soft ambient glow behind card
                         RoundedRectangle(cornerRadius: 32, style: .continuous)
-                            .fill(Color(red: 210/255, green: 228/255, blue: 236/255).opacity(0.35))
+                            .fill(MokoTheme.warmNeutral.opacity(0.6))
                             .frame(width: 144, height: 144)
                             .scaleEffect(pulseGlow)
                             .blur(radius: 12)
@@ -81,9 +81,9 @@ struct SplashScreenView: View {
                             .frame(width: 126, height: 126)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 30, style: .continuous)
-                                    .stroke(Color.white.opacity(0.8), lineWidth: 1.5)
+                                    .stroke(MokoTheme.white.opacity(0.9), lineWidth: 1.5)
                             )
-                            .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 10)
+                            .shadow(color: MokoTheme.primaryText.opacity(0.08), radius: 20, x: 0, y: 10)
                             .shadow(color: MokoTheme.forestGreen.opacity(0.06), radius: 8, x: 0, y: 4)
                         
                         // Moko Illustration inside card
