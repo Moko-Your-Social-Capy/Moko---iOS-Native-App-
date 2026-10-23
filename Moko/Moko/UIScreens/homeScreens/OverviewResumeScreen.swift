@@ -2,36 +2,35 @@
 //  OverviewResumeScreen.swift
 //  Moko
 //
-//  Adheres to modern iOS and SwiftUI standards.
+//  Overview content only. Includes the floating MokoTabBar.
 //
 
 import SwiftUI
 
 struct OverviewResumeScreen: View {
+    @State private var selectedTab: MokoTab = .overview
+
     // Optional callbacks
     var onSlideResume: (() -> Void)? = nil
     var onStartDebrief: (() -> Void)? = nil
-    
+
     // MARK: - State Properties
-    @State private var selectedTab: MokoTab = .overview
     @State private var slideOffset: CGFloat = 0
     @State private var isResumeCompleted: Bool = false
-    
+
     // Palette matching design specifications
     private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
     private let primaryGreen = Color(red: 27/255, green: 66/255, blue: 47/255) // #1B422F
     private let micGreen = Color(red: 47/255, green: 79/255, blue: 64/255)
     private let titleDark = Color(red: 47/255, green: 42/255, blue: 40/255) // #2F2A28
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
-    private let pillActiveBg = Color(red: 237/255, green: 237/255, blue: 237/255) // #EDEDED
-    private let activeTabIcon = Color(red: 54/255, green: 89/255, blue: 72/255) // #365948
-    
+
     var body: some View {
         ZStack(alignment: .bottom) {
             // Background
             screenBg
                 .ignoresSafeArea()
-            
+
             // Scrollable Content Area
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
@@ -39,55 +38,55 @@ struct OverviewResumeScreen: View {
                     headerSection
                         .padding(.horizontal, 20)
                         .padding(.top, 14)
-                    
+
                     // MARK: - Today's Mission Section
                     todaysMissionSection
                         .padding(.top, 28)
                         .padding(.horizontal, 16)
-                    
+
                     // MARK: - Statistics Section
                     statisticsSection
                         .padding(.top, 28)
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 120) // Bottom spacing for floating tab bar
+                        .padding(.bottom, 120) // space for floating tab bar
                 }
             }
-            
-            // MARK: - Floating Bottom Navigation Bar
-            MokoFloatingTabBar(selectedTab: $selectedTab)
-                .padding(.bottom, 21)
+
+            // MARK: - Floating Tab Bar
+            MokoTabBar(selectedTab: $selectedTab)
+                .padding(.bottom, 4)
         }
     }
-    
+
     // MARK: - Header Section
     private var headerSection: some View {
         HStack(alignment: .center) {
             Text("Overview")
                 .font(.system(size: 34, weight: .bold))
                 .foregroundColor(.black)
-            
+
             Spacer()
-            
+
             // Avatar Circle
             ZStack {
                 Circle()
                     .fill(Color(red: 68/255, green: 68/255, blue: 68/255).opacity(0.6))
                     .frame(width: 47, height: 47)
-                
+
                 Text("AJ")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
             }
         }
     }
-    
+
     // MARK: - Today's Mission Section
     private var todaysMissionSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Today’s Mission")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(titleDark)
-            
+
             VStack(alignment: .leading, spacing: 0) {
                 // Mission Title
                 Text("Coffee with Arjun  Debrief")
@@ -95,7 +94,7 @@ struct OverviewResumeScreen: View {
                     .foregroundColor(primaryGreen)
                     .padding(.top, 24)
                     .padding(.horizontal, 20)
-                
+
                 // Mission Subtitle / Description
                 Text("Pick up where you left off.  Share how your day\nwent .")
                     .font(.system(size: 15, weight: .regular))
@@ -103,7 +102,7 @@ struct OverviewResumeScreen: View {
                     .lineSpacing(3)
                     .padding(.top, 12)
                     .padding(.horizontal, 20)
-                
+
                 // Action: Slides to resume OR reveals Start Debrief + Mic
                 if !isResumeCompleted {
                     slideToResumeWidget
@@ -126,12 +125,12 @@ struct OverviewResumeScreen: View {
             .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isResumeCompleted)
         }
     }
-    
+
     // MARK: - Start Debrief Widget (Shown after sliding to resume)
     private var startDebriefWidget: some View {
         HStack(alignment: .center) {
             Spacer()
-            
+
             Button(action: {
                 onStartDebrief?()
             }) {
@@ -139,9 +138,9 @@ struct OverviewResumeScreen: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(titleDark)
             }
-            
+
             Spacer()
-            
+
             Button(action: {
                 onStartDebrief?()
             }) {
@@ -150,7 +149,7 @@ struct OverviewResumeScreen: View {
                         .fill(micGreen)
                         .frame(width: 46, height: 46)
                         .shadow(color: Color.black.opacity(0.12), radius: 6, x: 0, y: 3)
-                    
+
                     Image(systemName: "mic.fill")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(.white)
@@ -158,20 +157,20 @@ struct OverviewResumeScreen: View {
             }
         }
     }
-    
+
     // MARK: - Slide to Resume Widget
     private var slideToResumeWidget: some View {
         GeometryReader { geo in
             let sliderWidth = geo.size.width
             let knobSize: CGFloat = 43
             let maxDrag = sliderWidth - knobSize - 5
-            
+
             ZStack(alignment: .leading) {
                 // Pill Track
                 Capsule()
                     .fill(primaryGreen.opacity(0.88))
                     .frame(height: 48)
-                
+
                 // Centered Label
                 HStack {
                     Spacer()
@@ -181,14 +180,14 @@ struct OverviewResumeScreen: View {
                     Spacer()
                 }
                 .frame(height: 48)
-                
+
                 // Draggable Knob with Arrow
                 ZStack {
                     Circle()
                         .fill(Color(red: 252/255, green: 248/255, blue: 240/255))
                         .frame(width: knobSize, height: knobSize)
                         .shadow(color: Color.black.opacity(0.12), radius: 3, x: 0, y: 1)
-                    
+
                     Image(systemName: "arrow.right")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.black)
@@ -220,22 +219,22 @@ struct OverviewResumeScreen: View {
         }
         .frame(height: 48)
     }
-    
+
     // MARK: - Statistics Section
     private var statisticsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Statistics")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(titleDark)
-            
+
             // Insights Card
             insightsCard
-            
+
             // Calm Down Card
             calmDownCard
         }
     }
-    
+
     // MARK: - Insights Card
     private var insightsCard: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -244,14 +243,14 @@ struct OverviewResumeScreen: View {
                 Text("Insights")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(primaryGreen)
-                
+
                 Spacer()
-                
+
                 HStack(spacing: 4) {
                     Text("Oct 15")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(titleDark)
-                    
+
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(titleDark)
@@ -259,22 +258,22 @@ struct OverviewResumeScreen: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 18)
-            
+
             // Card Content: Number + Radar Chart
             HStack(alignment: .bottom) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text("78")
                         .font(.system(size: 44, weight: .bold, design: .rounded))
                         .foregroundColor(primaryGreen)
-                    
+
                     Text("warmth")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(primaryGreen)
                 }
                 .padding(.bottom, 6)
-                
+
                 Spacer()
-                
+
                 // Radar / Diamond Shape Chart
                 InsightsRadarChartView()
                     .frame(width: 106, height: 106)
@@ -288,7 +287,7 @@ struct OverviewResumeScreen: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
     }
-    
+
     // MARK: - Calm Down Card
     private var calmDownCard: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -297,14 +296,14 @@ struct OverviewResumeScreen: View {
                 Text("Calm Down")
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(primaryGreen)
-                
+
                 Spacer()
-                
+
                 HStack(spacing: 4) {
                     Text("Oct 15")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(titleDark)
-                    
+
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundColor(titleDark)
@@ -312,22 +311,22 @@ struct OverviewResumeScreen: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 18)
-            
+
             // Card Content: Number + Bar Chart
             HStack(alignment: .bottom) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text("18")
                         .font(.system(size: 44, weight: .bold, design: .rounded))
                         .foregroundColor(primaryGreen)
-                    
+
                     Text("min")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(primaryGreen)
                 }
                 .padding(.bottom, 6)
-                
+
                 Spacer()
-                
+
                 // Bar Chart Visual
                 CalmDownBarChartView()
                     .frame(height: 72)
