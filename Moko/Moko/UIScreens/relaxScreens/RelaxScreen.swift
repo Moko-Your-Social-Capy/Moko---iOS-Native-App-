@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 enum RelaxSession: String, CaseIterable, Identifiable {
     case boxBreathing
@@ -34,7 +35,31 @@ enum RelaxSession: String, CaseIterable, Identifiable {
         }
     }
 
-    // Placeholder copy for the sheets; replace with your final text.
+    /// Paragraph shown in the full-height sheet. Box Breathing matches the design; the rest is placeholder copy.
+    var detailText: String {
+        switch self {
+        case .boxBreathing:
+            return "Breathe in for 4 seconds, hold for 4 seconds. Breathe out for 4 seconds, hold for 4 seconds. Repeat this cycle for 2–3 minutes, breathing comfortably at your own pace."
+        case .grounding:
+            return "Notice 5 things you can see, 4 you can feel, 3 you can hear, 2 you can smell and 1 you can taste. Take your time with each one and breathe slowly."
+        case .imagery:
+            return "Close your eyes and picture a calm, safe place in detail. Breathe slowly as you explore what you see, hear and feel there."
+        case .mirror:
+            return "Look at yourself in the mirror and relax your face. Breathe slowly and steadily, and say something kind to yourself."
+        }
+    }
+
+    /// Name of the illustration in Assets.xcassets (falls back to a placeholder if missing).
+    var bannerImageName: String {
+        switch self {
+        case .boxBreathing: return "relax_box_breathing"
+        case .grounding:    return "relax_grounding"
+        case .imagery:      return "relax_imagery"
+        case .mirror:       return "relax_mirror"
+        }
+    }
+
+    // Placeholder copy (no longer used by the session sheet)
     var steps: [String] {
         switch self {
         case .boxBreathing:
@@ -153,7 +178,7 @@ struct RelaxScreen: View {
                     .foregroundColor(.black)
             }
 
-            Text("Set your timer for a calmer mind")
+            Text("Set your own meditation timer for a calmer mind")
                 .font(.system(size: 15, weight: .regular))
                 .foregroundColor(subtextGray)
                 .lineSpacing(3)
@@ -307,15 +332,9 @@ struct RelaxScreen: View {
             )
 
         case .session(let session):
-            RelaxDetailSheet(
-                title: session.title,
-                subtitle: session.cardDescription,
-                steps: session.steps,
-                buttonTitle: "Start",
-                onStart: { onStartSession?(session) },
-                icon: { sessionIcon(session) },
-                extra: { EmptyView() }
-            )
+            RelaxSessionSheet(session: session) {
+                onStartSession?(session)
+            }
         }
     }
 }
@@ -412,6 +431,93 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
+    }
+}
+
+// MARK: - Full-height session sheet (illustration, text, Continue / Not now)
+struct RelaxSessionSheet: View {
+    let session: RelaxSession
+    var onContinue: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private let primaryGreen = Color(red: 54/255, green: 89/255, blue: 72/255)   // #365948
+    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)  // #6F6762
+    private let bannerTop = Color(red: 232/255, green: 242/255, blue: 255/255)
+    private let bannerBottom = Color(red: 208/255, green: 226/255, blue: 248/255)
+
+    var body: some View {
+        VStack(spacing: 0) {
+            banner
+
+            Text(session.title)
+                .font(.system(size: 26, weight: .bold))
+                .foregroundColor(.black)
+                .padding(.top, 80)
+
+            Text(session.detailText)
+                .font(.system(size: 17, weight: .regular))
+                .foregroundColor(subtextGray)
+                .multilineTextAlignment(.center)
+                .lineSpacing(5)
+                .padding(.top, 18)
+                .padding(.horizontal, 40)
+
+            Button {
+                onContinue()
+                dismiss()
+            } label: {
+                Text("Continue")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(Capsule().fill(primaryGreen))
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 36)
+            .padding(.horizontal, 28)
+
+            Button {
+                dismiss()
+            } label: {
+                Text("Not now")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(primaryGreen)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.top, 14)
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white)
+        // Opens tall, to just under the status bar, like the design
+        .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
+    }
+
+    private var banner: some View {
+        ZStack {
+            LinearGradient(colors: [bannerTop, bannerBottom], startPoint: .top, endPoint: .bottom)
+
+            if UIImage(named: session.bannerImageName) != nil {
+                Image(session.bannerImageName)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                // Placeholder until the illustration is added to Assets
+                Image(systemName: "figure.mind.and.body")
+                    .font(.system(size: 96, weight: .regular))
+                    .foregroundColor(primaryGreen.opacity(0.55))
+            }
+        }
+        .frame(height: 300)
+        .frame(maxWidth: .infinity)
+        .clipped()
     }
 }
 
