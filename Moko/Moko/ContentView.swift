@@ -215,22 +215,7 @@ struct ContentView: View {
             // MARK: Home
 
             case .home(let email):
-                HomeScreenView(
-                    userEmail: email,
-                    onSignOut: {
-                        Task {
-                            try? await auth.signOut()
-                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                currentScreen = .auth
-                            }
-                        }
-                    },
-                    onReplayOnboarding: {
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                            currentScreen = .splash
-                        }
-                    }
-                )
+                Overview()
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
