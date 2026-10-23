@@ -69,7 +69,7 @@ struct SwipeQuestionCard: View {
     private var answerButtons: some View {
         HStack {
             Button(action: onNo) {
-                Text("< NO")
+                Text("NO")
                     .foregroundStyle(OBColor.no)
                     .scaleEffect(1 + max(0, -swipeProgress) * 0.2, anchor: .leading)
                     .padding(.vertical, 6)
@@ -82,7 +82,7 @@ struct SwipeQuestionCard: View {
             Spacer()
 
             Button(action: onYes) {
-                Text("YES >")
+                Text("YES")
                     .foregroundStyle(OBColor.yes)
                     .scaleEffect(1 + max(0, swipeProgress) * 0.2, anchor: .trailing)
                     .padding(.vertical, 6)
