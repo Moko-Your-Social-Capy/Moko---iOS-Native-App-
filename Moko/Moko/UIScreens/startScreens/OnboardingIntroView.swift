@@ -26,27 +26,11 @@ struct OnboardingIntroView: View {
                 VStack(spacing: 0) {
                     Spacer(minLength: 20)
                     
-                    // Waving Moko Capybara Illustration Area
-                    ZStack {
-                        // Soft Floor Shadow
-                        Ellipse()
-                            .fill(MokoTheme.primaryText.opacity(0.05))
-                            .frame(width: 170, height: 18)
-                            .offset(y: 112)
-                            .blur(radius: 2)
-                        
-                        // Moko Illustration
-                        Image("moko_waving_raw")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: min(geometry.size.width * 0.58, 240))
-                            .rotationEffect(.degrees(waveAngle), anchor: .bottom)
-                            .offset(y: mokoBobOffset)
-                    }
-                    .frame(height: 260)
-                    .scaleEffect(hasAppeared ? 1.0 : 0.88)
-                    .opacity(hasAppeared ? 1.0 : 0.0)
-                    .padding(.bottom, 24)
+                    // Playful Animated Mascot (Jump + Wave)
+                    MokoAnimatedMascotView(size: min(geometry.size.width * 0.62, 250))
+                        .scaleEffect(hasAppeared ? 1.0 : 0.88)
+                        .opacity(hasAppeared ? 1.0 : 0.0)
+                        .padding(.bottom, 16)
                     
                     // Title
                     Text("Hello, I’m Moko.")
