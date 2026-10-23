@@ -215,127 +215,23 @@ struct ContentView: View {
             // MARK: Home
 
             case .home(let email):
-                VStack(spacing: 24) {
-                    Spacer()
-
-                    Image("moko_splash_icon_raw")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(
-                            width: 120,
-                            height: 120
-                        )
-                        .clipShape(
-                            RoundedRectangle(
-                                cornerRadius: 28,
-                                style: .continuous
-                            )
-                        )
-                        .shadow(
-                            color: MokoTheme.primaryText
-                                .opacity(0.08),
-                            radius: 16,
-                            x: 0,
-                            y: 8
-                        )
-
-                    Text("Welcome to Moko!")
-                        .font(
-                            .system(
-                                size: 28,
-                                weight: .bold,
-                                design: .rounded
-                            )
-                        )
-                        .foregroundColor(
-                            MokoTheme.textPrimary
-                        )
-
-                    Text("Signed in as \(email)")
-                        .font(
-                            .system(
-                                size: 16,
-                                weight: .medium,
-                                design: .rounded
-                            )
-                        )
-                        .foregroundColor(
-                            MokoTheme.textSecondary
-                        )
-
-                    Spacer()
-
-                    // Sign Out Button
-                    Button(action: {
+                HomeScreenView(
+                    userEmail: email,
+                    onSignOut: {
                         Task {
                             try? await auth.signOut()
-
-                            withAnimation(
-                                .spring(
-                                    response: 0.5,
-                                    dampingFraction: 0.8
-                                )
-                            ) {
+                            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                                 currentScreen = .auth
                             }
                         }
-                    }) {
-                        Text("Sign Out")
-                            .font(
-                                .system(
-                                    size: 16,
-                                    weight: .semibold,
-                                    design: .rounded
-                                )
-                            )
-                            .foregroundColor(
-                                MokoTheme.white
-                            )
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(
-                                Capsule()
-                                    .fill(
-                                        MokoTheme.forestGreen
-                                    )
-                            )
-                    }
-                    .padding(.horizontal, 32)
-
-                    // Replay Start Screens Button
-                    Button(action: {
-                        MokoTheme.playFeedback(.light)
-
-                        withAnimation(
-                            .spring(
-                                response: 0.5,
-                                dampingFraction: 0.8
-                            )
-                        ) {
+                    },
+                    onReplayOnboarding: {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
                             currentScreen = .splash
                         }
-                    }) {
-                        Text("Replay Onboarding")
-                            .font(
-                                .system(
-                                    size: 15,
-                                    weight: .medium,
-                                    design: .rounded
-                                )
-                            )
-                            .foregroundColor(
-                                MokoTheme.textSecondary
-                            )
                     }
-                    .padding(.bottom, 24)
-                }
-                .padding(.horizontal, 24)
-                .transition(
-                    .opacity
-                        .combined(
-                            with: .scale(scale: 0.96)
-                        )
                 )
+                .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
         .onAppear {
