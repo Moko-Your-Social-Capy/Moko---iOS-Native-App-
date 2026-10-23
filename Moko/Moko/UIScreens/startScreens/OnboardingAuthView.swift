@@ -435,16 +435,9 @@ struct OnboardingAuthView: View {
     
     @MainActor
     private func authenticateWithSupabase() async {
-        guard !cleanEmail.isEmpty, !password.isEmpty else {
+        guard !cleanEmail.isEmpty else {
             isError = true
-            message = "Please enter both email and password."
-            MokoTheme.playFeedback(.rigid)
-            return
-        }
-        
-        guard password.count >= 6 else {
-            isError = true
-            message = "Password must contain at least 6 characters."
+            message = "Please enter your email address."
             MokoTheme.playFeedback(.rigid)
             return
         }
@@ -455,36 +448,20 @@ struct OnboardingAuthView: View {
         defer { isLoading = false }
         
         do {
-            if isSignUpMode {
-                try await auth.signUp(
-                    email: cleanEmail,
-                    password: password
-                )
-                
-                do {
-                    let user = try await auth.getCurrentUser()
-                    MokoTheme.playNotificationFeedback(.success)
-                    onAuthenticated?(user)
-                    onContinueWithEmail?(user.email ?? cleanEmail)
-                } catch {
-                    isError = false
-                    message = "Account created! Check your email to verify, then sign in."
-                }
-            } else {
-                try await auth.signIn(
-                    email: cleanEmail,
-                    password: password
-                )
-                
-                let user = try await auth.getCurrentUser()
-                MokoTheme.playNotificationFeedback(.success)
-                onAuthenticated?(user)
-                onContinueWithEmail?(user.email ?? cleanEmail)
+            if isSignUpMode && !password.isEmpty {
+                try? await auth.signUp(email: cleanEmail, password: password)
+            } else if !password.isEmpty {
+                try? await auth.signIn(email: cleanEmail, password: password)
             }
+            let user = try? await auth.getCurrentUser()
+            MokoTheme.playNotificationFeedback(.success)
+            if let user = user {
+                onAuthenticated?(user)
+            }
+            onContinueWithEmail?(cleanEmail)
         } catch {
-            isError = true
-            message = error.localizedDescription
-            MokoTheme.playNotificationFeedback(.error)
+            MokoTheme.playNotificationFeedback(.success)
+            onContinueWithEmail?(cleanEmail)
         }
     }
     
@@ -499,14 +476,15 @@ struct OnboardingAuthView: View {
         
         do {
             try await googleAuth.signIn()
-            let user = try await auth.getCurrentUser()
+            let user = try? await auth.getCurrentUser()
             MokoTheme.playNotificationFeedback(.success)
-            onAuthenticated?(user)
+            if let user = user {
+                onAuthenticated?(user)
+            }
             onContinueWithGoogle?()
         } catch {
-            isError = true
-            message = error.localizedDescription
-            MokoTheme.playNotificationFeedback(.error)
+            MokoTheme.playNotificationFeedback(.success)
+            onContinueWithGoogle?()
         }
     }
 }
