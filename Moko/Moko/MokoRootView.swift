@@ -34,14 +34,14 @@ struct MokoRootView: View {
         switch tab {
         case .overview:
             switch overviewState {
-            case .todo:        Overview()
+            case .todo:        Overview(selectedTab: $tab)
             case .debriefDone: OverviewDebriefDone()
             case .resume:      OverviewResumeScreen()
             }
         case .quests:
             MokoPlaceholderScreen(title: "Quests", initialTab: .quests)
         case .relax:
-            RelaxScreen()
+            RelaxScreen(selectedTab: $tab)
         case .search:
             MokoPlaceholderScreen(title: "Search", initialTab: .search)
         }
