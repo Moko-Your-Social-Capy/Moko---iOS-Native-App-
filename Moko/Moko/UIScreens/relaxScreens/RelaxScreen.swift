@@ -125,7 +125,14 @@ struct RelaxScreen: View {
     var onStartSession: ((RelaxSession) -> Void)? = nil
 
     // MARK: - State Properties
-    @State private var selectedTab: MokoTab = .relax
+    @Binding var selectedTab: MokoTab
+
+    init(selectedTab: Binding<MokoTab> = .constant(.relax), onStartBreathing: ((Int) -> Void)? = nil, onStartSession: ((RelaxSession) -> Void)? = nil) {
+        self._selectedTab = selectedTab
+        self.onStartBreathing = onStartBreathing
+        self.onStartSession = onStartSession
+    }
+
     @State private var minutes: Int = 1
     @State private var activeSheet: RelaxSheet?
     @State private var pendingFullScreen: RelaxFullScreen?
