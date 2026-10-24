@@ -8,10 +8,15 @@
 import SwiftUI
 
 struct Overview: View {
-    @State private var selectedTab: MokoTab = .overview
+    @Binding var selectedTab: MokoTab
 
     // Optional navigation callback when debrief starts
     var onStartDebrief: (() -> Void)? = nil
+
+    init(selectedTab: Binding<MokoTab> = .constant(.overview), onStartDebrief: (() -> Void)? = nil) {
+        self._selectedTab = selectedTab
+        self.onStartDebrief = onStartDebrief
+    }
 
     // MARK: - State Properties
     @State private var slideOffset: CGFloat = 0
