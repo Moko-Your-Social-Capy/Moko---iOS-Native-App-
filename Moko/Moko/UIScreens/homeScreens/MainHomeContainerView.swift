@@ -19,7 +19,7 @@ struct MainHomeContainerView: View {
             case .quests:
                 OverviewDebriefDone()
             case .relax:
-                RelaxView(selectedTab: $selectedTab)
+                RelaxScreen(selectedTab: $selectedTab)
             case .search:
                 Overview(selectedTab: $selectedTab)
             }
