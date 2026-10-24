@@ -109,6 +109,16 @@ private enum RelaxSheet: Identifiable {
     }
 }
 
+private enum RelaxFullScreen: Identifiable {
+    case breathing
+
+    var id: String {
+        switch self {
+        case .breathing: return "breathing"
+        }
+    }
+}
+
 struct RelaxScreen: View {
     // Optional callbacks fired when the user taps Start in a sheet
     var onStartBreathing: ((Int) -> Void)? = nil          // chosen minutes
@@ -118,8 +128,8 @@ struct RelaxScreen: View {
     @State private var selectedTab: MokoTab = .relax
     @State private var minutes: Int = 1
     @State private var activeSheet: RelaxSheet?
-    @State private var pendingBreathingStart = false
-    @State private var showBreathingSession = false
+    @State private var pendingFullScreen: RelaxFullScreen?
+    @State private var fullScreen: RelaxFullScreen?
 
     // Palette matching design specifications
     private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
@@ -174,16 +184,19 @@ struct RelaxScreen: View {
                 .padding(.bottom, 4)
         }
         .sheet(item: $activeSheet, onDismiss: {
-            // Open the timer screen only after the sheet has fully closed
-            if pendingBreathingStart {
-                pendingBreathingStart = false
-                showBreathingSession = true
+            // Open the next screen only after the sheet has fully closed
+            if let next = pendingFullScreen {
+                pendingFullScreen = nil
+                fullScreen = next
             }
         }) { sheet in
             sheetContent(for: sheet)
         }
-        .fullScreenCover(isPresented: $showBreathingSession) {
-            BreathingSessionScreen(minutes: minutes)
+        .fullScreenCover(item: $fullScreen) { destination in
+            switch destination {
+            case .breathing:
+                BreathingSessionScreen(minutes: minutes)
+            }
         }
     }
 
@@ -322,7 +335,7 @@ struct RelaxScreen: View {
                         "Breathe out gently and let go of tension"],
                 buttonTitle: "Start \(minutes) min session",
                 onStart: {
-                    pendingBreathingStart = true
+                    pendingFullScreen = .breathing
                     onStartBreathing?(minutes)
                 },
                 icon: { BreathingDotsIcon(color: cardGreen).frame(width: 64, height: 64) },
@@ -343,9 +356,11 @@ struct RelaxScreen: View {
             )
 
         case .session(let session):
-            RelaxSessionSheet(session: session) {
-                onStartSession?(session)
-            }
+            RelaxSessionSheet(
+                session: session,
+                onContinue: { onStartSession?(session) },
+                onFinishFlow: { activeSheet = nil }
+            )
         }
     }
 }
@@ -449,8 +464,11 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
 struct RelaxSessionSheet: View {
     let session: RelaxSession
     var onContinue: () -> Void
+    /// Called when a flow reaches its end (e.g. Done). The parent closes this sheet.
+    var onFinishFlow: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
+    @State private var showNext = false
 
     private let primaryGreen = Color(red: 54/255, green: 89/255, blue: 72/255)   // #365948
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)  // #6F6762
@@ -474,7 +492,8 @@ struct RelaxSessionSheet: View {
 
             Button {
                 onContinue()
-                dismiss()
+                // Slide the next screen over the sheet instead of closing the sheet first
+                showNext = true
             } label: {
                 Text("Continue")
                     .font(.system(size: 18, weight: .semibold))
@@ -507,6 +526,14 @@ struct RelaxSessionSheet: View {
         // Opens tall, to just under the status bar, like the design
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
+        .fullScreenCover(isPresented: $showNext) {
+            RelaxSessionDestination(
+                session: session,
+                onExit: { showNext = false },
+                // Close the sheet itself, so the flow and the sheet go away together
+                onFinish: { onFinishFlow() }
+            )
+        }
     }
 
     private var banner: some View {
@@ -533,6 +560,87 @@ struct RelaxSessionSheet: View {
                     .scaledToFill()
             }
             .clipped()
+    }
+}
+
+// MARK: - Where "Continue" leads for each session
+// Plug each session's real screen in here as you build it.
+struct RelaxSessionDestination: View {
+    let session: RelaxSession
+    /// Backed out of the flow's first screen
+    var onExit: () -> Void = {}
+    /// Reached the end of the flow
+    var onFinish: () -> Void = {}
+
+    var body: some View {
+        switch session {
+        case .mirror:
+            MirrorFlowView(onExit: onExit, onFinish: onFinish)
+        case .boxBreathing, .grounding, .imagery:
+            RelaxSessionPlaceholderScreen(session: session)
+        }
+    }
+}
+
+// Stand-in for the sessions whose screens aren't built yet
+struct RelaxSessionPlaceholderScreen: View {
+    let session: RelaxSession
+
+    @Environment(\.dismiss) private var dismiss
+
+    private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255)
+    private let cardGreen = Color(red: 54/255, green: 89/255, blue: 72/255)
+    private let titleDark = Color(red: 47/255, green: 42/255, blue: 40/255)
+    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)
+    private let chipBg = Color(red: 237/255, green: 237/255, blue: 237/255)
+    private let mint = Color(red: 203/255, green: 230/255, blue: 211/255)
+
+    var body: some View {
+        ZStack {
+            screenBg.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.black)
+                            .frame(width: 38, height: 38)
+                            .background(Circle().fill(chipBg))
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+
+                Spacer()
+
+                ZStack {
+                    Circle()
+                        .fill(mint.opacity(0.7))
+                        .frame(width: 140, height: 140)
+                    RelaxSessionIcon(session: session, color: cardGreen, size: 56)
+                }
+
+                Text(session.title)
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(titleDark)
+                    .padding(.top, 28)
+
+                Text("This practice is coming soon.")
+                    .font(.system(size: 16))
+                    .foregroundColor(subtextGray)
+                    .padding(.top, 8)
+
+                Spacer()
+                Spacer()
+            }
+        }
     }
 }
 
