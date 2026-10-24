@@ -7,7 +7,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 enum RelaxSession: String, CaseIterable, Identifiable {
     case boxBreathing
@@ -105,6 +104,8 @@ struct RelaxScreen: View {
     @State private var selectedTab: MokoTab = .relax
     @State private var minutes: Int = 1
     @State private var activeSheet: RelaxSheet?
+    @State private var pendingBreathingStart = false
+    @State private var showBreathingSession = false
 
     // Palette matching design specifications
     private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
@@ -158,8 +159,17 @@ struct RelaxScreen: View {
             MokoTabBar(selectedTab: $selectedTab)
                 .padding(.bottom, 4)
         }
-        .sheet(item: $activeSheet) { sheet in
+        .sheet(item: $activeSheet, onDismiss: {
+            // Open the timer screen only after the sheet has fully closed
+            if pendingBreathingStart {
+                pendingBreathingStart = false
+                showBreathingSession = true
+            }
+        }) { sheet in
             sheetContent(for: sheet)
+        }
+        .fullScreenCover(isPresented: $showBreathingSession) {
+            BreathingSessionScreen(minutes: minutes)
         }
     }
 
@@ -313,7 +323,10 @@ struct RelaxScreen: View {
                         "Breathe in slowly through your nose",
                         "Breathe out gently and let go of tension"],
                 buttonTitle: "Start \(minutes) min session",
-                onStart: { onStartBreathing?(minutes) },
+                onStart: {
+                    pendingBreathingStart = true
+                    onStartBreathing?(minutes)
+                },
                 icon: { BreathingDotsIcon(color: cardGreen).frame(width: 64, height: 64) },
                 extra: {
                     HStack(spacing: 18) {
@@ -504,16 +517,14 @@ struct RelaxSessionSheet: View {
         ZStack {
             LinearGradient(colors: [bannerTop, bannerBottom], startPoint: .top, endPoint: .bottom)
 
-            if UIImage(named: session.bannerImageName) != nil {
-                Image(session.bannerImageName)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                // Placeholder until the illustration is added to Assets
-                Image(systemName: "figure.mind.and.body")
-                    .font(.system(size: 96, weight: .regular))
-                    .foregroundColor(primaryGreen.opacity(0.55))
-            }
+            // Placeholder; the illustration covers it once it's in Assets
+            Image(systemName: "figure.mind.and.body")
+                .font(.system(size: 96, weight: .regular))
+                .foregroundColor(primaryGreen.opacity(0.55))
+
+            Image(session.bannerImageName)
+                .resizable()
+                .scaledToFill()
         }
         .frame(height: 300)
         .frame(maxWidth: .infinity)
