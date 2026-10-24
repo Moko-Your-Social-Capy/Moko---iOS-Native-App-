@@ -20,6 +20,8 @@ enum MokoTab: Hashable {
 
 struct MokoTabBar: View {
     @Binding var selectedTab: MokoTab
+    /// Provided by MokoRootView so tapping a tab can switch screens. Nil in standalone previews.
+    @Environment(\.mokoTabSelect) private var tabSelect
 
     // Layout
     private let barWidth: CGFloat = 278
@@ -84,6 +86,7 @@ struct MokoTabBar: View {
 
         return Button {
             selectedTab = tab
+            tabSelect?(tab)
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: icon)
@@ -105,6 +108,7 @@ struct MokoTabBar: View {
 
         return Button {
             selectedTab = .search
+            tabSelect?(.search)
         } label: {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 21, weight: isSelected ? .semibold : .regular))
@@ -114,6 +118,18 @@ struct MokoTabBar: View {
         }
         .buttonStyle(MokoNoFeedbackButtonStyle())
         .glassEffect(isSelected ? .regular.tint(selectionTint) : .regular, in: Circle())
+    }
+}
+
+// MARK: - Environment hook used by MokoRootView to switch screens
+private struct MokoTabSelectKey: EnvironmentKey {
+    static let defaultValue: ((MokoTab) -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    var mokoTabSelect: ((MokoTab) -> Void)? {
+        get { self[MokoTabSelectKey.self] }
+        set { self[MokoTabSelectKey.self] = newValue }
     }
 }
 
