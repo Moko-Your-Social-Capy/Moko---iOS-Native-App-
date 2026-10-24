@@ -215,7 +215,7 @@ struct ContentView: View {
             // MARK: Home
 
             case .home(let email):
-                Overview()
+                MainHomeContainerView(userEmail: email)
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
