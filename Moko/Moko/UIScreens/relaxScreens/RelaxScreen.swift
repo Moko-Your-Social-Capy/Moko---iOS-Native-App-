@@ -58,6 +58,20 @@ enum RelaxSession: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Banner background gradient for the sheet. Change these per session.
+    var bannerColors: (top: Color, bottom: Color) {
+        switch self {
+        case .boxBreathing:
+            return (Color(red: 232/255, green: 242/255, blue: 255/255), Color(red: 208/255, green: 226/255, blue: 248/255)) // blue
+        case .grounding:
+            return (Color(red: 232/255, green: 246/255, blue: 236/255), Color(red: 203/255, green: 230/255, blue: 211/255)) // green
+        case .imagery:
+            return (Color(red: 255/255, green: 240/255, blue: 228/255), Color(red: 250/255, green: 222/255, blue: 200/255)) // peach
+        case .mirror:
+            return (Color(red: 240/255, green: 234/255, blue: 252/255), Color(red: 222/255, green: 212/255, blue: 244/255)) // lavender
+        }
+    }
+
     // Placeholder copy (no longer used by the session sheet)
     var steps: [String] {
         switch self {
@@ -291,24 +305,8 @@ struct RelaxScreen: View {
         .buttonStyle(.plain)
     }
 
-    @ViewBuilder
     private func sessionIcon(_ session: RelaxSession) -> some View {
-        switch session {
-        case .boxBreathing:
-            BoxBreathingIcon(color: cardGreen)
-        case .grounding:
-            Image(systemName: "5.square")
-                .font(.system(size: 38, weight: .regular))
-                .foregroundColor(cardGreen)
-        case .imagery:
-            Image(systemName: "photo.tv")
-                .font(.system(size: 38, weight: .regular))
-                .foregroundColor(cardGreen)
-        case .mirror:
-            Image(systemName: "person.crop.square")
-                .font(.system(size: 38, weight: .regular))
-                .foregroundColor(cardGreen)
-        }
+        RelaxSessionIcon(session: session, color: cardGreen)
     }
 
     // MARK: - Bottom sheets
@@ -456,8 +454,6 @@ struct RelaxSessionSheet: View {
 
     private let primaryGreen = Color(red: 54/255, green: 89/255, blue: 72/255)   // #365948
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)  // #6F6762
-    private let bannerTop = Color(red: 232/255, green: 242/255, blue: 255/255)
-    private let bannerBottom = Color(red: 208/255, green: 226/255, blue: 248/255)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -514,21 +510,56 @@ struct RelaxSessionSheet: View {
     }
 
     private var banner: some View {
-        ZStack {
-            LinearGradient(colors: [bannerTop, bannerBottom], startPoint: .top, endPoint: .bottom)
+        // The base view fixes the banner's size. The artwork sits in overlays,
+        // so a large illustration can't make the sheet's layout wider than the screen.
+        Color.clear
+            .frame(maxWidth: .infinity)
+            .frame(height: 300)
+            .background {
+                LinearGradient(
+                    colors: [session.bannerColors.top, session.bannerColors.bottom],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            // Placeholder art, different for each session; the illustration
+            // named in `bannerImageName` covers it once it's in Assets
+            .overlay {
+                RelaxSessionIcon(session: session, color: primaryGreen.opacity(0.6), size: 96)
+            }
+            .overlay {
+                Image(session.bannerImageName)
+                    .resizable()
+                    .scaledToFill()
+            }
+            .clipped()
+    }
+}
 
-            // Placeholder; the illustration covers it once it's in Assets
-            Image(systemName: "figure.mind.and.body")
-                .font(.system(size: 96, weight: .regular))
-                .foregroundColor(primaryGreen.opacity(0.55))
+// MARK: - Icon for each session (used by the card and the sheet banner)
+struct RelaxSessionIcon: View {
+    let session: RelaxSession
+    var color: Color
+    var size: CGFloat = 38
 
-            Image(session.bannerImageName)
-                .resizable()
-                .scaledToFill()
+    var body: some View {
+        switch session {
+        case .boxBreathing:
+            BoxBreathingIcon(color: color)
+                .scaleEffect(size / 38)
+        case .grounding:
+            Image(systemName: "5.square")
+                .font(.system(size: size, weight: .regular))
+                .foregroundColor(color)
+        case .imagery:
+            Image(systemName: "photo.tv")
+                .font(.system(size: size, weight: .regular))
+                .foregroundColor(color)
+        case .mirror:
+            Image(systemName: "person.crop.square")
+                .font(.system(size: size, weight: .regular))
+                .foregroundColor(color)
         }
-        .frame(height: 300)
-        .frame(maxWidth: .infinity)
-        .clipped()
     }
 }
 
