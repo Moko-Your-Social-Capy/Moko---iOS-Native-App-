@@ -17,11 +17,11 @@ struct MainHomeContainerView: View {
             case .overview:
                 Overview(selectedTab: $selectedTab)
             case .quests:
-                OverviewDebriefDone()
+                ExploreView(selectedTab: $selectedTab)
             case .relax:
                 RelaxScreen(selectedTab: $selectedTab)
             case .search:
-                Overview(selectedTab: $selectedTab)
+                SearchView(selectedTab: $selectedTab)
             }
         }
     }
