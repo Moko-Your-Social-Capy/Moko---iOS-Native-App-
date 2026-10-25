@@ -13,7 +13,7 @@ import SwiftUI
 import Combine
 
 // MARK: - Shared palette
-fileprivate enum MirrorPalette {
+enum MirrorPalette {
     static let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255)  // #F2F2F7
     static let green = Color(red: 54/255, green: 89/255, blue: 72/255)        // #365948
     static let deepGreen = Color(red: 27/255, green: 66/255, blue: 47/255)    // #1B422F
@@ -31,13 +31,14 @@ struct MirrorFlowView: View {
     var onExit: () -> Void = {}
     var onFinish: () -> Void = {}
 
-    fileprivate enum Step {
-        case landing, camera, checklist, timer, done
+    enum Step {
+        case landing, checklist, timer, done, cameraChecklist, cameraTimer
     }
 
     @State private var step: Step = .landing
     @State private var forward = true
     @State private var checked: [Bool] = Array(repeating: false, count: 4)
+    @State private var cameraChecked: [Bool] = Array(repeating: false, count: 4)
 
     private var slide: AnyTransition {
         .asymmetric(
@@ -56,23 +57,57 @@ struct MirrorFlowView: View {
                     onSelectOption: { option in
                         switch option {
                         case .mirror: go(.checklist, forward: true)
-                        case .camera: go(.camera, forward: true)
+                        case .camera: go(.cameraChecklist, forward: true)
                         }
                     },
                     onBack: { onExit() }
                 )
                 .transition(slide)
 
-            case .camera:
-                MirrorCameraSoonScreen(onBack: { go(.landing, forward: false) })
-                    .transition(slide)
+            case .cameraChecklist:
+                MirrorChecklistScreen(
+                    checked: $cameraChecked,
+                    title: "Get ready with your iPhone",
+                    listTitle: "Your Setup Checklist",
+                    items: [
+                        "Find a comfortable spot",
+                        "Hold your phone comfortably",
+                        "Look at yourself gently",
+                        "Let go of judgement"
+                    ],
+                    onBack: { go(.landing, forward: false) },
+                    onContinue: { go(.cameraTimer, forward: true) }
+                ) { level in
+                    CameraPhoneHero(level: level)
+                        .scaleEffect(0.72)
+                        .frame(height: 230)
+                }
+                .transition(slide)
+
+            case .cameraTimer:
+                CameraTimerScreen(
+                    onBack: { go(.cameraChecklist, forward: false) },
+                    onContinue: { go(.done, forward: true) }
+                )
+                .transition(slide)
 
             case .checklist:
                 MirrorChecklistScreen(
                     checked: $checked,
+                    title: "Arrive in Front of Your Mirror",
+                    items: [
+                        "Find a comfortable spot",
+                        "Take a gentle breath",
+                        "Look at yourself kindly",
+                        "Let go of judgement"
+                    ],
                     onBack: { go(.landing, forward: false) },
                     onContinue: { go(.timer, forward: true) }
-                )
+                ) { level in
+                    MirrorHero(showCaption: false, level: level)
+                        .scaleEffect(0.72)
+                        .frame(height: 220)
+                }
                 .transition(slide)
 
             case .timer:
@@ -101,7 +136,7 @@ struct MirrorFlowView: View {
 }
 
 // MARK: - Shared bits
-fileprivate struct MirrorBackButton: View {
+struct MirrorBackButton: View {
     var action: () -> Void
 
     var body: some View {
@@ -117,7 +152,7 @@ fileprivate struct MirrorBackButton: View {
     }
 }
 
-fileprivate struct MirrorHeader: View {
+struct MirrorHeader: View {
     var centered = false
 
     var body: some View {
@@ -134,7 +169,7 @@ fileprivate struct MirrorHeader: View {
     }
 }
 
-fileprivate struct MirrorPrimaryButton: View {
+struct MirrorPrimaryButton: View {
     let title: String
     var action: () -> Void
 
@@ -151,7 +186,7 @@ fileprivate struct MirrorPrimaryButton: View {
     }
 }
 
-fileprivate struct MirrorCircleButton: View {
+struct MirrorCircleButton: View {
     let systemName: String
     var action: () -> Void
 
@@ -169,17 +204,31 @@ fileprivate struct MirrorCircleButton: View {
 }
 
 // MARK: - Step 2: checklist
-fileprivate struct MirrorChecklistScreen: View {
+struct MirrorChecklistScreen<Hero: View>: View {
     @Binding var checked: [Bool]
+    let title: String
+    let listTitle: String
+    let items: [String]
     var onBack: () -> Void
     var onContinue: () -> Void
+    /// Illustration; receives 0...1, how many items are confirmed.
+    private let hero: (Double) -> Hero
 
-    private let items = [
-        "Find a comfortable spot",
-        "Take a gentle breath",
-        "Look at yourself kindly",
-        "Let go of judgement"
-    ]
+    init(checked: Binding<[Bool]>,
+         title: String,
+         listTitle: String = "Your Checklist",
+         items: [String],
+         onBack: @escaping () -> Void,
+         onContinue: @escaping () -> Void,
+         @ViewBuilder hero: @escaping (Double) -> Hero) {
+        _checked = checked
+        self.title = title
+        self.listTitle = listTitle
+        self.items = items
+        self.onBack = onBack
+        self.onContinue = onContinue
+        self.hero = hero
+    }
 
     private var doneCount: Int { checked.filter { $0 }.count }
     private var allDone: Bool { doneCount == items.count }
@@ -201,13 +250,11 @@ fileprivate struct MirrorChecklistScreen: View {
                         .padding(.horizontal, 24)
                         .padding(.top, 18)
 
-                    // The mirror glows brighter as each step is confirmed
-                    MirrorHero(showCaption: false, level: Double(doneCount) / Double(items.count))
-                        .scaleEffect(0.72)
-                        .frame(height: 220)
+                    // The illustration glows brighter as each step is confirmed
+                    hero(Double(doneCount) / Double(items.count))
                         .padding(.top, 8)
 
-                    Text("Arrive in Front of Your Mirror")
+                    Text(title)
                         .font(.system(size: 22, weight: .bold))
                         .foregroundColor(MirrorPalette.title)
                         .multilineTextAlignment(.center)
@@ -215,7 +262,7 @@ fileprivate struct MirrorChecklistScreen: View {
                         .padding(.horizontal, 24)
 
                     HStack {
-                        Text("Your Checklist")
+                        Text(listTitle)
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(MirrorPalette.subtext)
 
@@ -253,7 +300,7 @@ fileprivate struct MirrorChecklistScreen: View {
 }
 
 /// One checklist row: slide the knob to the right to confirm. Tap a finished row to undo it.
-fileprivate struct SlideChecklistRow: View {
+struct SlideChecklistRow: View {
     let title: String
     @Binding var isDone: Bool
 
@@ -333,7 +380,7 @@ fileprivate struct SlideChecklistRow: View {
 }
 
 // MARK: - Step 3: affirmation timer (fixed 2:00)
-fileprivate struct MirrorTimerScreen: View {
+struct MirrorTimerScreen: View {
     var onBack: () -> Void
     var onContinue: () -> Void
 
@@ -522,7 +569,7 @@ fileprivate struct MirrorTimerScreen: View {
 
 /// Progress ring: gradient stroke with a glowing end cap, a breathing face in the middle,
 /// and the completion badge once the time is up.
-fileprivate struct MirrorTimerRing: View {
+struct MirrorTimerRing: View {
     var progress: Double
     var isRunning: Bool
     var isCompleted: Bool
@@ -606,7 +653,7 @@ fileprivate struct MirrorTimerRing: View {
 }
 
 // MARK: - Step 4: "You did it!"
-fileprivate struct MirrorCompletionScreen: View {
+struct MirrorCompletionScreen: View {
     var onDone: () -> Void
 
     var body: some View {
@@ -650,7 +697,7 @@ fileprivate struct MirrorCompletionScreen: View {
 }
 
 // MARK: - Completion illustration
-fileprivate struct MirrorCheckShape: Shape {
+struct MirrorCheckShape: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         path.move(to: CGPoint(x: rect.minX + rect.width * 0.27, y: rect.minY + rect.height * 0.52))
@@ -661,7 +708,7 @@ fileprivate struct MirrorCheckShape: Shape {
 }
 
 /// Badge that pops in, with rippling rings and a check that draws itself.
-fileprivate struct MirrorCompletionBadge: View {
+struct MirrorCompletionBadge: View {
     var size: CGFloat
     var showRipples: Bool
 
@@ -728,7 +775,7 @@ fileprivate struct MirrorCompletionBadge: View {
     }
 }
 
-fileprivate let mirrorConfettiColors: [Color] = [
+let mirrorConfettiColors: [Color] = [
     MirrorPalette.green,
     MirrorPalette.softGreen,
     Color(red: 244/255, green: 190/255, blue: 70/255),   // yellow
@@ -738,7 +785,7 @@ fileprivate let mirrorConfettiColors: [Color] = [
 ]
 
 /// Leaves and petals that burst outward once, in the same palette as the other illustrations.
-fileprivate struct MirrorConfettiBurst: View {
+struct MirrorConfettiBurst: View {
     var radius: CGFloat
 
     @State private var burst: CGFloat = 0
@@ -793,50 +840,6 @@ fileprivate struct MirrorConfettiBurst: View {
         .onAppear {
             withAnimation(.spring(response: 0.9, dampingFraction: 0.65).delay(0.25)) {
                 burst = 1
-            }
-        }
-    }
-}
-
-// MARK: - Camera option (not built yet)
-fileprivate struct MirrorCameraSoonScreen: View {
-    var onBack: () -> Void
-
-    var body: some View {
-        ZStack {
-            MirrorPalette.screenBg.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                HStack {
-                    MirrorBackButton(action: onBack)
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-
-                Spacer()
-
-                ZStack {
-                    Circle()
-                        .fill(MirrorPalette.mint.opacity(0.7))
-                        .frame(width: 140, height: 140)
-                    Image(systemName: "camera")
-                        .font(.system(size: 52, weight: .regular))
-                        .foregroundColor(MirrorPalette.green)
-                }
-
-                Text("Practice with your camera")
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundColor(MirrorPalette.title)
-                    .padding(.top, 28)
-
-                Text("This option is coming soon.")
-                    .font(.system(size: 16))
-                    .foregroundColor(MirrorPalette.subtext)
-                    .padding(.top, 8)
-
-                Spacer()
-                Spacer()
             }
         }
     }
