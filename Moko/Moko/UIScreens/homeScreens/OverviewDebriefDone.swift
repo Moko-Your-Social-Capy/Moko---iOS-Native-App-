@@ -10,6 +10,7 @@ import SwiftUI
 struct OverviewDebriefDone: View {
     @State private var selectedTab: MokoTab = .overview
     @State private var showInsights: Bool = false
+    @State private var showCalmDown: Bool = false
 
     // Palette matching design specifications
     private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
@@ -51,6 +52,11 @@ struct OverviewDebriefDone: View {
         }
         .fullScreenCover(isPresented: $showInsights) {
             InsightsView()
+        }
+        .sheet(isPresented: $showCalmDown) {
+            NavigationStack {
+                CalmDownCopiedView()
+            }
         }
     }
 
@@ -298,7 +304,7 @@ struct OverviewDebriefDone: View {
         .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
         .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .onTapGesture {
-            selectedTab = .relax
+            showCalmDown = true
         }
     }
 }

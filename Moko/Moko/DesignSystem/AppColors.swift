@@ -1,7 +1,16 @@
 import SwiftUI
 
-/// Central source of truth for MOKO's monochrome color system.
+/// Central source of truth for MOKO's color system matching reference specifications.
 enum AppColors {
+    static let background = Color(uiColor: .systemBackground)
+    static let secondaryBackground = Color(uiColor: .secondarySystemBackground)
+    static let tertiaryBackground = Color(uiColor: .tertiarySystemBackground)
+    static let separator = Color(uiColor: .separator)
+    static let chartFill = Color.primary.opacity(0.12)
+    static let chartStroke = Color.primary.opacity(0.85)
+    static let primaryText = Color.primary
+    static let secondaryText = Color.secondary
+
     enum Light {
         static let background = Color(hex: 0xF2F2F7)
         static let surface = Color(hex: 0xFFFFFF)
