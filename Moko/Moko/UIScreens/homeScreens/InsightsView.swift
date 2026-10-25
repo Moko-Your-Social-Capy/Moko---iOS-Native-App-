@@ -4,6 +4,40 @@ struct InsightsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
+    @State private var selectedPeriod: InsightPeriod = .week
+
+    enum InsightPeriod: String, CaseIterable, Identifiable {
+        case day = "Day"
+        case week = "Week"
+        case month = "Month"
+        var id: String { rawValue }
+    }
+
+    struct InsightData {
+        let warmth: Int
+        let presence: Int
+        let clarity: Int
+        let calm: Int
+        let warmthTrend: String
+        let presenceTrend: String
+        let clarityTrend: String
+        let calmTrend: String
+    }
+
+    private var currentData: InsightData {
+        switch selectedPeriod {
+        case .day:
+            return InsightData(warmth: 74, presence: 62, clarity: 70, calm: 68,
+                               warmthTrend: "Today", presenceTrend: "Today", clarityTrend: "Today", calmTrend: "Today")
+        case .week:
+            return InsightData(warmth: 78, presence: 66, clarity: 75, calm: 70,
+                               warmthTrend: "+4pts this week", presenceTrend: "Steady", clarityTrend: "+6pts this week", calmTrend: "+2pts this week")
+        case .month:
+            return InsightData(warmth: 82, presence: 71, clarity: 79, calm: 76,
+                               warmthTrend: "+8pts this month", presenceTrend: "+5pts this month", clarityTrend: "+9pts this month", calmTrend: "+6pts this month")
+        }
+    }
+
     var body: some View {
         let isDark = colorScheme == .dark
         let bg = isDark ? AppColors.Dark.background : AppColors.Light.background
@@ -34,7 +68,6 @@ struct InsightsView: View {
 
                     Spacer()
 
-                    // Balance spacing
                     Color.clear
                         .frame(width: 40, height: 40)
                 }
@@ -45,10 +78,20 @@ struct InsightsView: View {
                 // MARK: - Scrollable Content
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 24) {
-                        // MARK: - First Viewport: Prominent Radar Chart
+                        // MARK: - First Viewport: Prominent Radar Chart & Segmented Selector
                         VStack(alignment: .center, spacing: 16) {
+                            // Day / Week / Month Segmented Selector
+                            Picker("Time Period", selection: $selectedPeriod) {
+                                ForEach(InsightPeriod.allCases) { period in
+                                    Text(period.rawValue).tag(period)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .padding(.horizontal, 8)
+                            .padding(.top, 4)
+
                             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                Text("78")
+                                Text("\(currentData.warmth)")
                                     .font(.system(size: 48, weight: .bold, design: .rounded))
                                     .foregroundColor(textColor)
 
@@ -56,14 +99,14 @@ struct InsightsView: View {
                                     .font(.system(size: 18, weight: .medium))
                                     .foregroundColor(secondaryColor)
                             }
-                            .padding(.top, 8)
+                            .padding(.top, 4)
 
                             // Large Prominent Radar Chart
                             InsightsRadarChartView()
                                 .frame(width: 220, height: 220)
                                 .padding(.vertical, 8)
 
-                            Text("Your social balance across four key interaction dimensions based on recent daily reflections and debriefs.")
+                            Text("Your social balance across four key interaction dimensions based on recent reflections.")
                                 .font(.system(size: 14, weight: .regular))
                                 .foregroundColor(secondaryColor)
                                 .multilineTextAlignment(.center)
@@ -78,7 +121,7 @@ struct InsightsView: View {
 
                         // MARK: - Parameter Details Section
                         VStack(alignment: .leading, spacing: 14) {
-                            Text("Parameter Breakdown")
+                            Text("Parameter Breakdown (\(selectedPeriod.rawValue))")
                                 .font(.system(size: 20, weight: .bold))
                                 .foregroundColor(textColor)
                                 .padding(.horizontal, 16)
@@ -86,9 +129,9 @@ struct InsightsView: View {
                             VStack(spacing: 12) {
                                 parameterCard(
                                     title: "Warmth",
-                                    score: "78",
+                                    score: "\(currentData.warmth)",
                                     description: "Genuine connection and conversational warmth during social exchanges.",
-                                    trend: "+4pts this week",
+                                    trend: currentData.warmthTrend,
                                     surface: surface,
                                     textColor: textColor,
                                     secondaryColor: secondaryColor
@@ -96,9 +139,9 @@ struct InsightsView: View {
 
                                 parameterCard(
                                     title: "Presence",
-                                    score: "66",
+                                    score: "\(currentData.presence)",
                                     description: "Staying anchored, attentive, and engaged in group conversations.",
-                                    trend: "Steady",
+                                    trend: currentData.presenceTrend,
                                     surface: surface,
                                     textColor: textColor,
                                     secondaryColor: secondaryColor
@@ -106,9 +149,9 @@ struct InsightsView: View {
 
                                 parameterCard(
                                     title: "Clarity",
-                                    score: "75",
+                                    score: "\(currentData.clarity)",
                                     description: "Clear and direct expression of thoughts without overthinking.",
-                                    trend: "+6pts this week",
+                                    trend: currentData.clarityTrend,
                                     surface: surface,
                                     textColor: textColor,
                                     secondaryColor: secondaryColor
@@ -116,9 +159,9 @@ struct InsightsView: View {
 
                                 parameterCard(
                                     title: "Calm",
-                                    score: "70",
+                                    score: "\(currentData.calm)",
                                     description: "Maintaining inner poise and steady breathing during social pauses.",
-                                    trend: "+2pts this week",
+                                    trend: currentData.calmTrend,
                                     surface: surface,
                                     textColor: textColor,
                                     secondaryColor: secondaryColor
