@@ -59,7 +59,9 @@ struct OverviewResumeScreen: View {
                 .padding(.bottom, 4)
         }
         .fullScreenCover(isPresented: $showInsights) {
-            InsightsView()
+            NavigationStack {
+                InsightsCopiedView()
+            }
         }
         .sheet(isPresented: $showCalmDown) {
             NavigationStack {
