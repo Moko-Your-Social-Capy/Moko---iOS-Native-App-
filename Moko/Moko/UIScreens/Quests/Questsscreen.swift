@@ -1,0 +1,243 @@
+//
+//  QuestsScreen.swift
+//  Moko
+//
+//  Quests tab. No quests: "No Active Quest" card. Otherwise: category filter chips
+//  and the quests grouped by day. The + button opens NewQuestScreen.
+//
+
+import SwiftUI
+import SwiftData
+
+struct QuestsScreen: View {
+    @Environment(\.modelContext) private var modelContext
+    /// Only this user's quests, soonest first (set in init)
+    @Query private var quests: [Quest]
+
+    @State private var selectedTab: MokoTab = .quests
+    /// nil means "All"
+    @State private var filter: QuestCategory? = nil
+    @State private var showNewQuest = false
+
+    private let chipOptions: [QuestCategory?] = [nil] + QuestCategory.allCases.map { Optional($0) }
+
+    init() {
+        let userID = CurrentUser.localID
+        _quests = Query(filter: #Predicate<Quest> { $0.ownerID == userID }, sort: \Quest.date)
+    }
+
+    private struct DayGroup: Identifiable {
+        let day: Date
+        let quests: [Quest]
+        var id: Date { day }
+    }
+
+    private var filteredQuests: [Quest] {
+        quests.filter { filter == nil || $0.category == filter }
+    }
+
+    private var groups: [DayGroup] {
+        let calendar = Calendar.current
+        let byDay = Dictionary(grouping: filteredQuests) { calendar.startOfDay(for: $0.date) }
+        return byDay.keys.sorted().map { day in
+            DayGroup(day: day, quests: (byDay[day] ?? []).sorted { $0.date < $1.date })
+        }
+    }
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            QuestStyle.screenBg
+                .ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Quest")
+                    .font(.system(size: 34, weight: .bold))
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 14)
+
+                filterBar
+                    .padding(.top, 22)
+
+                content
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+
+            // Add button
+            addButton
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .padding(.trailing, 20)
+                .padding(.bottom, 84)
+
+            // Floating Tab Bar
+            MokoTabBar(selectedTab: $selectedTab)
+                .padding(.bottom, 4)
+        }
+        .fullScreenCover(isPresented: $showNewQuest) {
+            NewQuestScreen { quest in
+                modelContext.insert(quest)
+                filter = nil // show the full list, including the new quest
+            }
+        }
+    }
+
+    // MARK: Filter chips
+    private var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Array(chipOptions.enumerated()), id: \.offset) { _, option in
+                    chip(for: option)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private func chip(for option: QuestCategory?) -> some View {
+        let isSelected = filter == option
+
+        return Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                filter = option
+            }
+        } label: {
+            HStack(spacing: 5) {
+                if let option {
+                    Image(systemName: option.symbol)
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                Text(option?.rawValue ?? "All")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .foregroundColor(isSelected ? QuestStyle.green : QuestStyle.subtext)
+            .padding(.horizontal, 12)
+            .frame(height: 32)
+            .background(
+                Capsule().fill(isSelected ? QuestStyle.chipSelectedFill : Color.white)
+            )
+            .overlay(
+                Capsule().stroke(isSelected ? QuestStyle.chipSelectedBorder : Color.clear, lineWidth: 1)
+            )
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Content
+    @ViewBuilder
+    private var content: some View {
+        if quests.isEmpty {
+            emptyCard(
+                title: "No Active Quest",
+                message: "Tap below to add a Custom Quest whenever you’re ready, or use explore option to browse library of quests"
+            )
+        } else if filteredQuests.isEmpty {
+            emptyCard(
+                title: "No \(filter?.rawValue ?? "") Quests",
+                message: "Nothing here yet. Tap + to add a quest in this category."
+            )
+        } else {
+            questList
+        }
+    }
+
+    private func emptyCard(title: String, message: String) -> some View {
+        VStack(spacing: 14) {
+            Text(title)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(QuestStyle.title)
+
+            Text(message)
+                .font(.system(size: 15))
+                .foregroundColor(QuestStyle.subtext)
+                .multilineTextAlignment(.center)
+                .lineSpacing(3)
+        }
+        .padding(.horizontal, 26)
+        .frame(maxWidth: .infinity)
+        .frame(height: 250)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .padding(.horizontal, 34)
+        .padding(.top, 70)
+    }
+
+    private var questList: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(groups) { group in
+                    Text(QuestFormat.groupTitle(group.day))
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(QuestStyle.subtext)
+                        .padding(.horizontal, 28)
+                        .padding(.top, 26)
+                        .padding(.bottom, 10)
+
+                    VStack(spacing: 12) {
+                        ForEach(group.quests, id: \.id) { quest in
+                            questCard(quest)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+            }
+            .padding(.bottom, 180) // clear of the add button and tab bar
+        }
+    }
+
+    private func questCard(_ quest: Quest) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top) {
+                Text(quest.title)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(QuestStyle.title)
+                    .lineLimit(2)
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.black)
+            }
+
+            Text("\(quest.intensity.xp) XP")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(QuestStyle.subtext)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
+        .contextMenu {
+            Button(role: .destructive) {
+                withAnimation {
+                    modelContext.delete(quest)
+                }
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+
+    // MARK: Add button
+    private var addButton: some View {
+        Button {
+            showNewQuest = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 24, weight: .medium))
+                .foregroundColor(.white)
+                .frame(width: 62, height: 62)
+                .background(Circle().fill(QuestStyle.green))
+                .shadow(color: QuestStyle.green.opacity(0.35), radius: 10, x: 0, y: 5)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+#Preview {
+    QuestsScreen()
+        .modelContainer(MokoDatabase.preview)
+}
