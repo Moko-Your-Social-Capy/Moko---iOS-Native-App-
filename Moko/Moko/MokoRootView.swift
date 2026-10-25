@@ -39,11 +39,11 @@ struct MokoRootView: View {
             case .resume:      OverviewResumeScreen()
             }
         case .quests:
-            MokoPlaceholderScreen(title: "Quests", initialTab: .quests)
+            ExploreView(selectedTab: $tab)
         case .relax:
             RelaxScreen(selectedTab: $tab)
         case .search:
-            MokoPlaceholderScreen(title: "Search", initialTab: .search)
+            SearchView(selectedTab: $tab)
         }
     }
 }
