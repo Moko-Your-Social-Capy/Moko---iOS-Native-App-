@@ -10,7 +10,6 @@ import SwiftUI
 struct OverviewResumeScreen: View {
     @State private var selectedTab: MokoTab = .overview
     @State private var showInsights: Bool = false
-    @State private var showCalmDown: Bool = false
 
     // Optional callbacks
     var onSlideResume: (() -> Void)? = nil
@@ -61,11 +60,6 @@ struct OverviewResumeScreen: View {
         .fullScreenCover(isPresented: $showInsights) {
             NavigationStack {
                 InsightsCopiedView()
-            }
-        }
-        .sheet(isPresented: $showCalmDown) {
-            NavigationStack {
-                CalmDownCopiedView()
             }
         }
     }
@@ -355,10 +349,6 @@ struct OverviewResumeScreen: View {
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .onTapGesture {
-            showCalmDown = true
-        }
     }
 }
 

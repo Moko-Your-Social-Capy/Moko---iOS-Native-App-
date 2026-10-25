@@ -2,17 +2,27 @@
 //  MainHomeContainerView.swift
 //  Moko
 //
-//  Orchestrates tab navigation using OverviewCopiedView.
+//  Orchestrates tab navigation between Overview, Quests, Relax, and Search.
 //
 
 import SwiftUI
 
 struct MainHomeContainerView: View {
+    @State private var selectedTab: MokoTab = .overview
     var userEmail: String
 
     var body: some View {
-        NavigationStack {
-            OverviewCopiedView()
+        ZStack(alignment: .bottom) {
+            switch selectedTab {
+            case .overview:
+                Overview(selectedTab: $selectedTab)
+            case .quests:
+                ExploreView(selectedTab: $selectedTab)
+            case .relax:
+                RelaxScreen(selectedTab: $selectedTab)
+            case .search:
+                SearchView(selectedTab: $selectedTab)
+            }
         }
     }
 }
