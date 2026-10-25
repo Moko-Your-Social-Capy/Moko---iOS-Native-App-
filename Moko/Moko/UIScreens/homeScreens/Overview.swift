@@ -22,6 +22,7 @@ struct Overview: View {
     @State private var slideOffset: CGFloat = 0
     @State private var isMissionCompleted: Bool = false
     @State private var showInsights: Bool = false
+    @State private var showCalmDown: Bool = false
 
     // Custom Palette based on design specs
     private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
@@ -63,6 +64,11 @@ struct Overview: View {
         }
         .fullScreenCover(isPresented: $showInsights) {
             InsightsView()
+        }
+        .sheet(isPresented: $showCalmDown) {
+            NavigationStack {
+                CalmDownCopiedView()
+            }
         }
     }
 
@@ -352,7 +358,7 @@ struct Overview: View {
         .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
         .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .onTapGesture {
-            selectedTab = .relax
+            showCalmDown = true
         }
     }
 }
