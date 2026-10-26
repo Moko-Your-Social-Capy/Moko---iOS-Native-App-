@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct MokoRootView: View {
     enum OverviewState {
@@ -20,6 +21,8 @@ struct MokoRootView: View {
 
     /// Which Overview variant the Overview tab shows.
     var overviewState: OverviewState = .todo
+    /// Use a throwaway database (for previews)
+    var useInMemoryStore = false
 
     var body: some View {
         content
@@ -27,6 +30,7 @@ struct MokoRootView: View {
             .environment(\.mokoTabSelect, { newTab in
                 tab = newTab
             })
+            .modelContainer(useInMemoryStore ? MokoDatabase.preview : MokoDatabase.shared)
     }
 
     @ViewBuilder
@@ -34,16 +38,16 @@ struct MokoRootView: View {
         switch tab {
         case .overview:
             switch overviewState {
-            case .todo:        Overview(selectedTab: $tab)
+            case .todo:        Overview()
             case .debriefDone: OverviewDebriefDone()
             case .resume:      OverviewResumeScreen()
             }
         case .quests:
-            ExploreView(selectedTab: $tab)
+            QuestsScreen()
         case .relax:
-            RelaxScreen(selectedTab: $tab)
+            RelaxScreen()
         case .search:
-            SearchView(selectedTab: $tab)
+            MokoPlaceholderScreen(title: "Search", initialTab: .search)
         }
     }
 }
@@ -74,5 +78,5 @@ struct MokoPlaceholderScreen: View {
 }
 
 #Preview {
-    MokoRootView()
+    MokoRootView(useInMemoryStore: true)
 }
