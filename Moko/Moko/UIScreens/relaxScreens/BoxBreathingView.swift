@@ -1,7 +1,5 @@
 import SwiftUI
 
-// MARK: - Small helper types
-
 enum BBColor {
     static let background = Color(red: 242/255, green: 242/255, blue: 247/255)   // screen background
     static let button     = Color(red: 54/255, green: 89/255, blue: 72/255)   // buttons, check circle, "Not now"
@@ -58,10 +56,15 @@ private struct Edge: Shape {
 // MARK: - The screen
 
 struct BoxBreathingView: View {
-    /// Number of full breathing cycles (16 seconds each). The user picks it on the Start screen.
-    @State private var cycles: Int = 2
-    /// Called when the user taps "Complete".
+    @State private var cycles: Int
+    var initialCycles: Int = 2
     var onComplete: () -> Void = {}
+
+    init(initialCycles: Int = 2, onComplete: @escaping () -> Void = {}) {
+        self.initialCycles = initialCycles
+        _cycles = State(initialValue: initialCycles)
+        self.onComplete = onComplete
+    }
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
@@ -77,7 +80,6 @@ struct BoxBreathingView: View {
 
     // MARK: Values worked out from `elapsed`
 
-    /// 0 ... (cycles * 4 - 1): which 4-second step we are in.
     private var stepIndex: Int {
         min(Int(elapsed / phaseLength), cycles * 4 - 1)
     }
@@ -86,9 +88,8 @@ struct BoxBreathingView: View {
         BreathPhase(rawValue: stepIndex % 4) ?? .inhale
     }
 
-    /// How full (0...1) each side of the box is. Side 0 = top, 1 = right, 2 = bottom, 3 = left.
     private func sideProgress(_ side: Int) -> CGFloat {
-        if state == .finishing { return 1 }     // box stays completely full at the very end
+        if state == .finishing { return 1 }
         let inCycle = elapsed.truncatingRemainder(dividingBy: cycleLength) / phaseLength
         return CGFloat(min(max(inCycle - Double(side), 0), 1))
     }
@@ -120,10 +121,21 @@ struct BoxBreathingView: View {
                 breathingContent.transition(.opacity)
             }
         }
-        .navigationBarBackButtonHidden(state == .complete)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.hidden, for: .navigationBar)
+        .navigationBarBackButtonHidden(true)
         .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.black)
+                        .frame(width: 38, height: 38)
+                        .background(Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255)))
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+            }
             ToolbarItem(placement: .principal) {
                 VStack(spacing: 2) {
                     Text("Box Breathing")
@@ -153,18 +165,18 @@ struct BoxBreathingView: View {
     private var breathingContent: some View {
         VStack(spacing: 0) {
             header
-                .padding(.top, 18)
+                .padding(.top, 12)
 
             boxView
-                .padding(.top, 37)
+                .padding(.top, 28)
 
             phaseLabel
-                .padding(.top, 24)
+                .padding(.top, 20)
 
             timerArc
-                .padding(.top, 38)
+                .padding(.top, 28)
 
-            Spacer(minLength: 16)
+            Spacer(minLength: 12)
 
             controls
                 .padding(.bottom, 19)
@@ -173,53 +185,43 @@ struct BoxBreathingView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Box Breathing")
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(BBColor.title)
+                .padding(.horizontal, 16)
 
-            HStack(alignment: .firstTextBaseline) {
-                Text("4 Seconds Breathing Pattern")
-                    .font(.system(size: 12))
-                    .foregroundStyle(BBColor.subtitle)
-                Spacer()
-                cyclesLabel
+            // Cycle selection tags
+            if state == .idle {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach([2, 4, 6, 8, 10], id: \.self) { count in
+                            Button(action: { cycles = count }) {
+                                Text("\(count) cycles")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(cycles == count ? .white : BBColor.button)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 7)
+                                    .background(
+                                        Capsule().fill(cycles == count ? BBColor.button : Color(red: 237/255, green: 237/255, blue: 237/255))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+            } else {
+                HStack {
+                    Text(cyclesText)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(BBColor.muted)
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.leading, 16)
-        .padding(.trailing, 39)
-    }
-
-    private static let cycleOptions = [2, 4, 6, 8, 10]
-
-    @ViewBuilder
-    private var cyclesLabel: some View {
-        if state == .idle {
-            Menu {
-                Picker("Cycles", selection: $cycles) {
-                    ForEach(Self.cycleOptions, id: \.self) { count in
-                        Text("\(count) cycles").tag(count)
-                    }
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Text(cyclesText)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.system(size: 8, weight: .bold))
-                }
-                .font(.system(size: 11, weight: .semibold))
-                .tracking(0.5)
-                .foregroundStyle(BBColor.muted)
-            }
-            .accessibilityLabel("Number of cycles")
-            .accessibilityValue(cyclesText)
-        } else {
-            Text(cyclesText)
-                .font(.system(size: 11, weight: .semibold))
-                .tracking(0.5)
-                .foregroundStyle(BBColor.muted)
-        }
     }
 
     private var boxView: some View {
@@ -316,10 +318,12 @@ struct BoxBreathingView: View {
         VStack(spacing: 0) {
             HStack {
                 Spacer()
-                cyclesLabel
+                Text(cyclesText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(BBColor.muted)
             }
             .padding(.trailing, 39)
-            .padding(.top, 50)
+            .padding(.top, 40)
 
             ZStack {
                 Circle().fill(BBColor.button)
@@ -328,13 +332,13 @@ struct BoxBreathingView: View {
                     .foregroundStyle(.white)
             }
             .frame(width: 190, height: 190)
-            .padding(.top, 60)
+            .padding(.top, 40)
             .accessibilityHidden(true)
 
             Text("You did it!")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(.black)
-                .padding(.top, 70)
+                .padding(.top, 40)
 
             Text("You took a moment to pause, breathe, and find your calm. Be proud of yourself for showing up!")
                 .font(.system(size: 16))
