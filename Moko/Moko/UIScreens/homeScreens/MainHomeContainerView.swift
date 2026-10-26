@@ -17,7 +17,7 @@ struct MainHomeContainerView: View {
             case .overview:
                 Overview(selectedTab: $selectedTab)
             case .quests:
-                ExploreView(selectedTab: $selectedTab)
+                QuestsScreen()
             case .relax:
                 RelaxScreen(selectedTab: $selectedTab)
             case .search:
