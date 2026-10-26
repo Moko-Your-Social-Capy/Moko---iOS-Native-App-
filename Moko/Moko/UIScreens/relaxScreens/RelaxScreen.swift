@@ -476,6 +476,7 @@ struct RelaxSessionSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var showNext = false
+    @State private var boxBreathingCycles: Int = 2
 
     private let primaryGreen = Color(red: 54/255, green: 89/255, blue: 72/255)   // #365948
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)  // #6F6762
@@ -484,6 +485,7 @@ struct RelaxSessionSheet: View {
         Group {
             if session == .boxBreathing {
                 BoxBreathingInfoView(
+                    cycles: $boxBreathingCycles,
                     onContinue: {
                         onContinue()
                         showNext = true
@@ -497,6 +499,7 @@ struct RelaxSessionSheet: View {
         .fullScreenCover(isPresented: $showNext) {
             RelaxSessionDestination(
                 session: session,
+                cycles: boxBreathingCycles,
                 onExit: { showNext = false },
                 onFinish: { onFinishFlow() }
             )
@@ -583,6 +586,7 @@ struct RelaxSessionSheet: View {
 // MARK: - Where "Continue" leads for each session
 struct RelaxSessionDestination: View {
     let session: RelaxSession
+    var cycles: Int = 2
     var onExit: () -> Void = {}
     var onFinish: () -> Void = {}
 
@@ -591,7 +595,7 @@ struct RelaxSessionDestination: View {
         case .mirror:
             MirrorFlowView(onExit: onExit, onFinish: onFinish)
         case .boxBreathing:
-            BoxBreathingView(onComplete: {
+            BoxBreathingView(initialCycles: cycles, onComplete: {
                 onFinish()
                 onExit()
             })

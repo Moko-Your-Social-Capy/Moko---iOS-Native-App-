@@ -2,6 +2,7 @@ import SwiftUI
 
 /// The "Box Breathing" intro card, shown inside a modal sheet.
 struct BoxBreathingInfoView: View {
+    @Binding var cycles: Int
     var onContinue: () -> Void = {}
     var onNotNow: () -> Void = {}
 
@@ -23,28 +24,61 @@ struct BoxBreathingInfoView: View {
             Text("Box Breathing")
                 .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(.black)
-                .padding(.top, 88)
+                .padding(.top, 24)
 
-            Text("Breathe in for 4 seconds, hold for 4 seconds.\nBreathe out for 4 seconds, hold for 4 seconds.\nRepeat this cycle for 2–3 minutes, breathing\ncomfortably at your own pace.")
-                .font(.system(size: 16))
-                .lineSpacing(3.3)
+            Text("Breathe in for 4 seconds, hold for 4 seconds.\nBreathe out for 4 seconds, hold for 4 seconds.\nRepeat this cycle at your own pace.")
+                .font(.system(size: 15))
+                .lineSpacing(3)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(BBColor.muted)
-                .minimumScaleFactor(0.85)
                 .padding(.horizontal, 24)
-                .padding(.top, 22)
+                .padding(.top, 12)
+
+            // Cycle Counter with Plus and Minus Buttons
+            HStack(spacing: 20) {
+                Button(action: { cycles = max(1, cycles - 1) }) {
+                    Image(systemName: "minus")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(cycles > 1 ? BBColor.button : .gray)
+                        .frame(width: 40, height: 40)
+                        .background(Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255)))
+                }
+                .buttonStyle(.plain)
+                .disabled(cycles <= 1)
+
+                VStack(spacing: 2) {
+                    Text("\(cycles)")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundStyle(BBColor.title)
+                    Text(cycles == 1 ? "CYCLE" : "CYCLES")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(BBColor.subtitle)
+                }
+                .frame(minWidth: 70)
+
+                Button(action: { cycles = min(20, cycles + 1) }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(cycles < 20 ? BBColor.button : .gray)
+                        .frame(width: 40, height: 40)
+                        .background(Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255)))
+                }
+                .buttonStyle(.plain)
+                .disabled(cycles >= 20)
+            }
+            .padding(.top, 18)
 
             Button(action: onContinue) {
                 Text("Continue")
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 61)
+                    .frame(height: 56)
                     .background(Capsule().fill(BBColor.button))
             }
             .buttonStyle(.plain)
             .padding(.horizontal, 32)
-            .padding(.top, 35)
+            .padding(.top, 24)
 
             Button(action: onNotNow) {
                 Text("Not now")
@@ -55,7 +89,7 @@ struct BoxBreathingInfoView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .padding(.top, 23)
+            .padding(.top, 14)
 
             Spacer(minLength: 0)
         }
@@ -65,5 +99,5 @@ struct BoxBreathingInfoView: View {
 }
 
 #Preview {
-    BoxBreathingInfoView()
+    BoxBreathingInfoView(cycles: .constant(2))
 }
