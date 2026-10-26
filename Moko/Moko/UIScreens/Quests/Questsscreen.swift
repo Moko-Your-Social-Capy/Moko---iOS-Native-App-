@@ -9,6 +9,18 @@
 import SwiftUI
 import SwiftData
 
+private enum QuestsRoute: Identifiable {
+    case newQuest
+    case detail(Quest)
+
+    var id: String {
+        switch self {
+        case .newQuest:          return "new"
+        case .detail(let quest): return quest.id.uuidString
+        }
+    }
+}
+
 struct QuestsScreen: View {
     @Environment(\.modelContext) private var modelContext
     /// Only this user's quests, soonest first (set in init)
@@ -17,7 +29,7 @@ struct QuestsScreen: View {
     @State private var selectedTab: MokoTab = .quests
     /// nil means "All"
     @State private var filter: QuestCategory? = nil
-    @State private var showNewQuest = false
+    @State private var route: QuestsRoute?
 
     private let chipOptions: [QuestCategory?] = [nil] + QuestCategory.allCases.map { Optional($0) }
 
@@ -73,10 +85,15 @@ struct QuestsScreen: View {
             MokoTabBar(selectedTab: $selectedTab)
                 .padding(.bottom, 4)
         }
-        .fullScreenCover(isPresented: $showNewQuest) {
-            NewQuestScreen { quest in
-                modelContext.insert(quest)
-                filter = nil // show the full list, including the new quest
+        .fullScreenCover(item: $route) { destination in
+            switch destination {
+            case .newQuest:
+                NewQuestScreen { quest in
+                    modelContext.insert(quest)
+                    filter = nil // show the full list, including the new quest
+                }
+            case .detail(let quest):
+                QuestDetailScreen(quest: quest)
             }
         }
     }
@@ -175,7 +192,12 @@ struct QuestsScreen: View {
 
                     VStack(spacing: 12) {
                         ForEach(group.quests, id: \.id) { quest in
-                            questCard(quest)
+                            Button {
+                                route = .detail(quest)
+                            } label: {
+                                questCard(quest)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -223,7 +245,7 @@ struct QuestsScreen: View {
     // MARK: Add button
     private var addButton: some View {
         Button {
-            showNewQuest = true
+            route = .newQuest
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 24, weight: .medium))
