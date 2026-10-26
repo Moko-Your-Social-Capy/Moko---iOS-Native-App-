@@ -481,6 +481,29 @@ struct RelaxSessionSheet: View {
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)  // #6F6762
 
     var body: some View {
+        Group {
+            if session == .boxBreathing {
+                BoxBreathingInfoView(
+                    onContinue: {
+                        onContinue()
+                        showNext = true
+                    },
+                    onNotNow: { dismiss() }
+                )
+            } else {
+                standardSheetContent
+            }
+        }
+        .fullScreenCover(isPresented: $showNext) {
+            RelaxSessionDestination(
+                session: session,
+                onExit: { showNext = false },
+                onFinish: { onFinishFlow() }
+            )
+        }
+    }
+
+    private var standardSheetContent: some View {
         VStack(spacing: 0) {
             banner
 
@@ -530,22 +553,11 @@ struct RelaxSessionSheet: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
-        // Opens tall, to just under the status bar, like the design
         .presentationDetents([.large])
         .presentationDragIndicator(.hidden)
-        .fullScreenCover(isPresented: $showNext) {
-            RelaxSessionDestination(
-                session: session,
-                onExit: { showNext = false },
-                // Close the sheet itself, so the flow and the sheet go away together
-                onFinish: { onFinishFlow() }
-            )
-        }
     }
 
     private var banner: some View {
-        // The base view fixes the banner's size. The artwork sits in overlays,
-        // so a large illustration can't make the sheet's layout wider than the screen.
         Color.clear
             .frame(maxWidth: .infinity)
             .frame(height: 300)
@@ -556,8 +568,6 @@ struct RelaxSessionSheet: View {
                     endPoint: .bottom
                 )
             }
-            // Placeholder art, different for each session; the illustration
-            // named in `bannerImageName` covers it once it's in Assets
             .overlay {
                 RelaxSessionIcon(session: session, color: primaryGreen.opacity(0.6), size: 96)
             }
@@ -571,19 +581,21 @@ struct RelaxSessionSheet: View {
 }
 
 // MARK: - Where "Continue" leads for each session
-// Plug each session's real screen in here as you build it.
 struct RelaxSessionDestination: View {
     let session: RelaxSession
-    /// Backed out of the flow's first screen
     var onExit: () -> Void = {}
-    /// Reached the end of the flow
     var onFinish: () -> Void = {}
 
     var body: some View {
         switch session {
         case .mirror:
             MirrorFlowView(onExit: onExit, onFinish: onFinish)
-        case .boxBreathing, .grounding, .imagery:
+        case .boxBreathing:
+            BoxBreathingView(onComplete: {
+                onFinish()
+                onExit()
+            })
+        case .grounding, .imagery:
             RelaxSessionPlaceholderScreen(session: session)
         }
     }
