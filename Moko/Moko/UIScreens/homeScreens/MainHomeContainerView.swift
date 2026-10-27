@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MainHomeContainerView: View {
     @State private var selectedTab: MokoTab = .overview
+    @State private var searchedTerm = ""
     var userEmail: String
 
     var body: some View {
@@ -19,7 +20,10 @@ struct MainHomeContainerView: View {
             }
 
             Tab("Search", systemImage: "magnifyingglass", value: MokoTab.search, role: .search) {
-                SearchView(selectedTab: $selectedTab)
+                NavigationStack {
+                    SearchView(selectedTab: $selectedTab)
+                        .searchable(text: $searchedTerm)
+                }
             }
         }
         .tint(Color(red: 27/255, green: 66/255, blue: 47/255))
