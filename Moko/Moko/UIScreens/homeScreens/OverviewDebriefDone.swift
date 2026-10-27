@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct OverviewDebriefDone: View {
-    @State private var selectedTab: MokoTab = .overview
     @State private var showInsights: Bool = false
 
     // Palette matching design specifications
@@ -19,7 +18,7 @@ struct OverviewDebriefDone: View {
     private let timerBlue = Color(red: 10/255, green: 132/255, blue: 255/255) // #0A84FF
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             // Background
             screenBg
                 .ignoresSafeArea()
@@ -41,13 +40,9 @@ struct OverviewDebriefDone: View {
                     statisticsSection
                         .padding(.top, 28)
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 120) // space for floating tab bar
+                        .padding(.bottom, 24)
                 }
             }
-
-            // MARK: - Floating Tab Bar
-            MokoTabBar(selectedTab: $selectedTab)
-                .padding(.bottom, 4)
         }
         .fullScreenCover(isPresented: $showInsights) {
             NavigationStack {

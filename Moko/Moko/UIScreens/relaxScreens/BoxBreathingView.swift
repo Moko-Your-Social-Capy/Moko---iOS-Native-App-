@@ -115,39 +115,18 @@ struct BoxBreathingView: View {
         ZStack {
             BBColor.background.ignoresSafeArea()
 
-            if state == .complete {
-                completeContent.transition(.opacity)
-            } else {
-                breathingContent.transition(.opacity)
+            VStack(spacing: 0) {
+                topBar
+
+                if state == .complete {
+                    completeContent.transition(.opacity)
+                } else {
+                    breathingContent.transition(.opacity)
+                }
             }
         }
         .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.black)
-                        .frame(width: 38, height: 38)
-                        .background(Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255)))
-                        .contentShape(Circle())
-                }
-                .buttonStyle(.plain)
-            }
-            ToolbarItem(placement: .principal) {
-                VStack(spacing: 2) {
-                    Text("Box Breathing")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(BBColor.title)
-                    Text("4 Seconds Breathing Pattern")
-                        .font(.system(size: 12))
-                        .foregroundStyle(BBColor.subtitle)
-                }
-                .opacity(state == .complete ? 1 : 0)
-            }
-        }
+        .toolbar(.hidden, for: .navigationBar)
         .task(id: state) { await runClock() }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase != .active && state == .running { pause() }
@@ -158,6 +137,26 @@ struct BoxBreathingView: View {
         .sensoryFeedback(trigger: state) { _, new in
             new == .complete ? .success : nil
         }
+    }
+
+    private var topBar: some View {
+        HStack {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.black)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255)))
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
     }
 
     // MARK: Start / running / paused screen
@@ -185,41 +184,19 @@ struct BoxBreathingView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("Box Breathing")
                 .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(BBColor.title)
                 .padding(.horizontal, 16)
 
-            // Cycle selection tags
-            if state == .idle {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach([2, 4, 6, 8, 10], id: \.self) { count in
-                            Button(action: { cycles = count }) {
-                                Text("\(count) cycles")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(cycles == count ? .white : BBColor.button)
-                                    .padding(.horizontal, 14)
-                                    .padding(.vertical, 7)
-                                    .background(
-                                        Capsule().fill(cycles == count ? BBColor.button : Color(red: 237/255, green: 237/255, blue: 237/255))
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                }
-            } else {
-                HStack {
-                    Text(cyclesText)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(BBColor.muted)
-                    Spacer()
-                }
-                .padding(.horizontal, 16)
+            HStack {
+                Text(cyclesText)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(BBColor.muted)
+                Spacer()
             }
+            .padding(.horizontal, 16)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
