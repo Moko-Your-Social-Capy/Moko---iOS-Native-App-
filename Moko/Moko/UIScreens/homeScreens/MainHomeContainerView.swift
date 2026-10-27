@@ -1,3 +1,10 @@
+//
+//  MainHomeContainerView.swift
+//  Moko
+//
+//  Tab navigation using the native TabView (Search tab is separated on iOS 26).
+//
+
 import SwiftUI
 
 struct MainHomeContainerView: View {
@@ -26,6 +33,10 @@ struct MainHomeContainerView: View {
                 }
             }
         }
-        .tint(Color(red: 27/255, green: 66/255, blue: 47/255))
+        .tint(Color(red: 27/255, green: 66/255, blue: 47/255)) // #1B422F
     }
+}
+
+#Preview {
+    MainHomeContainerView(userEmail: "test@user.com")
 }
