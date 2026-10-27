@@ -8,7 +8,6 @@
 import SwiftUI
 
 struct OverviewResumeScreen: View {
-    @State private var selectedTab: MokoTab = .overview
     @State private var showInsights: Bool = false
 
     // Optional callbacks
@@ -27,7 +26,7 @@ struct OverviewResumeScreen: View {
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             // Background
             screenBg
                 .ignoresSafeArea()
@@ -49,13 +48,9 @@ struct OverviewResumeScreen: View {
                     statisticsSection
                         .padding(.top, 28)
                         .padding(.horizontal, 16)
-                        .padding(.bottom, 120) // space for floating tab bar
+                        .padding(.bottom, 24)
                 }
             }
-
-            // MARK: - Floating Tab Bar
-            MokoTabBar(selectedTab: $selectedTab)
-                .padding(.bottom, 4)
         }
         .fullScreenCover(isPresented: $showInsights) {
             NavigationStack {
