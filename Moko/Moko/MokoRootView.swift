@@ -2,7 +2,7 @@
 //  MokoRootView.swift
 //  Moko
 //
-//  App root using native iOS TabView.
+//  App root using the native TabView.
 //
 
 import SwiftUI
@@ -14,39 +14,23 @@ struct MokoRootView: View {
 
     var body: some View {
         TabView(selection: $tab) {
-            NavigationStack {
-                Overview(selectedTab: $tab)
-            }
-            .tabItem {
-                Label("Overview", systemImage: "square.grid.2x2.fill")
-            }
-            .tag(MokoTab.overview)
+            Overview(selectedTab: $tab)
+                .tabItem { Label("Overview", systemImage: "square.grid.2x2.fill") }
+                .tag(MokoTab.overview)
 
-            NavigationStack {
-                QuestsScreen()
-            }
-            .tabItem {
-                Label("Quests", systemImage: "list.clipboard")
-            }
-            .tag(MokoTab.quests)
+            QuestsScreen()
+                .tabItem { Label("Quests", systemImage: "clipboard.fill") }
+                .tag(MokoTab.quests)
 
-            NavigationStack {
-                RelaxScreen(selectedTab: $tab)
-            }
-            .tabItem {
-                Label("Relax", systemImage: "figure.mind.and.body")
-            }
-            .tag(MokoTab.relax)
+            RelaxScreen(selectedTab: $tab)
+                .tabItem { Label("Relax", systemImage: "figure.mind.and.body") }
+                .tag(MokoTab.relax)
 
-            NavigationStack {
-                SearchView(selectedTab: $tab)
-            }
-            .tabItem {
-                Label("Search", systemImage: "magnifyingglass")
-            }
-            .tag(MokoTab.search)
+            SearchView(selectedTab: $tab)
+                .tabItem { Label("Search", systemImage: "magnifyingglass") }
+                .tag(MokoTab.search)
         }
-        .accentColor(Color(red: 54/255, green: 89/255, blue: 72/255))
+        .tint(Color(red: 27/255, green: 66/255, blue: 47/255)) // #1B422F
         .modelContainer(useInMemoryStore ? MokoDatabase.preview : MokoDatabase.shared)
     }
 }

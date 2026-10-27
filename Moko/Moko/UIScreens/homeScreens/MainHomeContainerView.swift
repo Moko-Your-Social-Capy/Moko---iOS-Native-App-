@@ -1,10 +1,3 @@
-//
-//  MainHomeContainerView.swift
-//  Moko
-//
-//  Canonical tab navigation using native iOS TabView and .tabItem.
-//
-
 import SwiftUI
 
 struct MainHomeContainerView: View {
@@ -13,42 +6,22 @@ struct MainHomeContainerView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            NavigationStack {
+            Tab("Overview", systemImage: "square.grid.2x2.fill", value: MokoTab.overview) {
                 Overview(selectedTab: $selectedTab)
             }
-            .tabItem {
-                Label("Overview", systemImage: "square.grid.2x2.fill")
-            }
-            .tag(MokoTab.overview)
 
-            NavigationStack {
+            Tab("Quests", systemImage: "clipboard.fill", value: MokoTab.quests) {
                 QuestsScreen()
             }
-            .tabItem {
-                Label("Quests", systemImage: "list.clipboard")
-            }
-            .tag(MokoTab.quests)
 
-            NavigationStack {
+            Tab("Relax", systemImage: "figure.mind.and.body", value: MokoTab.relax) {
                 RelaxScreen(selectedTab: $selectedTab)
             }
-            .tabItem {
-                Label("Relax", systemImage: "figure.mind.and.body")
-            }
-            .tag(MokoTab.relax)
 
-            NavigationStack {
+            Tab("Search", systemImage: "magnifyingglass", value: MokoTab.search, role: .search) {
                 SearchView(selectedTab: $selectedTab)
             }
-            .tabItem {
-                Label("Search", systemImage: "magnifyingglass")
-            }
-            .tag(MokoTab.search)
         }
-        .accentColor(Color(red: 54/255, green: 89/255, blue: 72/255))
+        .tint(Color(red: 27/255, green: 66/255, blue: 47/255))
     }
-}
-
-#Preview {
-    MainHomeContainerView(userEmail: "test@user.com")
 }

@@ -14,7 +14,6 @@ struct QuestsScreen: View {
     /// Only this user's quests, soonest first (set in init)
     @Query private var quests: [Quest]
 
-    @State private var selectedTab: MokoTab = .quests
     /// nil means "All"
     @State private var filter: QuestCategory? = nil
     @State private var showNewQuest = false
@@ -45,7 +44,7 @@ struct QuestsScreen: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             QuestStyle.screenBg
                 .ignoresSafeArea()
 
@@ -67,15 +66,12 @@ struct QuestsScreen: View {
             addButton
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .padding(.trailing, 20)
-                .padding(.bottom, 84)
-
-            // Floating Tab Bar
-            MokoTabBar(selectedTab: $selectedTab)
-                .padding(.bottom, 4)
+                .padding(.bottom, 24)
         }
         .fullScreenCover(isPresented: $showNewQuest) {
             NewQuestScreen { quest in
                 modelContext.insert(quest)
+                try? modelContext.save()
                 filter = nil // show the full list, including the new quest
             }
         }

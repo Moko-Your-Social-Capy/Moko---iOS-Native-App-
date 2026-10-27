@@ -150,7 +150,7 @@ struct RelaxScreen: View {
     ]
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             screenBg
                 .ignoresSafeArea()
 
@@ -182,13 +182,9 @@ struct RelaxScreen: View {
                     }
                     .padding(.top, 14)
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 110) // space for floating tab bar
+                    .padding(.bottom, 24)
                 }
             }
-
-            // MARK: - Floating Tab Bar
-            MokoTabBar(selectedTab: $selectedTab)
-                .padding(.bottom, 4)
         }
         .sheet(item: $activeSheet, onDismiss: {
             // Open the next screen only after the sheet has fully closed

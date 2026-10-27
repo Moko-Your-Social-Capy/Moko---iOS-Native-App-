@@ -128,12 +128,9 @@ struct ExploreView: View {
                         .padding(.horizontal, 16)
                     }
 
-                    Spacer(minLength: 120)
+                    Spacer(minLength: 24)
                 }
             }
-
-            MokoTabBar(selectedTab: $selectedTab)
-                .padding(.bottom, 4)
         }
         .sheet(isPresented: $showingCustomQuestSetup) {
             CustomQuestSetupView(onSave: { quest in
