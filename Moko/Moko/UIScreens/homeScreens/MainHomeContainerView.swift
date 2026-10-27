@@ -1,10 +1,3 @@
-//
-//  MainHomeContainerView.swift
-//  Moko
-//
-//  Orchestrates tab navigation between Overview, Quests, Relax, and Search.
-//
-
 import SwiftUI
 
 struct MainHomeContainerView: View {
@@ -12,21 +5,23 @@ struct MainHomeContainerView: View {
     var userEmail: String
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            switch selectedTab {
-            case .overview:
+        TabView(selection: $selectedTab) {
+            Tab("Overview", systemImage: "square.grid.2x2.fill", value: MokoTab.overview) {
                 Overview(selectedTab: $selectedTab)
-            case .quests:
+            }
+
+            Tab("Quests", systemImage: "clipboard.fill", value: MokoTab.quests) {
                 QuestsScreen()
-            case .relax:
+            }
+
+            Tab("Relax", systemImage: "figure.mind.and.body", value: MokoTab.relax) {
                 RelaxScreen(selectedTab: $selectedTab)
-            case .search:
+            }
+
+            Tab("Search", systemImage: "magnifyingglass", value: MokoTab.search, role: .search) {
                 SearchView(selectedTab: $selectedTab)
             }
         }
+        .tint(Color(red: 27/255, green: 66/255, blue: 47/255))
     }
-}
-
-#Preview {
-    MainHomeContainerView(userEmail: "test@user.com")
 }

@@ -34,7 +34,7 @@ struct SearchView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             AppColors.Light.background.ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 16) {
@@ -115,12 +115,9 @@ struct SearchView: View {
                         }
                     }
                     .padding(.horizontal, 16)
-                    .padding(.bottom, 120)
+                    .padding(.bottom, 24)
                 }
             }
-
-            MokoTabBar(selectedTab: $selectedTab)
-                .padding(.bottom, 4)
         }
     }
 }
