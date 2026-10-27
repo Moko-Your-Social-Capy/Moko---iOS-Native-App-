@@ -90,6 +90,7 @@ struct ImageryGuide: Identifiable, Hashable {
 struct ImageryGuideListView: View {
     var onSelect: (ImageryGuide) -> Void = { _ in }
 
+    @Environment(\.dismiss) private var dismiss
     @State private var selectedTag: String? = nil      // nil = "All"
 
     private let sage      = Color(hex: 0x365948)
@@ -106,19 +107,11 @@ struct ImageryGuideListView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Imagery Guide")
-                .font(.system(size: 26, weight: .semibold))
-                .tracking(-0.4)
-                .foregroundStyle(Color.black)
-                .padding(.top, 22)
-
-            Text("Breathing and guided imagery paired together")
-                .font(.system(size: 13))
-                .foregroundStyle(subtitle)
+            backButton
                 .padding(.top, 8)
 
             chips
-                .padding(.top, 42)
+                .padding(.top, 12)
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 14.67) {
@@ -137,6 +130,20 @@ struct ImageryGuideListView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color(hex: 0xF2F2F7).ignoresSafeArea())
         .animation(.easeInOut(duration: 0.2), value: selectedTag)
+    }
+
+    private var backButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundColor(.black)
+                .frame(width: 38, height: 38)
+                .background(Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: Filter chips
