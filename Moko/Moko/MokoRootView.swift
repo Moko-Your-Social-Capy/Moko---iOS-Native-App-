@@ -24,7 +24,7 @@ struct MokoRootView: View {
             }
 
             Tab("Relax", systemImage: "figure.mind.and.body", value: MokoTab.relax) {
-                RelaxFlow(selectedTab: $tab)
+                RelaxScreen(selectedTab: $tab)
             }
 
             Tab("Search", systemImage: "magnifyingglass", value: MokoTab.search, role: .search) {

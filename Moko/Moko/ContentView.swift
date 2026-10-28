@@ -26,7 +26,7 @@ struct ContentView: View {
         case onboardingQuestions // Swipeable Onboarding Questions
         case done
         case reflection
-        case home(userEmail: String)
+        case home
     }
 
     @State private var currentScreen: AppScreen = .splash
@@ -56,12 +56,7 @@ struct ContentView: View {
                 SplashScreenView(
                     autoAdvance: true,
                     onFinished: {
-                        withAnimation(
-                            .spring(
-                                response: 0.55,
-                                dampingFraction: 0.82
-                            )
-                        ) {
+                        withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
                             checkInitialRegistrationAndNavigate()
                         }
                     }
@@ -69,8 +64,7 @@ struct ContentView: View {
                 .transition(
                     .asymmetric(
                         insertion: .opacity,
-                        removal: .opacity
-                            .combined(with: .scale(scale: 1.04))
+                        removal: .opacity.combined(with: .scale(scale: 1.04))
                     )
                 )
 
@@ -79,22 +73,15 @@ struct ContentView: View {
             case .intro:
                 OnboardingIntroView(
                     onLetsBegin: {
-                        withAnimation(
-                            .spring(
-                                response: 0.5,
-                                dampingFraction: 0.82
-                            )
-                        ) {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
                             currentScreen = .auth
                         }
                     }
                 )
                 .transition(
                     .asymmetric(
-                        insertion: .move(edge: .trailing)
-                            .combined(with: .opacity),
-                        removal: .move(edge: .leading)
-                            .combined(with: .opacity)
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
                     )
                 )
 
@@ -103,9 +90,7 @@ struct ContentView: View {
             case .auth:
                 OnboardingAuthView(
                     onAuthenticated: { user in
-                        completeAuthentication(
-                            email: user.email ?? "User"
-                        )
+                        completeAuthentication(email: user.email ?? "User")
                     },
 
                     onContinueWithEmail: { email in
@@ -113,42 +98,29 @@ struct ContentView: View {
                     },
 
                     onContinueWithApple: {
-                        completeAuthentication(
-                            email: "Apple User"
-                        )
+                        completeAuthentication(email: "Apple User")
                     },
 
                     onContinueWithGoogle: {
                         Task {
                             if let user = try? await auth.getCurrentUser() {
-                                completeAuthentication(
-                                    email: user.email ?? "Google User"
-                                )
+                                completeAuthentication(email: user.email ?? "Google User")
                             } else {
-                                completeAuthentication(
-                                    email: "Google User"
-                                )
+                                completeAuthentication(email: "Google User")
                             }
                         }
                     },
 
                     onBack: {
-                        withAnimation(
-                            .spring(
-                                response: 0.5,
-                                dampingFraction: 0.82
-                            )
-                        ) {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
                             currentScreen = .intro
                         }
                     }
                 )
                 .transition(
                     .asymmetric(
-                        insertion: .move(edge: .trailing)
-                            .combined(with: .opacity),
-                        removal: .move(edge: .trailing)
-                            .combined(with: .opacity)
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .trailing).combined(with: .opacity)
                     )
                 )
 
@@ -171,9 +143,7 @@ struct ContentView: View {
                             answers = result
                             mapAndSaveQuestionsToSwiftData(results: result)
 
-                            withAnimation(
-                                .easeInOut(duration: 0.3)
-                            ) {
+                            withAnimation(.easeInOut(duration: 0.3)) {
                                 currentScreen = .done
                             }
                         }
@@ -184,12 +154,8 @@ struct ContentView: View {
             // MARK: Onboarding Done
 
             case .done:
-                OnboardingDoneView(
-                    completed: answers.count
-                ) {
-                    withAnimation(
-                        .easeInOut(duration: 0.3)
-                    ) {
+                OnboardingDoneView(completed: answers.count) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
                         currentScreen = .reflection
                     }
                 }
@@ -199,30 +165,17 @@ struct ContentView: View {
 
             case .reflection:
                 ReflectionView {
-                    withAnimation(
-                        .spring(
-                            response: 0.55,
-                            dampingFraction: 0.8
-                        )
-                    ) {
-                        currentScreen = .home(
-                            userEmail: signedInEmail.isEmpty ? (profiles.first?.username ?? "User") : signedInEmail
-                        )
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) {
+                        currentScreen = .home
                     }
                 }
                 .transition(.opacity)
 
             // MARK: Home
 
-            case .home(let email):
-                MainHomeContainerView(userEmail: email)
-                .transition(.opacity.combined(with: .scale(scale: 0.96)))
-            }
-        }
-        .onAppear {
-            if isUserFullyRegistered {
-                let email = profiles.first?.username.isEmpty == false ? profiles.first!.username : "User"
-                currentScreen = .home(userEmail: email)
+            case .home:
+                MokoRootView()
+                    .transition(.opacity)
             }
         }
     }
@@ -232,8 +185,7 @@ struct ContentView: View {
     private func checkInitialRegistrationAndNavigate() {
         withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
             if isUserFullyRegistered {
-                let email = profiles.first?.username.isEmpty == false ? profiles.first!.username : "User"
-                currentScreen = .home(userEmail: email)
+                currentScreen = .home
             } else {
                 currentScreen = .intro
             }
@@ -244,12 +196,7 @@ struct ContentView: View {
         signedInEmail = email
 
         // After authentication, start onboarding info screens
-        withAnimation(
-            .spring(
-                response: 0.55,
-                dampingFraction: 0.8
-            )
-        ) {
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) {
             currentScreen = .onboardingInfo
         }
     }
@@ -314,7 +261,7 @@ struct ContentView: View {
 
 struct OnboardingFlowContainer: View {
     var onComplete: (String, Int) -> Void
-    
+
     @State private var path: [OnboardingStep] = []
     @AppStorage("userName") private var userName = ""
     @AppStorage("userAge") private var userAge = 20
