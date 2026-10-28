@@ -2,8 +2,9 @@
 //  QuestsScreen.swift
 //  Moko
 //
-//  Quests tab. No quests: "No Active Quest" card. Otherwise: category filter chips
-//  and the quests grouped by day. The + button opens NewQuestScreen.
+//  Quests tab. Reads this user's quests from SwiftData with @Query.
+//  No quests: "No Active Quest" card. Otherwise: category chips and quests
+//  grouped by day. The + button opens NewQuestScreen, which saves to SwiftData.
 //
 
 import SwiftUI
@@ -23,11 +24,12 @@ private enum QuestsRoute: Identifiable {
 
 struct QuestsScreen: View {
     @Environment(\.modelContext) private var modelContext
-    /// Only this user's quests, soonest first (set in init)
+
+    /// Only this user's quests, soonest first. @Query keeps the list up to date.
     @Query private var quests: [Quest]
 
     /// nil means "All"
-    @State private var filter: QuestCategory? = nil
+    @State private var filter: QuestCategory?
     @State private var route: QuestsRoute?
 
     private let chipOptions: [QuestCategory?] = [nil] + QuestCategory.allCases.map { Optional($0) }
@@ -44,19 +46,20 @@ struct QuestsScreen: View {
     }
 
     private var filteredQuests: [Quest] {
-        quests.filter { filter == nil || $0.category == filter }
+        guard let filter else { return quests }
+        return quests.filter { $0.category == filter }
     }
 
     private var groups: [DayGroup] {
         let calendar = Calendar.current
         let byDay = Dictionary(grouping: filteredQuests) { calendar.startOfDay(for: $0.date) }
         return byDay.keys.sorted().map { day in
-            DayGroup(day: day, quests: (byDay[day] ?? []).sorted { $0.date < $1.date })
+            DayGroup(day: day, quests: byDay[day] ?? [])   // already sorted by date
         }
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack(alignment: .bottomTrailing) {
             QuestStyle.screenBg
                 .ignoresSafeArea()
 
@@ -74,23 +77,21 @@ struct QuestsScreen: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-            // Add button
             addButton
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .padding(.trailing, 20)
                 .padding(.bottom, 20)
-
         }
         .fullScreenCover(item: $route) { destination in
             switch destination {
             case .newQuest:
-                NewQuestScreen { quest in
-                    modelContext.insert(quest)
-                    filter = nil // show the full list, including the new quest
-                }
+                NewQuestScreen()
             case .detail(let quest):
                 QuestDetailScreen(quest: quest)
             }
+        }
+        // After a quest is added, show the full list so the new quest is visible
+        .onChange(of: quests.count) { oldCount, newCount in
+            if newCount > oldCount { filter = nil }
         }
     }
 
@@ -125,12 +126,8 @@ struct QuestsScreen: View {
             .foregroundColor(isSelected ? QuestStyle.green : QuestStyle.subtext)
             .padding(.horizontal, 12)
             .frame(height: 32)
-            .background(
-                Capsule().fill(isSelected ? QuestStyle.chipSelectedFill : Color.white)
-            )
-            .overlay(
-                Capsule().stroke(isSelected ? QuestStyle.chipSelectedBorder : Color.clear, lineWidth: 1)
-            )
+            .background(Capsule().fill(isSelected ? QuestStyle.chipSelectedFill : Color.white))
+            .overlay(Capsule().stroke(isSelected ? QuestStyle.chipSelectedBorder : Color.clear, lineWidth: 1))
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -177,7 +174,7 @@ struct QuestsScreen: View {
 
     private var questList: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
+            LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(groups) { group in
                     Text(QuestFormat.groupTitle(group.day))
                         .font(.system(size: 14, weight: .medium))
@@ -231,6 +228,7 @@ struct QuestsScreen: View {
             Button(role: .destructive) {
                 withAnimation {
                     modelContext.delete(quest)
+                    try? modelContext.save()
                 }
             } label: {
                 Label("Delete", systemImage: "trash")
