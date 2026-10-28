@@ -9,6 +9,18 @@
 import SwiftUI
 import SwiftData
 
+private enum QuestsRoute: Identifiable {
+    case newQuest
+    case detail(Quest)
+
+    var id: String {
+        switch self {
+        case .newQuest:          return "new"
+        case .detail(let quest): return quest.id.uuidString
+        }
+    }
+}
+
 struct QuestsScreen: View {
     @Environment(\.modelContext) private var modelContext
     /// Only this user's quests, soonest first (set in init)
@@ -16,7 +28,7 @@ struct QuestsScreen: View {
 
     /// nil means "All"
     @State private var filter: QuestCategory? = nil
-    @State private var showNewQuest = false
+    @State private var route: QuestsRoute?
 
     private let chipOptions: [QuestCategory?] = [nil] + QuestCategory.allCases.map { Optional($0) }
 
@@ -44,7 +56,7 @@ struct QuestsScreen: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottom) {
             QuestStyle.screenBg
                 .ignoresSafeArea()
 
@@ -66,13 +78,18 @@ struct QuestsScreen: View {
             addButton
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .padding(.trailing, 20)
-                .padding(.bottom, 24)
+                .padding(.bottom, 20)
+
         }
-        .fullScreenCover(isPresented: $showNewQuest) {
-            NewQuestScreen { quest in
-                modelContext.insert(quest)
-                try? modelContext.save()
-                filter = nil // show the full list, including the new quest
+        .fullScreenCover(item: $route) { destination in
+            switch destination {
+            case .newQuest:
+                NewQuestScreen { quest in
+                    modelContext.insert(quest)
+                    filter = nil // show the full list, including the new quest
+                }
+            case .detail(let quest):
+                QuestDetailScreen(quest: quest)
             }
         }
     }
@@ -171,13 +188,18 @@ struct QuestsScreen: View {
 
                     VStack(spacing: 12) {
                         ForEach(group.quests, id: \.id) { quest in
-                            questCard(quest)
+                            Button {
+                                route = .detail(quest)
+                            } label: {
+                                questCard(quest)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, 16)
                 }
             }
-            .padding(.bottom, 180) // clear of the add button and tab bar
+            .padding(.bottom, 110) // clear of the add button
         }
     }
 
@@ -219,7 +241,7 @@ struct QuestsScreen: View {
     // MARK: Add button
     private var addButton: some View {
         Button {
-            showNewQuest = true
+            route = .newQuest
         } label: {
             Image(systemName: "plus")
                 .font(.system(size: 24, weight: .medium))
