@@ -2,7 +2,7 @@
 //  TodoOverviewScreen.swift
 //  Moko
 //
-//  Overview content only. Includes the floating MokoTabBar.
+//  Overview content only. Calm Down card pushes the Summary screen.
 //
 
 import SwiftUI
@@ -21,7 +21,9 @@ struct Overview: View {
     // MARK: - State Properties
     @State private var slideOffset: CGFloat = 0
     @State private var isMissionCompleted: Bool = false
-    @State private var showInsights: Bool = false
+    @State private var showRadarInfo: Bool = false      // "How your radar chart works" sheet
+    @State private var openInsights: Bool = false       // set by the sheet's button
+    @State private var showInsights: Bool = false       // pushes InsightsView
 
     // Custom Palette based on design specs
     private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
@@ -31,35 +33,46 @@ struct Overview: View {
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
 
     var body: some View {
-        ZStack {
-            // Background
-            screenBg
-                .ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                // Background
+                screenBg
+                    .ignoresSafeArea()
 
-            // Scrollable Content Area
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    // MARK: - Header
-                    headerSection
-                        .padding(.horizontal, 20)
-                        .padding(.top, 14)
+                // Scrollable Content Area
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        // MARK: - Header
+                        headerSection
+                            .padding(.horizontal, 20)
+                            .padding(.top, 14)
 
-                    // MARK: - Today's Mission Section
-                    todaysMissionSection
-                        .padding(.top, 28)
-                        .padding(.horizontal, 16)
+                        // MARK: - Today's Mission Section
+                        todaysMissionSection
+                            .padding(.top, 28)
+                            .padding(.horizontal, 16)
 
-                    // MARK: - Statistics Section
-                    statisticsSection
-                        .padding(.top, 28)
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 24)
+                        // MARK: - Statistics Section
+                        statisticsSection
+                            .padding(.top, 28)
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 24)
+                    }
                 }
             }
-        }
-        .fullScreenCover(isPresented: $showInsights) {
-            NavigationStack {
-                InsightsCopiedView()
+            // Overview keeps its own header; pushed screens get the default bar and back button
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: $showInsights) {
+                InsightsView()
+            }
+            .sheet(isPresented: $showRadarInfo, onDismiss: {
+                // Push Insights only after the sheet has fully closed
+                if openInsights {
+                    openInsights = false
+                    showInsights = true
+                }
+            }) {
+                RadarInfoSheet(onViewInsights: { openInsights = true })
             }
         }
     }
@@ -232,11 +245,19 @@ struct Overview: View {
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(titleDark)
 
-            // Insights Card
+            // Insights Card (opens the radar chart info sheet)
             insightsCard
+                .onTapGesture {
+                    showRadarInfo = true
+                }
 
-            // Calm Down Card
-            calmDownCard
+            // Calm Down Card (pushes the Summary screen)
+            NavigationLink {
+                SummaryView()
+            } label: {
+                calmDownCard
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -292,9 +313,6 @@ struct Overview: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
         .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .onTapGesture {
-            showInsights = true
-        }
     }
 
     // MARK: - Calm Down Card
@@ -348,6 +366,7 @@ struct Overview: View {
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
