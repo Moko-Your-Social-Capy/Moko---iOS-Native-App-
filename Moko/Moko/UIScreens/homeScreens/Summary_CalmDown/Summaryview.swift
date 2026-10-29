@@ -170,7 +170,7 @@ struct SummaryData {
         case "Mirror Reflection": return "person.crop.square"
         case "Gentle Breathing":  return "wind"
         case "Imagery Guide":     return "photo.on.rectangle"
-        case "Grounding":         return "5.square.fill"
+        case "Grounding Exercise": return "hand.raised.fill"   // must match the title logged by GroundingExerciseScreen
         default:                  return "leaf.fill"
         }
     }
@@ -358,7 +358,8 @@ struct SummaryView: View {
         ("Box Breathing", 240),
         ("Mirror Reflection", 120),
         ("Gentle Breathing", 300),
-        ("Imagery Guide", 120)
+        ("Imagery Guide", 120),
+        ("Grounding Exercise", 180)
     ]
     for (title, seconds) in samples {
         container.mainContext.insert(CalmDownModel(exerciseTitle: title, exerciseTime: seconds, date: Date()))
