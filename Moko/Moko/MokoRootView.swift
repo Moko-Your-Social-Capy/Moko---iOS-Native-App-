@@ -11,7 +11,6 @@ import SwiftData
 struct MokoRootView: View {
     @State private var tab: MokoTab = .overview
     @State private var searchedTerm = ""
-    var useInMemoryStore = false
 
     var body: some View {
         TabView(selection: $tab) {
@@ -35,10 +34,12 @@ struct MokoRootView: View {
             }
         }
         .tint(Color(red: 27/255, green: 66/255, blue: 47/255)) // #1B422F
-        .modelContainer(useInMemoryStore ? MokoDatabase.preview : MokoDatabase.shared)
+        // No .modelContainer here: the whole app uses the container from MokoApp,
+        // which already has every model (Quest, InsightsModel, CalmDownModel, ...).
     }
 }
 
 #Preview {
-    MokoRootView(useInMemoryStore: true)
+    MokoRootView()
+        .modelContainer(for: [Quest.self, InsightsModel.self, CalmDownModel.self], inMemory: true)
 }
