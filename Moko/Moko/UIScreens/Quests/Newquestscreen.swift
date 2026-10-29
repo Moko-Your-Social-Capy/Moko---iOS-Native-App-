@@ -2,25 +2,44 @@
 //  NewQuestScreen.swift
 //  Moko
 //
-//  Create a custom quest. Saves straight into SwiftData, so the Quests screen
-//  (which uses @Query) shows the new quest as soon as this screen closes.
+//  Create a custom quest, or edit an existing one (pass `quest`). Saves straight into
+//  SwiftData, so the Quests screen (which uses @Query) updates as soon as this closes.
 //
 
 import SwiftUI
 import SwiftData
 
 struct NewQuestScreen: View {
+    /// nil = create a new quest; otherwise edit this one
+    var quest: Quest?
+
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @State private var title = ""
-    @State private var notes = ""
-    @State private var intensity: QuestIntensity = .medium
-    @State private var category: QuestCategory = .others
-    @State private var scheduled: Date = QuestFormat.defaultSchedule()
+    @State private var title: String
+    @State private var notes: String
+    @State private var intensity: QuestIntensity
+    @State private var category: QuestCategory
+    @State private var scheduled: Date
+
+    init(quest: Quest? = nil) {
+        self.quest = quest
+        _title = State(initialValue: quest?.title ?? "")
+        _notes = State(initialValue: quest?.notes ?? "")
+        _intensity = State(initialValue: quest?.intensity ?? .medium)
+        _category = State(initialValue: quest?.category ?? .others)
+        _scheduled = State(initialValue: quest?.date ?? QuestFormat.defaultSchedule())
+    }
+
+    private var isEditing: Bool { quest != nil }
 
     private var trimmedTitle: String {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// New quests can't be scheduled in the past; an existing one keeps whatever date it has
+    private var earliestDate: Date {
+        isEditing ? Date.distantPast : Calendar.current.startOfDay(for: Date())
     }
 
     var body: some View {
@@ -48,7 +67,7 @@ struct NewQuestScreen: View {
                 Section("Schedule") {
                     DatePicker("Date",
                                selection: $scheduled,
-                               in: Calendar.current.startOfDay(for: Date())...,
+                               in: earliestDate...,
                                displayedComponents: .date)
 
                     DatePicker("Time",
@@ -58,7 +77,7 @@ struct NewQuestScreen: View {
             }
             .scrollContentBackground(.hidden)
             .background(QuestStyle.screenBg)
-            .navigationTitle("New Quest")
+            .navigationTitle(isEditing ? "Edit Quest" : "New Quest")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -66,7 +85,7 @@ struct NewQuestScreen: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                Button("Create Quest", action: createQuest)
+                Button(isEditing ? "Save Changes" : "Create Quest", action: save)
                     .buttonStyle(.borderedProminent)
                     .tint(QuestStyle.deepGreen)
                     .controlSize(.large)
@@ -78,22 +97,34 @@ struct NewQuestScreen: View {
         .tint(QuestStyle.green)
     }
 
-    private func createQuest() {
-        let quest = Quest(
-            ownerID: CurrentUser.localID,
-            title: trimmedTitle,
-            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
-            intensity: intensity,
-            category: category,
-            date: scheduled
-        )
-        modelContext.insert(quest)
+    private func save() {
+        let cleanNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let quest {
+            // Editing: update the saved quest in place
+            quest.title = trimmedTitle
+            quest.notes = cleanNotes
+            quest.intensity = intensity
+            quest.category = category
+            quest.date = scheduled
+        } else {
+            let newQuest = Quest(
+                ownerID: CurrentUser.localID,
+                title: trimmedTitle,
+                notes: cleanNotes,
+                intensity: intensity,
+                category: category,
+                date: scheduled
+            )
+            modelContext.insert(newQuest)
+        }
+
         try? modelContext.save()
         dismiss()
     }
 }
 
-#Preview {
+#Preview("New") {
     NewQuestScreen()
         .modelContainer(MokoDatabase.preview)
 }
