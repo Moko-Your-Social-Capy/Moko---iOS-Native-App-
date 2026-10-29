@@ -478,11 +478,11 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
 }
 
 // MARK: - Full-height session sheet (illustration, text, Continue / Not now)
+
 struct RelaxSessionSheet: View {
     let session: RelaxSession
     @Binding var boxBreathingCycles: Int
     var onContinue: () -> Void
-    /// Called when a flow reaches its end (e.g. Done). The parent closes this sheet.
     var onFinishFlow: () -> Void = {}
     /// Called when the user taps Continue on the Box Breathing info screen.
     /// The parent is responsible for dismissing this sheet and launching BoxBreathingView.
@@ -491,8 +491,17 @@ struct RelaxSessionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showNext = false
 
-    private let primaryGreen = Color(red: 54/255, green: 89/255, blue: 72/255)   // #365948
-    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)  // #6F6762
+    private let primaryGreen = Color(
+        red: 54/255,
+        green: 89/255,
+        blue: 72/255
+    )
+
+    private let subtextGray = Color(
+        red: 111/255,
+        green: 103/255,
+        blue: 98/255
+    )
 
     var body: some View {
         Group {
@@ -503,19 +512,38 @@ struct RelaxSessionSheet: View {
                         onContinue()
                         onLaunchBoxBreathing()
                     },
-                    onNotNow: { dismiss() }
+                    onNotNow: {
+                        dismiss()
+                    }
                 )
             } else {
                 standardSheetContent
             }
         }
         .fullScreenCover(isPresented: $showNext) {
-            RelaxSessionDestination(
-                session: session,
-                cycles: boxBreathingCycles,
-                onExit: { showNext = false },
-                onFinish: { onFinishFlow() }
-            )
+            if session == .grounding {
+                // Present the actual grounding screen directly.
+                // Back closes this cover and reveals the SAME info sheet.
+                GroundingExerciseScreen(
+                    onExit: {
+                        showNext = false
+                    },
+                    onContinue: {
+                        onFinishFlow()
+                    }
+                )
+            } else {
+                RelaxSessionDestination(
+                    session: session,
+                    cycles: boxBreathingCycles,
+                    onExit: {
+                        showNext = false
+                    },
+                    onFinish: {
+                        onFinishFlow()
+                    }
+                )
+            }
         }
     }
 
@@ -538,7 +566,6 @@ struct RelaxSessionSheet: View {
 
             Button {
                 onContinue()
-                // Slide the next screen over the sheet instead of closing the sheet first
                 showNext = true
             } label: {
                 Text("Continue")
@@ -579,13 +606,20 @@ struct RelaxSessionSheet: View {
             .frame(height: 300)
             .background {
                 LinearGradient(
-                    colors: [session.bannerColors.top, session.bannerColors.bottom],
+                    colors: [
+                        session.bannerColors.top,
+                        session.bannerColors.bottom
+                    ],
                     startPoint: .top,
                     endPoint: .bottom
                 )
             }
             .overlay {
-                RelaxSessionIcon(session: session, color: primaryGreen.opacity(0.6), size: 96)
+                RelaxSessionIcon(
+                    session: session,
+                    color: primaryGreen.opacity(0.6),
+                    size: 96
+                )
             }
             .overlay {
                 Image(session.bannerImageName)
@@ -615,7 +649,7 @@ struct RelaxSessionDestination: View {
         case .imagery:
             RelaxFlow()
         case .grounding:
-            RelaxSessionPlaceholderScreen(session: session)
+            GroundingExerciseScreen()
         }
     }
 }
