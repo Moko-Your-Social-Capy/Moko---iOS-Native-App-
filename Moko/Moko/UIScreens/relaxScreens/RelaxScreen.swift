@@ -345,7 +345,7 @@ struct RelaxScreen: View {
                 steps: ["Sit comfortably and relax your shoulders",
                         "Breathe in slowly through your nose",
                         "Breathe out gently and let go of tension"],
-                buttonTitle: "Start \(minutes) min session",
+                buttonTitle: "Start",
                 onStart: {
                     pendingFullScreen = .breathing
                     onStartBreathing?(minutes)
