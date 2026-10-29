@@ -10,6 +10,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import Combine
 
 // MARK: - Shared palette
@@ -28,6 +29,7 @@ enum MirrorPalette {
 
 // MARK: - Flow container
 struct MirrorFlowView: View {
+
     var onExit: () -> Void = {}
     var onFinish: () -> Void = {}
 
@@ -358,6 +360,7 @@ struct MirrorTimerScreen: View {
     @State private var runState: RunState = .idle
     @State private var elapsed: TimeInterval = 0
     @State private var lastTick: Date?
+    @Environment(\.modelContext) private var modelContext
 
     private let total: TimeInterval = 120 // fixed, not customisable
     private let ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
@@ -513,6 +516,7 @@ struct MirrorTimerScreen: View {
             elapsed = total
             lastTick = nil
             runState = .completed
+            modelContext.logCalmDown("Mirror Reflection", seconds: total)
         }
     }
 

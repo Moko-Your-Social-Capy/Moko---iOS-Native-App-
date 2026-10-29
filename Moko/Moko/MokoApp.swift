@@ -14,8 +14,8 @@ struct MokoApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MokoRootView()
         }
-        .modelContainer(for:[OnboardingState.self, OnboardingQuestion.self, OnboardingResponse.self, Profile.self])
+        .modelContainer(for:[OnboardingState.self, OnboardingQuestion.self, OnboardingResponse.self, Profile.self, CalmDownModel.self,Quest.self, InsightsModel.self])
     }
 }
