@@ -137,6 +137,8 @@ struct RelaxScreen: View {
     @State private var activeSheet: RelaxSheet?
     @State private var pendingFullScreen: RelaxFullScreen?
     @State private var fullScreen: RelaxFullScreen?
+    @State private var boxBreathingCycles: Int = 2
+    @State private var showBoxBreathing: Bool = false
 
     // Palette matching design specifications
     private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
@@ -200,6 +202,13 @@ struct RelaxScreen: View {
             case .breathing:
                 BreathingSessionScreen(minutes: minutes)
             }
+        }
+        // Box Breathing launches here so cycles flow directly from this view's state
+        .fullScreenCover(isPresented: $showBoxBreathing) {
+            BoxBreathingView(initialCycles: boxBreathingCycles, onComplete: {
+                showBoxBreathing = false
+                activeSheet = nil
+            })
         }
     }
 
@@ -361,8 +370,13 @@ struct RelaxScreen: View {
         case .session(let session):
             RelaxSessionSheet(
                 session: session,
+                boxBreathingCycles: $boxBreathingCycles,
                 onContinue: { onStartSession?(session) },
-                onFinishFlow: { activeSheet = nil }
+                onFinishFlow: { activeSheet = nil },
+                onLaunchBoxBreathing: {
+                    activeSheet = nil          // close the info sheet
+                    showBoxBreathing = true    // open the breathing screen from parent
+                }
             )
         }
     }
@@ -466,13 +480,16 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
 // MARK: - Full-height session sheet (illustration, text, Continue / Not now)
 struct RelaxSessionSheet: View {
     let session: RelaxSession
+    @Binding var boxBreathingCycles: Int
     var onContinue: () -> Void
     /// Called when a flow reaches its end (e.g. Done). The parent closes this sheet.
     var onFinishFlow: () -> Void = {}
+    /// Called when the user taps Continue on the Box Breathing info screen.
+    /// The parent is responsible for dismissing this sheet and launching BoxBreathingView.
+    var onLaunchBoxBreathing: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
     @State private var showNext = false
-    @State private var boxBreathingCycles: Int = 2
 
     private let primaryGreen = Color(red: 54/255, green: 89/255, blue: 72/255)   // #365948
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)  // #6F6762
@@ -484,7 +501,7 @@ struct RelaxSessionSheet: View {
                     cycles: $boxBreathingCycles,
                     onContinue: {
                         onContinue()
-                        showNext = true
+                        onLaunchBoxBreathing()
                     },
                     onNotNow: { dismiss() }
                 )
