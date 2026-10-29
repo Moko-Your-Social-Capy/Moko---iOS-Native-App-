@@ -1,294 +1,543 @@
+//
+//  GroundingExerciseScreen.swift
+//  Moko
+//
+//  Guided 5-4-3-2-1 sensory grounding exercise.
+//  Consistent layout and smooth transitions between all five steps.
+//  Completion badge styling matches BreathingSessionScreen.
+//
+
 import SwiftUI
 
 struct GroundingExerciseScreen: View {
-
     var onExit: () -> Void = {}
     var onContinue: () -> Void = {}
 
-    @State private var currentStep = 0
+    @State private var currentStepIndex = 0
     @State private var selectedNumbers: Set<Int> = []
+    @State private var isCompleted = false
 
-    private let accent = Color(red: 54/255, green: 89/255, blue: 72/255)
-    private let primaryText = Color(red: 47/255, green: 42/255, blue: 40/255)
-    private let secondaryText = Color(red: 111/255, green: 103/255, blue: 98/255)
-    private let screenBg = Color(red: 244/255, green: 244/255, blue: 249/255)
+    // MARK: - Colors
+
+    private let screenBg = Color(
+        red: 242 / 255,
+        green: 242 / 255,
+        blue: 247 / 255
+    )
+
+    private let cardGreen = Color(
+        red: 54 / 255,
+        green: 89 / 255,
+        blue: 72 / 255
+    )
+
+    private let trackGreen = Color(
+        red: 203 / 255,
+        green: 230 / 255,
+        blue: 211 / 255
+    )
+
+    private let subtextGray = Color(
+        red: 111 / 255,
+        green: 103 / 255,
+        blue: 98 / 255
+    )
+
+    private let chipBg = Color(
+        red: 237 / 255,
+        green: 237 / 255,
+        blue: 237 / 255
+    )
+
+    private let cream = Color(
+        red: 252 / 255,
+        green: 248 / 255,
+        blue: 240 / 255
+    )
+
+    // MARK: - Grounding Steps
+
+    private struct GroundingStep {
+        let number: Int
+        let title: String
+        let instruction: String
+        let examples: String
+    }
 
     private let steps: [GroundingStep] = [
         GroundingStep(
             number: 5,
             title: "See",
-            subtitle: "Notice five things you can clearly see around you right now.",
-            cardTitle: "Everyday Anchors",
-            cardDescription: "Look for subtle contours: morning light across a wall, texture on a notebook, or a leafy plant.",
-            icon: "eye"
+            instruction: "Notice five things you can see around you.",
+            examples: "Look for colors, shapes, light, shadows, or objects nearby."
         ),
         GroundingStep(
             number: 4,
             title: "Touch",
-            subtitle: "Notice four things you can feel around you right now.",
-            cardTitle: "Notice the Details",
-            cardDescription: "Feel your feet on the floor, the fabric of your clothes, the chair beneath you, or the texture of an object.",
-            icon: "hand.point.up.left"
+            instruction: "Notice four things you can physically feel.",
+            examples: "Feel your feet on the floor, your clothes, or the chair beneath you."
         ),
         GroundingStep(
             number: 3,
             title: "Hear",
-            subtitle: "Notice three things you can hear around you right now.",
-            cardTitle: "Listen Closely",
-            cardDescription: "Listen for nearby sounds, distant voices, birds, a fan, or the gentle hum of your surroundings.",
-            icon: "ear"
+            instruction: "Notice three things you can hear.",
+            examples: "Listen for voices, distant traffic, a fan, or birds outside."
         ),
         GroundingStep(
             number: 2,
             title: "Smell",
-            subtitle: "Notice two things you can smell around you right now.",
-            cardTitle: "Breathe In",
-            cardDescription: "Notice the scent of the air, your surroundings, or a familiar object nearby. If you can't detect a scent, simply notice the air as you breathe.",
-            icon: "wind"
+            instruction: "Notice two things you can smell.",
+            examples: "Notice the air around you, the scent of your surroundings, or your clothing."
         ),
         GroundingStep(
             number: 1,
             title: "Taste",
-            subtitle: "Notice one thing you can taste, or focus on one slow, steady breath.",
-            cardTitle: "Return to the Present",
-            cardDescription: "Take a gentle breath. Notice how your body feels in this moment, without needing to change anything.",
-            icon: "heart"
+            instruction: "Notice one thing you can taste.",
+            examples: "Notice the taste in your mouth. You can take a gentle breath and pay attention to the sensation."
         )
     ]
 
-    private var step: GroundingStep {
-        steps[currentStep]
+    private var currentStep: GroundingStep {
+        steps[currentStepIndex]
     }
+
+    private var requiredCount: Int {
+        currentStep.number
+    }
+
+    private var isCurrentStepComplete: Bool {
+        selectedNumbers.count == requiredCount
+    }
+
+    // MARK: - Animation
+
+    private let stepAnimation = Animation.easeInOut(duration: 0.25)
+
+    // MARK: - Body
 
     var body: some View {
         ZStack {
-            screenBg.ignoresSafeArea()
+            screenBg
+                .ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-
-                    HStack {
-                        Button(action: {
-                            if currentStep > 0 {
-                                currentStep -= 1
-                                selectedNumbers = []
-                            } else {
-                                onExit()
-                            }
-                        }) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(.black)
-                                .frame(width: 38, height: 38)
-                                .background(
-                                    Circle().fill(
-                                        Color(red: 237/255, green: 237/255, blue: 237/255)
-                                    )
-                                )
-                                .contentShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-
-                        Spacer()
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-
-                    header
-                        .padding(.horizontal, 24)
-                        .padding(.top, 18)
-
-                    progressBar
-                        .padding(.horizontal, 24)
-                        .padding(.top, 20)
-
-                    numberCircle
-                        .padding(.top, 20)
-
-                    Text(step.title)
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundStyle(primaryText)
-                        .padding(.top, 12)
-
-                    Text(step.subtitle)
-                        .font(.system(size: 16))
-                        .foregroundStyle(secondaryText)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(3)
-                        .padding(.horizontal, 28)
-                        .padding(.top, 8)
-
-                    everydayAnchorsCard
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
-
-                    HStack {
-                        Text("Tap each as you spot it")
-                            .foregroundStyle(primaryText)
-
-                        Spacer()
-
-                        Text("\(selectedNumbers.count) of \(step.number)")
-                            .fontWeight(.semibold)
-                            .foregroundStyle(accent)
-                    }
-                    .font(.system(size: 14))
-                    .padding(.horizontal, 24)
-                    .padding(.top, 20)
-
-                    numberButtons
-                        .padding(.horizontal, 24)
-                        .padding(.top, 12)
-                        .padding(.bottom, 20)
-                }
+            if isCompleted {
+                completionScreen
+                    .transition(.opacity)
+            } else {
+                exerciseScreen
+                    .transition(.opacity)
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if selectedNumbers.count == step.number {
-                Button(action: advanceStep) {
-                    Text(currentStep == steps.count - 1 ? "Finish" : "Continue")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .tint(accent)
-                .padding(.horizontal, 24)
-                .padding(.top, 8)
-                .padding(.bottom, 8)
-                .offset(y: -25)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .animation(.easeInOut(duration: 0.25), value: selectedNumbers.count)
-        .animation(.easeInOut(duration: 0.25), value: currentStep)
-        .toolbar(.hidden, for: .navigationBar)
+        .animation(
+            .spring(response: 0.55, dampingFraction: 0.72),
+            value: isCompleted
+        )
     }
 
+    // MARK: - Exercise Screen
+
+    private var exerciseScreen: some View {
+        VStack(spacing: 0) {
+            topBar
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+
+            header
+                .padding(.horizontal, 24)
+                .padding(.top, 18)
+
+            progressBars
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+
+            // Keep the main sensory content in a fixed layout area.
+            // This prevents the final step from shifting vertically.
+            Spacer(minLength: 4)
+
+            sensoryContent
+                .padding(.horizontal, 24)
+                .offset(y: -16)
+
+            everydayAnchorsCard
+                .padding(.horizontal, 24)
+                .padding(.top, 1)
+
+            numberButtons
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+
+            Spacer(minLength: 20)
+
+            continueButton
+                .padding(.horizontal, 28)
+                .padding(.bottom, 28)
+        }
+    }
+
+    // MARK: - Sensory Content
+
+    private var sensoryContent: some View {
+        VStack(spacing: 12) {
+            numberCircle
+
+            // Reserve the same title height for every step.
+            Text(currentStep.title)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .frame(height: 34)
+
+            // Reserve a consistent instruction area even when text wraps.
+            Text(currentStep.instruction)
+                .font(.system(size: 16))
+                .foregroundColor(subtextGray)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .frame(maxWidth: .infinity)
+                .frame(height: 44, alignment: .top)
+        }
+        .frame(maxWidth: .infinity)
+        .contentTransition(.opacity)
+        .animation(stepAnimation, value: currentStepIndex)
+    }
+
+    // MARK: - Top Bar
+
+    private var topBar: some View {
+        HStack {
+            Button {
+                if currentStepIndex > 0 {
+                    changeStep(to: currentStepIndex - 1)
+                } else {
+                    onExit()
+                }
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.black)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(chipBg))
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Text("STEP \(currentStepIndex + 1) OF \(steps.count)")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(cardGreen)
+                .padding(.horizontal, 14)
+                .frame(height: 30)
+                .background(
+                    Capsule().fill(trackGreen.opacity(0.7))
+                )
+                .contentTransition(.numericText())
+        }
+    }
+
+    // MARK: - Header
+
     private var header: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 4) {
             Text("Grounding Exercise")
-                .font(.system(size: 29, weight: .bold))
-                .foregroundStyle(primaryText)
+                .font(.system(size: 30, weight: .bold))
+                .foregroundColor(.black)
 
             Text("5-4-3-2-1 SENSORY RESET")
                 .font(.system(size: 13, weight: .semibold))
-                .tracking(1.1)
-                .foregroundStyle(secondaryText)
+                .tracking(1)
+                .foregroundColor(subtextGray)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private var progressBar: some View {
-        HStack(spacing: 7) {
-            ForEach(0..<step.number, id: \.self) { number in
+    // MARK: - Progress Bars
+
+    private var progressBars: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<steps.count, id: \.self) { index in
                 Capsule()
                     .fill(
-                        selectedNumbers.contains(number + 1)
-                            ? accent
-                            : Color.gray.opacity(0.16)
+                        index <= currentStepIndex
+                        ? cardGreen
+                        : trackGreen
                     )
                     .frame(height: 5)
-                    .frame(maxWidth: .infinity)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: selectedNumbers)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Progress")
-        .accessibilityValue("\(selectedNumbers.count) of \(step.number) completed")
+        .animation(stepAnimation, value: currentStepIndex)
     }
+
+    // MARK: - Number Circle
 
     private var numberCircle: some View {
         ZStack {
             Circle()
-                .fill(Color(red: 225/255, green: 238/255, blue: 229/255))
-                .frame(width: 150, height: 150)
+                .fill(trackGreen.opacity(0.65))
+                .frame(width: 140, height: 140)
 
             Circle()
-                .fill(Color.white.opacity(0.9))
-                .frame(width: 114, height: 114)
+                .fill(cardGreen)
+                .frame(width: 100, height: 100)
 
-            Text("\(step.number)")
-                .font(.system(size: 46, weight: .bold))
-                .foregroundStyle(accent)
-
-            Image(systemName: step.icon)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(accent)
-                .frame(width: 30, height: 30)
-                .background(.white, in: Circle())
-                .offset(x: 31, y: 31)
+            Text("\(currentStep.number)")
+                .font(.system(size: 42, weight: .bold, design: .rounded))
+                .foregroundColor(cream)
+                .contentTransition(.numericText())
         }
-        .frame(maxWidth: .infinity)
+        .frame(width: 160, height: 160)
+        .animation(stepAnimation, value: currentStepIndex)
     }
+
+    // MARK: - Everyday Anchors Card
 
     private var everydayAnchorsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label(step.cardTitle, systemImage: "lightbulb.fill")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(accent)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "leaf")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(cardGreen)
 
-            Text(step.cardDescription)
-                .font(.system(size: 15))
-                .foregroundStyle(secondaryText)
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
+                Text("Everyday anchors")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.black)
+            }
+
+            Text(currentStep.examples)
+                .font(.system(size: 14))
+                .foregroundColor(subtextGray)
+                .multilineTextAlignment(.leading)
+                .lineLimit(3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 54, alignment: .top)
         }
-        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.white, in: RoundedRectangle(cornerRadius: 20))
-        .shadow(color: .black.opacity(0.035), radius: 10, x: 0, y: 3)
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.white)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(trackGreen.opacity(0.7), lineWidth: 1)
+        )
+        .animation(stepAnimation, value: currentStepIndex)
     }
 
-    private var numberButtons: some View {
-        HStack(spacing: 8) {
-            ForEach(1...step.number, id: \.self) { number in
-                let isSelected = selectedNumbers.contains(number)
+    // MARK: - Number Buttons
 
-                Button {
-                    toggleNumber(number)
-                } label: {
-                    Text("\(number)")
-                        .font(.system(size: 25, weight: .semibold))
-                        .foregroundStyle(isSelected ? .white : primaryText)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 54)
-                        .background(
-                            isSelected ? accent : Color.white,
-                            in: RoundedRectangle(cornerRadius: 15)
-                        )
+    private var numberButtons: some View {
+        VStack(alignment: .center, spacing: 12) {
+            Text("Choose each one as you notice it")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(subtextGray)
+                .frame(height: 20)
+
+            HStack(spacing: 10) {
+                ForEach(1...requiredCount, id: \.self) { number in
+                    Button {
+                        toggleSelection(number)
+                    } label: {
+                        Text("\(number)")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(
+                                selectedNumbers.contains(number)
+                                ? .white
+                                : cardGreen
+                            )
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(
+                                        selectedNumbers.contains(number)
+                                        ? cardGreen
+                                        : .white
+                                    )
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(
+                                        selectedNumbers.contains(number)
+                                        ? cardGreen
+                                        : trackGreen,
+                                        lineWidth: 1
+                                    )
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Number \(number)")
-                .accessibilityAddTraits(isSelected ? .isSelected : [])
+            }
+            .frame(height: 48)
+        }
+        .frame(maxWidth: .infinity)
+        .animation(stepAnimation, value: currentStepIndex)
+    }
+
+    // MARK: - Continue Button
+
+    private var continueButton: some View {
+        Button {
+            advanceStep()
+        } label: {
+            Text(
+                currentStepIndex == steps.count - 1
+                ? "Finish"
+                : "Continue"
+            )
+            .font(.system(size: 18, weight: .semibold))
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(
+                Capsule()
+                    .fill(
+                        isCurrentStepComplete
+                        ? cardGreen
+                        : cardGreen.opacity(0.35)
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(!isCurrentStepComplete)
+        .animation(stepAnimation, value: isCurrentStepComplete)
+    }
+
+    // MARK: - Selection
+
+    private func toggleSelection(_ number: Int) {
+        withAnimation(.easeInOut(duration: 0.15)) {
+            if selectedNumbers.contains(number) {
+                selectedNumbers.remove(number)
+            } else {
+                selectedNumbers.insert(number)
             }
         }
     }
 
-    private func toggleNumber(_ number: Int) {
-        if selectedNumbers.contains(number) {
-            selectedNumbers.remove(number)
-        } else {
-            selectedNumbers.insert(number)
+    // MARK: - Completion Screen
+
+    private var completionScreen: some View {
+        VStack(spacing: 0) {
+            topBarCompletion
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+
+            header
+                .padding(.horizontal, 24)
+                .padding(.top, 18)
+
+            Spacer(minLength: 16)
+
+            // Match the breathing completion ring dimensions and colors.
+            ZStack {
+                Circle()
+                    .stroke(trackGreen, lineWidth: 14)
+
+                ZStack {
+                    Circle()
+                        .fill(trackGreen)
+                        .frame(width: 200, height: 200)
+
+                    Circle()
+                        .fill(cardGreen)
+                        .frame(width: 156, height: 156)
+
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 86, weight: .regular))
+                        .foregroundColor(cream)
+                }
+                .transition(
+                    .scale(scale: 0.6).combined(with: .opacity)
+                )
+            }
+            .frame(width: 270, height: 270)
+
+            VStack(spacing: 8) {
+                Text("Well done")
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundColor(.black)
+
+                Text("You completed the 5-4-3-2-1 sensory reset")
+                    .font(.system(size: 15))
+                    .foregroundColor(subtextGray)
+                    .multilineTextAlignment(.center)
+                    .frame(height: 40, alignment: .top)
+                    .padding(.horizontal, 40)
+            }
+            .padding(.top, 36)
+
+            Spacer(minLength: 16)
+
+            Button {
+                // The parent should dismiss grounding and reveal Relax home.
+                onContinue()
+            } label: {
+                Text("Complete")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(Capsule().fill(cardGreen))
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 28)
+            .padding(.bottom, 28)
+        }
+    }
+
+    private var topBarCompletion: some View {
+        HStack {
+            Button {
+                onExit()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.black)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(chipBg))
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+
+            Spacer()
+
+            Text("COMPLETE")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(cardGreen)
+                .padding(.horizontal, 14)
+                .frame(height: 30)
+                .background(
+                    Capsule().fill(trackGreen.opacity(0.7))
+                )
+        }
+    }
+
+    // MARK: - Navigation
+
+    private func changeStep(to index: Int) {
+        guard steps.indices.contains(index) else { return }
+
+        withAnimation(stepAnimation) {
+            currentStepIndex = index
+            selectedNumbers.removeAll()
         }
     }
 
     private func advanceStep() {
-        if currentStep < steps.count - 1 {
-            selectedNumbers = []
-            currentStep += 1
+        guard isCurrentStepComplete else { return }
+
+        if currentStepIndex < steps.count - 1 {
+            changeStep(to: currentStepIndex + 1)
         } else {
-            onContinue()
+            withAnimation(
+                .spring(response: 0.55, dampingFraction: 0.72)
+            ) {
+                isCompleted = true
+            }
         }
     }
-}
-
-private struct GroundingStep {
-    let number: Int
-    let title: String
-    let subtitle: String
-    let cardTitle: String
-    let cardDescription: String
-    let icon: String
 }
 
 #Preview {
