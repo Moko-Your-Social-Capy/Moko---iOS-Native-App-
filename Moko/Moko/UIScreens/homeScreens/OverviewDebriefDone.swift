@@ -186,7 +186,7 @@ struct OverviewDebriefDone: View {
     // MARK: - Statistics Section
     private var statisticsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Statistics")
+            Text("Growth")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(titleDark)
 
