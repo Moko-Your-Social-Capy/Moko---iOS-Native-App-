@@ -510,6 +510,9 @@ struct RelaxSessionSheet: View {
                 GroundingExerciseScreen(
                     onExit: {
                         showNext = false
+                    },
+                    onContinue: {
+                        onFinishFlow()
                     }
                 )
             } else {
