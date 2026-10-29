@@ -15,14 +15,12 @@ private enum QuestsRoute: Identifiable {
     case newQuest
     case detail(Quest)
     case edit(Quest)
-    case debrief(Quest)
 
     var id: String {
         switch self {
         case .newQuest:           return "new"
         case .detail(let quest):  return "detail-\(quest.id.uuidString)"
         case .edit(let quest):    return "edit-\(quest.id.uuidString)"
-        case .debrief(let quest): return "debrief-\(quest.id.uuidString)"
         }
     }
 }
@@ -63,10 +61,6 @@ struct QuestsScreen: View {
         }
     }
 
-    private var completedCount: Int {
-        quests.filter { $0.isCompleted }.count
-    }
-
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             QuestStyle.screenBg
@@ -98,17 +92,12 @@ struct QuestsScreen: View {
                 QuestDetailScreen(quest: quest)
             case .edit(let quest):
                 NewQuestScreen(quest: quest)
-            case .debrief(let quest):
-                QuestDebriefScreen(quest: quest) {
-                    route = nil
-                }
             }
         }
         // After a quest is added, show the full list so the new quest is visible
         .onChange(of: quests.count) { oldCount, newCount in
             if newCount > oldCount { filter = nil }
         }
-        .sensoryFeedback(.success, trigger: completedCount)
     }
 
     // MARK: Filter chips
@@ -253,9 +242,8 @@ struct QuestsScreen: View {
                     route = .edit(quest)
                 }
 
-                cardButton(symbol: "checkmark", filled: true,
-                           label: quest.isCompleted ? "Open debrief" : "Complete quest") {
-                    complete(quest)
+                cardButton(symbol: "checkmark", filled: true, label: "Open quest") {
+                    route = .detail(quest)
                 }
             }
         }
@@ -285,14 +273,6 @@ struct QuestsScreen: View {
     }
 
     // MARK: Actions
-    private func complete(_ quest: Quest) {
-        if !quest.isCompleted {
-            quest.isCompleted = true
-            try? modelContext.save()
-        }
-        route = .debrief(quest)
-    }
-
     private func delete(_ quest: Quest) {
         withAnimation {
             modelContext.delete(quest)

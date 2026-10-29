@@ -2,13 +2,16 @@
 //  QuestDetailScreen.swift
 //  Moko
 //
-//  Opens when a quest card is tapped. Title and XP come from the quest; the briefing
-//  (scene, who, goal) comes from a QuestBriefGenerating object. For now that is a
-//  dummy generator; swap in an Apple Foundation Models one later.
-//  Sliding "Slide to debrief" opens the debrief page.
+//  Opens when a quest card (or its check button) is tapped. A category image, then the
+//  quest's title, category, intensity and XP, then a briefing (scene, who, goal) from a
+//  QuestBriefGenerating object. For now that is a dummy generator; swap in an Apple
+//  Foundation Models one later. Sliding "Slide to debrief" completes the quest and opens
+//  the debrief page.
 //
 
 import SwiftUI
+import SwiftData
+import Combine
 
 // MARK: - Briefing (what the on-device model will generate)
 struct QuestBrief: Equatable {
@@ -71,24 +74,85 @@ struct DummyQuestBriefGenerator: QuestBriefGenerating {
     }
 }
 
+// MARK: - Category image (placeholder until the artwork is added)
+extension QuestCategory {
+    /// Name of the image in Assets.xcassets. Add one per category and it covers the placeholder:
+    /// quest_work, quest_dating, quest_friends, quest_family, quest_others
+    var bannerImageName: String {
+        "quest_\(rawValue.lowercased())"
+    }
+}
+
+private struct QuestCategoryArt {
+    let top: Color
+    let bottom: Color
+    let accent: Color
+    let symbol: String
+
+    static func art(for category: QuestCategory) -> QuestCategoryArt {
+        switch category {
+        case .work:
+            return QuestCategoryArt(
+                top: Color(red: 226/255, green: 238/255, blue: 252/255),
+                bottom: Color(red: 190/255, green: 212/255, blue: 240/255),
+                accent: Color(red: 52/255, green: 96/255, blue: 150/255),
+                symbol: "briefcase.fill"
+            )
+        case .dating:
+            return QuestCategoryArt(
+                top: Color(red: 253/255, green: 232/255, blue: 228/255),
+                bottom: Color(red: 247/255, green: 200/255, blue: 196/255),
+                accent: Color(red: 200/255, green: 80/255, blue: 90/255),
+                symbol: "heart.fill"
+            )
+        case .friends:
+            return QuestCategoryArt(
+                top: Color(red: 226/255, green: 244/255, blue: 232/255),
+                bottom: Color(red: 190/255, green: 226/255, blue: 202/255),
+                accent: Color(red: 54/255, green: 110/255, blue: 80/255),
+                symbol: "person.2.fill"
+            )
+        case .family:
+            return QuestCategoryArt(
+                top: Color(red: 252/255, green: 240/255, blue: 218/255),
+                bottom: Color(red: 244/255, green: 220/255, blue: 178/255),
+                accent: Color(red: 170/255, green: 112/255, blue: 40/255),
+                symbol: "person.3.fill"
+            )
+        case .others:
+            return QuestCategoryArt(
+                top: Color(red: 238/255, green: 232/255, blue: 252/255),
+                bottom: Color(red: 214/255, green: 204/255, blue: 244/255),
+                accent: Color(red: 104/255, green: 84/255, blue: 170/255),
+                symbol: "sparkles"
+            )
+        }
+    }
+}
+
 // MARK: - Detail screen
 struct QuestDetailScreen: View {
     let quest: Quest
     var generator: any QuestBriefGenerating = DummyQuestBriefGenerator()
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
     @State private var brief: QuestBrief?
     @State private var showingDebrief = false
 
-    // Timeline colours
-    private let sandBg = Color(red: 236/255, green: 228/255, blue: 214/255)
-    private let sandIcon = Color(red: 112/255, green: 94/255, blue: 74/255)
-    private let sandLabel = Color(red: 128/255, green: 112/255, blue: 92/255)
-    private let roseBg = Color(red: 243/255, green: 218/255, blue: 212/255)
-    private let roseIcon = Color(red: 200/255, green: 76/255, blue: 66/255)
-    private let roseLabel = Color(red: 190/255, green: 84/255, blue: 70/255)
-    private let lineColor = Color(red: 214/255, green: 204/255, blue: 188/255)
+    // Timeline colours: warm sand for the scene, sky blue for who, green for the goal
+    private let sceneTop = Color(red: 250/255, green: 240/255, blue: 218/255)
+    private let sceneBottom = Color(red: 238/255, green: 214/255, blue: 170/255)
+    private let sceneIcon = Color(red: 160/255, green: 104/255, blue: 34/255)
+
+    private let whoTop = Color(red: 226/255, green: 238/255, blue: 252/255)
+    private let whoBottom = Color(red: 186/255, green: 210/255, blue: 240/255)
+    private let whoIcon = Color(red: 52/255, green: 96/255, blue: 150/255)
+
+    private let goalTop = Color(red: 214/255, green: 238/255, blue: 222/255)
+    private let goalBottom = Color(red: 156/255, green: 205/255, blue: 176/255)
+    private let goalIcon = Color(red: 27/255, green: 66/255, blue: 47/255)
 
     var body: some View {
         ZStack {
@@ -161,6 +225,7 @@ struct QuestDetailScreen: View {
         }
         .safeAreaInset(edge: .bottom) {
             QuestSlideButton(title: "Slide to debrief") {
+                markCompleted()
                 withAnimation(.easeInOut(duration: 0.35)) {
                     showingDebrief = true
                 }
@@ -170,97 +235,139 @@ struct QuestDetailScreen: View {
         }
     }
 
+    /// Sliding to debrief is what completes the quest
+    private func markCompleted() {
+        guard !quest.isCompleted else { return }
+        quest.isCompleted = true
+        try? modelContext.save()
+    }
+
+    // MARK: Card
     private var card: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Title + XP
-            HStack(alignment: .top, spacing: 12) {
-                Text(quest.title)
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundColor(QuestStyle.title)
-                    .fixedSize(horizontal: false, vertical: true)
+            banner
 
-                Spacer(minLength: 8)
+            VStack(alignment: .leading, spacing: 0) {
+                // Title + XP
+                HStack(alignment: .top, spacing: 12) {
+                    Text(quest.title)
+                        .font(.system(size: 26, weight: .bold))
+                        .foregroundColor(QuestStyle.title)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                HStack(spacing: 4) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 11, weight: .bold))
-                    Text("\(quest.intensity.xp) XP")
-                        .font(.system(size: 14, weight: .bold))
+                    Spacer(minLength: 8)
+
+                    HStack(spacing: 4) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 11, weight: .bold))
+                        Text("\(quest.intensity.xp) XP")
+                            .font(.system(size: 14, weight: .bold))
+                    }
+                    .foregroundColor(QuestStyle.green)
+                    .padding(.horizontal, 12)
+                    .frame(height: 32)
+                    .background(Capsule().fill(QuestStyle.chipSelectedFill))
+                }
+
+                // Category + intensity
+                HStack(spacing: 8) {
+                    tag(icon: quest.category.symbol, text: quest.category.rawValue, dot: nil)
+                    tag(icon: nil, text: quest.intensity.rawValue, dot: intensityColor)
+                }
+                .padding(.top, 14)
+
+                Rectangle()
+                    .fill(QuestStyle.divider)
+                    .frame(height: 1)
+                    .padding(.top, 20)
+                    .padding(.bottom, 22)
+
+                // Briefing label
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("Briefing")
+                        .font(.system(size: 13, weight: .semibold))
                 }
                 .foregroundColor(QuestStyle.green)
-                .padding(.horizontal, 12)
-                .frame(height: 32)
-                .background(Capsule().fill(QuestStyle.chipSelectedFill))
+                .padding(.bottom, 18)
+
+                timelineRow(
+                    icon: "mappin.and.ellipse",
+                    top: sceneTop, bottom: sceneBottom, iconColor: sceneIcon,
+                    label: "THE SCENE",
+                    lineTo: whoTop,
+                    text: brief?.scene, showLine: true
+                )
+
+                timelineRow(
+                    icon: "person.2.fill",
+                    top: whoTop, bottom: whoBottom, iconColor: whoIcon,
+                    label: "WHO",
+                    lineTo: goalTop,
+                    text: brief?.who, showLine: true
+                )
+
+                timelineRow(
+                    icon: "target",
+                    top: goalTop, bottom: goalBottom, iconColor: goalIcon,
+                    label: "YOUR GOAL",
+                    lineTo: goalTop,
+                    text: brief?.goal, showLine: false
+                )
             }
-
-            // Category + intensity
-            HStack(spacing: 8) {
-                tag(icon: quest.category.symbol, text: quest.category.rawValue, dot: nil)
-                tag(icon: nil, text: quest.intensity.rawValue, dot: intensityColor)
-            }
-            .padding(.top, 14)
-
-            // When
-            HStack(spacing: 6) {
-                Image(systemName: "calendar")
-                    .font(.system(size: 12, weight: .semibold))
-                Text("\(QuestFormat.dateText(quest.date)) · \(QuestFormat.timeText(quest.date))")
-                    .font(.system(size: 13, weight: .medium))
-            }
-            .foregroundColor(QuestStyle.subtext)
-            .padding(.top, 12)
-
-            if !quest.notes.isEmpty {
-                Text(quest.notes)
-                    .font(.system(size: 14))
-                    .italic()
-                    .foregroundColor(QuestStyle.subtext)
-                    .lineLimit(3)
-                    .padding(.top, 10)
-            }
-
-            Rectangle()
-                .fill(QuestStyle.divider)
-                .frame(height: 1)
-                .padding(.top, 20)
-                .padding(.bottom, 22)
-
-            // Briefing label
-            HStack(spacing: 6) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 12, weight: .semibold))
-                Text("Your briefing")
-                    .font(.system(size: 13, weight: .semibold))
-            }
-            .foregroundColor(QuestStyle.green)
-            .padding(.bottom, 18)
-
-            timelineRow(
-                icon: "mappin.and.ellipse",
-                iconBg: sandBg, iconColor: sandIcon,
-                label: "THE SCENE", labelColor: sandLabel,
-                text: brief?.scene, showLine: true
-            )
-
-            timelineRow(
-                icon: "person.2.fill",
-                iconBg: sandBg, iconColor: sandIcon,
-                label: "WHO", labelColor: sandLabel,
-                text: brief?.who, showLine: true
-            )
-
-            timelineRow(
-                icon: "target",
-                iconBg: roseBg, iconColor: roseIcon,
-                label: "YOUR GOAL", labelColor: roseLabel,
-                text: brief?.goal, showLine: false
-            )
+            .padding(22)
         }
-        .padding(22)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
         .shadow(color: Color.black.opacity(0.04), radius: 12, x: 0, y: 4)
+    }
+
+    // MARK: Category image
+    private var banner: some View {
+        let art = QuestCategoryArt.art(for: quest.category)
+
+        // The base view fixes the size; the artwork sits in overlays so a large
+        // image can never make the card wider than the screen.
+        return Color.clear
+            .frame(maxWidth: .infinity)
+            .frame(height: 190)
+            .background {
+                LinearGradient(colors: [art.top, art.bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
+            }
+            // Placeholder art, different for each category
+            .overlay {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.35))
+                        .frame(width: 170, height: 170)
+                        .offset(x: -110, y: 50)
+
+                    Circle()
+                        .fill(Color.white.opacity(0.25))
+                        .frame(width: 120, height: 120)
+                        .offset(x: 120, y: -50)
+
+                    Image(systemName: art.symbol)
+                        .symbolRenderingMode(.hierarchical)
+                        .font(.system(size: 52, weight: .medium))
+                        .foregroundStyle(art.accent)
+                        .frame(width: 108, height: 108)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(0.8))
+                                .shadow(color: art.accent.opacity(0.22), radius: 14, x: 0, y: 8)
+                        )
+                }
+            }
+            // The real image, once it's in Assets
+            .overlay {
+                Image(quest.category.bannerImageName)
+                    .resizable()
+                    .scaledToFill()
+            }
+            .clipped()
     }
 
     private var intensityColor: Color {
@@ -291,26 +398,36 @@ struct QuestDetailScreen: View {
 
     // One step of the vertical timeline. Shows a shimmering placeholder until the text arrives.
     private func timelineRow(icon: String,
-                             iconBg: Color,
+                             top: Color,
+                             bottom: Color,
                              iconColor: Color,
                              label: String,
-                             labelColor: Color,
+                             lineTo: Color,
                              text: String?,
                              showLine: Bool) -> some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(spacing: 0) {
+                // Gradient node with a soft ring and a depth-shaded symbol
                 ZStack {
-                    Circle().fill(iconBg)
+                    Circle()
+                        .fill(LinearGradient(colors: [top, bottom], startPoint: .topLeading, endPoint: .bottomTrailing))
+
+                    Circle()
+                        .stroke(Color.white.opacity(0.75), lineWidth: 1.5)
+                        .padding(3)
+
                     Image(systemName: icon)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(iconColor)
+                        .symbolRenderingMode(.hierarchical)
+                        .font(.system(size: 21, weight: .semibold))
+                        .foregroundStyle(iconColor)
                 }
-                .frame(width: 48, height: 48)
+                .frame(width: 52, height: 52)
+                .shadow(color: iconColor.opacity(0.2), radius: 7, x: 0, y: 3)
 
                 if showLine {
                     Capsule()
-                        .fill(lineColor)
-                        .frame(width: 2)
+                        .fill(LinearGradient(colors: [bottom, lineTo], startPoint: .top, endPoint: .bottom))
+                        .frame(width: 3)
                         .frame(maxHeight: .infinity)
                         .padding(.vertical, 6)
                 }
@@ -320,7 +437,7 @@ struct QuestDetailScreen: View {
                 Text(label)
                     .font(.system(size: 11, weight: .bold))
                     .tracking(0.8)
-                    .foregroundColor(labelColor)
+                    .foregroundColor(iconColor)
 
                 if let text {
                     Text(text)
@@ -333,7 +450,7 @@ struct QuestDetailScreen: View {
                     QuestSkeletonLines()
                 }
             }
-            .padding(.top, 4)
+            .padding(.top, 6)
             .padding(.bottom, showLine ? 24 : 0)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
