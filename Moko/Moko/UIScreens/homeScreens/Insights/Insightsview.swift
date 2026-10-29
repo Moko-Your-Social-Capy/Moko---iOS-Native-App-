@@ -4,10 +4,11 @@
 //
 //  Insights screen: Day / Week / Month picker, radar chart of the four
 //  parameters, overall score and a card per parameter.
-//  Pushed from the Insights card on Overview (default back button).
+//  Scores are averaged from the InsightsModel records saved in SwiftData.
 //
 
 import SwiftUI
+import SwiftData
 
 // MARK: - Model
 
@@ -17,29 +18,46 @@ enum InsightsRange: String, CaseIterable, Identifiable {
     case month = "Month"
 
     var id: String { rawValue }
+
+    /// Calendar unit used to find "today", "this week" or "this month"
+    var component: Calendar.Component {
+        switch self {
+        case .day:   return .day
+        case .week:  return .weekOfYear
+        case .month: return .month
+        }
+    }
 }
 
+/// Average score of each parameter over a set of records.
 struct InsightsScores {
-    let clarity: Int
-    let courage: Int
-    let presence: Int
-    let warmth: Int
+    let clarity: Double
+    let courage: Double
+    let presence: Double
+    let warmth: Double
 
-    var overall: Int { (clarity + courage + presence + warmth) / 4 }
+    /// Average of the four parameter averages
+    var overall: Double { (clarity + courage + presence + warmth) / 4 }
 
-    static func sample(for range: InsightsRange) -> InsightsScores {
-        switch range {
-        case .day:   return InsightsScores(clarity: 56, courage: 32, presence: 42, warmth: 78)
-        case .week:  return InsightsScores(clarity: 68, courage: 45, presence: 60, warmth: 82)
-        case .month: return InsightsScores(clarity: 77, courage: 63, presence: 71, warmth: 88)
+    /// Each parameter = (sum of its scores) / (number of records). No records = 0.
+    init(records: [InsightsModel]) {
+        guard !records.isEmpty else {
+            clarity = 0; courage = 0; presence = 0; warmth = 0
+            return
         }
+
+        let count = Double(records.count)
+        clarity  = Double(records.reduce(0) { $0 + $1.clarity })  / count
+        courage  = Double(records.reduce(0) { $0 + $1.courage })  / count
+        presence = Double(records.reduce(0) { $0 + $1.presence }) / count
+        warmth   = Double(records.reduce(0) { $0 + $1.warmth })   / count
     }
 }
 
 struct InsightsParameter: Identifiable {
     let id = UUID()
     let name: String
-    let score: Int
+    let score: Double
     let detail: String
     let supportedBy: String
 }
@@ -47,6 +65,9 @@ struct InsightsParameter: Identifiable {
 // MARK: - Screen
 
 struct InsightsView: View {
+    /// Every saved record, newest first. The selected range is filtered below.
+    @Query(sort: \InsightsModel.date, order: .reverse) private var records: [InsightsModel]
+
     @State private var range: InsightsRange = .day
 
     private let screenBg  = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
@@ -58,7 +79,15 @@ struct InsightsView: View {
     /// Axis marks from the center outwards (the outer diamond is 100).
     private let ticks = Array(stride(from: 10, through: 100, by: 10))
 
-    private var scores: InsightsScores { InsightsScores.sample(for: range) }
+    /// Records that fall in today / this week / this month
+    private var rangeRecords: [InsightsModel] {
+        guard let interval = Calendar.current.dateInterval(of: range.component, for: Date()) else {
+            return []
+        }
+        return records.filter { interval.contains($0.date) }
+    }
+
+    private var scores: InsightsScores { InsightsScores(records: rangeRecords) }
 
     private var parameters: [InsightsParameter] {
         [
@@ -199,12 +228,12 @@ struct InsightsView: View {
         .padding(.top, 8)
     }
 
-    private func label(_ name: String, _ score: Int) -> some View {
+    private func label(_ name: String, _ score: Double) -> some View {
         VStack(spacing: 2) {
             Text(name)
                 .font(.subheadline.bold())
                 .foregroundStyle(titleDark)
-            Text("\(score)")
+            Text("\(Int(score.rounded()))")
                 .font(.subheadline)
                 .foregroundStyle(gray)
         }
@@ -233,18 +262,26 @@ struct InsightsView: View {
                 Text("Overall")
                     .font(.footnote.bold())
                     .foregroundStyle(gray)
-                Text("\(scores.overall)")
+                Text("\(Int(scores.overall.rounded()))")
                     .font(.system(size: 44, weight: .bold, design: .rounded))
                     .foregroundStyle(green)
             }
 
-            Text("Sample data. Your real scores appear after sessions.")
+            Text(overallNote)
                 .font(.footnote)
                 .foregroundStyle(gray)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(mint, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    private var overallNote: String {
+        let count = rangeRecords.count
+        if count == 0 {
+            return "No data yet. Your scores appear after sessions."
+        }
+        return "Average of \(count) \(count == 1 ? "entry" : "entries") for \(range == .day ? "today" : "this \(range.rawValue.lowercased())")."
     }
 
     // MARK: Parameter card
@@ -256,34 +293,55 @@ struct InsightsView: View {
                     .font(.title3.bold())
                     .foregroundStyle(titleDark)
                 Spacer()
-                Text("\(parameter.score)")
+                Text("\(Int(parameter.score.rounded()))")
                     .font(.title.bold())
                     .foregroundStyle(titleDark)
             }
 
-            ProgressView(value: Double(parameter.score), total: 100)
+            ProgressView(value: parameter.score, total: 100)
                 .tint(green)
 
             Text(parameter.detail)
                 .font(.subheadline)
                 .foregroundStyle(gray)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("SUPPORTED BY")
-                    .font(.caption2.bold())
-                    .foregroundStyle(gray)
-                Text(parameter.supportedBy)
-                    .font(.subheadline)
-                    .foregroundStyle(titleDark)
-            }
         }
         .padding(20)
         .background(Color.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
+// MARK: - Preview with sample records
+
 #Preview {
-    NavigationStack {
+    let container = try! ModelContainer(
+        for: InsightsModel.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+
+    // Two entries today (average: clarity 56, courage 32, presence 42, warmth 78)
+    // plus earlier entries so Week and Month differ from Day.
+    let calendar = Calendar.current
+    let samples: [(daysAgo: Int, clarity: Int, courage: Int, presence: Int, warmth: Int)] = [
+        (0, 50, 30, 40, 74),
+        (0, 62, 34, 44, 82),
+        (2, 70, 50, 62, 84),
+        (4, 78, 58, 74, 90),
+        (12, 85, 76, 80, 92)
+    ]
+    for sample in samples {
+        let date = calendar.date(byAdding: .day, value: -sample.daysAgo, to: Date()) ?? Date()
+        container.mainContext.insert(
+            InsightsModel(courage: sample.courage,
+                          clarity: sample.clarity,
+                          presence: sample.presence,
+                          warmth: sample.warmth,
+                          date: date)
+        )
+    }
+
+    return NavigationStack {
         InsightsView()
     }
+    .modelContainer(container)
 }

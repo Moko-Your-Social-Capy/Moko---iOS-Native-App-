@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import Combine
 
 struct GuideSessionView: View {
@@ -16,6 +17,7 @@ struct GuideSessionView: View {
     @State private var elapsed: TimeInterval = 0
     @State private var isRunning = true           // starts as soon as the screen opens
     @State private var lastTick = Date()
+    @Environment(\.modelContext) private var modelContext
 
     private let ticker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
@@ -65,7 +67,10 @@ struct GuideSessionView: View {
             lastTick = date
             guard isRunning, !isComplete else { return }
             elapsed = min(totalSeconds, elapsed + dt)
-            if elapsed >= totalSeconds { isRunning = false }
+            if elapsed >= totalSeconds {
+                isRunning = false
+                modelContext.logCalmDown("Imagery Guide", seconds: totalSeconds)
+            }
         }
         .onDisappear { isRunning = false }
         .sensoryFeedback(.impact(weight: .light), trigger: stepIndex)
