@@ -57,13 +57,11 @@ private struct Edge: Shape {
 // MARK: - The screen
 
 struct BoxBreathingView: View {
-    @State private var cycles: Int
-    var initialCycles: Int = 2
+    let initialCycles: Int
     var onComplete: () -> Void = {}
 
     init(initialCycles: Int = 2, onComplete: @escaping () -> Void = {}) {
         self.initialCycles = initialCycles
-        _cycles = State(initialValue: initialCycles)
         self.onComplete = onComplete
     }
 
@@ -78,16 +76,22 @@ struct BoxBreathingView: View {
 
     private let phaseLength: TimeInterval = 4
     private var cycleLength: TimeInterval { phaseLength * 4 }
-    private var totalLength: TimeInterval { cycleLength * Double(cycles) }
+    private var totalLength: TimeInterval { cycleLength * Double(initialCycles) }
 
     // MARK: Values worked out from `elapsed`
 
     private var stepIndex: Int {
-        min(Int(elapsed / phaseLength), cycles * 4 - 1)
+        min(Int(elapsed / phaseLength), initialCycles * 4 - 1)
     }
 
     private var phase: BreathPhase {
         BreathPhase(rawValue: stepIndex % 4) ?? .inhale
+    }
+
+    /// 1-based index of the cycle currently in progress (clamped to initialCycles).
+    private var currentCycle: Int {
+        guard state == .running || state == .paused || state == .finishing else { return 1 }
+        return min(Int(elapsed / cycleLength) + 1, initialCycles)
     }
 
     private func sideProgress(_ side: Int) -> CGFloat {
@@ -108,7 +112,7 @@ struct BoxBreathingView: View {
     }
 
     private var cyclesText: String {
-        cycles == 1 ? "1 CYCLE" : "\(cycles) CYCLES"
+        initialCycles == 1 ? "1 CYCLE" : "\(initialCycles) CYCLES"
     }
 
     // MARK: Body
@@ -196,9 +200,20 @@ struct BoxBreathingView: View {
                 Text(cyclesText)
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(BBColor.muted)
+
                 Spacer()
+
+                // Cycle counter — only visible once the session has started
+                if state == .running || state == .paused || state == .finishing {
+                    Text("Cycle \(currentCycle) of \(initialCycles)")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(BBColor.muted)
+                        .monospacedDigit()
+                        .transition(.opacity)
+                }
             }
             .padding(.horizontal, 16)
+            .animation(.easeInOut(duration: 0.25), value: state)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -304,20 +319,18 @@ struct BoxBreathingView: View {
             .padding(.trailing, 39)
             .padding(.top, 40)
 
+            // Animated badge + confetti burst — same pattern as Mirror Reflection
             ZStack {
-                Circle().fill(BBColor.button)
-                Image(systemName: "checkmark.circle")
-                    .font(.system(size: 128, weight: .semibold))
-                    .foregroundStyle(.white)
+                BBConfettiBurst(radius: 140)
+                BBCompletionBadge(size: 190)
             }
-            .frame(width: 190, height: 190)
-            .padding(.top, 40)
+            .frame(width: 320, height: 320)
             .accessibilityHidden(true)
 
             Text("You did it!")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundStyle(.black)
-                .padding(.top, 40)
+                .padding(.top, 8)
 
             Text("You took a moment to pause, breathe, and find your calm. Be proud of yourself for showing up!")
                 .font(.system(size: 16))
@@ -432,6 +445,167 @@ private struct RoundIconButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+    }
+}
+
+// MARK: - Completion animation components
+
+/// Custom check shape that can be drawn progressively with .trim
+private struct BBCheckShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + rect.width * 0.25, y: rect.minY + rect.height * 0.52))
+        path.addLine(to: CGPoint(x: rect.minX + rect.width * 0.43, y: rect.minY + rect.height * 0.70))
+        path.addLine(to: CGPoint(x: rect.minX + rect.width * 0.76, y: rect.minY + rect.height * 0.32))
+        return path
+    }
+}
+
+/// Animated badge: pops in with spring, check draws itself, ripple rings pulse outward
+private struct BBCompletionBadge: View {
+    var size: CGFloat
+
+    @State private var popped = false
+    @State private var drawn: CGFloat = 0
+    @State private var ripple = false
+
+    private let softGreen  = Color(red: 120/255, green: 165/255, blue: 140/255)
+    private let mint       = Color(red: 203/255, green: 230/255, blue: 211/255)
+    private let cream      = Color(red: 252/255, green: 248/255, blue: 240/255)
+
+    var body: some View {
+        ZStack {
+            // Expanding ripple rings
+            ForEach(0..<3, id: \.self) { index in
+                Circle()
+                    .stroke(mint, lineWidth: 2.5)
+                    .frame(width: size, height: size)
+                    .scaleEffect(ripple ? 1.7 : 1)
+                    .opacity(ripple ? 0 : 0.85)
+                    .animation(
+                        .easeOut(duration: 2.4)
+                            .repeatForever(autoreverses: false)
+                            .delay(Double(index) * 0.8),
+                        value: ripple
+                    )
+            }
+
+            // Outer mint halo
+            Circle()
+                .fill(mint.opacity(0.65))
+                .frame(width: size, height: size)
+
+            // Main filled circle — same green as BBColor.button
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [softGreen, BBColor.button, BBColor.dark],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: size * 0.78, height: size * 0.78)
+                .shadow(color: BBColor.dark.opacity(0.35), radius: size * 0.08, x: 0, y: size * 0.04)
+
+            // Inner cream ring
+            Circle()
+                .stroke(cream.opacity(0.3), lineWidth: 2)
+                .frame(width: size * 0.66, height: size * 0.66)
+
+            // Animated check
+            BBCheckShape()
+                .trim(from: 0, to: drawn)
+                .stroke(
+                    cream,
+                    style: StrokeStyle(lineWidth: size * 0.07, lineCap: .round, lineJoin: .round)
+                )
+                .frame(width: size * 0.78, height: size * 0.78)
+        }
+        .scaleEffect(popped ? 1 : 0.55)
+        .opacity(popped ? 1 : 0)
+        .onAppear {
+            withAnimation(.spring(response: 0.52, dampingFraction: 0.58)) {
+                popped = true
+            }
+            withAnimation(.easeOut(duration: 0.45).delay(0.28)) {
+                drawn = 1
+            }
+            ripple = true
+        }
+    }
+}
+
+private let bbConfettiColors: [Color] = [
+    BBColor.button,
+    Color(red: 120/255, green: 165/255, blue: 140/255),   // soft green
+    Color(red: 244/255, green: 190/255, blue: 70/255),     // yellow
+    Color(red: 230/255, green: 130/255, blue: 100/255),    // coral
+    Color(red: 130/255, green: 185/255, blue: 175/255),    // teal
+    Color(red: 160/255, green: 195/255, blue: 215/255),    // sky blue
+    Color(red: 203/255, green: 230/255, blue: 211/255),    // mint
+]
+
+/// Confetti pieces that burst outward once on appear — same mechanic as MirrorConfettiBurst
+private struct BBConfettiBurst: View {
+    var radius: CGFloat
+
+    @State private var burst: CGFloat = 0
+
+    private struct Piece {
+        let angle: Double
+        let distance: CGFloat
+        let size: CGFloat
+        let color: Color
+        let isLeaf: Bool
+        let rotation: Double
+    }
+
+    private let pieces: [Piece] = (0..<20).map { index in
+        let jitter: Double = (index % 3 == 0) ? 0.12 : (index % 3 == 1 ? -0.08 : 0.04)
+        let angle = Double(index) / 20.0 * 2 * Double.pi + jitter
+        let distances: [CGFloat] = [1.0, 0.82, 0.94, 0.76]
+        let sizes: [CGFloat] = [18, 12, 15, 10]
+        return Piece(
+            angle: angle,
+            distance: distances[index % 4],
+            size: sizes[index % 4],
+            color: bbConfettiColors[index % bbConfettiColors.count],
+            isLeaf: index % 2 == 0,
+            rotation: Double(index) * 37.0
+        )
+    }
+
+    var body: some View {
+        ZStack {
+            ForEach(pieces.indices, id: \.self) { index in
+                let piece = pieces[index]
+
+                Group {
+                    if piece.isLeaf {
+                        Capsule()
+                            .fill(piece.color)
+                            .frame(width: piece.size * 0.45, height: piece.size)
+                            .rotationEffect(.radians(piece.angle + .pi / 2))
+                    } else {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(piece.color)
+                            .frame(width: piece.size * 0.6, height: piece.size * 0.6)
+                            .rotationEffect(.degrees(piece.rotation))
+                    }
+                }
+                .offset(
+                    x: CGFloat(cos(piece.angle)) * radius * piece.distance * burst,
+                    y: CGFloat(sin(piece.angle)) * radius * piece.distance * burst
+                )
+                .scaleEffect(0.25 + 0.75 * burst)
+                .opacity(Double(min(1, burst * 1.8)))
+            }
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.85, dampingFraction: 0.62).delay(0.15)) {
+                burst = 1
+            }
+        }
     }
 }
 
