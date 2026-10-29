@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 enum BBColor {
     static let background = Color(red: 242/255, green: 242/255, blue: 247/255)   // screen background
@@ -68,6 +69,7 @@ struct BoxBreathingView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.modelContext) private var modelContext  
 
     @State private var state: SessionState = .idle
     @State private var elapsed: TimeInterval = 0          // seconds since the session began
@@ -351,6 +353,7 @@ struct BoxBreathingView: View {
             try? await Task.sleep(nanoseconds: 900_000_000)
             guard !Task.isCancelled else { return }
             withAnimation(.easeInOut(duration: 0.3)) { state = .complete }
+            modelContext.logCalmDown("Box Breathing", seconds: totalLength)
         default:
             break
         }

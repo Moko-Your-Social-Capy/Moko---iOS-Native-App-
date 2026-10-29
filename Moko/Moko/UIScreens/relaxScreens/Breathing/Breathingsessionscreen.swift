@@ -10,6 +10,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import Combine
 
 struct BreathingSessionScreen: View {
@@ -18,6 +19,7 @@ struct BreathingSessionScreen: View {
     var onFinish: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
     fileprivate enum RunState {
         case idle, running, paused, completed
@@ -318,6 +320,7 @@ struct BreathingSessionScreen: View {
             elapsed = total
             lastTick = nil
             runState = .completed
+            modelContext.logCalmDown("Gentle Breathing", seconds: total)
         }
     }
 
