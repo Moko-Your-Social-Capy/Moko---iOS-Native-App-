@@ -271,7 +271,12 @@ struct OverviewResumeScreen: View {
                 Spacer()
 
                 HStack(spacing: 4) {
-                    Text("Oct 15")
+                    Text(Date.now.formatted(
+                        .dateTime
+                            .locale(Locale(identifier: "en_US"))
+                            .month(.abbreviated)
+                            .day()
+                    ))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(titleDark)
 
@@ -325,7 +330,12 @@ struct OverviewResumeScreen: View {
                 Spacer()
 
                 HStack(spacing: 4) {
-                    Text("Oct 15")
+                    Text(Date.now.formatted(
+                        .dateTime
+                            .locale(Locale(identifier: "en_US"))
+                            .month(.abbreviated)
+                            .day()
+                    ))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(titleDark)
 
