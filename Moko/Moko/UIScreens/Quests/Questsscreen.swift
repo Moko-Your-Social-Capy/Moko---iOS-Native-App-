@@ -4,7 +4,8 @@
 //
 //  Quests tab. Reads this user's quests from SwiftData with @Query.
 //  No quests: "No Active Quest" card. Otherwise: category chips and quests
-//  grouped by day. The + button opens NewQuestScreen, which saves to SwiftData.
+//  grouped by day. Each card has Edit and Complete buttons; swipe a card
+//  right to left to delete it (native red swipe action).
 //
 
 import SwiftUI
@@ -13,11 +14,15 @@ import SwiftData
 private enum QuestsRoute: Identifiable {
     case newQuest
     case detail(Quest)
+    case edit(Quest)
+    case debrief(Quest)
 
     var id: String {
         switch self {
-        case .newQuest:          return "new"
-        case .detail(let quest): return quest.id.uuidString
+        case .newQuest:           return "new"
+        case .detail(let quest):  return "detail-\(quest.id.uuidString)"
+        case .edit(let quest):    return "edit-\(quest.id.uuidString)"
+        case .debrief(let quest): return "debrief-\(quest.id.uuidString)"
         }
     }
 }
@@ -58,6 +63,10 @@ struct QuestsScreen: View {
         }
     }
 
+    private var completedCount: Int {
+        quests.filter { $0.isCompleted }.count
+    }
+
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             QuestStyle.screenBg
@@ -87,12 +96,19 @@ struct QuestsScreen: View {
                 NewQuestScreen()
             case .detail(let quest):
                 QuestDetailScreen(quest: quest)
+            case .edit(let quest):
+                NewQuestScreen(quest: quest)
+            case .debrief(let quest):
+                QuestDebriefScreen(quest: quest) {
+                    route = nil
+                }
             }
         }
         // After a quest is added, show the full list so the new quest is visible
         .onChange(of: quests.count) { oldCount, newCount in
             if newCount > oldCount { filter = nil }
         }
+        .sensoryFeedback(.success, trigger: completedCount)
     }
 
     // MARK: Filter chips
@@ -139,7 +155,7 @@ struct QuestsScreen: View {
         if quests.isEmpty {
             emptyCard(
                 title: "No Active Quest",
-                message: "Tap below to add a Custom Quest whenever you’re ready, or use explore option to browse library of quests"
+                message: "Tap below to add a Custom Quest, or use explore option to browse library of quests"
             )
         } else if filteredQuests.isEmpty {
             emptyCard(
@@ -172,67 +188,115 @@ struct QuestsScreen: View {
         .padding(.top, 70)
     }
 
+    // A List (not a ScrollView) so rows get the native swipe-to-delete action
     private var questList: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            LazyVStack(alignment: .leading, spacing: 0) {
-                ForEach(groups) { group in
-                    Text(QuestFormat.groupTitle(group.day))
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(QuestStyle.subtext)
-                        .padding(.horizontal, 28)
-                        .padding(.top, 26)
-                        .padding(.bottom, 10)
+        List {
+            ForEach(groups) { group in
+                Text(QuestFormat.groupTitle(group.day))
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(QuestStyle.subtext)
+                    .listRowInsets(EdgeInsets(top: 18, leading: 28, bottom: 4, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
 
-                    VStack(spacing: 12) {
-                        ForEach(group.quests, id: \.id) { quest in
-                            Button {
-                                route = .detail(quest)
+                ForEach(group.quests, id: \.id) { quest in
+                    questCard(quest)
+                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                delete(quest)
                             } label: {
-                                questCard(quest)
+                                Label("Delete", systemImage: "trash")
                             }
-                            .buttonStyle(.plain)
                         }
-                    }
-                    .padding(.horizontal, 16)
                 }
             }
-            .padding(.bottom, 110) // clear of the add button
+
+            // Space so the last card can scroll clear of the add button
+            Color.clear
+                .frame(height: 100)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
     }
 
     private func questCard(_ quest: Quest) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top) {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(quest.title)
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(QuestStyle.title)
                     .lineLimit(2)
 
-                Spacer(minLength: 8)
+                HStack(spacing: 6) {
+                    Text("\(quest.intensity.xp) XP")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(QuestStyle.green)
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.black)
+                    if quest.isCompleted {
+                        Text("· Completed")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(QuestStyle.subtext)
+                    }
+                }
             }
 
-            Text("\(quest.intensity.xp) XP")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(QuestStyle.subtext)
+            Spacer(minLength: 8)
+
+            HStack(spacing: 10) {
+                cardButton(symbol: "pencil", filled: false, label: "Edit quest") {
+                    route = .edit(quest)
+                }
+
+                cardButton(symbol: "checkmark", filled: true,
+                           label: quest.isCompleted ? "Open debrief" : "Complete quest") {
+                    complete(quest)
+                }
+            }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
-        .contextMenu {
-            Button(role: .destructive) {
-                withAnimation {
-                    modelContext.delete(quest)
-                    try? modelContext.save()
-                }
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        // Tapping the card itself still opens the quest briefing; the two buttons take priority
+        .onTapGesture {
+            route = .detail(quest)
+        }
+    }
+
+    private func cardButton(symbol: String, filled: Bool, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(filled ? Color.white : QuestStyle.title)
+                .frame(width: 38, height: 38)
+                .background(Circle().fill(filled ? QuestStyle.green : QuestStyle.screenBg))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+
+    // MARK: Actions
+    private func complete(_ quest: Quest) {
+        if !quest.isCompleted {
+            quest.isCompleted = true
+            try? modelContext.save()
+        }
+        route = .debrief(quest)
+    }
+
+    private func delete(_ quest: Quest) {
+        withAnimation {
+            modelContext.delete(quest)
+            try? modelContext.save()
         }
     }
 

@@ -60,6 +60,9 @@ final class Quest {
     /// Scheduled day and time
     var date: Date
     var createdAt: Date
+    /// Set when the user taps the check on the quest card. The default value lets SwiftData
+    /// add this column to quests that were saved before it existed.
+    var isCompleted: Bool = false
 
     init(ownerID: String,
          title: String,
@@ -75,6 +78,7 @@ final class Quest {
         self.category = category
         self.date = date
         self.createdAt = Date()
+        self.isCompleted = false
     }
 }
 
