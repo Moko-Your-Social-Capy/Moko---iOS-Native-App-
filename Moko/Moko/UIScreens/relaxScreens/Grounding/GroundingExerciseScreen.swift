@@ -1,10 +1,11 @@
-
 import SwiftUI
 
 struct GroundingExerciseScreen: View {
+
     var onExit: () -> Void = {}
     var onContinue: () -> Void = {}
 
+    @State private var currentStep = 0
     @State private var selectedNumbers: Set<Int> = []
 
     private let accent = Color(red: 54/255, green: 89/255, blue: 72/255)
@@ -12,21 +13,77 @@ struct GroundingExerciseScreen: View {
     private let secondaryText = Color(red: 111/255, green: 103/255, blue: 98/255)
     private let screenBg = Color(red: 244/255, green: 244/255, blue: 249/255)
 
+    private let steps: [GroundingStep] = [
+        GroundingStep(
+            number: 5,
+            title: "See",
+            subtitle: "Notice five things you can clearly see around you right now.",
+            cardTitle: "Everyday Anchors",
+            cardDescription: "Look for subtle contours: morning light across a wall, texture on a notebook, or a leafy plant.",
+            icon: "eye"
+        ),
+        GroundingStep(
+            number: 4,
+            title: "Touch",
+            subtitle: "Notice four things you can feel around you right now.",
+            cardTitle: "Notice the Details",
+            cardDescription: "Feel your feet on the floor, the fabric of your clothes, the chair beneath you, or the texture of an object.",
+            icon: "hand.point.up.left"
+        ),
+        GroundingStep(
+            number: 3,
+            title: "Hear",
+            subtitle: "Notice three things you can hear around you right now.",
+            cardTitle: "Listen Closely",
+            cardDescription: "Listen for nearby sounds, distant voices, birds, a fan, or the gentle hum of your surroundings.",
+            icon: "ear"
+        ),
+        GroundingStep(
+            number: 2,
+            title: "Smell",
+            subtitle: "Notice two things you can smell around you right now.",
+            cardTitle: "Breathe In",
+            cardDescription: "Notice the scent of the air, your surroundings, or a familiar object nearby. If you can't detect a scent, simply notice the air as you breathe.",
+            icon: "wind"
+        ),
+        GroundingStep(
+            number: 1,
+            title: "Taste",
+            subtitle: "Notice one thing you can taste, or focus on one slow, steady breath.",
+            cardTitle: "Return to the Present",
+            cardDescription: "Take a gentle breath. Notice how your body feels in this moment, without needing to change anything.",
+            icon: "heart"
+        )
+    ]
+
+    private var step: GroundingStep {
+        steps[currentStep]
+    }
+
     var body: some View {
         ZStack {
             screenBg.ignoresSafeArea()
 
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
-                    // Back button
+
                     HStack {
-                        Button(action: onExit) {
+                        Button(action: {
+                            if currentStep > 0 {
+                                currentStep -= 1
+                                selectedNumbers = []
+                            } else {
+                                onExit()
+                            }
+                        }) {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundStyle(.black)
                                 .frame(width: 38, height: 38)
                                 .background(
-                                    Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255))
+                                    Circle().fill(
+                                        Color(red: 237/255, green: 237/255, blue: 237/255)
+                                    )
                                 )
                                 .contentShape(Circle())
                         }
@@ -48,12 +105,12 @@ struct GroundingExerciseScreen: View {
                     numberCircle
                         .padding(.top, 20)
 
-                    Text("See")
+                    Text(step.title)
                         .font(.system(size: 26, weight: .bold))
                         .foregroundStyle(primaryText)
                         .padding(.top, 12)
 
-                    Text("Notice five things you can clearly see around you right now.")
+                    Text(step.subtitle)
                         .font(.system(size: 16))
                         .foregroundStyle(secondaryText)
                         .multilineTextAlignment(.center)
@@ -71,7 +128,7 @@ struct GroundingExerciseScreen: View {
 
                         Spacer()
 
-                        Text("\(selectedNumbers.count) of 5")
+                        Text("\(selectedNumbers.count) of \(step.number)")
                             .fontWeight(.semibold)
                             .foregroundStyle(accent)
                     }
@@ -87,9 +144,9 @@ struct GroundingExerciseScreen: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if selectedNumbers.count == 5 {
-                Button(action: onContinue) {
-                    Text("Continue")
+            if selectedNumbers.count == step.number {
+                Button(action: advanceStep) {
+                    Text(currentStep == steps.count - 1 ? "Finish" : "Continue")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -103,6 +160,7 @@ struct GroundingExerciseScreen: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: selectedNumbers.count)
+        .animation(.easeInOut(duration: 0.25), value: currentStep)
         .toolbar(.hidden, for: .navigationBar)
     }
 
@@ -122,10 +180,10 @@ struct GroundingExerciseScreen: View {
 
     private var progressBar: some View {
         HStack(spacing: 7) {
-            ForEach(1...5, id: \.self) { number in
+            ForEach(0..<step.number, id: \.self) { number in
                 Capsule()
                     .fill(
-                        selectedNumbers.contains(number)
+                        selectedNumbers.contains(number + 1)
                             ? accent
                             : Color.gray.opacity(0.16)
                     )
@@ -136,7 +194,7 @@ struct GroundingExerciseScreen: View {
         .animation(.easeInOut(duration: 0.2), value: selectedNumbers)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Progress")
-        .accessibilityValue("\(selectedNumbers.count) of 5 completed")
+        .accessibilityValue("\(selectedNumbers.count) of \(step.number) completed")
     }
 
     private var numberCircle: some View {
@@ -149,11 +207,11 @@ struct GroundingExerciseScreen: View {
                 .fill(Color.white.opacity(0.9))
                 .frame(width: 114, height: 114)
 
-            Text("5")
+            Text("\(step.number)")
                 .font(.system(size: 46, weight: .bold))
                 .foregroundStyle(accent)
 
-            Image(systemName: "eye")
+            Image(systemName: step.icon)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(accent)
                 .frame(width: 30, height: 30)
@@ -165,11 +223,11 @@ struct GroundingExerciseScreen: View {
 
     private var everydayAnchorsCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Everyday Anchors", systemImage: "lightbulb.fill")
+            Label(step.cardTitle, systemImage: "lightbulb.fill")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(accent)
 
-            Text("Look for subtle contours: morning light across a wall, texture on a notebook, or a leafy plant.")
+            Text(step.cardDescription)
                 .font(.system(size: 15))
                 .foregroundStyle(secondaryText)
                 .lineSpacing(3)
@@ -183,7 +241,7 @@ struct GroundingExerciseScreen: View {
 
     private var numberButtons: some View {
         HStack(spacing: 8) {
-            ForEach(1...5, id: \.self) { number in
+            ForEach(1...step.number, id: \.self) { number in
                 let isSelected = selectedNumbers.contains(number)
 
                 Button {
@@ -213,6 +271,24 @@ struct GroundingExerciseScreen: View {
             selectedNumbers.insert(number)
         }
     }
+
+    private func advanceStep() {
+        if currentStep < steps.count - 1 {
+            selectedNumbers = []
+            currentStep += 1
+        } else {
+            onContinue()
+        }
+    }
+}
+
+private struct GroundingStep {
+    let number: Int
+    let title: String
+    let subtitle: String
+    let cardTitle: String
+    let cardDescription: String
+    let icon: String
 }
 
 #Preview {
