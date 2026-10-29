@@ -10,7 +10,6 @@ import SwiftData
 
 struct MokoRootView: View {
     @State private var tab: MokoTab = .overview
-    @State private var searchedTerm = ""
 
     var body: some View {
         TabView(selection: $tab) {
@@ -27,10 +26,7 @@ struct MokoRootView: View {
             }
 
             Tab("Search", systemImage: "magnifyingglass", value: MokoTab.search, role: .search) {
-                NavigationStack {
-                    SearchView(selectedTab: $tab)
-                        .searchable(text: $searchedTerm)
-                }
+                QuestLibraryView()
             }
         }
         .tint(Color(red: 27/255, green: 66/255, blue: 47/255)) // #1B422F
