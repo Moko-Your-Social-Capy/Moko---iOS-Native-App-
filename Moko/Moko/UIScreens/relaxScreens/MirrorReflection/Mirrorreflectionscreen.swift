@@ -52,7 +52,7 @@ struct MirrorReflectionScreen: View {
                         .padding(.top, 28)
                         .padding(.horizontal, 24)
 
-                    Text("Take a moment to look at yourself without judging. You don’t need to be perfect to be proud of who you are.")
+                    Text("Take a moment to look at yourself without judging. You don’t need to be perfect to be proud of who you are. Find one thing you appreciate about yourself and give yourself some credit.")
                         .font(.system(size: 15))
                         .foregroundColor(subtextGray)
                         .multilineTextAlignment(.center)

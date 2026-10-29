@@ -101,7 +101,6 @@ struct NameEntryView: View {
         Button(action: submit) {
             HStack(spacing: 8) {
                 Text("Continue")
-                Image(systemName: "arrow.right")
             }
             .font(.system(size: 17))
             .foregroundStyle(Color.cream)
