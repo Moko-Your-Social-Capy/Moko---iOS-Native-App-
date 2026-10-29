@@ -74,7 +74,6 @@ struct WelcomeView: View {
         Button(action: onStart) {
             HStack(spacing: 8) {
                 Text("Start reflections")
-                Image(systemName: "arrow.right")
             }
             .font(.system(size: 17))
             .foregroundStyle(Color.cream)

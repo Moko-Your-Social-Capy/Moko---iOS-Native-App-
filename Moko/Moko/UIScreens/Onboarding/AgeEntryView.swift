@@ -142,7 +142,6 @@ struct AgeEntryView: View {
         Button { onContinue(currentAge) } label: {
             HStack(spacing: 8) {
                 Text("Continue")
-                Image(systemName: "arrow.right")
             }
             .font(.system(size: 17))
             .foregroundStyle(Color.cream)
