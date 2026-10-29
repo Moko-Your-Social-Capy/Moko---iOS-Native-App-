@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct Overview: View {
     @Binding var selectedTab: MokoTab
@@ -19,6 +20,7 @@ struct Overview: View {
     }
 
     // MARK: - State Properties
+    @Query private var profiles: [Profile]
     @State private var slideOffset: CGFloat = 0
     @State private var isMissionCompleted: Bool = false
     @State private var showRadarInfo: Bool = false      // "How your radar chart works" sheet
@@ -86,16 +88,26 @@ struct Overview: View {
 
             Spacer()
 
-            // Avatar Circle
-            ZStack {
-                Circle()
-                    .fill(Color(red: 68/255, green: 68/255, blue: 68/255).opacity(0.6))
-                    .frame(width: 47, height: 47)
+            // Avatar Circle: opens the Profile screen
+            NavigationLink {
+                ProfileOverView()
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(Color(red: 68/255, green: 68/255, blue: 68/255).opacity(0.6))
+                        .frame(width: 47, height: 47)
 
-                Text("AJ")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
+                    if let name = profiles.first?.username, !name.isEmpty {
+                        Text(String(name.prefix(2)).uppercased())
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                    } else {
+                        Image(systemName: "person.fill")
+                            .foregroundColor(.white)
+                    }
+                }
             }
+            .buttonStyle(.plain)
         }
     }
 
@@ -491,4 +503,5 @@ struct CalmDownBarChartView: View {
 
 #Preview {
     Overview()
+        .modelContainer(for: Profile.self, inMemory: true)
 }
