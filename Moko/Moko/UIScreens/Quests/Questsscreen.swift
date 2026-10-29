@@ -198,7 +198,7 @@ struct QuestsScreen: View {
                                 delete(quest)
                             } label: {
                                 Label("Delete", systemImage: "trash")
-                            }
+                            }.tint(.red)
                         }
                 }
             }
