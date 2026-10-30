@@ -223,7 +223,7 @@ struct QuestsScreen: View {
                     .lineLimit(2)
 
                 HStack(spacing: 6) {
-                    Text("\(quest.intensity.xp) XP")
+                    Text("\(quest.awardedXP) XP")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(QuestStyle.green)
 
