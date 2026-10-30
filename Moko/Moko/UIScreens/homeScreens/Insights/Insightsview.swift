@@ -16,6 +16,7 @@ enum InsightsRange: String, CaseIterable, Identifiable {
     case day = "Day"
     case week = "Week"
     case month = "Month"
+    case year = "Year"
 
     var id: String { rawValue }
 
@@ -25,6 +26,7 @@ enum InsightsRange: String, CaseIterable, Identifiable {
         case .day:   return .day
         case .week:  return .weekOfYear
         case .month: return .month
+        case .year:  return .year
         }
     }
 }
@@ -77,7 +79,7 @@ struct InsightsView: View {
     private let gray      = Color(red: 111/255, green: 103/255, blue: 98/255)  // #6F6762
 
     /// Axis marks from the center outwards (the outer diamond is 100).
-    private let ticks = Array(stride(from: 10, through: 100, by: 10))
+    private let ticks = [25, 50, 75, 100]
 
     /// Records that fall in today / this week / this month
     private var rangeRecords: [InsightsModel] {

@@ -1,84 +1,66 @@
 
-//
-//  MokoRootView.swift
-//  Moko
-//
-//  App root using native SwiftUI TabView.
-//
-
 import SwiftUI
-import SwiftData
 
 struct MokoRootView: View {
 
-    @State private var tab: MokoTab = .overview
-
-    private let forestGreen = Color(
-        red: 27.0 / 255.0,
-        green: 66.0 / 255.0,
-        blue: 47.0 / 255.0
-    )
+    @State private var selectedTab: MokoTab = .overview
 
     var body: some View {
 
-        TabView(selection: $tab) {
+        TabView(selection: $selectedTab) {
 
-            // MARK: Overview
+            // MARK: - Overview
 
             Tab(
                 "Overview",
                 systemImage: "square.grid.2x2.fill",
-                value: MokoTab.overview
+                value: .overview
             ) {
-                Overview(selectedTab: $tab)
+                Overview(selectedTab: $selectedTab)
             }
 
-            // MARK: Quests
+            // MARK: - Quests
 
             Tab(
                 "Quests",
                 systemImage: "clipboard.fill",
-                value: MokoTab.quests
+                value: .quests
             ) {
                 QuestsScreen()
             }
 
-            // MARK: Relax
+            // MARK: - Relax
 
             Tab(
                 "Relax",
                 systemImage: "figure.mind.and.body",
-                value: MokoTab.relax
+                value: .relax
             ) {
                 RelaxScreen()
             }
 
-            // MARK: Search
+            // MARK: - Explore
 
             Tab(
-                "Search",
+                "Explore",
                 systemImage: "magnifyingglass",
-                value: MokoTab.search,
+                value: .search,
                 role: .search
             ) {
                 QuestLibraryView()
             }
         }
-        .tint(forestGreen)
-    }
-}
 
-// MARK: Preview
+        // Native iOS tab bar minimization
+        .tabBarMinimizeBehavior(.onScrollDown)
 
-#Preview {
-    MokoRootView()
-        .modelContainer(
-            for: [
-                Quest.self,
-                InsightsModel.self,
-                CalmDownModel.self,
-                Profile.self
-            ],
-            inMemory: true
+        // MOKO Forest Green
+        .tint(
+            Color(
+                red: 27.0 / 255.0,
+                green: 66.0 / 255.0,
+                blue: 47.0 / 255.0
+            )
         )
+    }
 }
