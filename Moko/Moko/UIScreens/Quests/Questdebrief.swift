@@ -489,7 +489,7 @@ struct QuestDebriefScreen: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Debrief Time")
+            Text("Debrief")
                 .font(.system(size: 32, weight: .bold))
                 .foregroundColor(DebriefStyle.title)
 
@@ -1142,7 +1142,7 @@ struct DebriefLeaveSheet: View {
                 DebriefLeaveOption(
                     symbol: "arrowshape.turn.up.right.fill",
                     title: "Keep Going",
-                    subtitle: "Resume your debrief",
+                    subtitle: "Resume debrief",
                     style: .primary,
                     action: onKeepGoing
                 )
