@@ -6,12 +6,11 @@
 //  quest's title, category, intensity and XP, then a briefing (scene, who, goal) from a
 //  QuestBriefGenerating object. For now that is a dummy generator; swap in an Apple
 //  Foundation Models one later. Sliding "Slide to debrief" completes the quest and opens
-//  the debrief page.
+//  the debrief conversation (QuestDebrief.swift).
 //
 
 import SwiftUI
 import SwiftData
-import Combine
 
 // MARK: - Briefing (what the on-device model will generate)
 struct QuestBrief: Equatable {
@@ -137,6 +136,7 @@ struct QuestDetailScreen: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.openOverview) private var openOverview
 
     @State private var brief: QuestBrief?
     @State private var showingDebrief = false
@@ -157,10 +157,8 @@ struct QuestDetailScreen: View {
     var body: some View {
         ZStack {
             if showingDebrief {
-                QuestDebriefScreen(quest: quest) {
-                    withAnimation(.easeInOut(duration: 0.35)) {
-                        showingDebrief = false
-                    }
+                QuestDebriefScreen(quest: quest) { outcome in
+                    finishDebrief(outcome)
                 }
                 .transition(.move(edge: .trailing))
             } else {
@@ -233,6 +231,23 @@ struct QuestDetailScreen: View {
             .padding(.horizontal, 28)
             .padding(.bottom, 12)
         }
+    }
+
+    /// Where the debrief sends the user: Continue, Finish Later and Leave each open a
+    /// different version of the Overview tab, then this whole screen closes.
+    private func finishDebrief(_ outcome: DebriefOutcome) {
+        switch outcome {
+        case .completed:
+            PendingDebriefStore.clear()
+            openOverview?(.debriefDone)
+        case .finishLater:
+            PendingDebriefStore.save(quest)
+            openOverview?(.resume)
+        case .leave:
+            PendingDebriefStore.clear()
+            openOverview?(.todo)
+        }
+        dismiss()
     }
 
     /// Sliding to debrief is what completes the quest
@@ -551,89 +566,5 @@ struct QuestSlideButton: View {
         }
         .frame(height: height)
         .sensoryFeedback(.success, trigger: completed)
-    }
-}
-
-// MARK: - Debrief page (placeholder until it's designed)
-struct QuestDebriefScreen: View {
-    let quest: Quest
-    var onBack: () -> Void
-
-    @State private var pulse = false
-
-    private let micGreen = Color(red: 47/255, green: 79/255, blue: 64/255)
-
-    var body: some View {
-        ZStack {
-            QuestStyle.screenBg.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                HStack {
-                    Button(action: onBack) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.black)
-                            .frame(width: 38, height: 38)
-                            .background(Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255)))
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-
-                Text("Debrief")
-                    .font(.system(size: 30, weight: .bold))
-                    .foregroundColor(.black)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 18)
-
-                Text(quest.title)
-                    .font(.system(size: 15))
-                    .foregroundColor(QuestStyle.subtext)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 4)
-
-                Spacer()
-
-                ZStack {
-                    Circle()
-                        .fill(micGreen.opacity(0.14))
-                        .frame(width: 190, height: 190)
-                        .scaleEffect(pulse ? 1.08 : 0.94)
-
-                    Circle()
-                        .fill(micGreen)
-                        .frame(width: 110, height: 110)
-                        .shadow(color: micGreen.opacity(0.35), radius: 14, x: 0, y: 8)
-
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: 40, weight: .medium))
-                        .foregroundColor(.white)
-                }
-
-                Text("Your debrief is coming soon")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(QuestStyle.title)
-                    .padding(.top, 32)
-
-                Text("This is where you’ll share how it went.")
-                    .font(.system(size: 15))
-                    .foregroundColor(QuestStyle.subtext)
-                    .padding(.top, 8)
-
-                Spacer()
-                Spacer()
-            }
-        }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
-                pulse = true
-            }
-        }
     }
 }
