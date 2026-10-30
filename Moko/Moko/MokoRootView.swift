@@ -1,41 +1,84 @@
+
 //
 //  MokoRootView.swift
 //  Moko
 //
-//  App root using the native TabView (Search tab is separated on iOS 26).
+//  App root using native SwiftUI TabView.
 //
 
 import SwiftUI
 import SwiftData
 
 struct MokoRootView: View {
+
     @State private var tab: MokoTab = .overview
 
+    private let forestGreen = Color(
+        red: 27.0 / 255.0,
+        green: 66.0 / 255.0,
+        blue: 47.0 / 255.0
+    )
+
     var body: some View {
+
         TabView(selection: $tab) {
-            Tab("Overview", systemImage: "square.grid.2x2.fill", value: MokoTab.overview) {
+
+            // MARK: Overview
+
+            Tab(
+                "Overview",
+                systemImage: "square.grid.2x2.fill",
+                value: MokoTab.overview
+            ) {
                 Overview(selectedTab: $tab)
             }
 
-            Tab("Quests", systemImage: "clipboard.fill", value: MokoTab.quests) {
+            // MARK: Quests
+
+            Tab(
+                "Quests",
+                systemImage: "clipboard.fill",
+                value: MokoTab.quests
+            ) {
                 QuestsScreen()
             }
 
-            Tab("Relax", systemImage: "figure.mind.and.body", value: MokoTab.relax) {
-                RelaxScreen(selectedTab: $tab)
+            // MARK: Relax
+
+            Tab(
+                "Relax",
+                systemImage: "figure.mind.and.body",
+                value: MokoTab.relax
+            ) {
+                RelaxScreen()
             }
 
-            Tab("Search", systemImage: "magnifyingglass", value: MokoTab.search, role: .search) {
+            // MARK: Search
+
+            Tab(
+                "Search",
+                systemImage: "magnifyingglass",
+                value: MokoTab.search,
+                role: .search
+            ) {
                 QuestLibraryView()
             }
         }
-        .tint(Color(red: 27/255, green: 66/255, blue: 47/255)) // #1B422F
-        // No .modelContainer here: the whole app uses the container from MokoApp,
-        // which already has every model (Quest, InsightsModel, CalmDownModel, ...).
+        .tint(forestGreen)
     }
 }
 
+// MARK: Preview
+
 #Preview {
     MokoRootView()
-        .modelContainer(for: [Quest.self, InsightsModel.self, CalmDownModel.self], inMemory: true)
+        .modelContainer(
+            for: [
+                Quest.self,
+                InsightsModel.self,
+                CalmDownModel.self,
+                Profile.self
+            ],
+            inMemory: true
+        )
 }

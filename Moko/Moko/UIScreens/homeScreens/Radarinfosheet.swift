@@ -52,7 +52,7 @@ struct RadarInfoSheet: View {
                     Text("View my insights")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 44)
+                        .frame(height: 25)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(green)
