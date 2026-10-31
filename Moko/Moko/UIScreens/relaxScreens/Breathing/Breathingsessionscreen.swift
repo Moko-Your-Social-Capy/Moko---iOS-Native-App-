@@ -1,4 +1,3 @@
-
 //
 //  BreathingSessionScreen.swift
 //  Moko
@@ -42,6 +41,7 @@ struct BreathingSessionScreen: View {
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
     private let chipBg = Color(red: 237/255, green: 237/255, blue: 237/255)     // #EDEDED
     private let cream = Color(red: 252/255, green: 248/255, blue: 240/255)
+    private let mist = Color(red: 214/255, green: 233/255, blue: 216/255)       // #D6E9D8
 
     init(minutes: Int, onFinish: (() -> Void)? = nil, previewCompleted: Bool = false) {
         self.minutes = max(1, minutes)
@@ -98,90 +98,97 @@ struct BreathingSessionScreen: View {
 
     // MARK: - Body
     var body: some View {
-        ZStack {
-            screenBg.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                topBar
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-
-                header
-                    .padding(.horizontal, 24)
-                    .padding(.top, 18)
-
-                Spacer(minLength: 16)
-
-                ring
-                    .frame(width: 270, height: 270)
-
-                VStack(spacing: 8) {
-                    Text(phaseTitle)
-                        .font(.system(size: 26, weight: .bold))
-                        .foregroundColor(.black)
-
-                    Text(phaseHint)
-                        .font(.system(size: 15))
-                        .foregroundColor(subtextGray)
-                        .multilineTextAlignment(.center)
-                        .frame(height: 40, alignment: .top)
-                        .padding(.horizontal, 40)
-                }
-                .padding(.top, 36)
-
-                if runState != .completed {
-                    Text(timeText)
-                        .font(.system(size: 72, weight: .light, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundColor(cardGreen)
-                        .padding(.top, 4)
-                }
-
-                Spacer(minLength: 16)
-
-                controls
-                    .padding(.bottom, 28)
-            }
+        // Foreground only. Moko lives in .background so it can never change the layout size.
+        VStack(spacing: 14) {
+            header
+            phaseCard
+            Spacer(minLength: 0)
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background { mokoBackground }
+        // Timer + controls sit above the home indicator, always fully visible
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            bottomPanel
+        }
+        .navigationTitle("\(minutes) min")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .onReceive(ticker) { now in
             tick(now)
         }
-        // Haptics, SwiftUI only (iOS 17+)
         .sensoryFeedback(trigger: runState) { oldState, newState in
             switch (oldState, newState) {
-            case (_, .completed):  return .success
-            case (.idle, .running): return .impact(weight: .medium)
-            default:               return .impact(weight: .light)
+            case (_, .completed):
+                return .success
+
+            case (.idle, .running):
+                return .impact(weight: .medium)
+
+            default:
+                return .impact(weight: .light)
             }
         }
     }
 
-    // MARK: - Top bar and header
-    private var topBar: some View {
-        HStack {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.black)
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(chipBg))
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            Text("\(minutes) min")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(cardGreen)
-                .padding(.horizontal, 14)
-                .frame(height: 30)
-                .background(Capsule().fill(trackGreen.opacity(0.7)))
+    /// Animation is 600x750; showing it at that ratio means Moko is never cropped or oversized.
+    private var mokoBackground: some View {
+        ZStack {
+            mist.ignoresSafeArea()      // same colour as the animation's background
+            MokoLottieView(animationType: .meditation, size: nil)
+                .aspectRatio(600.0 / 750.0, contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .offset(y: -30)
+                .clipped()
         }
     }
 
+    // MARK: - Phase card
+    private var phaseCard: some View {
+        VStack(spacing: 6) {
+            Text(phaseTitle)
+                .font(.system(size: 26, weight: .bold))
+                .foregroundColor(.black)
+
+            Text(phaseHint)
+                .font(.system(size: 15))
+                .foregroundColor(subtextGray)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.vertical, 14)
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity)
+        .background {
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .fill(cream.opacity(0.9))
+        }
+    }
+
+    // MARK: - Bottom panel (timer + controls)
+    private var bottomPanel: some View {
+        VStack(spacing: 14) {
+            if runState != .completed {
+                Text(timeText)
+                    .font(.system(size: 56, weight: .light, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundColor(cardGreen)
+            }
+            controls
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 18)
+        .frame(maxWidth: .infinity)
+        .background {
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .fill(cream.opacity(0.94))
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
+    }
+
+    // MARK: - Header
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Gentle Breathing")
@@ -193,64 +200,6 @@ struct BreathingSessionScreen: View {
                 .foregroundColor(subtextGray)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    // MARK: - Progress ring with breathing dots
-    private var ring: some View {
-        ZStack {
-            Circle()
-                .stroke(trackGreen, lineWidth: 14)
-
-            Circle()
-                .trim(from: 0, to: runState == .completed ? 1 : progress)
-                .stroke(cardGreen, style: StrokeStyle(lineWidth: 14, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-
-            if runState == .completed {
-                completedBadge
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
-            } else {
-                breathingVisual
-            }
-        }
-        .animation(.spring(response: 0.55, dampingFraction: 0.72), value: runState)
-    }
-
-    private var breathingVisual: some View {
-        ZStack {
-            // Soft glow that swells with the breath
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [cardGreen.opacity(0.22), cardGreen.opacity(0)],
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: 115
-                    )
-                )
-                .frame(width: 230, height: 230)
-                .scaleEffect(breathScale)
-
-            BreathingDotsIcon(color: cardGreen)
-                .frame(width: 130, height: 130)
-                .scaleEffect(breathScale)
-        }
-    }
-
-    private var completedBadge: some View {
-        ZStack {
-            Circle()
-                .fill(trackGreen)
-                .frame(width: 200, height: 200)
-
-            Circle()
-                .fill(cardGreen)
-                .frame(width: 156, height: 156)
-
-            Image(systemName: "checkmark.circle")
-                .font(.system(size: 86, weight: .regular))
-                .foregroundColor(cream)
-        }
     }
 
     // MARK: - Controls
@@ -265,7 +214,9 @@ struct BreathingSessionScreen: View {
                 HStack {
                     circleButton(systemName: "arrow.counterclockwise") { reset() }
                     Spacer()
-                    circleButton(systemName: runState == .running ? "pause.fill" : "play.fill") { togglePause() }
+                    circleButton(systemName: runState == .running ? "pause.fill" : "play.fill") {
+                        togglePause()
+                    }
                 }
                 .padding(.horizontal, 12)
 
@@ -276,7 +227,7 @@ struct BreathingSessionScreen: View {
                 }
             }
         }
-        .padding(.horizontal, 28)
+        .padding(.horizontal, 8)
         .animation(.easeInOut(duration: 0.2), value: runState)
     }
 
@@ -343,9 +294,9 @@ struct BreathingSessionScreen: View {
 }
 
 #Preview("Idle") {
-    BreathingSessionScreen(minutes: 1)
+    NavigationStack { BreathingSessionScreen(minutes: 1) }
 }
 
 #Preview("Completed") {
-    BreathingSessionScreen(minutes: 1, previewCompleted: true)
+    NavigationStack { BreathingSessionScreen(minutes: 1, previewCompleted: true) }
 }

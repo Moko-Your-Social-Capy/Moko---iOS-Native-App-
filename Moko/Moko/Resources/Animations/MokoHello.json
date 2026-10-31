@@ -1,0 +1,50 @@
+{
+  "version": "1.0",
+  "frameRate": 30,
+  "frames": {
+    "0": {"time": 0},
+    "1": {"time": 483.33},
+    "2": {"time": 966.67},
+    "3": {"time": 1450},
+    "4": {"time": 1933.33},
+    "5": {"time": 2416.67}
+  },
+  "images": {
+    "background_lime_green": {"format": "RGBA", "width": 600, "height": 600, "data": ""},
+    "moko_capybara_brown": {"format": "RGBA", "width": 480, "height": 520, "data": ""}
+  },
+  "layers": [
+    {
+      "name": "Background Lime Green",
+      "nodes": [{"type": "rect", "bounds": {"x": 0, "y": 0, "width": 600, "height": 600}, "fill": {"color": "#7FD158"}}]
+    },
+    {
+      "name": "Moko Body Layer",
+      "nodes": [{"type": "path", "bounds": {"x": 200, "y": 100, "width": 280, "height": 420}, "fill": {"color": "#C7A778"}, "opacity": 255}]
+    }
+  ],
+  "anims": [
+    {
+      "name": "moko_bounce_entrance",
+      "nodes": ["Moko Body Layer"],
+      "type": "translate",
+      "durations": {"Moko Body Layer": "0.9"},
+      "easings": ["cubic-in-out"],
+      "outputs": [{"node": "Moko Body Layer", "property": "y", "values": [{"t": 0, "v": 64}, {"t": 30, "v": -48}, {"t": 60, "v": 25}, {"t": 90, "v": -18}, {"t": 120, "v": 7}]}]
+    },
+    {
+      "name": "squash_stretch_landing",
+      "nodes": ["Moko Body Layer"],
+      "type": "scale",
+      "durations": {"Moko Body Layer": "0.8"},
+      "easings": ["cubic-in-out(6, .2) * cubic-in-out(6, .8)"],
+      "outputs": [{"node": "Moko Body Layer", "property": "scale", "values": [{"t": 30, "v": 1.0}, {"t": 60, "v": 0.85}, {"t": 90, "v": 1.2}, {"t": 120, "v": 1.0}]}]
+    }
+  ],
+  "meta": {
+    "description": "Moko capybara delightful entrance with bounce, squash-stretch landing, friendly wave greeting",
+    "useCase": "App onboarding welcome screen first appearance",
+    "loopMode": "playOnce",
+    "totalDuration": 2.5
+  }
+}
