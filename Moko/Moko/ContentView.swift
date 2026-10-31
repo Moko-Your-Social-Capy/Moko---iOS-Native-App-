@@ -31,11 +31,23 @@ struct ContentView: View {
 
     @State private var currentScreen: AppScreen = .splash
     @State private var signedInEmail: String = ""
+    @AppStorage("userName") private var storedUserName: String = ""
 
     // Stores answers from the onboarding questions
     @State private var answers: [Int: OnboardingAnswer] = [:]
 
     private let auth = AuthService()
+
+    private var currentUserName: String {
+        if let profileName = profiles.first?.username, !profileName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return profileName.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        let stored = storedUserName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !stored.isEmpty {
+            return stored
+        }
+        return ""
+    }
 
     private var isUserFullyRegistered: Bool {
         return !profiles.isEmpty && !onboardingResponses.isEmpty && (onboardingStates.first?.isCompleted == true)
@@ -164,7 +176,7 @@ struct ContentView: View {
             // MARK: Reflection
 
             case .reflection:
-                ReflectionView {
+                ReflectionView(userName: currentUserName) {
                     withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) {
                         currentScreen = .home
                     }
