@@ -95,9 +95,11 @@ struct ImageryGuideListView: View {
 
     private let sage      = Color(hex: 0x365948)
     private let deepGreen = Color(hex: 0x1B422F)
-    private let tagColors = Color(hex: 0x51443E)
-    private let subtitle  = Color(hex: 0x8A7B68)
-    private let tileFill  = Color(hex: 0xE6EFE9)
+    private let ink       = Color(hex: 0x292B26)
+    private let bodyText  = Color(hex: 0x51443E)
+    private let muted     = Color(hex: 0x6F6762)
+    private let mint      = Color(hex: 0xE6EFE9)
+    private let screenBg  = Color(hex: 0xF2F2F7)
     private let tags      = ["Cozy", "Peace", "Fresh", "Own"]
 
     private var visibleGuides: [ImageryGuide] {
@@ -107,115 +109,302 @@ struct ImageryGuideListView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            backButton
+            topBar
+                .padding(.horizontal, 20)
                 .padding(.top, 8)
 
+            header
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+
             chips
-                .padding(.top, 12)
+                .padding(.top, 8)
 
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 14.67) {
+                LazyVStack(spacing: 16) {
                     ForEach(visibleGuides) { guide in
-                        Button { onSelect(guide) } label: {
+                        Button {
+                            onSelect(guide)
+                        } label: {
                             card(for: guide)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ImageryGuidePressStyle())
+                        .scrollTransition(.interactive, axis: .vertical) { content, phase in
+                            content
+                                .scaleEffect(phase.isIdentity ? 1 : 0.97)
+                                .opacity(phase.isIdentity ? 1 : 0.85)
+                        }
+                        .accessibilityLabel("\(guide.title), \(guide.tag), 2 minute guided imagery")
+                        .accessibilityHint("Opens the guide")
                     }
                 }
-                .padding(.top, 22)
-                .padding(.bottom, 24)
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+                .padding(.bottom, 28)
             }
+            .padding(.top, 12)
         }
-        .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color(hex: 0xF2F2F7).ignoresSafeArea())
-        .animation(.easeInOut(duration: 0.2), value: selectedTag)
+        .background(background.ignoresSafeArea())
+        .toolbar(.hidden, for: .navigationBar)
+        .animation(.spring(response: 0.38, dampingFraction: 0.86), value: selectedTag)
+        .sensoryFeedback(.selection, trigger: selectedTag)
     }
 
-    private var backButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.black)
-                .frame(width: 38, height: 38)
-                .background(Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255)))
-                .contentShape(Circle())
+    // MARK: Header
+
+    private var topBar: some View {
+        HStack {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(ink)
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(Color.white))
+                    .overlay(Circle().stroke(Color.black.opacity(0.05), lineWidth: 1))
+                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 3)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Back")
+
+            Spacer()
+
+            HStack(spacing: 5) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 10, weight: .semibold))
+
+                Text("\(ImageryGuide.all.count) GUIDES")
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(0.7)
+            }
+            .foregroundStyle(sage)
+            .padding(.horizontal, 12)
+            .frame(height: 32)
+            .background(Capsule().fill(mint))
+            .overlay(Capsule().stroke(sage.opacity(0.08), lineWidth: 1))
         }
-        .buttonStyle(.plain)
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text("GUIDED IMAGERY")
+                .font(.system(size: 11, weight: .bold))
+                .tracking(1.6)
+                .foregroundStyle(sage)
+
+            Text("Imagery Guide")
+                .font(.system(size: 34, weight: .bold))
+                .tracking(-0.7)
+                .foregroundStyle(ink)
+        }
     }
 
     // MARK: Filter chips
 
     private var chips: some View {
-        HStack(spacing: 10.8) {
-            chip(title: "All", isSelected: selectedTag == nil) { selectedTag = nil }
-            ForEach(tags, id: \.self) { tag in
-                chip(title: tag, isSelected: selectedTag == tag) { selectedTag = tag }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 9) {
+                chip(title: "All", symbol: "square.grid.2x2.fill", isSelected: selectedTag == nil) {
+                    selectedTag = nil
+                }
+
+                ForEach(tags, id: \.self) { tag in
+                    chip(title: tag, symbol: symbol(for: tag), isSelected: selectedTag == tag) {
+                        selectedTag = tag
+                    }
+                }
             }
+            .padding(.horizontal, 20)
         }
+        .scrollClipDisabled()
     }
 
-    private func chip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    private func chip(title: String, symbol: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(isSelected ? Color.white : deepGreen)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .frame(maxWidth: .infinity)
-                .frame(height: 31)
-                .background(Capsule().fill(isSelected ? sage : Color.white))
-                .overlay(Capsule().stroke(deepGreen, lineWidth: 1))
+            HStack(spacing: 6) {
+                Image(systemName: symbol)
+                    .font(.system(size: 11, weight: .semibold))
+
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundStyle(isSelected ? Color.white : deepGreen)
+            .padding(.horizontal, 14)
+            .frame(height: 36)
+            .background {
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: isSelected ? [sage, deepGreen] : [Color.white, Color.white],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+            }
+            .overlay(Capsule().stroke(isSelected ? Color.clear : Color.black.opacity(0.06), lineWidth: 1))
+            .shadow(color: Color.black.opacity(isSelected ? 0.12 : 0.03), radius: 7, x: 0, y: 3)
+            .contentShape(Capsule())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ImageryGuidePressStyle())
     }
 
     // MARK: Guide card
 
     private func card(for guide: ImageryGuide) -> some View {
-        HStack(alignment: .top, spacing: 18) {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(tileFill)
-                .frame(width: 91, height: 111)
-                .overlay(
-                    Image(systemName: guide.icon)
-                        .font(.system(size: 46, weight: .semibold))
-                        .foregroundStyle(sage)
+        Color.clear
+            .frame(maxWidth: .infinity)
+            .frame(height: 212)
+            .background {
+                cardImage(for: guide)
+            }
+            .overlay {
+                LinearGradient(
+                    stops: [
+                        .init(color: Color.black.opacity(0.12), location: 0),
+                        .init(color: Color.clear, location: 0.28),
+                        .init(color: deepGreen.opacity(0.18), location: 0.58),
+                        .init(color: deepGreen.opacity(0.9), location: 1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .overlay(alignment: .bottom) {
+                cardDetails(for: guide)
+            }
+            .overlay(alignment: .topLeading) {
+                tagPill(for: guide)
+                    .padding(14)
+            }
+            .overlay(alignment: .topTrailing) {
+                durationPill
+                    .padding(14)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
+            }
+            .shadow(color: Color.black.opacity(0.12), radius: 16, x: 0, y: 8)
+    }
+
+    @ViewBuilder
+    private func cardImage(for guide: ImageryGuide) -> some View {
+        if let imageName = guide.sessionImage {
+            Image(imageName)
+                .resizable()
+                .scaledToFill()
+        } else {
+            ZStack {
+                LinearGradient(
+                    colors: [mint, sage.opacity(0.35)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
 
-            VStack(alignment: .leading, spacing: 16) {
+                Image(systemName: guide.icon)
+                    .font(.system(size: 64, weight: .semibold))
+                    .foregroundStyle(sage.opacity(0.6))
+            }
+        }
+    }
+
+    private func cardDetails(for guide: ImageryGuide) -> some View {
+        HStack(alignment: .bottom, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(guide.title)
-                    .font(.system(size: 17, weight: .bold))
+                    .font(.system(size: 23, weight: .bold))
                     .tracking(-0.3)
-                    .foregroundStyle(Color.black)
+                    .foregroundStyle(.white)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
 
                 Text(guide.description)
-                    .font(.system(size: 15))
-                    .lineSpacing(4.5)
-                    .foregroundStyle(tagColors)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.white.opacity(0.78))
+                    .lineSpacing(2)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.trailing, 28)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer(minLength: 8)
+
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.16))
+
+                Circle()
+                    .stroke(Color.white.opacity(0.25), lineWidth: 1)
+
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+            .frame(width: 40, height: 40)
         }
-        .padding(.leading, 13)
-        .padding(.trailing, 14)
-        .padding(.vertical, 17.5)
-        .frame(height: 146, alignment: .top)
-        .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Color.white))
-        .overlay(alignment: .topTrailing) {
+        .padding(18)
+    }
+
+    private func tagPill(for guide: ImageryGuide) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: symbol(for: guide.tag))
+                .font(.system(size: 10, weight: .semibold))
+
             Text(guide.tag)
-                .font(.system(size: 13))
-                .foregroundStyle(tagColors)
-                .padding(.top, 10)
-                .padding(.trailing, 22)
+                .font(.system(size: 11, weight: .semibold))
         }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .frame(height: 27)
+        .background(Capsule().fill(Color.black.opacity(0.32)))
+        .overlay(Capsule().stroke(Color.white.opacity(0.16), lineWidth: 1))
+    }
+
+    private var durationPill: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "clock")
+                .font(.system(size: 10, weight: .semibold))
+
+            Text("2 min")
+                .font(.system(size: 11, weight: .semibold))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .frame(height: 27)
+        .background(Capsule().fill(Color.black.opacity(0.32)))
+        .overlay(Capsule().stroke(Color.white.opacity(0.16), lineWidth: 1))
+    }
+
+    private func symbol(for tag: String) -> String {
+        switch tag {
+        case "Cozy":  return "sofa"
+        case "Peace": return "leaf.fill"
+        case "Fresh": return "wind"
+        case "Own":   return "heart.fill"
+        default:      return "sparkles"
+        }
+    }
+
+    private var background: some View {
+        screenBg
+    }
+}
+
+private struct ImageryGuidePressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.975 : 1)
+            .opacity(configuration.isPressed ? 0.96 : 1)
+            .animation(.spring(response: 0.28, dampingFraction: 0.82), value: configuration.isPressed)
     }
 }
 
 #Preview {
-    ImageryGuideListView()
+    NavigationStack {
+        ImageryGuideListView()
+    }
 }

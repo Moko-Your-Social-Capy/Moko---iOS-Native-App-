@@ -63,13 +63,20 @@ final class Quest {
     /// Set when the user taps the check on the quest card. The default value lets SwiftData
     /// add this column to quests that were saved before it existed.
     var isCompleted: Bool = false
+    /// Quests from the library award a specific XP amount. Nil means use the
+    /// intensity's default, which is what custom quests do.
+    var xp: Int?
+
+    /// XP shown wherever the quest is listed.
+    var awardedXP: Int { xp ?? intensity.xp }
 
     init(ownerID: String,
          title: String,
          notes: String,
          intensity: QuestIntensity,
          category: QuestCategory,
-         date: Date) {
+         date: Date,
+         xp: Int? = nil) {
         self.id = UUID()
         self.ownerID = ownerID
         self.title = title
@@ -79,6 +86,7 @@ final class Quest {
         self.date = date
         self.createdAt = Date()
         self.isCompleted = false
+        self.xp = xp
     }
 }
 

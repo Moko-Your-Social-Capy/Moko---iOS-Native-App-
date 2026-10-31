@@ -70,6 +70,7 @@ private extension View {
     func nativeBackBarOnly() -> some View {
         self
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
             .toolbarBackground(.hidden, for: .navigationBar)
     }
 }

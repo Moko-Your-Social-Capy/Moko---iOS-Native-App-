@@ -275,7 +275,7 @@ struct QuestDetailScreen: View {
                     HStack(spacing: 4) {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 11, weight: .bold))
-                        Text("\(quest.intensity.xp) XP")
+                        Text("\(quest.awardedXP) XP")
                             .font(.system(size: 14, weight: .bold))
                     }
                     .foregroundColor(QuestStyle.green)
