@@ -101,9 +101,16 @@ struct MokoRootView: View {
     private var overviewContent: some View {
         switch overviewMode {
         case .todo:
-            Overview(selectedTab: $selectedTab)
+            Overview(
+                selectedTab: $selectedTab,
+                mission: todaysMission,
+                onStartDebrief: { quest in
+                    debriefQuest = quest
+                }
+            )
         case .resume:
             OverviewResumeScreen(
+                quest: pendingDebriefQuest,
                 onSlideResume: presentPendingDebrief,
                 onStartDebrief: presentPendingDebrief
             )
@@ -112,10 +119,20 @@ struct MokoRootView: View {
         }
     }
 
+    /// The quest Overview shows as today's mission.
+    private var todaysMission: Quest? {
+        Quest.overviewMission(from: quests)
+    }
+
+    /// The quest whose debrief was saved for later.
+    private var pendingDebriefQuest: Quest? {
+        guard let id = PendingDebriefStore.questID else { return nil }
+        return quests.first(where: { $0.id == id })
+    }
+
     /// Reopens the debrief for the quest that was left unfinished.
     private func presentPendingDebrief() {
-        guard let id = PendingDebriefStore.questID,
-              let quest = quests.first(where: { $0.id == id }) else { return }
+        guard let quest = pendingDebriefQuest else { return }
         debriefQuest = quest
     }
 

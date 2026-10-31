@@ -215,19 +215,26 @@ struct QuestsScreen: View {
     }
 
     private func questCard(_ quest: Quest) -> some View {
-        HStack(alignment: .center, spacing: 12) {
+        // A finished debrief is read-only: the card is muted and opens nothing
+        let isDebriefed = quest.debriefRecorded
+
+        return HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(quest.title)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(QuestStyle.title)
+                    .foregroundColor(isDebriefed ? QuestStyle.subtext : QuestStyle.title)
                     .lineLimit(2)
 
                 HStack(spacing: 6) {
                     Text("\(quest.awardedXP) XP")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(QuestStyle.green)
+                        .foregroundColor(isDebriefed ? QuestStyle.subtext : QuestStyle.green)
 
-                    if quest.isCompleted {
+                    if quest.debriefRecorded {
+                        Text("· Debrief done")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(QuestStyle.subtext)
+                    } else if quest.isCompleted {
                         Text("· Completed")
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(QuestStyle.subtext)
@@ -238,37 +245,67 @@ struct QuestsScreen: View {
             Spacer(minLength: 8)
 
             HStack(spacing: 10) {
-                cardButton(symbol: "pencil", filled: false, label: "Edit quest") {
+                cardButton(
+                    symbol: "pencil",
+                    filled: false,
+                    label: "Edit quest",
+                    isEnabled: !isDebriefed
+                ) {
                     route = .edit(quest)
                 }
 
-                cardButton(symbol: "checkmark", filled: true, label: "Open quest") {
+                cardButton(
+                    symbol: "checkmark",
+                    filled: true,
+                    label: "Open quest",
+                    isEnabled: !isDebriefed
+                ) {
                     route = .detail(quest)
                 }
             }
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(isDebriefed ? Color(red: 235/255, green: 235/255, blue: 240/255) : Color.white)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
+        .shadow(color: Color.black.opacity(isDebriefed ? 0 : 0.03), radius: 8, x: 0, y: 2)
         .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         // Tapping the card itself still opens the quest briefing; the two buttons take priority
         .onTapGesture {
+            guard !isDebriefed else { return }
             route = .detail(quest)
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityHint(isDebriefed ? "Debrief complete" : "")
     }
 
-    private func cardButton(symbol: String, filled: Bool, label: String, action: @escaping () -> Void) -> some View {
+    private func cardButton(
+        symbol: String,
+        filled: Bool,
+        label: String,
+        isEnabled: Bool = true,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 15, weight: .bold))
-                .foregroundColor(filled ? Color.white : QuestStyle.title)
+                .foregroundColor(
+                    isEnabled
+                        ? (filled ? Color.white : QuestStyle.title)
+                        : (filled ? Color.white.opacity(0.65) : QuestStyle.subtext)
+                )
                 .frame(width: 38, height: 38)
-                .background(Circle().fill(filled ? QuestStyle.green : QuestStyle.screenBg))
+                .background(
+                    Circle().fill(
+                        isEnabled
+                            ? (filled ? QuestStyle.green : QuestStyle.screenBg)
+                            : Color(red: 210/255, green: 210/255, blue: 216/255)
+                    )
+                )
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .disabled(!isEnabled)
         .accessibilityLabel(label)
     }
 

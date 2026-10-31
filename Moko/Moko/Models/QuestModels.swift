@@ -96,6 +96,27 @@ final class Quest {
     }
 }
 
+extension Quest {
+    /// The quest the Overview shows: the earliest completed quest that still needs
+    /// a debrief, otherwise the soonest incomplete quest. Only this device's user.
+    static func overviewMission(
+        from quests: [Quest],
+        ownerID: String = CurrentUser.localID
+    ) -> Quest? {
+        let mine = quests.filter { $0.ownerID == ownerID }
+
+        if let awaitingDebrief = mine
+            .filter({ $0.isCompleted && !$0.debriefRecorded })
+            .min(by: { $0.date < $1.date }) {
+            return awaitingDebrief
+        }
+
+        return mine
+            .filter { !$0.isCompleted }
+            .min(by: { $0.date < $1.date })
+    }
+}
+
 // MARK: - Current user
 /// Who is using the app. There's no login yet, so this is a profile ID created on first
 /// launch and kept on the device. When real accounts exist, return the signed-in user's
@@ -110,6 +131,11 @@ enum CurrentUser {
         let created = UUID().uuidString
         UserDefaults.standard.set(created, forKey: storageKey)
         return created
+    }
+
+    /// Forgets the device's local user, e.g. after the account is deleted.
+    static func reset() {
+        UserDefaults.standard.removeObject(forKey: storageKey)
     }
 }
 

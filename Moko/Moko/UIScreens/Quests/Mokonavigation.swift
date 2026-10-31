@@ -15,6 +15,24 @@ enum OverviewMode: String {
     case debriefDone   // OverviewDebriefDone: debrief finished
 }
 
+/// Why the signed-in session ended.
+enum SessionEndReason {
+    case signOut
+    case deleteAccount
+}
+
+private struct EndSessionKey: EnvironmentKey {
+    static let defaultValue: ((SessionEndReason) -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    /// Ends the signed-in session and returns to the start of the app flow.
+    var endSession: ((SessionEndReason) -> Void)? {
+        get { self[EndSessionKey.self] }
+        set { self[EndSessionKey.self] = newValue }
+    }
+}
+
 private struct OpenOverviewKey: EnvironmentKey {
     static let defaultValue: ((OverviewMode) -> Void)? = nil
 }

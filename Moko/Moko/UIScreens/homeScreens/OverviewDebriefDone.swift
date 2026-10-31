@@ -7,12 +7,21 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct OverviewDebriefDone: View {
     // Insights flow: card -> info sheet -> InsightsView (pushed)
     @State private var showRadarInfo: Bool = false
     @State private var openInsights: Bool = false
     @State private var showInsights: Bool = false
+
+    @Query private var profiles: [Profile]
+    @Query private var insights: [InsightsModel]
+    @Query private var calmDowns: [CalmDownModel]
+
+    private var data: OverviewData {
+        OverviewData(insights: insights, calmDowns: calmDowns)
+    }
 
     // Palette matching design specifications
     private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
@@ -75,23 +84,33 @@ struct OverviewDebriefDone: View {
 
             Spacer()
 
-            // Avatar Circle
-            ZStack {
-                Circle()
-                    .fill(Color(red: 68/255, green: 68/255, blue: 68/255).opacity(0.6))
-                    .frame(width: 47, height: 47)
+            // Avatar Circle: opens the Profile screen
+            NavigationLink {
+                ProfileOverView()
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(Color(red: 68/255, green: 68/255, blue: 68/255).opacity(0.6))
+                        .frame(width: 47, height: 47)
 
-                Text("AJ")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
+                    if let name = profiles.first?.username, !name.isEmpty {
+                        Text(String(name.prefix(2)).uppercased())
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                    } else {
+                        Image(systemName: "person.fill")
+                            .foregroundColor(.white)
+                    }
+                }
             }
+            .buttonStyle(.plain)
         }
     }
 
     // MARK: - Today's Mission Section
     private var todaysMissionSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Today’s Mission")
+            Text("Mission")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(titleDark)
 
@@ -238,7 +257,7 @@ struct OverviewDebriefDone: View {
             // Card Content: Number + Radar Chart
             HStack(alignment: .bottom) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text("78")
+                    Text("\(Int(data.insights.warmth.rounded()))")
                         .font(.system(size: 44, weight: .bold, design: .rounded))
                         .foregroundColor(primaryGreen)
 
@@ -251,7 +270,7 @@ struct OverviewDebriefDone: View {
                 Spacer()
 
                 // Radar / Diamond Shape Chart
-                InsightsRadarChartView()
+                InsightsRadarChartView(scores: data.insights)
                     .frame(width: 106, height: 106)
             }
             .padding(.horizontal, 20)
@@ -297,7 +316,7 @@ struct OverviewDebriefDone: View {
             // Card Content: Number + Bar Chart
             HStack(alignment: .bottom) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text("18")
+                    Text("\(data.calmDownMinutes)")
                         .font(.system(size: 44, weight: .bold, design: .rounded))
                         .foregroundColor(primaryGreen)
 
@@ -310,7 +329,7 @@ struct OverviewDebriefDone: View {
                 Spacer()
 
                 // Bar Chart Visual
-                CalmDownBarChartView()
+                CalmDownBarChartView(minutes: data.calmDownBars)
                     .frame(height: 72)
             }
             .padding(.horizontal, 20)
@@ -327,4 +346,8 @@ struct OverviewDebriefDone: View {
 
 #Preview {
     OverviewDebriefDone()
+        .modelContainer(
+            for: [Profile.self, Quest.self, InsightsModel.self, CalmDownModel.self],
+            inMemory: true
+        )
 }

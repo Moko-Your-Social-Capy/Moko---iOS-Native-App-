@@ -32,6 +32,7 @@ struct ContentView: View {
     @State private var currentScreen: AppScreen = .splash
     @State private var signedInEmail: String = ""
     @AppStorage("userName") private var storedUserName: String = ""
+    @AppStorage("moko.isSignedOut") private var isSignedOut = false
 
     // Stores answers from the onboarding questions
     @State private var answers: [Int: OnboardingAnswer] = [:]
@@ -187,6 +188,9 @@ struct ContentView: View {
 
             case .home:
                 MokoRootView()
+                    .environment(\.endSession) { reason in
+                        finishSession(reason)
+                    }
                     .transition(.opacity)
             }
         }
@@ -196,7 +200,7 @@ struct ContentView: View {
 
     private func checkInitialRegistrationAndNavigate() {
         withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
-            if isUserFullyRegistered {
+            if !isSignedOut && isUserFullyRegistered {
                 currentScreen = .home
             } else {
                 currentScreen = .intro
@@ -206,10 +210,24 @@ struct ContentView: View {
 
     private func completeAuthentication(email: String) {
         signedInEmail = email
+        isSignedOut = false
 
-        // After authentication, start onboarding info screens
+        // Re-authenticating on a device with local registration resumes at home;
+        // otherwise the user starts (or resumes) onboarding.
         withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) {
-            currentScreen = .onboardingInfo
+            currentScreen = isUserFullyRegistered ? .home : .onboardingInfo
+        }
+    }
+
+    /// Clears in-memory session state and returns to the signed-out flow.
+    private func finishSession(_ reason: SessionEndReason) {
+        PendingDebriefStore.clear()
+        signedInEmail = ""
+        answers = [:]
+        isSignedOut = true
+
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+            currentScreen = reason == .signOut ? .auth : .intro
         }
     }
 
