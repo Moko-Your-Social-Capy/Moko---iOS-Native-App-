@@ -13,6 +13,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import Observation
 
 // MARK: - Where the user ends up
@@ -191,6 +192,8 @@ final class DebriefSession {
     /// 0 = the opening story, 1...3 = follow-ups
     var questionNumber = 0
     var result: DebriefResult?
+    /// XP and streak to show when the debrief finishes
+    var reward = QuestReward(xp: 0, streak: 0)
 
     private var answers: [String] = []
     private var grades: [DebriefGrade] = []
@@ -374,7 +377,7 @@ final class DebriefSession {
         let confidences = grades.map { $0.confidence }
         scores[.courage] = confidences.isEmpty ? 0 : confidences.reduce(0, +) / confidences.count
 
-        result = DebriefResult(scores: scores, xp: 50, streak: 4)
+        result = DebriefResult(scores: scores, xp: reward.xp, streak: reward.streak)
         focus = nil
 
         withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
@@ -398,6 +401,10 @@ final class DebriefSession {
 struct QuestDebriefScreen: View {
     var onExit: (DebriefOutcome) -> Void
 
+    @Environment(\.modelContext) private var modelContext
+    @Query private var profiles: [Profile]
+
+    private let quest: Quest?
     @State private var session: DebriefSession
     @State private var draft = ""
     @State private var showLeave = false
@@ -406,6 +413,7 @@ struct QuestDebriefScreen: View {
     init(context: DebriefContext,
          coach: any DebriefCoaching = DummyDebriefCoach(),
          onExit: @escaping (DebriefOutcome) -> Void) {
+        self.quest = nil
         _session = State(initialValue: DebriefSession(context: context, coach: coach))
         self.onExit = onExit
     }
@@ -413,15 +421,18 @@ struct QuestDebriefScreen: View {
     init(quest: Quest,
          coach: any DebriefCoaching = DummyDebriefCoach(),
          onExit: @escaping (DebriefOutcome) -> Void) {
-        self.init(
-            context: DebriefContext(
-                questTitle: quest.title,
-                category: quest.category,
-                intensity: quest.intensity
-            ),
-            coach: coach,
-            onExit: onExit
+        self.quest = quest
+        _session = State(
+            initialValue: DebriefSession(
+                context: DebriefContext(
+                    questTitle: quest.title,
+                    category: quest.category,
+                    intensity: quest.intensity
+                ),
+                coach: coach
+            )
         )
+        self.onExit = onExit
     }
 
     private var unsentText: String? {
@@ -462,7 +473,13 @@ struct QuestDebriefScreen: View {
             )
         }
         .task {
+            syncReward()
             await session.start()
+        }
+        .onChange(of: session.isComplete) { _, isComplete in
+            if isComplete {
+                recordDebrief()
+            }
         }
         .onChange(of: showLeave) { _, isShown in
             session.isPaused = isShown
@@ -478,6 +495,34 @@ struct QuestDebriefScreen: View {
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
         withAnimation(.easeOut(duration: 0.35)) {
             proxy.scrollTo("bottom", anchor: .bottom)
+        }
+    }
+
+    /// Keeps the completion panel's XP and streak in sync with saved progress.
+    private func syncReward() {
+        guard let quest else { return }
+
+        let profile = profiles.first
+        session.reward = QuestReward(
+            xp: quest.awardedXP,
+            streak: QuestProgress.nextStreak(
+                current: profile?.currentStreak ?? 0,
+                lastActivity: profile?.lastActivityDate
+            )
+        )
+    }
+
+    /// Persists the debrief scores and any XP/streak that have not been awarded yet.
+    private func recordDebrief() {
+        guard let quest, let result = session.result else { return }
+
+        let reward = QuestProgress.saveDebrief(result, for: quest, in: modelContext)
+        session.reward = reward
+
+        if var updated = session.result {
+            updated.xp = reward.xp
+            updated.streak = reward.streak
+            session.result = updated
         }
     }
 
@@ -1291,6 +1336,12 @@ struct DebriefCompletionPanel: View {
                             .frame(height: 24)
                             .background(Capsule().fill(DebriefStyle.mint.opacity(0.7)))
                     }
+
+                    if result.streak > 0 {
+                        Text("\(result.streak)-day streak")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(DebriefStyle.subtext)
+                    }
                 }
 
                 Spacer(minLength: 0)
@@ -1375,6 +1426,7 @@ struct DebriefCompletionPanel: View {
     QuestDebriefScreen(
         context: DebriefContext(questTitle: "Coffee with Arjun", category: .dating, intensity: .medium)
     ) { _ in }
+    .modelContainer(for: [Profile.self, Quest.self, InsightsModel.self], inMemory: true)
 }
 
 #Preview("Leave sheet") {

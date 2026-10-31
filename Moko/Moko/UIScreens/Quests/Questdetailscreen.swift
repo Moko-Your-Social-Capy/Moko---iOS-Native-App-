@@ -250,11 +250,9 @@ struct QuestDetailScreen: View {
         dismiss()
     }
 
-    /// Sliding to debrief is what completes the quest
+    /// Sliding to debrief is what completes the quest and awards its XP/streak
     private func markCompleted() {
-        guard !quest.isCompleted else { return }
-        quest.isCompleted = true
-        try? modelContext.save()
+        QuestProgress.complete(quest, in: modelContext)
     }
 
     // MARK: Card

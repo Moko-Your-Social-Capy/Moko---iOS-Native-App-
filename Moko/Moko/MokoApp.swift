@@ -12,7 +12,7 @@ struct MokoApp: App {
     
     var body: some Scene {
         WindowGroup {
-            MokoRootView()
+            ContentView()
         }
         .modelContainer(for: [
             OnboardingState.self,
