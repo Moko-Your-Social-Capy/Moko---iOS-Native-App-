@@ -37,22 +37,32 @@ struct ProfileOverViewSettingsOverview: View {
             }
 
             Section("Privacy") {
-                NavigationLink { Text("Privacy") } label: {
+                NavigationLink {
+                    ProfileOverViewPrivacy()
+                } label: {
                     Label("Privacy", systemImage: "lock")
                 }
-                NavigationLink { Text("Privacy Policy") } label: {
+                NavigationLink {
+                    ProfileOverViewPrivacyPolicy()
+                } label: {
                     Label("Privacy Policy", systemImage: "shield")
                 }
-                NavigationLink { Text("Terms of Service") } label: {
+                NavigationLink {
+                    ProfileOverViewTerms()
+                } label: {
                     Label("Terms of Service", systemImage: "doc")
                 }
             }
 
             Section("Support") {
-                NavigationLink { Text("Help & Support") } label: {
+                NavigationLink {
+                    ProfileOverViewHelpSupport()
+                } label: {
                     Label("Help & Support", systemImage: "questionmark.circle")
                 }
-                NavigationLink { Text("About MOKO") } label: {
+                NavigationLink {
+                    ProfileOverViewAboutMoko()
+                } label: {
                     Label("About MOKO", systemImage: "info.circle")
                 }
             }
