@@ -15,13 +15,13 @@ import Combine
 
 // MARK: - Shared palette
 enum MirrorPalette {
-    static let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255)  // #F2F2F7
+    static let screenBg = Color(red: 246/255, green: 250/255, blue: 232/255) // pale lime
     static let green = Color(red: 54/255, green: 89/255, blue: 72/255)        // #365948
     static let deepGreen = Color(red: 27/255, green: 66/255, blue: 47/255)    // #1B422F
     static let softGreen = Color(red: 120/255, green: 165/255, blue: 140/255)
-    static let mint = Color(red: 203/255, green: 230/255, blue: 211/255)
+    static let mint = Color(red: 226/255, green: 245/255, blue: 177/255)
     static let doneGreen = Color(red: 112/255, green: 142/255, blue: 125/255)
-    static let title = Color(red: 47/255, green: 42/255, blue: 40/255)        // #2F2A28
+    static let title = Color(red: 92/255, green: 67/255, blue: 48/255)       // warm brown
     static let subtext = Color(red: 111/255, green: 103/255, blue: 98/255)    // #6F6762
     static let chip = Color(red: 237/255, green: 237/255, blue: 237/255)      // #EDEDED
     static let cream = Color(red: 252/255, green: 248/255, blue: 240/255)
@@ -59,8 +59,7 @@ struct MirrorFlowView: View {
                         case .mirror: go(.checklist, forward: true)
                         case .camera: go(.cameraChecklist, forward: true)
                         }
-                    },
-                    onBack: { onExit() }
+                    }
                 )
                 .transition(slide)
 
@@ -134,22 +133,6 @@ struct MirrorFlowView: View {
 }
 
 // MARK: - Shared bits
-struct MirrorBackButton: View {
-    var action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.black)
-                .frame(width: 38, height: 38)
-                .background(Circle().fill(MirrorPalette.chip))
-                .contentShape(Circle())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 struct MirrorHeader: View {
     var centered = false
 
@@ -233,13 +216,6 @@ struct MirrorPrepScreen<Hero: View>: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
-                    HStack {
-                        MirrorBackButton(action: onBack)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-
                     MirrorHeader()
                         .padding(.horizontal, 24)
                         .padding(.top, 18)
@@ -399,13 +375,6 @@ struct MirrorTimerScreen: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
-                    HStack {
-                        MirrorBackButton(action: onBack)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-
                     MirrorHeader()
                         .padding(.horizontal, 24)
                         .padding(.top, 18)
@@ -639,8 +608,13 @@ struct MirrorCompletionScreen: View {
                 Spacer(minLength: 12)
 
                 ZStack {
-                    MirrorConfettiBurst(radius: 150)
-                    MirrorCompletionBadge(size: 190, showRipples: true)
+                    Circle()
+                        .stroke(MirrorPalette.mint, lineWidth: 14)
+                        .frame(width: 270, height: 270)
+                    Circle()
+                        .fill(MirrorPalette.mint.opacity(0.58))
+                        .frame(width: 230, height: 230)
+                    MokoLottieView(animationType: .complete, size: 210)
                 }
                 .frame(height: 340)
 

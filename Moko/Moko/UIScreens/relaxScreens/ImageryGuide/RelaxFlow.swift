@@ -1,8 +1,6 @@
-
 import SwiftUI
 
 enum RelaxStep: Hashable {
-    case guideList
     case guideDetail(ImageryGuide)
     case session(ImageryGuide)
     case complete(ImageryGuide)
@@ -18,50 +16,34 @@ struct RelaxFlow: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            ImageryGuideListView(
-                onSelect: { guide in
-                    path.append(.guideDetail(guide))
-                }
-            )
-            .navigationDestination(for: RelaxStep.self) { step in
-                switch step {
-                case .guideList:
-                    ImageryGuideListView(
-                        onSelect: { guide in
-                            path.append(.guideDetail(guide))
-                        }
-                    )
-                    .nativeBackBarOnly()
+            guideList
+                .navigationDestination(for: RelaxStep.self) { step in
+                    switch step {
+                    case .guideDetail(let guide):
+                        ImageryGuideDetailView(guide: guide)
+                            .nativeBackBarOnly()
 
-                case .guideDetail(let guide):
-                    ImageryGuideDetailView(
-                        guide: guide,
-                        onStart: {
-                            path.append(.session(guide))
-                        }
-                    )
-                    .nativeBackBarOnly()
-
-                case .session(let guide):
-                    GuideSessionView(
-                        guide: guide,
-                        onContinue: {
+                    case .session(let guide):
+                        GuideSessionView(guide: guide) {
                             path.append(.complete(guide))
                         }
-                    )
-                    .nativeBackBarOnly()
+                        .nativeBackBarOnly()
 
-                case .complete(let guide):
-                    SessionCompleteView(
-                        message: guide.completionMessage,
-                        onDone: {
-                            path.removeAll()
-                        }
-                    )
-                    .navigationBarBackButtonHidden(true)
-                    .toolbar(.hidden, for: .navigationBar)
+                    case .complete(let guide):
+                        SessionCompleteView(
+                            message: guide.completionMessage,
+                            onDone: { path.removeAll() }
+                        )
+                        .navigationTitle("Session complete")
+                        .navigationBarTitleDisplayMode(.inline)
+                    }
                 }
-            }
+        }
+    }
+
+    private var guideList: some View {
+        ImageryGuideListView { guide in
+            path.append(.guideDetail(guide))
         }
     }
 }
@@ -74,8 +56,3 @@ private extension View {
             .toolbarBackground(.hidden, for: .navigationBar)
     }
 }
-
-#Preview {
-    RelaxFlow()
-}
-

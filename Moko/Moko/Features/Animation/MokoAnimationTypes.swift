@@ -22,10 +22,10 @@ enum MokoAnimationType: String, CaseIterable, Identifiable {
     /// Determines the playback behavior of each animation.
     var loopMode: LottieLoopMode {
         switch self {
-        case .hello, .complete:
+        case .hello:
             return .playOnce
 
-        case .meditation, .listening, .idle:
+        case .complete, .meditation, .listening, .idle:
             return .loop
         }
     }

@@ -27,9 +27,9 @@ struct GroundingExerciseScreen: View {
     // MARK: - Colors
 
     private let screenBg = Color(
-        red: 242 / 255,
-        green: 242 / 255,
-        blue: 247 / 255
+        red: 246 / 255,
+        green: 250 / 255,
+        blue: 232 / 255
     )
 
     private let cardGreen = Color(
@@ -39,9 +39,9 @@ struct GroundingExerciseScreen: View {
     )
 
     private let trackGreen = Color(
-        red: 203 / 255,
-        green: 230 / 255,
-        blue: 211 / 255
+        red: 226 / 255,
+        green: 245 / 255,
+        blue: 177 / 255
     )
 
     private let subtextGray = Color(
@@ -50,17 +50,14 @@ struct GroundingExerciseScreen: View {
         blue: 98 / 255
     )
 
-    private let chipBg = Color(
-        red: 237 / 255,
-        green: 237 / 255,
-        blue: 237 / 255
-    )
-
     private let cream = Color(
         red: 252 / 255,
         green: 248 / 255,
         blue: 240 / 255
     )
+
+    private let titleBrown = Color(red: 92 / 255, green: 67 / 255, blue: 48 / 255)
+    private let lime = Color(red: 226 / 255, green: 245 / 255, blue: 177 / 255)
 
     // MARK: - Grounding Steps
 
@@ -139,6 +136,8 @@ struct GroundingExerciseScreen: View {
             .spring(response: 0.55, dampingFraction: 0.72),
             value: isCompleted
         )
+        .navigationTitle("Grounding")
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             // Only start the stopwatch once
             if startDate == nil { startDate = Date() }
@@ -194,7 +193,7 @@ struct GroundingExerciseScreen: View {
             // Reserve the same title height for every step.
             Text(currentStep.title)
                 .font(.system(size: 28, weight: .bold))
-                .foregroundColor(.black)
+                .foregroundColor(titleBrown)
                 .frame(maxWidth: .infinity)
                 .frame(height: 34)
 
@@ -216,22 +215,6 @@ struct GroundingExerciseScreen: View {
 
     private var topBar: some View {
         HStack {
-            Button {
-                if currentStepIndex > 0 {
-                    changeStep(to: currentStepIndex - 1)
-                } else {
-                    onExit()
-                }
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.black)
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(chipBg))
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-
             Spacer()
 
             Text("STEP \(currentStepIndex + 1) OF \(steps.count)")
@@ -252,7 +235,7 @@ struct GroundingExerciseScreen: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Grounding Exercise")
                 .font(.system(size: 30, weight: .bold))
-                .foregroundColor(.black)
+                .foregroundColor(titleBrown)
 
             Text("5-4-3-2-1 SENSORY RESET")
                 .font(.system(size: 13, weight: .semibold))
@@ -444,31 +427,22 @@ struct GroundingExerciseScreen: View {
             // Match the breathing completion ring dimensions and colors.
             ZStack {
                 Circle()
-                    .stroke(trackGreen, lineWidth: 14)
+                    .stroke(lime, lineWidth: 14)
+                    .frame(width: 270, height: 270)
 
-                ZStack {
-                    Circle()
-                        .fill(trackGreen)
-                        .frame(width: 200, height: 200)
+                Circle()
+                    .fill(lime.opacity(0.55))
+                    .frame(width: 236, height: 236)
 
-                    Circle()
-                        .fill(cardGreen)
-                        .frame(width: 156, height: 156)
-
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 86, weight: .regular))
-                        .foregroundColor(cream)
-                }
-                .transition(
-                    .scale(scale: 0.6).combined(with: .opacity)
-                )
+                MokoLottieView(animationType: .complete, size: 210)
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
             }
             .frame(width: 270, height: 270)
 
             VStack(spacing: 8) {
                 Text("Well done")
                     .font(.system(size: 26, weight: .bold))
-                    .foregroundColor(.black)
+                    .foregroundColor(titleBrown)
 
                 Text("You completed the 5-4-3-2-1 sensory reset")
                     .font(.system(size: 15))
@@ -500,18 +474,6 @@ struct GroundingExerciseScreen: View {
 
     private var topBarCompletion: some View {
         HStack {
-            Button {
-                onExit()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.black)
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(chipBg))
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-
             Spacer()
 
             Text("COMPLETE")

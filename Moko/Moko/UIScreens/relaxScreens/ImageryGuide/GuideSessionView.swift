@@ -22,8 +22,8 @@ struct GuideSessionView: View {
     private let ticker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     private let accent   = Color(hex: 0x365948)
-    private let tileFill = Color(hex: 0xE6EFE9)
-    private let ink      = Color(hex: 0x2F2A28)
+    private let tileFill = Color(hex: 0xE2F5B1)
+    private let ink      = Color(hex: 0x5C4330)
     private let caption  = Color(hex: 0x6F6762)
     private let track    = Color(hex: 0xEDEDED)
 
@@ -62,6 +62,8 @@ struct GuideSessionView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 22)
         }
+        .navigationTitle(guide.title)
+        .navigationBarTitleDisplayMode(.inline)
         .onReceive(ticker) { date in
             let dt = min(date.timeIntervalSince(lastTick), 0.5)
             lastTick = date

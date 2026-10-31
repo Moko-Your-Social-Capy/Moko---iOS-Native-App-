@@ -23,7 +23,7 @@ struct BoxBreathingInfoView: View {
 
             Text("Box Breathing")
                 .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(BBColor.titleBrown)
                 .padding(.top, 24)
 
             Text("Breathe in for 4 seconds, hold for 4 seconds.\nBreathe out for 4 seconds, hold for 4 seconds.\nRepeat this cycle at your own pace.")
