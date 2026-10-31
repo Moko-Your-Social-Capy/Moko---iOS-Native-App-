@@ -11,21 +11,41 @@ import SwiftData
 struct Overview: View {
     @Binding var selectedTab: MokoTab
 
-    // Optional navigation callback when debrief starts
-    var onStartDebrief: (() -> Void)? = nil
+    /// The real quest shown as today's mission. Nil means there is nothing active.
+    let mission: Quest?
 
-    init(selectedTab: Binding<MokoTab> = .constant(.overview), onStartDebrief: (() -> Void)? = nil) {
+    // Called with the mission when the user starts its debrief
+    var onStartDebrief: ((Quest) -> Void)? = nil
+
+    init(selectedTab: Binding<MokoTab> = .constant(.overview),
+         mission: Quest? = nil,
+         onStartDebrief: ((Quest) -> Void)? = nil) {
         self._selectedTab = selectedTab
+        self.mission = mission
         self.onStartDebrief = onStartDebrief
     }
 
     // MARK: - State Properties
+    @Environment(\.modelContext) private var modelContext
+
     @Query private var profiles: [Profile]
+    @Query private var insights: [InsightsModel]
+    @Query private var calmDowns: [CalmDownModel]
+
     @State private var slideOffset: CGFloat = 0
-    @State private var isMissionCompleted: Bool = false
     @State private var showRadarInfo: Bool = false      // "How your radar chart works" sheet
     @State private var openInsights: Bool = false       // set by the sheet's button
     @State private var showInsights: Bool = false       // pushes InsightsView
+
+    private var data: OverviewData {
+        OverviewData(insights: insights, calmDowns: calmDowns)
+    }
+
+    /// The slide switches to the debrief action as soon as the quest is completed,
+    /// including when it was already completed in the Quests tab.
+    private var isMissionCompleted: Bool {
+        mission?.isCompleted ?? false
+    }
 
     // Custom Palette based on design specs
     private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
@@ -114,39 +134,43 @@ struct Overview: View {
     // MARK: - Today's Mission Section
     private var todaysMissionSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Today’s Mission")
+            Text("Mission")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(titleDark)
 
             VStack(alignment: .leading, spacing: 0) {
-                // Mission Title
-                Text("Introduce yourself at a new job")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(primaryGreen)
-                    .padding(.top, 24)
-                    .padding(.horizontal, 20)
-
-                // Mission Subtitle / Description
-                Text("Make a good first impression, one genuine introduction at a time.")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundColor(subtextGray)
-                    .lineSpacing(3)
-                    .padding(.top, 12)
-                    .padding(.horizontal, 20)
-
-                // Action: Slides to complete OR reveals Start Debrief + Mic
-                if !isMissionCompleted {
-                    slideToCompleteWidget
+                if let mission {
+                    // Mission Title
+                    Text(mission.title)
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(primaryGreen)
+                        .padding(.top, 24)
                         .padding(.horizontal, 20)
-                        .padding(.top, 32)
-                        .padding(.bottom, 24)
-                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+
+                    // Mission Subtitle / Description
+                    Text(missionDescription(for: mission))
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundColor(subtextGray)
+                        .lineSpacing(3)
+                        .padding(.top, 12)
+                        .padding(.horizontal, 20)
+
+                    // Action: Slides to complete OR reveals Start Debrief + Mic
+                    if !isMissionCompleted {
+                        slideToCompleteWidget(for: mission)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 32)
+                            .padding(.bottom, 24)
+                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    } else {
+                        startDebriefWidget(for: mission)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 36)
+                            .padding(.bottom, 24)
+                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    }
                 } else {
-                    startDebriefWidget
-                        .padding(.horizontal, 24)
-                        .padding(.top, 36)
-                        .padding(.bottom, 24)
-                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                    emptyMissionContent
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -154,16 +178,62 @@ struct Overview: View {
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
             .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isMissionCompleted)
+            .onChange(of: mission?.id) { _, _ in
+                // A different mission starts with the knob back at the left
+                slideOffset = 0
+            }
+        }
+    }
+
+    /// The quest's own notes are its description. Library quests have no notes,
+    /// so they get a short line built from their real category and intensity.
+    private func missionDescription(for quest: Quest) -> String {
+        let notes = quest.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !notes.isEmpty {
+            return notes
+        }
+
+        return "A \(quest.intensity.rawValue.lowercased()) \(quest.category.rawValue.lowercased()) quest. Take your time and go at your pace."
+    }
+
+    private var emptyMissionContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("No Active Quest")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(primaryGreen)
+                .padding(.top, 24)
+                .padding(.horizontal, 20)
+
+            Text("Choose a quest from the library to give today a direction.")
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(subtextGray)
+                .lineSpacing(3)
+                .padding(.horizontal, 20)
+
+            Button {
+                selectedTab = .search
+            } label: {
+                Text("Explore Quests")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 20)
+                    .frame(height: 44)
+                    .background(Capsule().fill(primaryGreen))
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 24)
         }
     }
 
     // MARK: - Start Debrief Widget (Shown after sliding)
-    private var startDebriefWidget: some View {
+    private func startDebriefWidget(for mission: Quest) -> some View {
         HStack(alignment: .center) {
             Spacer()
 
             Button(action: {
-                onStartDebrief?()
+                onStartDebrief?(mission)
             }) {
                 Text("Start Debrief")
                     .font(.system(size: 16, weight: .semibold))
@@ -173,7 +243,7 @@ struct Overview: View {
             Spacer()
 
             Button(action: {
-                onStartDebrief?()
+                onStartDebrief?(mission)
             }) {
                 ZStack {
                     Circle()
@@ -190,7 +260,7 @@ struct Overview: View {
     }
 
     // MARK: - Slide to Complete Widget
-    private var slideToCompleteWidget: some View {
+    private func slideToCompleteWidget(for mission: Quest) -> some View {
         GeometryReader { geo in
             let sliderWidth = geo.size.width
             let knobSize: CGFloat = 43
@@ -231,12 +301,13 @@ struct Overview: View {
                             let drag = max(0, min(value.translation.width, maxDrag))
                             slideOffset = drag
                         }
-                        .onEnded { value in
+                        .onEnded { _ in
                             guard !isMissionCompleted else { return }
                             if slideOffset > maxDrag * 0.7 {
+                                // Completing the real quest awards XP and the streak
+                                QuestProgress.complete(mission, in: modelContext)
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                                     slideOffset = maxDrag
-                                    isMissionCompleted = true
                                 }
                             } else {
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
@@ -305,7 +376,7 @@ struct Overview: View {
             // Card Content: Number + Radar Chart
             HStack(alignment: .bottom) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text("78")
+                    Text("\(Int(data.insights.warmth.rounded()))")
                         .font(.system(size: 44, weight: .bold, design: .rounded))
                         .foregroundColor(primaryGreen)
 
@@ -318,7 +389,7 @@ struct Overview: View {
                 Spacer()
 
                 // Radar / Diamond Shape Chart
-                InsightsRadarChartView()
+                InsightsRadarChartView(scores: data.insights)
                     .frame(width: 106, height: 106)
             }
             .padding(.horizontal, 20)
@@ -364,7 +435,7 @@ struct Overview: View {
             // Card Content: Number + Bar Chart
             HStack(alignment: .bottom) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text("18")
+                    Text("\(data.calmDownMinutes)")
                         .font(.system(size: 44, weight: .bold, design: .rounded))
                         .foregroundColor(primaryGreen)
 
@@ -377,7 +448,7 @@ struct Overview: View {
                 Spacer()
 
                 // Bar Chart Visual
-                CalmDownBarChartView()
+                CalmDownBarChartView(minutes: data.calmDownBars)
                     .frame(height: 72)
             }
             .padding(.horizontal, 20)
@@ -394,11 +465,24 @@ struct Overview: View {
 
 // MARK: - Insights Radar Chart Component
 struct InsightsRadarChartView: View {
+    /// Today's real scores. Top = courage, right = presence,
+    /// bottom = warmth, left = clarity.
+    var scores: InsightsScores = .zero
+
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
             let center = CGPoint(x: w / 2, y: h / 2)
+            let radiusX = w * 0.47
+            let radiusY = h * 0.47
+
+            // Data points from the real scores (100 = outer diamond)
+            let topPt = CGPoint(x: center.x, y: center.y - radiusY * ratio(scores.courage))
+            let rightPt = CGPoint(x: center.x + radiusX * ratio(scores.presence), y: center.y)
+            let bottomPt = CGPoint(x: center.x, y: center.y + radiusY * ratio(scores.warmth))
+            let leftPt = CGPoint(x: center.x - radiusX * ratio(scores.clarity), y: center.y)
+            let points = [topPt, rightPt, bottomPt, leftPt]
 
             ZStack {
                 // Background Outer Diamond
@@ -422,12 +506,6 @@ struct InsightsRadarChartView: View {
                     path.addLine(to: CGPoint(x: center.x + (w * 0.47), y: center.y))
                 }
                 .stroke(Color(red: 203/255, green: 211/255, blue: 203/255), lineWidth: 1.4)
-
-                // Data Polygon (Top: 66%, Right: 78%, Bottom: 75%, Left: 70%)
-                let topPt = CGPoint(x: center.x, y: center.y - (h * 0.33))
-                let rightPt = CGPoint(x: center.x + (w * 0.39), y: center.y)
-                let bottomPt = CGPoint(x: center.x, y: center.y + (h * 0.375))
-                let leftPt = CGPoint(x: center.x - (w * 0.35), y: center.y)
 
                 Path { path in
                     path.move(to: topPt)
@@ -458,7 +536,7 @@ struct InsightsRadarChartView: View {
                 .stroke(Color(red: 62/255, green: 92/255, blue: 74/255), lineWidth: 2.4)
 
                 // Vertex Circles
-                ForEach([topPt, rightPt, bottomPt, leftPt], id: \.x) { pt in
+                ForEach(points.indices, id: \.self) { index in
                     Circle()
                         .fill(Color(red: 62/255, green: 92/255, blue: 74/255))
                         .frame(width: 8, height: 8)
@@ -466,10 +544,14 @@ struct InsightsRadarChartView: View {
                             Circle()
                                 .stroke(Color.white, lineWidth: 2)
                         )
-                        .position(pt)
+                        .position(points[index])
                 }
             }
         }
+    }
+
+    private func ratio(_ score: Double) -> CGFloat {
+        CGFloat(max(0, min(100, score)) / 100)
     }
 }
 
@@ -488,30 +570,42 @@ struct DiamondShape: Shape {
 
 // MARK: - Calm Down Bar Chart Component
 struct CalmDownBarChartView: View {
-    // Bar heights: [36, 57, 71, 36, 18, 46]
-    private let barData: [(height: CGFloat, width: CGFloat)] = [
-        (36, 5.7),
-        (57, 5.7),
-        (71, 5.7),
-        (36, 5.7),
-        (18, 5.7),
-        (46, 5.7)
-    ]
+    /// Minutes for each bar, oldest first. The bars scale to the tallest day.
+    var minutes: [Double] = Array(repeating: 0, count: 6)
 
     private let barColor = Color(red: 27/255, green: 66/255, blue: 47/255)
+    private let barWidth: CGFloat = 5.7
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 10) {
-            ForEach(0..<barData.count, id: \.self) { idx in
-                RoundedRectangle(cornerRadius: 1.5)
-                    .fill(barColor)
-                    .frame(width: barData[idx].width, height: barData[idx].height)
+        GeometryReader { geo in
+            let peak = max(minutes.max() ?? 0, 1)
+
+            HStack(alignment: .bottom, spacing: 10) {
+                ForEach(minutes.indices, id: \.self) { index in
+                    let value = minutes[index]
+
+                    RoundedRectangle(cornerRadius: 1.5)
+                        .fill(barColor.opacity(value > 0 ? 1 : 0.15))
+                        .frame(
+                            width: barWidth,
+                            height: barHeight(for: value, peak: peak, available: geo.size.height)
+                        )
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
+    }
+
+    private func barHeight(for value: Double, peak: Double, available: CGFloat) -> CGFloat {
+        guard value > 0 else { return 2 }
+        return max(2, available * CGFloat(value / peak))
     }
 }
 
 #Preview {
     Overview()
-        .modelContainer(for: Profile.self, inMemory: true)
+        .modelContainer(
+            for: [Profile.self, Quest.self, InsightsModel.self, CalmDownModel.self],
+            inMemory: true
+        )
 }

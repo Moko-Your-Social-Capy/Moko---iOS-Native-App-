@@ -15,6 +15,8 @@ struct ProfileOverViewSettingsOverview: View {
     private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255)   // #F2F2F7
     private let deepGreen = Color(red: 27/255, green: 66/255, blue: 47/255)     // #1B422F
 
+    @Environment(\.endSession) private var endSession
+
     @State private var showEditProfile = false
     @State private var showSignOut = false
 
@@ -83,7 +85,13 @@ struct ProfileOverViewSettingsOverview: View {
             ProfileOverViewEditProfile()
         }
         .signOutAlert(isPresented: $showSignOut) {
-            // TODO: clear the signed-in user and go back to the start screen.
+            guard let endSession else { return }
+            // Return to the login flow immediately; the Supabase call clears
+            // the remote session in the background.
+            endSession(.signOut)
+            Task {
+                try? await AuthService().signOut()
+            }
         }
     }
 

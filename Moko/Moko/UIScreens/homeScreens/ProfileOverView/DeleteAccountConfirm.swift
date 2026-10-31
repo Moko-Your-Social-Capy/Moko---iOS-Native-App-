@@ -19,6 +19,7 @@ struct ProfileOverViewDeleteAccountConfirm: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.endSession) private var endSession
     @State private var showFinalConfirm = false
 
     private let consequences = [
@@ -98,18 +99,34 @@ struct ProfileOverViewDeleteAccountConfirm: View {
 }
 
 extension ProfileOverViewDeleteAccountConfirm {
-    /// Removes the profile and all history from SwiftData.
+    /// Removes the account and all of its history, signs out of Supabase
+    /// and returns to the start of the app.
+    @MainActor
     func deleteAllData() {
         do {
-            try modelContext.delete(model: Profile.self)
             try modelContext.delete(model: Quest.self)
             try modelContext.delete(model: CalmDownModel.self)
             try modelContext.delete(model: InsightsModel.self)
+            try modelContext.delete(model: Profile.self)
+            try modelContext.delete(model: OnboardingResponse.self)
+            try modelContext.delete(model: OnboardingQuestion.self)
+            try modelContext.delete(model: OnboardingState.self)
             try modelContext.save()
         } catch {
             print("Delete failed:", error)
         }
-        // TODO: sign out / return to the start screen here.
+
+        PendingDebriefStore.clear()
+        CurrentUser.reset()
+        UserDefaults.standard.removeObject(forKey: "userName")
+        UserDefaults.standard.removeObject(forKey: "userAge")
+
+        // Leave the account screens right away; clearing the Supabase session
+        // must not trap the user here if the network is unavailable.
+        endSession?(.deleteAccount)
+        Task {
+            try? await AuthService().signOut()
+        }
     }
 }
 
@@ -117,5 +134,16 @@ extension ProfileOverViewDeleteAccountConfirm {
     NavigationStack {
         ProfileOverViewDeleteAccountConfirm()
     }
-    .modelContainer(for: [Profile.self, Quest.self, CalmDownModel.self, InsightsModel.self], inMemory: true)
+    .modelContainer(
+        for: [
+            OnboardingState.self,
+            OnboardingQuestion.self,
+            OnboardingResponse.self,
+            Profile.self,
+            Quest.self,
+            CalmDownModel.self,
+            InsightsModel.self
+        ],
+        inMemory: true
+    )
 }

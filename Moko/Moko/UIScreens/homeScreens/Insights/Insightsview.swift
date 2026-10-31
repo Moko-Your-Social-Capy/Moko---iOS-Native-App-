@@ -38,13 +38,23 @@ struct InsightsScores {
     let presence: Double
     let warmth: Double
 
+    /// No saved entries
+    static let zero = InsightsScores(clarity: 0, courage: 0, presence: 0, warmth: 0)
+
     /// Average of the four parameter averages
     var overall: Double { (clarity + courage + presence + warmth) / 4 }
+
+    init(clarity: Double, courage: Double, presence: Double, warmth: Double) {
+        self.clarity = clarity
+        self.courage = courage
+        self.presence = presence
+        self.warmth = warmth
+    }
 
     /// Each parameter = (sum of its scores) / (number of records). No records = 0.
     init(records: [InsightsModel]) {
         guard !records.isEmpty else {
-            clarity = 0; courage = 0; presence = 0; warmth = 0
+            self = .zero
             return
         }
 
