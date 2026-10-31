@@ -113,7 +113,7 @@ struct SplashScreenView: View {
                         .offset(y: textOffset)
                     
                     // Subtitle
-                    Text("Your social  Capybara")
+                    Text("Your social Capybara")
                         .font(.system(size: 15, weight: .regular, design: .rounded))
                         .foregroundColor(MokoTheme.textSecondary)
                         .tracking(0.2)

@@ -110,7 +110,6 @@ struct BreathingSessionScreen: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomPanel
         }
-        .navigationTitle("\(minutes) min")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .onReceive(ticker) { now in
