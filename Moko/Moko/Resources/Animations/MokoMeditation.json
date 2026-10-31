@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "frameRate": 30,
+  "frames": {
+    "0": {"time": 0},
+    "1": {"time": 240},
+    "2": {"time": 480}
+  },
+  "images": {
+    "pond_background_mint": {"format": "RGBA", "width": 600, "height": 750, "data": ""},
+    "water_ripples_layer1": {"format": "RGBA", "width": 400, "height": 300, "data": ""}
+  },
+  "layers": [
+    {"name": "Pond Water Layer", "nodes": [{"type": "gradient", "bounds": {"x": 150, "y": 280, "width": 300, "height": 470}, "fill": {"color": "#D6E9D8"}}]},
+    {"name": "Moko Meditating Body", "nodes": [{"type": "path", "bounds": {"x": 180, "y": 150, "width": 240, "height": 280}, "fill": {"color": "#C7A778"}}]},
+    {"name": "Moko Head Position", "nodes": [{"type": "ellipse", "bounds": {"x": 205, "y": 195, "width": 110, "height": 130}, "fill": {"color": "#C7A778"}}]},
+    {"name": "Lemon on Head", "nodes": [{"type": "circle", "bounds": {"x": 245, "y": 170, "width": 50, "height": 50}, "fill": {"color": "#CBE6D3"}}]}
+  ],
+  "anims": [
+    {
+      "name": "breathing_scale_x",
+      "nodes": ["Moko Meditating Body"],
+      "type": "scale",
+      "durations": {"Moko Meditating Body": "2.0"},
+      "easings": ["ease-in-out(4, .5) * ease-in-out(4, .5)"],
+      "outputs": [{"node": "Moko Meditating Body", "property": "scaleX", "values": [{"t": 0, "v": 1.0}, {"t": 60, "v": 1.03}, {"t": 120, "v": 0.97}, {"t": 180, "v": 1.0}]}]
+    },
+    {
+      "name": "breathing_scale_y",
+      "nodes": ["Moko Meditating Body"],
+      "type": "scale",
+      "durations": {"Moko Meditating Body": "2.0"},
+      "easings": ["ease-in-out(4, .5) * ease-in-out(4, .5)"],
+      "outputs": [{"node": "Moko Meditating Body", "property": "scaleY", "values": [{"t": 0, "v": 1.0}, {"t": 60, "v": 0.97}, {"t": 120, "v": 1.03}, {"t": 180, "v": 1.0}]}]
+    },
+    {
+      "name": "head_gentle_move",
+      "nodes": ["Moko Head Position"],
+      "type": "translate",
+      "durations": {"Moko Head Position": "2.5"},
+      "easings": ["ease-in-out(4, .5) * ease-in-out(4, .5)"],
+      "outputs": [{"node": "Moko Head Position", "property": "y", "values": [{"t": 0, "v": 0}, {"t": 62, "v": -3}, {"t": 125, "v": 4}]}]
+    }
+  ],
+  "meta": {
+    "description": "Moko capybara peaceful meditation in pond with gentle breathing movements",
+    "useCase": "Relax and Calm Down screen - guided meditation session",
+    "loopMode": "loop",
+    "totalDuration": 3.0
+  }
+}
