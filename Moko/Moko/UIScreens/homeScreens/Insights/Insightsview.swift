@@ -94,16 +94,16 @@ struct InsightsView: View {
     private var parameters: [InsightsParameter] {
         [
             InsightsParameter(name: "Clarity", score: scores.clarity,
-                              detail: "How clearly you notice your thoughts and feelings.",
+                              detail: "Understanding what's happening in your mind and recognising your feelings.",
                               supportedBy: "Grounding"),
             InsightsParameter(name: "Courage", score: scores.courage,
-                              detail: "How readily you take on things that feel uncomfortable.",
+                              detail: "Stepping outside your comfort zone when it matters.",
                               supportedBy: "Reflection"),
             InsightsParameter(name: "Presence", score: scores.presence,
-                              detail: "How fully you stay with the moment you are in.",
+                              detail: "Giving your full attention to the moment.",
                               supportedBy: "Breathing"),
             InsightsParameter(name: "Warmth", score: scores.warmth,
-                              detail: "How kindly you treat yourself and others.",
+                              detail: "Showing kindness, care and understanding to yourself and others.",
                               supportedBy: "Body awareness")
         ]
     }
@@ -125,7 +125,7 @@ struct InsightsView: View {
 
                     overallCard
 
-                    Text("Your four parameters")
+                    Text("Social Pulse")
                         .font(.title3.bold())
                         .foregroundStyle(titleDark)
                         .padding(.top, 8)

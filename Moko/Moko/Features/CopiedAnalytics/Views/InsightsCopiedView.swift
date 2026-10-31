@@ -37,7 +37,7 @@ struct InsightsCopiedView: View {
                 .padding(.vertical, 2)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Your four parameters")
+                    Text("Social Pulse")
                         .font(.system(size: 15, weight: .bold, design: .rounded))
                     Text("Scroll to see what shapes each score.")
                         .font(.system(size: 10))
