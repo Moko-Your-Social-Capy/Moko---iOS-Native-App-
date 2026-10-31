@@ -101,7 +101,9 @@ struct BreathingSessionScreen: View {
         ZStack {
             screenBg.ignoresSafeArea()
 
+
             VStack(spacing: 0) {
+
                 topBar
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
@@ -110,10 +112,14 @@ struct BreathingSessionScreen: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 18)
 
-                Spacer(minLength: 16)
+                Spacer(minLength: 12)
 
-                ring
-                    .frame(width: 270, height: 270)
+                // MOKO meditation animation
+                MokoLottieView(
+                    animationType: .meditation,
+                    size: 260
+                )
+                .frame(width: 260, height: 260)
 
                 VStack(spacing: 8) {
                     Text(phaseTitle)
@@ -127,19 +133,21 @@ struct BreathingSessionScreen: View {
                         .frame(height: 40, alignment: .top)
                         .padding(.horizontal, 40)
                 }
-                .padding(.top, 36)
+                .padding(.top, 20)
 
+                Spacer(minLength: 12)
+
+                // Countdown timer stays outside the animation
                 if runState != .completed {
                     Text(timeText)
-                        .font(.system(size: 72, weight: .light, design: .rounded))
+                        .font(.system(size: 64, weight: .light, design: .rounded))
                         .monospacedDigit()
                         .foregroundColor(cardGreen)
-                        .padding(.top, 4)
+                        .padding(.bottom, 16)
                 }
 
-                Spacer(minLength: 16)
-
                 controls
+                    .padding(.horizontal, 28)
                     .padding(.bottom, 28)
             }
         }
