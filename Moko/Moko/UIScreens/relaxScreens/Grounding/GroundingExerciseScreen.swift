@@ -136,7 +136,6 @@ struct GroundingExerciseScreen: View {
             .spring(response: 0.55, dampingFraction: 0.72),
             value: isCompleted
         )
-        .navigationTitle("Grounding")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             // Only start the stopwatch once

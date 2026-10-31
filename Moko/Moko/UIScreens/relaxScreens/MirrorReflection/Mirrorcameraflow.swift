@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import Combine
 
 // MARK: - Checklist illustration: an iPhone framing your face
@@ -176,6 +177,7 @@ struct CameraTimerScreen: View {
 
     @StateObject private var camera = FrontCameraModel()
     @Environment(\.openURL) private var openURL
+    @Environment(\.modelContext) private var modelContext
 
     @State private var runState: RunState = .idle
     @State private var elapsed: TimeInterval = 0
@@ -432,6 +434,7 @@ struct CameraTimerScreen: View {
             lastTick = nil
             runState = .completed
             camera.stop()
+            modelContext.logCalmDown("Mirror Reflection", seconds: total)
         }
     }
 

@@ -31,7 +31,7 @@ enum RelaxSession: String, CaseIterable, Identifiable {
         case .boxBreathing: return "Breathe in, hold, breathe out, and repeat slowly."
         case .grounding:    return "Use senses to focus on the present."
         case .imagery:      return "Breathing and guided imagery paired together"
-        case .mirror:       return "Breathing and guided imagery paired together"
+        case .mirror:       return "Look at yourself kindly and breathe slowly."
         }
     }
 
@@ -248,7 +248,6 @@ struct RelaxScreen: View {
                 MirrorReflectionScreen(onSelectOption: { option in
                     navigationPath.append(.mirrorPrep(camera: option == .camera))
                 })
-                .navigationTitle("Mirror Reflection")
                 .navigationBarTitleDisplayMode(.inline)
             }
 

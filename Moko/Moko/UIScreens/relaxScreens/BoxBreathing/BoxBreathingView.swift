@@ -130,7 +130,6 @@ struct BoxBreathingView: View {
                 }
             }
         }
-        .navigationTitle("Box Breathing")
         .navigationBarTitleDisplayMode(.inline)
         .task(id: state) { await runClock() }
         .onChange(of: scenePhase) { _, newPhase in
@@ -171,8 +170,8 @@ struct BoxBreathingView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Box Breathing")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(BBColor.title)
+                .font(.system(size: 30, weight: .semibold))
+                .foregroundStyle(BBColor.titleBrown)
                 .padding(.horizontal, 16)
 
             HStack {

@@ -54,7 +54,6 @@ struct ImageryGuideListView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(background.ignoresSafeArea())
-        .navigationTitle("Imagery Guide")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {

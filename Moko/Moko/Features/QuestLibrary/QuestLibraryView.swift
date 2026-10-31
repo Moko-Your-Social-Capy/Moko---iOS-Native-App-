@@ -8,6 +8,7 @@
 
 import SwiftUI
 import SwiftData
+import UIKit
 
 struct QuestLibraryView: View {
     // MARK: - Models
@@ -172,7 +173,7 @@ struct QuestLibraryView: View {
             Button {
                 open(quest, in: section)
             } label: {
-                cardContent(for: quest)
+                cardContent(for: quest, in: section)
             }
             .buttonStyle(DebriefPressStyle())
             .accessibilityLabel("\(quest.title), \(quest.xp) XP")
@@ -184,16 +185,23 @@ struct QuestLibraryView: View {
         }
     }
 
-    private func cardContent(for quest: LibraryQuest) -> some View {
+    private func cardContent(for quest: LibraryQuest, in section: QuestSection) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             // 1. Picture area: 128 x 98, corner radius 15 (continuous), filled with pastel tint
             RoundedRectangle(cornerRadius: 15, style: .continuous)
                 .fill(quest.tint)
                 .frame(width: 128, height: 98)
                 .overlay {
-                    Image(quest.imageName)
-                        .resizable()
-                        .scaledToFill()
+                    if UIImage(named: quest.imageName) != nil {
+                        Image(quest.imageName)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        // Artwork not added yet: keep the card legible with the category symbol.
+                        Image(systemName: section.category.symbol)
+                            .font(.system(size: 32, weight: .semibold))
+                            .foregroundStyle(QuestStyle.green.opacity(0.45))
+                    }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
 

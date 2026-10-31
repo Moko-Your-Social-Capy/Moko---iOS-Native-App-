@@ -75,7 +75,6 @@ struct ImageryGuideDetailView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: 0xF6FAE8).ignoresSafeArea())
-        .navigationTitle("Imagery Guide")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
