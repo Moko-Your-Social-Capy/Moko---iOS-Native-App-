@@ -34,15 +34,15 @@ struct RadarInfoSheet: View {
                 radar
 
                 row(icon: "diamond",
-                    title: "Four corners",
+                    title: "Four Corners",
                     text: "Each corner is one parameter: Clarity, Courage, Warmth and Presence.")
 
                 row(icon: "diamond.inset.filled",
-                    title: "Your shape",
+                    title: "Score Pattern",
                     text: "The further a point sits from the center, the higher that score. Rings mark 25, 50, 75 and 100.")
 
                 row(icon: "text.alignleft",
-                    title: "Scroll for the why",
+                    title: "Closer Look",
                     text: "Under the chart, each parameter explains what shaped its score.")
 
                 Button {

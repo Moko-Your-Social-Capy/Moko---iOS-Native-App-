@@ -41,28 +41,37 @@ extension ReflectionItem {
               tint: RColor.rust),
         .init(id: "boundary",
               title: "Boundary softening",
-              icon: "eye",   // matches the Figma; swap the symbol if you prefer
-              detail: "You often soften or delay a firm “no” to keep things comfortable, even when something does not work for you."),
+              icon: "shield.slash",
+              detail: "You often soften or delay a firm “no” to keep things comfortable, even when something does not work for you.",
+              tint: RColor.rust),
     ]
 }
 
 // MARK: - Screen
 
 struct ReflectionView: View {
-    var userName: String
+    @AppStorage("userName") private var storedUserName: String = ""
+
+    var userName: String?
     var onOverview: () -> Void
 
     init(
-        userName: String = "Aditi",
+        userName: String? = nil,
         onOverview: @escaping () -> Void = {}
     ) {
         self.userName = userName
         self.onOverview = onOverview
     }
 
-    init(onOverview: @escaping () -> Void) {
-        self.userName = "Aditi"
-        self.onOverview = onOverview
+    private var displayName: String {
+        if let userName = userName?.trimmingCharacters(in: .whitespacesAndNewlines), !userName.isEmpty {
+            return userName
+        }
+        let stored = storedUserName.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !stored.isEmpty {
+            return stored
+        }
+        return ""
     }
 
     /// Rows that start open. Use `[]` to start with everything collapsed.
@@ -71,7 +80,7 @@ struct ReflectionView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text("This is you, \(userName)")
+                Text(displayName.isEmpty ? "This is you" : "This is you, \(displayName)")
                     .font(.system(size: 26, weight: .bold))
                     .tracking(-0.5)
                     .foregroundStyle(OBColor.ink)
@@ -174,5 +183,5 @@ struct ReflectionView: View {
 }
 
 #Preview {
-    ReflectionView()
+    ReflectionView(userName: "Aditi")
 }
