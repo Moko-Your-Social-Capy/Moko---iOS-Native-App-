@@ -63,6 +63,10 @@ final class Quest {
     /// Set when the user taps the check on the quest card. The default value lets SwiftData
     /// add this column to quests that were saved before it existed.
     var isCompleted: Bool = false
+    /// True once this quest's XP and streak have been added to the Profile.
+    var xpAwarded: Bool = false
+    /// True once this quest's debrief scores have been saved as an Insights entry.
+    var debriefRecorded: Bool = false
     /// Quests from the library award a specific XP amount. Nil means use the
     /// intensity's default, which is what custom quests do.
     var xp: Int?
@@ -86,6 +90,8 @@ final class Quest {
         self.date = date
         self.createdAt = Date()
         self.isCompleted = false
+        self.xpAwarded = false
+        self.debriefRecorded = false
         self.xp = xp
     }
 }
