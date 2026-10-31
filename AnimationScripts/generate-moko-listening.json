@@ -1,0 +1,83 @@
+{
+  "version": "1.0",
+  "frameRate": 30,
+  "frames": {
+    "0": {"time": 0},
+    "1": {"time": 120}
+  },
+  "images": {
+    "sound_wave_1": {
+      "format": "RGBA",
+      "width": 100,
+      "height": 40,
+      "data": "iVBORw0KGgoAAAANSUhEUgAA..."
+    },
+    "sound_wave_2": {
+      "format": "RGBA",
+      "width": 80,
+      "height": 32,
+      "data": "iVBORw0KGgoAAAANSUhEUgAA..."
+    }
+  },
+  "layers": [
+    {
+      "name": "Mouth",
+      "nodes": [{"type": "path", "bounds": {"x": 450, "y": 310, "width": 60, "height": 20}, "fill": {"color": "#C7A778"}}]
+    },
+    {
+      "name": "Ear Movement Indicator",
+      "nodes": [{"type": "circle", "bounds": {"x": 410, "y": 250, "width": 15, "height": 15}, "fill": {"color": "#C7A778"}}]
+    },
+    {
+      "name": "Head Tilt Guide",
+      "nodes": [{"type": "ellipse", "bounds": {"x": 400, "y": 290, "width": 60, "height": 70}, "fill": {"color": "#C7A778"}}]
+    }
+  ],
+  "anims": [
+    {
+      "name": "mouth_open_close",
+      "nodes": ["Mouth"],
+      "type": "scaleY",
+      "durations": {"Mouth": "1.5"},
+      "easings": ["ease-in-out(4, .5) * ease-in-out(4, .5)"],
+      "outputs": [
+        {"node": "Mouth", "property": "scaleY", "values": [{"t": 0, "v": 1.0}, {"t": 60, "v": 1.2}, {"t": 120, "v": 1.0}]}
+      ]
+    },
+    {
+      "name": "head_tilt_left",
+      "nodes": ["Head Tilt Guide"],
+      "type": "rotate",
+      "durations": {"Head Tilt Guide": "2.5"},
+      "easings": ["ease-in-out(4, .5) * ease-in-out(4, .5)"],
+      "outputs": [
+        {"node": "Head Tilt Guide", "property": "rotation", "values": [{"t": 0, "v": 0}, {"t": 62, "v": 10}, {"t": 125, "v": 8}]}
+      ]
+    },
+    {
+      "name": "ear_bobbing",
+      "nodes": ["Ear Movement Indicator"],
+      "type": "translateX",
+      "durations": {"Ear Movement Indicator": "3.0"},
+      "easings": ["ease-in-out(4, .5) * ease-in-out(4, .5)"],
+      "outputs": [
+        {"node": "Ear Movement Indicator", "property": "x", "values": [{"t": 0, "v": 0}, {"t": 90, "v": 3}, {"t": 180, "v": -2}]}
+      ]
+    },
+    {
+      "name": "listen_cycle",
+      "nodes": ["Mouth", "Head Tilt Guide", "Ear Movement Indicator"],
+      "type": "sequence",
+      "durations": {"Listen Cycle": "3.0"},
+      "easings": [],
+      "outputs": [
+        {"node": "Listen Cycle", "property": "timing", "values": [{"t": 0, "v": 0}, {"t": 60, "v": 120}]}
+      ]
+    }
+  ],
+  "meta": {
+    "description": "Moko listening - gentle face movements with subtle head tilt to convey attentiveness",
+    "use_case": "AI conversation when user is speaking",
+    "loop_mode": "loop"
+  }
+}

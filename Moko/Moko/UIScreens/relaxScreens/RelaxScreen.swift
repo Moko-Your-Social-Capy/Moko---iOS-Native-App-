@@ -3,7 +3,8 @@
 //  Moko
 //
 //  Relax tab: breathing timer card + guided sessions grid.
-//  The breathing card and every session card open a bottom sheet.
+//  NavigationStack + NavigationLink. The breathing card opens its bottom sheet, Start pushes the
+//  timer screen; each session card pushes its screen. The default back button returns here.
 //
 
 import SwiftUI
@@ -97,34 +98,11 @@ enum RelaxSession: String, CaseIterable, Identifiable {
     }
 }
 
-private enum RelaxSheet: Identifiable {
-    case breathing
-    case session(RelaxSession)
-
-    var id: String {
-        switch self {
-        case .breathing:        return "breathing"
-        case .session(let s):   return s.id
-        }
-    }
-}
-
-private enum RelaxFullScreen: Identifiable {
-    case breathing
-
-    var id: String {
-        switch self {
-        case .breathing: return "breathing"
-        }
-    }
-}
-
 struct RelaxScreen: View {
-    // Optional callbacks fired when the user taps Start in a sheet
+    // Optional callbacks fired when the user opens a session
     var onStartBreathing: ((Int) -> Void)? = nil          // chosen minutes
     var onStartSession: ((RelaxSession) -> Void)? = nil
 
-    // MARK: - State Properties
     @Binding var selectedTab: MokoTab
 
     init(selectedTab: Binding<MokoTab> = .constant(.relax), onStartBreathing: ((Int) -> Void)? = nil, onStartSession: ((RelaxSession) -> Void)? = nil) {
@@ -134,11 +112,10 @@ struct RelaxScreen: View {
     }
 
     @State private var minutes: Int = 1
-    @State private var activeSheet: RelaxSheet?
-    @State private var pendingFullScreen: RelaxFullScreen?
-    @State private var fullScreen: RelaxFullScreen?
     @State private var boxBreathingCycles: Int = 2
-    @State private var showBoxBreathing: Bool = false
+    @State private var showBreathingSheet = false
+    @State private var pendingBreathing = false   // push the timer only after the sheet has closed
+    @State private var goBreathing = false
 
     // Palette matching design specifications
     private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
@@ -152,89 +129,79 @@ struct RelaxScreen: View {
     ]
 
     var body: some View {
-        ZStack {
-            screenBg
-                .ignoresSafeArea()
-
+        NavigationStack {
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    // MARK: - Header
-                    Text("Relax")
-                        .font(.system(size: 34, weight: .bold))
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 14)
+                VStack(alignment: .leading, spacing: 24) {
 
-                    // MARK: - Breathing Timer Card
                     breathingCard
-                        .padding(.top, 20)
-                        .padding(.horizontal, 16)
 
-                    // MARK: - Guided Sessions
-                    Text("Guided Sessions")
-                        .font(.system(size: 22, weight: .bold))
-                        .foregroundColor(.black)
-                        .padding(.top, 28)
-                        .padding(.horizontal, 16)
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("Guided Sessions")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.black)
 
-                    LazyVGrid(columns: gridColumns, spacing: 12) {
-                        ForEach(RelaxSession.allCases) { session in
-                            sessionCard(session)
+                        LazyVGrid(columns: gridColumns, spacing: 12) {
+                            ForEach(RelaxSession.allCases) { session in
+                                sessionCard(session)
+                            }
                         }
                     }
-                    .padding(.top, 14)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 24)
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
             }
-        }
-        .sheet(item: $activeSheet, onDismiss: {
-            // Open the next screen only after the sheet has fully closed
-            if let next = pendingFullScreen {
-                pendingFullScreen = nil
-                fullScreen = next
+            .background(screenBg)
+            .navigationTitle("Relax")
+            .navigationBarTitleDisplayMode(.large)
+            .sheet(isPresented: $showBreathingSheet, onDismiss: {
+                if pendingBreathing {
+                    pendingBreathing = false
+                    goBreathing = true
+                }
+            }) {
+                breathingSheet
             }
-        }) { sheet in
-            sheetContent(for: sheet)
-        }
-        .fullScreenCover(item: $fullScreen) { destination in
-            switch destination {
-            case .breathing:
+            .navigationDestination(isPresented: $goBreathing) {
                 BreathingSessionScreen(minutes: minutes)
             }
-        }
-        // Box Breathing launches here so cycles flow directly from this view's state
-        .fullScreenCover(isPresented: $showBoxBreathing) {
-            BoxBreathingView(initialCycles: boxBreathingCycles, onComplete: {
-                showBoxBreathing = false
-                activeSheet = nil
-            })
         }
     }
 
     // MARK: - Breathing Card
     private var breathingCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top) {
-                Text("Breathing")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(cardGreen)
 
-                Spacer()
+            // Tapping the title / text area opens the breathing sheet
+            Button {
+                showBreathingSheet = true
+            } label: {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .top) {
+                        Text("Breathing")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(cardGreen)
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.black)
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.black)
+                    }
+
+                    Text("Set your own meditation timer for a calmer mind")
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundColor(subtextGray)
+                        .lineSpacing(3)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: 240, alignment: .leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
 
-            Text("Set your own meditation timer for a calmer mind")
-                .font(.system(size: 15, weight: .regular))
-                .foregroundColor(subtextGray)
-                .lineSpacing(3)
-                .frame(maxWidth: 240, alignment: .leading)
-                .padding(.top, 10)
-
-            // Minutes stepper: + increases, - decreases
+            // Minutes stepper (outside the link, so +/- never navigate)
             HStack(spacing: 18) {
                 stepperButton(systemName: "minus", enabled: minutes > 1) {
                     minutes = max(1, minutes - 1)
@@ -250,7 +217,7 @@ struct RelaxScreen: View {
                     minutes = min(60, minutes + 1)
                 }
             }
-            .padding(.top, 22)
+            .padding(.top, 20)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -263,11 +230,6 @@ struct RelaxScreen: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        // Tapping the card opens the sheet; the +/- buttons take priority over this
-        .onTapGesture {
-            activeSheet = .breathing
-        }
     }
 
     private func stepperButton(systemName: String, enabled: Bool, action: @escaping () -> Void) -> some View {
@@ -285,8 +247,12 @@ struct RelaxScreen: View {
 
     // MARK: - Session Card
     private func sessionCard(_ session: RelaxSession) -> some View {
-        Button {
-            activeSheet = .session(session)
+        NavigationLink {
+            RelaxSessionSheet(
+                session: session,
+                boxBreathingCycles: $boxBreathingCycles,
+                onContinue: { onStartSession?(session) }
+            )
         } label: {
             VStack(spacing: 0) {
                 HStack {
@@ -320,8 +286,7 @@ struct RelaxScreen: View {
             .padding(.horizontal, 16)
             .padding(.top, 18)
             .padding(.bottom, 16)
-            .frame(maxWidth: .infinity)
-            .frame(height: 190)
+            .frame(maxWidth: .infinity, minHeight: 190)
             .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
@@ -334,51 +299,36 @@ struct RelaxScreen: View {
         RelaxSessionIcon(session: session, color: cardGreen)
     }
 
-    // MARK: - Bottom sheets
-    @ViewBuilder
-    private func sheetContent(for sheet: RelaxSheet) -> some View {
-        switch sheet {
-        case .breathing:
-            RelaxDetailSheet(
-                title: "Breathing",
-                subtitle: "Set your own meditation timer for a calmer mind",
-                steps: ["Sit comfortably and relax your shoulders",
-                        "Breathe in slowly through your nose",
-                        "Breathe out gently and let go of tension"],
-                buttonTitle: "Start",
-                onStart: {
-                    pendingFullScreen = .breathing
-                    onStartBreathing?(minutes)
-                },
-                icon: { BreathingDotsIcon(color: cardGreen).frame(width: 64, height: 64) },
-                extra: {
-                    HStack(spacing: 18) {
-                        stepperButton(systemName: "minus", enabled: minutes > 1) {
-                            minutes = max(1, minutes - 1)
-                        }
-                        Text("\(minutes) min")
-                            .font(.system(size: 17, weight: .semibold))
-                            .monospacedDigit()
-                            .frame(minWidth: 60)
-                        stepperButton(systemName: "plus", enabled: minutes < 60) {
-                            minutes = min(60, minutes + 1)
-                        }
+
+    // MARK: - Breathing sheet
+    private var breathingSheet: some View {
+        RelaxDetailSheet(
+            title: "Breathing",
+            subtitle: "Set your own meditation timer for a calmer mind",
+            steps: ["Sit comfortably and relax your shoulders",
+                    "Breathe in slowly through your nose",
+                    "Breathe out gently and let go of tension"],
+            buttonTitle: "Start",
+            onStart: {
+                pendingBreathing = true
+                onStartBreathing?(minutes)
+            },
+            icon: { BreathingDotsIcon(color: cardGreen).frame(width: 64, height: 64) },
+            extra: {
+                HStack(spacing: 18) {
+                    stepperButton(systemName: "minus", enabled: minutes > 1) {
+                        minutes = max(1, minutes - 1)
+                    }
+                    Text("\(minutes) min")
+                        .font(.system(size: 17, weight: .semibold))
+                        .monospacedDigit()
+                        .frame(minWidth: 60)
+                    stepperButton(systemName: "plus", enabled: minutes < 60) {
+                        minutes = min(60, minutes + 1)
                     }
                 }
-            )
-
-        case .session(let session):
-            RelaxSessionSheet(
-                session: session,
-                boxBreathingCycles: $boxBreathingCycles,
-                onContinue: { onStartSession?(session) },
-                onFinishFlow: { activeSheet = nil },
-                onLaunchBoxBreathing: {
-                    activeSheet = nil          // close the info sheet
-                    showBoxBreathing = true    // open the breathing screen from parent
-                }
-            )
-        }
+            }
+        )
     }
 }
 
@@ -471,37 +421,25 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
             .padding(.bottom, 20)
         }
         .frame(maxWidth: .infinity)
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.height(520), .large])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
     }
 }
 
-// MARK: - Full-height session sheet (illustration, text, Continue / Not now)
+// MARK: - Session screen (pushed with NavigationLink: illustration, text, Continue / Not now)
 
 struct RelaxSessionSheet: View {
     let session: RelaxSession
     @Binding var boxBreathingCycles: Int
-    var onContinue: () -> Void
+    var onContinue: () -> Void = {}
     var onFinishFlow: () -> Void = {}
-    /// Called when the user taps Continue on the Box Breathing info screen.
-    /// The parent is responsible for dismissing this sheet and launching BoxBreathingView.
-    var onLaunchBoxBreathing: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
     @State private var showNext = false
 
-    private let primaryGreen = Color(
-        red: 54/255,
-        green: 89/255,
-        blue: 72/255
-    )
-
-    private let subtextGray = Color(
-        red: 111/255,
-        green: 103/255,
-        blue: 98/255
-    )
+    private let primaryGreen = Color(red: 54/255, green: 89/255, blue: 72/255)
+    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)
 
     var body: some View {
         Group {
@@ -510,116 +448,115 @@ struct RelaxSessionSheet: View {
                     cycles: $boxBreathingCycles,
                     onContinue: {
                         onContinue()
-                        onLaunchBoxBreathing()
+                        showNext = true
                     },
-                    onNotNow: {
-                        dismiss()
-                    }
+                    onNotNow: { dismiss() }
                 )
             } else {
-                standardSheetContent
+                standardContent
             }
         }
-        .fullScreenCover(isPresented: $showNext) {
-            if session == .grounding {
-                // Present the actual grounding screen directly.
-                // Back closes this cover and reveals the SAME info sheet.
-                GroundingExerciseScreen(
-                    onExit: {
-                        showNext = false
-                    },
-                    onContinue: {
-                        onFinishFlow()
-                    }
-                )
-            } else {
-                RelaxSessionDestination(
-                    session: session,
-                    cycles: boxBreathingCycles,
-                    onExit: {
-                        showNext = false
-                    },
-                    onFinish: {
-                        onFinishFlow()
-                    }
-                )
-            }
+        .navigationBarTitleDisplayMode(.inline)
+        // Pushes the exercise. Its own back / exit buttons call onExit, which pops it.
+        .navigationDestination(isPresented: $showNext) {
+            destination
+                .toolbar(.hidden, for: .navigationBar)
+                .toolbar(.hidden, for: .tabBar)
         }
     }
 
-    private var standardSheetContent: some View {
-        VStack(spacing: 0) {
-            banner
-
-            Text(session.title)
-                .font(.system(size: 26, weight: .bold))
-                .foregroundColor(.black)
-                .padding(.top, 80)
-
-            Text(session.detailText)
-                .font(.system(size: 17, weight: .regular))
-                .foregroundColor(subtextGray)
-                .multilineTextAlignment(.center)
-                .lineSpacing(5)
-                .padding(.top, 18)
-                .padding(.horizontal, 40)
-
-            Button {
-                onContinue()
-                showNext = true
-            } label: {
-                Text("Continue")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Capsule().fill(primaryGreen))
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 36)
-            .padding(.horizontal, 28)
-
-            Button {
-                dismiss()
-            } label: {
-                Text("Not now")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(primaryGreen)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .padding(.top, 14)
-
-            Spacer(minLength: 0)
+    @ViewBuilder
+    private var destination: some View {
+        switch session {
+        case .grounding:
+            GroundingExerciseScreen(
+                onExit: { showNext = false },
+                onContinue: { finishFlow() }
+            )
+        case .boxBreathing:
+            BoxBreathingView(initialCycles: boxBreathingCycles, onComplete: { finishFlow() })
+        default:
+            RelaxSessionDestination(
+                session: session,
+                cycles: boxBreathingCycles,
+                onExit: { showNext = false },
+                onFinish: { finishFlow() }
+            )
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    /// Back to the Relax list.
+    private func finishFlow() {
+        onFinishFlow()
+        dismiss()
+    }
+
+    private var standardContent: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                banner
+
+                Text(session.title)
+                    .font(.system(size: 26, weight: .bold))
+                    .foregroundColor(.black)
+                    .padding(.top, 24)
+
+                Text(session.detailText)
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundColor(subtextGray)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(5)
+                    .padding(.top, 14)
+                    .padding(.horizontal, 28)
+
+                Button {
+                    onContinue()
+                    showNext = true
+                } label: {
+                    Text("Continue")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 56)
+                        .background(Capsule().fill(primaryGreen))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 32)
+                .padding(.horizontal, 28)
+
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Not now")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(primaryGreen)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+            }
+        }
+        .scrollBounceBehavior(.basedOnSize)
         .background(Color.white)
-        .presentationDetents([.large])
-        .presentationDragIndicator(.hidden)
+        .ignoresSafeArea(edges: .top)      // banner runs under the transparent back-button bar
     }
 
     private var banner: some View {
         Color.clear
             .frame(maxWidth: .infinity)
-            .frame(height: 300)
+            .frame(height: 280)
             .background {
                 LinearGradient(
-                    colors: [
-                        session.bannerColors.top,
-                        session.bannerColors.bottom
-                    ],
+                    colors: [session.bannerColors.top, session.bannerColors.bottom],
                     startPoint: .top,
                     endPoint: .bottom
                 )
             }
             .overlay {
-                RelaxSessionIcon(
-                    session: session,
-                    color: primaryGreen.opacity(0.6),
-                    size: 96
-                )
+                RelaxSessionIcon(session: session, color: primaryGreen.opacity(0.6), size: 96)
             }
             .overlay {
                 Image(session.bannerImageName)
@@ -647,7 +584,7 @@ struct RelaxSessionDestination: View {
                 onExit()
             })
         case .imagery:
-            RelaxFlow()
+            RelaxSessionPlaceholderScreen(session: .imagery)
         case .grounding:
             GroundingExerciseScreen()
         }
