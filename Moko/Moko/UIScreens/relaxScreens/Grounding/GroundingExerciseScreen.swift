@@ -281,6 +281,7 @@ struct GroundingExerciseScreen: View {
         }
         .frame(width: 160, height: 160)
         .animation(stepAnimation, value: currentStepIndex)
+        .padding(.top, 15)
     }
 
     // MARK: - Everyday Anchors Card
