@@ -1,31 +1,22 @@
-//
-//  ImageryGuideDetailView.swift
-//  imageryGuide
-//
-//  Created by user@77 on 26/10/26.
-//
-
 import SwiftUI
 
 struct ImageryGuideDetailView: View {
     let guide: ImageryGuide
-    var onStart: () -> Void = {}
 
-    private let accent   = Color(hex: 0x365948)
-    private let tileFill = Color(hex: 0xE6EFE9)
-    private let ink      = Color(hex: 0x2F2A28)
+    private let accent = Color(hex: 0x365948)
+    private let tileFill = Color(hex: 0xE2F5B1)
+    private let ink = Color(hex: 0x5C4330)
     private let bodyText = Color(hex: 0x51443E)
     private let subtitle = Color(hex: 0x8A7B68)
-    private let caption  = Color(hex: 0x6F6762)
+    private let caption = Color(hex: 0x6F6762)
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header (left aligned)
             VStack(alignment: .leading, spacing: 8) {
                 Text("Imagery Guide")
                     .font(.system(size: 26, weight: .semibold))
                     .tracking(-0.4)
-                    .foregroundStyle(Color(hex: 0x292B26))
+                    .foregroundStyle(ink)
 
                 Text(guide.detailHeaderSubtitle)
                     .font(.system(size: 13))
@@ -35,20 +26,19 @@ struct ImageryGuideDetailView: View {
             .padding(.horizontal, 16)
             .padding(.top, 19)
 
-            // Icon tile
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(Color.white)
                 .frame(width: 140, height: 140)
-                .overlay(
+                .overlay {
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .fill(tileFill)
                         .frame(width: 120, height: 120)
-                        .overlay(
+                        .overlay {
                             Image(systemName: guide.icon)
                                 .font(.system(size: 46, weight: .semibold))
                                 .foregroundStyle(accent)
-                        )
-                )
+                        }
+                }
                 .padding(.top, 74)
 
             Text(guide.title)
@@ -65,13 +55,14 @@ struct ImageryGuideDetailView: View {
                 .padding(.horizontal, 48)
                 .padding(.top, 28)
 
-            Button(action: onStart) {
+            NavigationLink(value: RelaxRoute.guideSession(guide)) {
                 Text("Start")
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 244, height: 61)
                     .background(accent, in: Capsule())
             }
+            .buttonStyle(.plain)
             .padding(.top, 66)
 
             Text("About 2 minutes · pause any time")
@@ -83,10 +74,14 @@ struct ImageryGuideDetailView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(hex: 0xF2F2F7).ignoresSafeArea())
+        .background(Color(hex: 0xF6FAE8).ignoresSafeArea())
+        .navigationTitle("Imagery Guide")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
 #Preview {
-    ImageryGuideDetailView(guide: ImageryGuide.all[0])
+    NavigationStack {
+        ImageryGuideDetailView(guide: ImageryGuide.all[0])
+    }
 }

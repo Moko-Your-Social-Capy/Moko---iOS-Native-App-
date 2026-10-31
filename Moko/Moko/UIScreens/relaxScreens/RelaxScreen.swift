@@ -3,8 +3,8 @@
 //  Moko
 //
 //  Relax tab: breathing timer card + guided sessions grid.
-//  NavigationStack + NavigationLink. The breathing card opens its bottom sheet, Start pushes the
-//  timer screen; each session card pushes its screen. The default back button returns here.
+//  Session cards open a 75%-height detail sheet; Continue dismisses the sheet and pushes
+//  the selected exercise onto the Relax navigation stack.
 //
 
 import SwiftUI
@@ -98,6 +98,30 @@ enum RelaxSession: String, CaseIterable, Identifiable {
     }
 }
 
+private enum ActiveRelaxSheet: Identifiable {
+    case breathing
+    case session(RelaxSession)
+
+    var id: String {
+        switch self {
+        case .breathing: return "breathing"
+        case .session(let session): return "session-\(session.id)"
+        }
+    }
+}
+
+/// All destinations in the Relax and imagery journey share one NavigationStack.
+enum RelaxRoute: Hashable {
+    case breathing(Int)
+    case session(RelaxSession)
+    case guideDetail(ImageryGuide)
+    case guideSession(ImageryGuide)
+    case guideComplete(ImageryGuide)
+    case mirrorPrep(camera: Bool)
+    case mirrorTimer(camera: Bool)
+    case mirrorComplete(camera: Bool)
+}
+
 struct RelaxScreen: View {
     // Optional callbacks fired when the user opens a session
     var onStartBreathing: ((Int) -> Void)? = nil          // chosen minutes
@@ -113,13 +137,15 @@ struct RelaxScreen: View {
 
     @State private var minutes: Int = 1
     @State private var boxBreathingCycles: Int = 2
-    @State private var showBreathingSheet = false
+    @State private var activeSheet: ActiveRelaxSheet?
     @State private var pendingBreathing = false   // push the timer only after the sheet has closed
-    @State private var goBreathing = false
+    @State private var pendingSessionNavigation: RelaxSession?
+    @State private var navigationPath: [RelaxRoute] = []
 
     // Palette matching design specifications
-    private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
+    private let screenBg = Color(red: 246/255, green: 250/255, blue: 232/255) // pale lime
     private let cardGreen = Color(red: 54/255, green: 89/255, blue: 72/255)   // #365948
+    private let titleBrown = Color(red: 92/255, green: 67/255, blue: 48/255)
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
     private let stepperBg = Color(red: 237/255, green: 237/255, blue: 237/255)  // #EDEDED
 
@@ -129,7 +155,7 @@ struct RelaxScreen: View {
     ]
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
 
@@ -138,7 +164,7 @@ struct RelaxScreen: View {
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Guided Sessions")
                             .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.black)
+                            .foregroundColor(titleBrown)
 
                         LazyVGrid(columns: gridColumns, spacing: 12) {
                             ForEach(RelaxSession.allCases) { session in
@@ -154,18 +180,171 @@ struct RelaxScreen: View {
             .background(screenBg)
             .navigationTitle("Relax")
             .navigationBarTitleDisplayMode(.large)
-            .sheet(isPresented: $showBreathingSheet, onDismiss: {
+            .sheet(item: $activeSheet, onDismiss: {
                 if pendingBreathing {
                     pendingBreathing = false
-                    goBreathing = true
+                    navigationPath.append(.breathing(minutes))
                 }
-            }) {
-                breathingSheet
+                if let session = pendingSessionNavigation {
+                    pendingSessionNavigation = nil
+                    navigationPath.append(.session(session))
+                }
+            }) { sheet in
+                Group {
+                    switch sheet {
+                    case .breathing:
+                        breathingSheet
+                    case .session(let session):
+                        RelaxSessionSheet(
+                            session: session,
+                            boxBreathingCycles: $boxBreathingCycles,
+                            onContinue: {
+                                pendingSessionNavigation = session
+                                activeSheet = nil
+                            }
+                        )
+                    }
+                }
+                .presentationDetents([.fraction(0.75)])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(28)
             }
-            .navigationDestination(isPresented: $goBreathing) {
-                BreathingSessionScreen(minutes: minutes)
+            .navigationDestination(for: RelaxRoute.self) { route in
+                routeDestination(route)
             }
         }
+        .tint(cardGreen)
+    }
+
+    @ViewBuilder
+    private func routeDestination(_ route: RelaxRoute) -> some View {
+        switch route {
+        case .breathing(let duration):
+            BreathingSessionScreen(minutes: duration, onFinish: { popRelaxRoute() })
+
+        case .session(let session):
+            switch session {
+            case .imagery:
+                ImageryGuideListView { guide in
+                    navigationPath.append(.guideDetail(guide))
+                }
+
+            case .boxBreathing:
+                BoxBreathingView(
+                    initialCycles: boxBreathingCycles,
+                    onComplete: { popRelaxRoute() }
+                )
+
+            case .grounding:
+                GroundingExerciseScreen(
+                    onExit: { popRelaxRoute() },
+                    onContinue: { popRelaxRoute() }
+                )
+
+            case .mirror:
+                MirrorReflectionScreen(onSelectOption: { option in
+                    navigationPath.append(.mirrorPrep(camera: option == .camera))
+                })
+                .navigationTitle("Mirror Reflection")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+
+        case .guideDetail(let guide):
+            ImageryGuideDetailView(guide: guide)
+                .navigationBarTitleDisplayMode(.inline)
+
+        case .guideSession(let guide):
+            GuideSessionView(guide: guide) {
+                navigationPath.append(.guideComplete(guide))
+            }
+            .navigationTitle(guide.title)
+            .navigationBarTitleDisplayMode(.inline)
+
+        case .guideComplete(let guide):
+            SessionCompleteView(message: guide.completionMessage) {
+                // Keep the imagery gallery on the stack and return to it.
+                if navigationPath.count >= 3 {
+                    navigationPath.removeLast(3)
+                } else {
+                    navigationPath.removeAll()
+                }
+            }
+            .navigationTitle("Session complete")
+            .navigationBarTitleDisplayMode(.inline)
+
+        case .mirrorPrep(let camera):
+            mirrorPrepDestination(camera: camera)
+                .navigationTitle("Get ready")
+                .navigationBarTitleDisplayMode(.inline)
+
+        case .mirrorTimer(let camera):
+            if camera {
+                CameraTimerScreen(
+                    onBack: {},
+                    onContinue: { navigationPath.append(.mirrorComplete(camera: true)) }
+                )
+                .navigationTitle("Mirror Reflection")
+                .navigationBarTitleDisplayMode(.inline)
+            } else {
+                MirrorTimerScreen(
+                    onBack: {},
+                    onContinue: { navigationPath.append(.mirrorComplete(camera: false)) }
+                )
+                .navigationTitle("Mirror Reflection")
+                .navigationBarTitleDisplayMode(.inline)
+            }
+
+        case .mirrorComplete(_):
+            MirrorCompletionScreen(onDone: {
+                if navigationPath.count >= 3 { navigationPath.removeLast(3) }
+                else { navigationPath.removeAll() }
+            })
+                .navigationTitle("Completed")
+                .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    @ViewBuilder
+    private func mirrorPrepDestination(camera: Bool) -> some View {
+        if camera {
+            MirrorPrepScreen(
+                title: "Get ready with your iPhone",
+                listTitle: "Your setup",
+                items: [
+                    "Find a comfortable spot",
+                    "Hold your phone comfortably",
+                    "Look at yourself gently",
+                    "Let go of judgement"
+                ],
+                onBack: {},
+                onContinue: { navigationPath.append(.mirrorTimer(camera: true)) }
+            ) { level in
+                CameraPhoneHero(level: level)
+                    .scaleEffect(0.72)
+                    .frame(height: 230)
+            }
+        } else {
+            MirrorPrepScreen(
+                title: "Arrive in Front of Your Mirror",
+                items: [
+                    "Find a comfortable spot",
+                    "Take a gentle breath",
+                    "Look at yourself kindly",
+                    "Let go of judgement"
+                ],
+                onBack: {},
+                onContinue: { navigationPath.append(.mirrorTimer(camera: false)) }
+            ) { level in
+                MirrorHero(showCaption: false, level: level)
+                    .scaleEffect(0.72)
+                    .frame(height: 220)
+            }
+        }
+    }
+
+    private func popRelaxRoute() {
+        guard !navigationPath.isEmpty else { return }
+        navigationPath.removeLast()
     }
 
     // MARK: - Breathing Card
@@ -174,7 +353,7 @@ struct RelaxScreen: View {
 
             // Tapping the title / text area opens the breathing sheet
             Button {
-                showBreathingSheet = true
+                activeSheet = .breathing
             } label: {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .top) {
@@ -247,12 +426,8 @@ struct RelaxScreen: View {
 
     // MARK: - Session Card
     private func sessionCard(_ session: RelaxSession) -> some View {
-        NavigationLink {
-            RelaxSessionSheet(
-                session: session,
-                boxBreathingCycles: $boxBreathingCycles,
-                onContinue: { onStartSession?(session) }
-            )
+        Button {
+            activeSheet = .session(session)
         } label: {
             VStack(spacing: 0) {
                 HStack {
@@ -346,6 +521,7 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
 
     private let cardGreen = Color(red: 54/255, green: 89/255, blue: 72/255)
     private let primaryGreen = Color(red: 27/255, green: 66/255, blue: 47/255)
+    private let titleBrown = Color(red: 92/255, green: 67/255, blue: 48/255)
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)
 
     init(title: String,
@@ -372,7 +548,7 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
 
             Text(title)
                 .font(.system(size: 24, weight: .bold))
-                .foregroundColor(primaryGreen)
+                .foregroundColor(titleBrown)
                 .padding(.top, 14)
 
             Text(subtitle)
@@ -421,22 +597,17 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
             .padding(.bottom, 20)
         }
         .frame(maxWidth: .infinity)
-        .presentationDetents([.height(520), .large])
-        .presentationDragIndicator(.visible)
-        .presentationCornerRadius(28)
     }
 }
 
-// MARK: - Session screen (pushed with NavigationLink: illustration, text, Continue / Not now)
+// MARK: - Session detail sheet (illustration, text, Continue / Not now)
 
 struct RelaxSessionSheet: View {
     let session: RelaxSession
     @Binding var boxBreathingCycles: Int
     var onContinue: () -> Void = {}
-    var onFinishFlow: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
-    @State private var showNext = false
 
     private let primaryGreen = Color(red: 54/255, green: 89/255, blue: 72/255)
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)
@@ -446,10 +617,7 @@ struct RelaxSessionSheet: View {
             if session == .boxBreathing {
                 BoxBreathingInfoView(
                     cycles: $boxBreathingCycles,
-                    onContinue: {
-                        onContinue()
-                        showNext = true
-                    },
+                    onContinue: onContinue,
                     onNotNow: { dismiss() }
                 )
             } else {
@@ -457,38 +625,6 @@ struct RelaxSessionSheet: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        // Pushes the exercise. Its own back / exit buttons call onExit, which pops it.
-        .navigationDestination(isPresented: $showNext) {
-            destination
-                .toolbar(.hidden, for: .navigationBar)
-                .toolbar(.hidden, for: .tabBar)
-        }
-    }
-
-    @ViewBuilder
-    private var destination: some View {
-        switch session {
-        case .grounding:
-            GroundingExerciseScreen(
-                onExit: { showNext = false },
-                onContinue: { finishFlow() }
-            )
-        case .boxBreathing:
-            BoxBreathingView(initialCycles: boxBreathingCycles, onComplete: { finishFlow() })
-        default:
-            RelaxSessionDestination(
-                session: session,
-                cycles: boxBreathingCycles,
-                onExit: { showNext = false },
-                onFinish: { finishFlow() }
-            )
-        }
-    }
-
-    /// Back to the Relax list.
-    private func finishFlow() {
-        onFinishFlow()
-        dismiss()
     }
 
     private var standardContent: some View {
@@ -498,7 +634,7 @@ struct RelaxSessionSheet: View {
 
                 Text(session.title)
                     .font(.system(size: 26, weight: .bold))
-                    .foregroundColor(.black)
+                    .foregroundColor(Color(red: 92/255, green: 67/255, blue: 48/255))
                     .padding(.top, 24)
 
                 Text(session.detailText)
@@ -511,7 +647,6 @@ struct RelaxSessionSheet: View {
 
                 Button {
                     onContinue()
-                    showNext = true
                 } label: {
                     Text("Continue")
                         .font(.system(size: 18, weight: .semibold))
@@ -567,66 +702,21 @@ struct RelaxSessionSheet: View {
     }
 }
 
-// MARK: - Where "Continue" leads for each session
-struct RelaxSessionDestination: View {
-    let session: RelaxSession
-    var cycles: Int = 2
-    var onExit: () -> Void = {}
-    var onFinish: () -> Void = {}
-
-    var body: some View {
-        switch session {
-        case .mirror:
-            MirrorFlowView(onExit: onExit, onFinish: onFinish)
-        case .boxBreathing:
-            BoxBreathingView(initialCycles: cycles, onComplete: {
-                onFinish()
-                onExit()
-            })
-        case .imagery:
-            RelaxSessionPlaceholderScreen(session: .imagery)
-        case .grounding:
-            GroundingExerciseScreen()
-        }
-    }
-}
-
 // Stand-in for the sessions whose screens aren't built yet
 struct RelaxSessionPlaceholderScreen: View {
     let session: RelaxSession
 
-    @Environment(\.dismiss) private var dismiss
-
-    private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255)
+    private let screenBg = Color(red: 246/255, green: 250/255, blue: 232/255)
     private let cardGreen = Color(red: 54/255, green: 89/255, blue: 72/255)
-    private let titleDark = Color(red: 47/255, green: 42/255, blue: 40/255)
+    private let titleDark = Color(red: 92/255, green: 67/255, blue: 48/255)
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)
-    private let chipBg = Color(red: 237/255, green: 237/255, blue: 237/255)
-    private let mint = Color(red: 203/255, green: 230/255, blue: 211/255)
+    private let mint = Color(red: 226/255, green: 245/255, blue: 177/255)
 
     var body: some View {
         ZStack {
             screenBg.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                HStack {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.black)
-                            .frame(width: 38, height: 38)
-                            .background(Circle().fill(chipBg))
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-
                 Spacer()
 
                 ZStack {
@@ -650,6 +740,8 @@ struct RelaxSessionPlaceholderScreen: View {
                 Spacer()
             }
         }
+        .navigationTitle(session.title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

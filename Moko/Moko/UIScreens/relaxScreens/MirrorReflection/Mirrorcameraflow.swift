@@ -218,13 +218,6 @@ struct CameraTimerScreen: View {
             MirrorPalette.screenBg.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                HStack {
-                    MirrorBackButton(action: onBack)
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-
                 MirrorHeader()
                     .padding(.horizontal, 24)
                     .padding(.top, 18)

@@ -2,14 +2,16 @@ import SwiftUI
 import SwiftData
 
 enum BBColor {
-    static let background = Color(red: 242/255, green: 242/255, blue: 247/255)   // screen background
+    static let background = Color(red: 246/255, green: 250/255, blue: 232/255)   // pale lime
     static let button     = Color(red: 54/255, green: 89/255, blue: 72/255)   // buttons, check circle, "Not now"
     static let dark       = Color(red: 27/255, green: 66/255, blue: 47/255)    // corner dots + filled box edges
-    static let track      = Color(red: 217/255, green: 217/255, blue: 217/255)   // empty box edges + timer arc
-    static let title      = Color(red: 41/255, green: 43/255, blue: 38/255)
+    static let track      = Color(red: 226/255, green: 245/255, blue: 177/255)   // lime track
+    static let title      = Color(red: 92/255, green: 67/255, blue: 48/255)
     static let subtitle   = Color(red: 138/255, green: 123/255, blue: 104/255)
     static let muted      = Color(red: 111/255, green: 103/255, blue: 98/255)
     static let card       = Color(red: 252/255, green: 248/255, blue: 240/255)   // cream icon circle
+    static let lime       = Color(red: 226/255, green: 245/255, blue: 177/255)
+    static let titleBrown = Color(red: 92/255, green: 67/255, blue: 48/255)
 }
 
 private enum SessionState: Equatable {
@@ -65,9 +67,8 @@ struct BoxBreathingView: View {
         self.onComplete = onComplete
     }
 
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.modelContext) private var modelContext  
+    @Environment(\.modelContext) private var modelContext
 
     @State private var state: SessionState = .idle
     @State private var elapsed: TimeInterval = 0          // seconds since the session began
@@ -122,8 +123,6 @@ struct BoxBreathingView: View {
             BBColor.background.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                topBar
-
                 if state == .complete {
                     completeContent.transition(.opacity)
                 } else {
@@ -131,8 +130,8 @@ struct BoxBreathingView: View {
                 }
             }
         }
-        .navigationBarBackButtonHidden(true)
-        .toolbar(.hidden, for: .navigationBar)
+        .navigationTitle("Box Breathing")
+        .navigationBarTitleDisplayMode(.inline)
         .task(id: state) { await runClock() }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase != .active && state == .running { pause() }
@@ -143,26 +142,6 @@ struct BoxBreathingView: View {
         .sensoryFeedback(trigger: state) { _, new in
             new == .complete ? .success : nil
         }
-    }
-
-    private var topBar: some View {
-        HStack {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.black)
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255)))
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
     }
 
     // MARK: Start / running / paused screen
@@ -259,7 +238,7 @@ struct BoxBreathingView: View {
             Text(phase.title)
                 .font(.system(size: 40, weight: .bold))
                 .tracking(-0.5)
-                .foregroundStyle(.black)
+                .foregroundStyle(BBColor.titleBrown)
 
             Text("For \(Int(phaseLength)) Seconds")
                 .font(.system(size: 11))
@@ -319,23 +298,28 @@ struct BoxBreathingView: View {
             .padding(.trailing, 39)
             .padding(.top, 40)
 
-            // Animated badge + confetti burst — same pattern as Mirror Reflection
+            // Use the same completion animation as the guided breathing timer.
             ZStack {
-                BBConfettiBurst(radius: 140)
-                BBCompletionBadge(size: 190)
+                Circle()
+                    .stroke(BBColor.lime, lineWidth: 14)
+                    .frame(width: 270, height: 270)
+                Circle()
+                    .fill(BBColor.lime.opacity(0.58))
+                    .frame(width: 230, height: 230)
+                MokoLottieView(animationType: .complete, size: 210)
             }
-            .frame(width: 320, height: 320)
+            .frame(width: 270, height: 270)
             .accessibilityHidden(true)
 
             Text("You did it!")
                 .font(.system(size: 22, weight: .bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(BBColor.titleBrown)
                 .padding(.top, 8)
 
             Text("You took a moment to pause, breathe, and find your calm. Be proud of yourself for showing up!")
                 .font(.system(size: 16))
                 .multilineTextAlignment(.center)
-                .foregroundStyle(.black)
+                .foregroundStyle(BBColor.titleBrown)
                 .padding(.horizontal, 34)
                 .padding(.top, 12)
 
@@ -344,7 +328,6 @@ struct BoxBreathingView: View {
             HStack(spacing: 25) {
                 BreathingPillButton(title: "Complete") {
                     onComplete()
-                    dismiss()
                 }
                 .frame(width: 192)
 
@@ -470,7 +453,7 @@ private struct BBCompletionBadge: View {
     @State private var ripple = false
 
     private let softGreen  = Color(red: 120/255, green: 165/255, blue: 140/255)
-    private let mint       = Color(red: 203/255, green: 230/255, blue: 211/255)
+    private let mint       = Color(red: 226/255, green: 245/255, blue: 177/255)
     private let cream      = Color(red: 252/255, green: 248/255, blue: 240/255)
 
     var body: some View {

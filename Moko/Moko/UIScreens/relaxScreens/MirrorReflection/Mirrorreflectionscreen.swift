@@ -9,24 +9,19 @@
 import SwiftUI
 
 struct MirrorReflectionScreen: View {
-    enum Option {
+    enum Option: Hashable {
         case mirror
         case camera
     }
 
     /// Fires when the user picks one of the two options.
     var onSelectOption: ((Option) -> Void)? = nil
-    /// Back button action. Defaults to dismissing the screen.
-    var onBack: (() -> Void)? = nil
-
-    @Environment(\.dismiss) private var dismiss
 
     // Palette matching the rest of the app
-    private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255)   // #F2F2F7
+    private let screenBg = Color(red: 246/255, green: 250/255, blue: 232/255) // pale lime
     private let cardGreen = Color(red: 54/255, green: 89/255, blue: 72/255)     // #365948
-    private let titleDark = Color(red: 47/255, green: 42/255, blue: 40/255)     // #2F2A28
+    private let titleDark = Color(red: 92/255, green: 67/255, blue: 48/255)    // warm brown
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
-    private let chipBg = Color(red: 237/255, green: 237/255, blue: 237/255)     // #EDEDED
 
     var body: some View {
         ZStack {
@@ -34,10 +29,6 @@ struct MirrorReflectionScreen: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
-                    topBar
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
-
                     header
                         .padding(.horizontal, 24)
                         .padding(.top, 18)
@@ -83,28 +74,6 @@ struct MirrorReflectionScreen: View {
     }
 
     // MARK: - Top bar and header
-    private var topBar: some View {
-        HStack {
-            Button {
-                if let onBack {
-                    onBack()
-                } else {
-                    dismiss()
-                }
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.black)
-                    .frame(width: 38, height: 38)
-                    .background(Circle().fill(chipBg))
-                    .contentShape(Circle())
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-        }
-    }
-
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Mirror Reflection")

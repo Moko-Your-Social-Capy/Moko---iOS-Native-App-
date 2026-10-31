@@ -4,13 +4,14 @@
 //
 //  Guided breathing timer. One screen with four states:
 //  idle (Start) -> running (pause / reset) -> paused (play / reset) -> completed.
-//  The ring fills as the session runs, and the dot pattern inside breathes
-//  in and out: 4s inhale, 6s exhale.
+//  The progress ring fills during the session; the capybara follows a 4s inhale / 6s exhale rhythm.
+//  When the timer completes, a looping green pulse-and-check Lottie replaces the capybara.
 //
 
 import SwiftUI
 import SwiftData
 import Combine
+import Lottie
 
 struct BreathingSessionScreen: View {
     let minutes: Int
@@ -34,14 +35,12 @@ struct BreathingSessionScreen: View {
     private let inhaleDuration: TimeInterval = 4
     private let exhaleDuration: TimeInterval = 6
 
-    // Palette matching the rest of the app
-    private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255)   // #F2F2F7
-    private let cardGreen = Color(red: 54/255, green: 89/255, blue: 72/255)     // #365948
-    private let trackGreen = Color(red: 203/255, green: 230/255, blue: 211/255) // light ring track
-    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
-    private let chipBg = Color(red: 237/255, green: 237/255, blue: 237/255)     // #EDEDED
-    private let cream = Color(red: 252/255, green: 248/255, blue: 240/255)
-    private let mist = Color(red: 214/255, green: 233/255, blue: 216/255)       // #D6E9D8
+    // A soft lime palette with a deep green accent.
+    private let screenBg = Color(red: 0.96, green: 0.98, blue: 0.91)
+    private let cardGreen = Color(red: 0.24, green: 0.38, blue: 0.20)
+    private let subtextGray = Color(red: 0.36, green: 0.39, blue: 0.31)
+    private let cream = Color(red: 0.99, green: 1.00, blue: 0.95)
+    private let mist = Color(red: 0.90, green: 0.96, blue: 0.72)
 
     init(minutes: Int, onFinish: (() -> Void)? = nil, previewCompleted: Bool = false) {
         self.minutes = max(1, minutes)
@@ -98,17 +97,16 @@ struct BreathingSessionScreen: View {
 
     // MARK: - Body
     var body: some View {
-        // Foreground only. Moko lives in .background so it can never change the layout size.
-        VStack(spacing: 14) {
+        VStack(spacing: 0) {
             header
-            phaseCard
-            Spacer(minLength: 0)
+            Spacer(minLength: 12)
+            breathingFocus
+            Spacer(minLength: 12)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 22)
         .padding(.top, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background { mokoBackground }
-        // Timer + controls sit above the home indicator, always fully visible
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(screenBg.ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomPanel
         }
@@ -120,50 +118,65 @@ struct BreathingSessionScreen: View {
         }
         .sensoryFeedback(trigger: runState) { oldState, newState in
             switch (oldState, newState) {
-            case (_, .completed):
-                return .success
-
-            case (.idle, .running):
-                return .impact(weight: .medium)
-
-            default:
-                return .impact(weight: .light)
+            case (_, .completed): return .success
+            case (.idle, .running): return .impact(weight: .medium)
+            default: return .impact(weight: .light)
             }
         }
     }
 
-    /// Animation is 600x750; showing it at that ratio means Moko is never cropped or oversized.
-    private var mokoBackground: some View {
-        ZStack {
-            mist.ignoresSafeArea()      // same colour as the animation's background
-            MokoLottieView(animationType: .meditation, size: nil)
-                .aspectRatio(600.0 / 750.0, contentMode: .fit)
-                .frame(maxWidth: .infinity)
-                .offset(y: -30)
-                .clipped()
-        }
-    }
+    /// Keeps Moko as the calm focal point, with generous space around the animation.
+    private var breathingFocus: some View {
+        VStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(mist.opacity(0.58))
+                    .frame(width: 250, height: 250)
+                Circle()
+                    .stroke(cardGreen.opacity(0.12), lineWidth: 5)
+                    .frame(width: 270, height: 270)
 
-    // MARK: - Phase card
-    private var phaseCard: some View {
-        VStack(spacing: 6) {
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(
+                        cardGreen,
+                        style: StrokeStyle(lineWidth: 7, lineCap: .round)
+                    )
+                    .frame(width: 270, height: 270)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 1.0 / 30.0), value: progress)
+                    .accessibilityLabel("Session progress, \(Int(progress * 100)) percent")
+
+                Group {
+                    if runState == .completed {
+                        CompletionPulseLottieView()
+                            .frame(width: 250, height: 250)
+                            .transition(.scale(scale: 0.92).combined(with: .opacity))
+                    } else {
+                        MokoLottieView(animationType: .meditation, size: 200)
+                            .frame(width: 200, height: 200)
+                    }
+                }
+                .animation(.easeInOut(duration: 0.24), value: runState)
+            }
+            .frame(maxWidth: .infinity)
+            .accessibilityLabel(runState == .completed ? "Breathing session complete" : "Moko breathing animation")
+
             Text(phaseTitle)
-                .font(.system(size: 26, weight: .bold))
-                .foregroundColor(.black)
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .foregroundStyle(cardGreen)
+                .contentTransition(.opacity)
 
             Text(phaseHint)
                 .font(.system(size: 15))
-                .foregroundColor(subtextGray)
+                .foregroundStyle(subtextGray)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: 300)
         }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 20)
         .frame(maxWidth: .infinity)
-        .background {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(cream.opacity(0.9))
-        }
+        .padding(.vertical, 12)
+        .animation(.easeInOut(duration: 0.25), value: phaseTitle)
     }
 
     // MARK: - Bottom panel (timer + controls)
@@ -182,7 +195,7 @@ struct BreathingSessionScreen: View {
         .frame(maxWidth: .infinity)
         .background {
             RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(cream.opacity(0.94))
+                .fill(cream.opacity(0.96))
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
@@ -222,8 +235,11 @@ struct BreathingSessionScreen: View {
 
             case .completed:
                 primaryButton("Complete") {
-                    onFinish?()
-                    dismiss()
+                    if let onFinish {
+                        onFinish()
+                    } else {
+                        dismiss()
+                    }
                 }
             }
         }
@@ -299,4 +315,79 @@ struct BreathingSessionScreen: View {
 
 #Preview("Completed") {
     NavigationStack { BreathingSessionScreen(minutes: 1, previewCompleted: true) }
+}
+
+
+/// Plays the transparent green completion Lottie in a fixed, clipped viewport.
+private struct CompletionPulseLottieView: UIViewRepresentable {
+    private let animationName = "MokoComplete"
+
+    final class Coordinator {
+        weak var animationView: LottieAnimationView?
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIView(context: Context) -> UIView {
+        let container = UIView()
+        container.backgroundColor = .clear
+        container.clipsToBounds = true
+
+        let paths: [String?] = [
+            "Resources/Animations",
+            "Animations",
+            nil
+        ]
+
+        for path in paths {
+            guard let animation = LottieAnimation.named(
+                animationName,
+                bundle: .main,
+                subdirectory: path
+            ) else {
+                continue
+            }
+
+            let animationView = LottieAnimationView(
+                animation: animation,
+                configuration: LottieConfiguration(renderingEngine: .mainThread)
+            )
+            animationView.translatesAutoresizingMaskIntoConstraints = false
+            animationView.contentMode = .scaleAspectFit
+            animationView.loopMode = .loop
+            animationView.backgroundBehavior = .pauseAndRestore
+            animationView.backgroundColor = .clear
+            animationView.clipsToBounds = true
+            context.coordinator.animationView = animationView
+
+            container.addSubview(animationView)
+            NSLayoutConstraint.activate([
+                animationView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                animationView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                animationView.topAnchor.constraint(equalTo: container.topAnchor),
+                animationView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            ])
+
+            print("MOKO SUCCESS: Loaded completion animation \(animationName) from \(path ?? "Bundle Root")")
+            return container
+        }
+
+        print("MOKO ERROR: Could not find completion animation: \(animationName).json")
+        return container
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        // Start after SwiftUI has inserted the representable, and recover if the
+        // completion view is updated while the session is already complete.
+        guard let animationView = context.coordinator.animationView,
+              let animation = animationView.animation,
+              !animationView.isAnimationPlaying else { return }
+        animationView.play(
+            fromFrame: animation.startFrame,
+            toFrame: animation.endFrame,
+            loopMode: .loop
+        )
+    }
 }
