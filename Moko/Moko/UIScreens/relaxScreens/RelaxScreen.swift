@@ -159,7 +159,10 @@ struct RelaxScreen: View {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
 
+                    headerSection
+
                     breathingCard
+                        .padding(.horizontal, 16)
 
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Guided Sessions")
@@ -172,14 +175,14 @@ struct RelaxScreen: View {
                             }
                         }
                     }
+                    .padding(.horizontal, 16)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
                 .padding(.bottom, 24)
             }
             .background(screenBg)
+            // Matches the other tab headers (Overview, Quests and Quest Library).
             .navigationTitle("Relax")
-            .navigationBarTitleDisplayMode(.large)
+            .toolbar(.hidden, for: .navigationBar)
             .sheet(item: $activeSheet, onDismiss: {
                 if pendingBreathing {
                     pendingBreathing = false
@@ -345,6 +348,15 @@ struct RelaxScreen: View {
     private func popRelaxRoute() {
         guard !navigationPath.isEmpty else { return }
         navigationPath.removeLast()
+    }
+
+    // MARK: - Header
+    private var headerSection: some View {
+        Text("Relax")
+            .font(.system(size: 34, weight: .bold))
+            .foregroundColor(.black)
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
     }
 
     // MARK: - Breathing Card

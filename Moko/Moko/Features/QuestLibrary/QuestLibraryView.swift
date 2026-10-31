@@ -76,18 +76,21 @@ struct QuestLibraryView: View {
                 Color(hex: 0xF2F2F7)
                     .ignoresSafeArea()
 
-                if filteredSections.isEmpty {
-                    ContentUnavailableView.search(text: searchText)
-                } else {
-                    ScrollView(.vertical) {
-                        VStack(alignment: .leading, spacing: 30) {
+                ScrollView(.vertical) {
+                    VStack(alignment: .leading, spacing: 30) {
+                        headerSection
+
+                        if filteredSections.isEmpty {
+                            ContentUnavailableView.search(text: searchText)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 40)
+                        } else {
                             ForEach(filteredSections) { section in
                                 sectionView(for: section)
                             }
                         }
-                        .padding(.top, 8)
-                        .padding(.bottom, 16)
                     }
+                    .padding(.bottom, 16)
                 }
 
                 if let addedToast {
@@ -97,7 +100,7 @@ struct QuestLibraryView: View {
                         alreadyAdded: addedToast.alreadyAdded
                     )
                     .padding(.horizontal, 16)
-                    .padding(.top, 6)
+                    .padding(.top, 56)
                     .id(addedToast.id)
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(1)
@@ -115,8 +118,9 @@ struct QuestLibraryView: View {
                 } catch {}
             }
             .sensoryFeedback(.success, trigger: addFeedback)
+            // Matches the Overview, Quests and Relax tab headers.
             .navigationTitle("Quest Library")
-            .navigationBarTitleDisplayMode(.large)
+            .toolbar(.hidden, for: .navigationBar)
             .searchable(
                 text: $searchText,
                 placement: .navigationBarDrawer(displayMode: .always)
@@ -125,6 +129,15 @@ struct QuestLibraryView: View {
         .fullScreenCover(item: $openedQuest) { quest in
             QuestDetailScreen(quest: quest)
         }
+    }
+
+    // MARK: - Header
+    private var headerSection: some View {
+        Text("Quest Library")
+            .font(.system(size: 34, weight: .bold))
+            .foregroundColor(.black)
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
     }
 
     // MARK: - Section View
