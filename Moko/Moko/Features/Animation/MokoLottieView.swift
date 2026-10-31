@@ -1,52 +1,66 @@
-
 import SwiftUI
 import Lottie
 
 struct MokoLottieView: UIViewRepresentable {
 
     let animationType: MokoAnimationType
-    let size: CGFloat
+    let size: CGFloat?
 
     init(
         animationType: MokoAnimationType = .hello,
-        size: CGFloat = 280
+        size: CGFloat? = 280
     ) {
         self.animationType = animationType
         self.size = size
     }
 
-    
     func makeUIView(context: Context) -> LottieAnimationView {
 
-        let animation = LottieAnimation.named(
-            animationType.lottieName,
-            bundle: .main,
-            subdirectory: "Resources/Animations"
-        )
+        let name = animationType.lottieName
 
-        let animationView = LottieAnimationView(
-            animation: animation
-        )
+        let paths: [String?] = [
+            "Resources/Animations",
+            "Animations",
+            nil
+        ]
 
-        animationView.contentMode = .scaleAspectFit
-        animationView.loopMode = animationType.loopMode
-        animationView.backgroundBehavior = .pauseAndRestore
-        animationView.backgroundColor = .clear
+        for path in paths {
 
-        if animation != nil {
-            animationView.play()
-            print("MOKO: Animation loaded: \(animationType.lottieName)")
-        } else {
-            print("MOKO ERROR: Animation not found: \(animationType.lottieName)")
+            if let animation = LottieAnimation.named(
+                name,
+                bundle: .main,
+                subdirectory: path
+            ) {
+
+                print("MOKO SUCCESS: Loaded \(name)")
+                print("MOKO PATH: \(path ?? "Bundle Root")")
+
+                let view = LottieAnimationView(animation: animation)
+
+                view.contentMode = size == nil
+                    ? .scaleAspectFill
+                    : .scaleAspectFit
+
+                view.loopMode = animationType.loopMode
+                view.backgroundBehavior = .pauseAndRestore
+                view.backgroundColor = .clear
+                view.clipsToBounds = true
+
+                view.play()
+
+                return view
+            }
         }
 
-        return animationView
+        print("MOKO ERROR: Could not find animation: \(name)")
+
+        return LottieAnimationView()
     }
 
     func updateUIView(
         _ uiView: LottieAnimationView,
         context: Context
     ) {
-        // Playback updates can be added here.
+        // SwiftUI controls the actual view dimensions.
     }
 }
