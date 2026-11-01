@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct RadarInfoSheet: View {
-    /// Called when "View my insights" is tapped (the sheet then closes itself).
+    /// Called when "Continue" is tapped (the sheet then closes itself).
     var onViewInsights: () -> Void = {}
 
     @Environment(\.dismiss) private var dismiss
@@ -49,8 +49,9 @@ struct RadarInfoSheet: View {
                     onViewInsights()
                     dismiss()
                 } label: {
-                    Text("View my insights")
+                    Text("Continue")
                         .font(.headline)
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 25)
                 }

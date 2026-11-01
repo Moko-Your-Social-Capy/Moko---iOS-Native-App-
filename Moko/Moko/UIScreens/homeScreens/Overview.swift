@@ -192,14 +192,9 @@ struct Overview: View {
         }
     }
 
-    /// The quest's own notes are its description. Library quests have no notes,
-    /// so they get a short line built from their real category and intensity.
+    /// A short line built from the quest's category and intensity. Private quest
+    /// notes are not shown on the Overview card.
     private func missionDescription(for quest: Quest) -> String {
-        let notes = quest.notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !notes.isEmpty {
-            return notes
-        }
-
         return "A \(quest.intensity.rawValue.lowercased()) \(quest.category.rawValue.lowercased()) quest. Take your time and go at your pace."
     }
 
