@@ -8,10 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		2979228A3089E3990016BAEE /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 297922893089E3990016BAEE /* Auth */; };
-		2979228C3089E3990016BAEE /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 2979228B3089E3990016BAEE /* Functions */; };
-		2979228E3089E3990016BAEE /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 2979228D3089E3990016BAEE /* PostgREST */; };
-		297922903089E3990016BAEE /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 2979228F3089E3990016BAEE /* Realtime */; };
-		297922923089E3990016BAEE /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 297922913089E3990016BAEE /* Storage */; };
 		297922943089E3990016BAEE /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 297922933089E3990016BAEE /* Supabase */; };
 		297922A33089EFF00016BAEE /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 297922A23089EFF00016BAEE /* GoogleSignIn */; };
 		297922A53089EFF00016BAEE /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 297922A43089EFF00016BAEE /* GoogleSignInSwift */; };
@@ -55,14 +51,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2979228E3089E3990016BAEE /* PostgREST in Frameworks */,
-				2979228C3089E3990016BAEE /* Functions in Frameworks */,
 				297922943089E3990016BAEE /* Supabase in Frameworks */,
 				297922A53089EFF00016BAEE /* GoogleSignInSwift in Frameworks */,
 				297922B1308A00000016BAEE /* Lottie in Frameworks */,
 				2979228A3089E3990016BAEE /* Auth in Frameworks */,
-				297922923089E3990016BAEE /* Storage in Frameworks */,
-				297922903089E3990016BAEE /* Realtime in Frameworks */,
 				297922A33089EFF00016BAEE /* GoogleSignIn in Frameworks */,
 				A1B2C3D4E5F60718293A4B5E /* RiveRuntime in Frameworks */,
 			);
@@ -108,10 +100,6 @@
 			name = Moko;
 			packageProductDependencies = (
 				297922893089E3990016BAEE /* Auth */,
-				2979228B3089E3990016BAEE /* Functions */,
-				2979228D3089E3990016BAEE /* PostgREST */,
-				2979228F3089E3990016BAEE /* Realtime */,
-				297922913089E3990016BAEE /* Storage */,
 				297922933089E3990016BAEE /* Supabase */,
 				297922A23089EFF00016BAEE /* GoogleSignIn */,
 				297922A43089EFF00016BAEE /* GoogleSignInSwift */,
@@ -436,26 +424,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 297922803089E1680016BAEE /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Auth;
-		};
-		2979228B3089E3990016BAEE /* Functions */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 297922803089E1680016BAEE /* XCRemoteSwiftPackageReference "supabase-swift" */;
-			productName = Functions;
-		};
-		2979228D3089E3990016BAEE /* PostgREST */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 297922803089E1680016BAEE /* XCRemoteSwiftPackageReference "supabase-swift" */;
-			productName = PostgREST;
-		};
-		2979228F3089E3990016BAEE /* Realtime */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 297922803089E1680016BAEE /* XCRemoteSwiftPackageReference "supabase-swift" */;
-			productName = Realtime;
-		};
-		297922913089E3990016BAEE /* Storage */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 297922803089E1680016BAEE /* XCRemoteSwiftPackageReference "supabase-swift" */;
-			productName = Storage;
 		};
 		297922933089E3990016BAEE /* Supabase */ = {
 			isa = XCSwiftPackageProductDependency;
