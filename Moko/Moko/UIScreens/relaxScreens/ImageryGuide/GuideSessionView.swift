@@ -64,6 +64,9 @@ struct GuideSessionView: View {
         }
         .navigationTitle(guide.title)
         .navigationBarTitleDisplayMode(.inline)
+        // Immersive session: give the guidance panel the full screen. The system
+        // brings the tab bar back when the user pops this screen.
+        .toolbar(.hidden, for: .tabBar)
         .onReceive(ticker) { date in
             let dt = min(date.timeIntervalSince(lastTick), 0.5)
             lastTick = date

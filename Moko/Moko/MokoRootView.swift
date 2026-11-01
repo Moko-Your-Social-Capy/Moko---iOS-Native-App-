@@ -58,6 +58,9 @@ struct MokoRootView: View {
 
         // Native iOS tab bar minimization
         .tabBarMinimizeBehavior(.onScrollDown)
+        // iOS 27 otherwise keeps the .search tab glued to the other tabs.
+        // This restores the default 3-tabs + detached search button.
+        .tabViewSearchActivation(.searchTabSelection)
         .foregroundStyle(MokoTheme.titleBrown)
 
         // MOKO Forest Green

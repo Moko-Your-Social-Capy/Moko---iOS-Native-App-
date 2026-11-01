@@ -13,11 +13,9 @@ struct ImageryGuide: Identifiable, Hashable {
     var sessionImageShift: CGFloat = 0  // nudges the photo left (-) or right (+) to match the design
     var sessionImageScale: CGFloat = 1  // zooms the photo in from the top edge to match the design
     var steps: [String]? = nil          // instructions shown during the 2 minutes
-    var detailSubtitle: String? = nil   // subtitle on the detail screen
     var completionText: String? = nil   // message on the "You did it!" screen
 
     var detailDescription: String { detailText ?? description }
-    var detailHeaderSubtitle: String { detailSubtitle ?? "Breathing and guided imagery paired together" }
     var completionMessage: String {
         completionText ?? "You took a moment to slow down, breathe, and imagine a place where you feel at peace."
     }
@@ -43,8 +41,7 @@ struct ImageryGuide: Identifiable, Hashable {
                         "Picture a comfortable room. Notice the soft light on the walls.",
                         "Notice the soft sofa and the warm blanket. Let your body settle.",
                         "Take one slow breath. When you are ready, come back to the room."
-                     ],
-                     detailSubtitle: "A gentle guided visualization"),
+                     ]),
         ImageryGuide(id: "calm-garden",
                      title: "A Calm Garden",
                      description: "Imagine a peaceful garden with gentle sounds, fresh air, and greenery all around you.",

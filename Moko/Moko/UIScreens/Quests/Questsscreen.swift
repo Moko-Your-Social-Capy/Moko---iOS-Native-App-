@@ -13,13 +13,11 @@ import SwiftData
 
 private enum QuestsRoute: Identifiable {
     case newQuest
-    case detail(Quest)
     case edit(Quest)
 
     var id: String {
         switch self {
         case .newQuest:           return "new"
-        case .detail(let quest):  return "detail-\(quest.id.uuidString)"
         case .edit(let quest):    return "edit-\(quest.id.uuidString)"
         }
     }
@@ -34,6 +32,7 @@ struct QuestsScreen: View {
     /// nil means "All"
     @State private var filter: QuestCategory?
     @State private var route: QuestsRoute?
+    @State private var detailQuest: Quest?
 
     private let chipOptions: [QuestCategory?] = [nil] + QuestCategory.allCases.map { Optional($0) }
 
@@ -62,34 +61,38 @@ struct QuestsScreen: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            QuestStyle.screenBg
-                .ignoresSafeArea()
+        NavigationStack {
+            ZStack(alignment: .bottomTrailing) {
+                QuestStyle.screenBg
+                    .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Quest")
-                    .font(.system(size: 34, weight: .bold))
-                    .foregroundColor(MokoTheme.titleBrown)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 14)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Quest")
+                        .font(.system(size: 34, weight: .bold))
+                        .foregroundColor(MokoTheme.titleBrown)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 14)
 
-                filterBar
-                    .padding(.top, 22)
+                    filterBar
+                        .padding(.top, 22)
 
-                content
+                    content
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+
+                addButton
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 20)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-
-            addButton
-                .padding(.trailing, 20)
-                .padding(.bottom, 20)
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(item: $detailQuest) { quest in
+                QuestDetailScreen(quest: quest)
+            }
         }
         .fullScreenCover(item: $route) { destination in
             switch destination {
             case .newQuest:
                 NewQuestScreen()
-            case .detail(let quest):
-                QuestDetailScreen(quest: quest)
             case .edit(let quest):
                 NewQuestScreen(quest: quest)
             }
@@ -260,7 +263,7 @@ struct QuestsScreen: View {
                     label: "Open quest",
                     isEnabled: !isDebriefed
                 ) {
-                    route = .detail(quest)
+                    detailQuest = quest
                 }
             }
         }
@@ -273,7 +276,7 @@ struct QuestsScreen: View {
         // Tapping the card itself still opens the quest briefing; the two buttons take priority
         .onTapGesture {
             guard !isDebriefed else { return }
-            route = .detail(quest)
+            detailQuest = quest
         }
         .accessibilityElement(children: .contain)
         .accessibilityHint(isDebriefed ? "Debrief complete" : "")

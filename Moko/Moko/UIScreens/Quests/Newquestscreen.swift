@@ -85,13 +85,16 @@ struct NewQuestScreen: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                Button(isEditing ? "Save Changes" : "Create Quest", action: save)
-                    .buttonStyle(.borderedProminent)
-                    .tint(QuestStyle.deepGreen)
-                    .controlSize(.large)
-                    .disabled(trimmedTitle.isEmpty)
-                    .padding(.horizontal, 28)
-                    .padding(.bottom, 12)
+                Button(action: save) {
+                    Text(isEditing ? "Save Changes" : "Create Quest")
+                        .foregroundStyle(.white)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(QuestStyle.deepGreen)
+                .controlSize(.large)
+                .disabled(trimmedTitle.isEmpty)
+                .padding(.horizontal, 28)
+                .padding(.bottom, 12)
             }
         }
         .tint(QuestStyle.green)
