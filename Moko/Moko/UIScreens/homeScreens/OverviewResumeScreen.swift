@@ -35,8 +35,7 @@ struct OverviewResumeScreen: View {
     }
 
     private var resumeDescription: String {
-        let notes = quest?.notes.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return notes.isEmpty ? "Pick up where you left off and share how it went." : notes
+        "Pick up where you left off and share how it went."
     }
 
     // Palette matching design specifications
