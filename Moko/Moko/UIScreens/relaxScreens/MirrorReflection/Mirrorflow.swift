@@ -408,6 +408,8 @@ struct MirrorTimerScreen: View {
         .safeAreaInset(edge: .bottom) {
             controls
         }
+        // Immersive session: keep the tab bar out of the way.
+        .toolbar(.hidden, for: .tabBar)
         .onReceive(ticker) { now in
             tick(now)
         }
@@ -629,6 +631,8 @@ struct MirrorCompletionScreen: View {
                     .padding(.bottom, 12)
             }
         }
+        // Stays immersive until Done returns to the mirror landing.
+        .toolbar(.hidden, for: .tabBar)
     }
 }
 

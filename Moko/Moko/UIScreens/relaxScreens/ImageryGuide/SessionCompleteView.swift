@@ -57,6 +57,8 @@ struct SessionCompleteView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(hex: 0xF6FAE8).ignoresSafeArea())
+        // Stays immersive until Done returns to the guide list.
+        .toolbar(.hidden, for: .tabBar)
     }
 }
 

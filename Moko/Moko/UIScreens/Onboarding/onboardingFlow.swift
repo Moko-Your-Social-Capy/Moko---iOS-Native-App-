@@ -22,36 +22,43 @@ struct OnboardingFlow: View {
             .navigationDestination(for: OnboardingStep.self) { step in
                 switch step {
                 case .nameEntry:
-                    NameEntryView(
-                        onBack: { path.removeLast() },
-                        onContinue: { name in
-                            userName = name
-                            path.append(.ageEntry)
-                        }
-                    )
-                    .toolbar(.hidden, for: .navigationBar)
+                    NameEntryView { name in
+                        userName = name
+                        path.append(.ageEntry)
+                    }
+                    .onboardingNavigationBar()
 
                 case .ageEntry:
                     AgeEntryView(
                         initialAge: userAge,
-                        onBack: { path.removeLast() },
                         onContinue: { age in
                             userAge = age
                             path.append(.welcome)
                         }
                     )
-                    .toolbar(.hidden, for: .navigationBar)
+                    .onboardingNavigationBar()
 
                 case .welcome:
                     WelcomeView(
                         name: userName,
-                        onBack: { path.removeLast() },
                         onStart: { hasCompletedOnboarding = true }
                     )
-                    .toolbar(.hidden, for: .navigationBar)
+                    .onboardingNavigationBar()
                 }
             }
         }
+        .tint(MokoTheme.forestGreen)
+    }
+}
+
+extension View {
+    /// Shows the system navigation bar (and its default back button) while keeping
+    /// the onboarding background visible.
+    func onboardingNavigationBar() -> some View {
+        self
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
     }
 }
 

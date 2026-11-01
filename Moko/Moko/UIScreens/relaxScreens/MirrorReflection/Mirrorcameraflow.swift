@@ -239,6 +239,8 @@ struct CameraTimerScreen: View {
         .safeAreaInset(edge: .bottom) {
             controls
         }
+        // Immersive session: keep the tab bar out of the way.
+        .toolbar(.hidden, for: .tabBar)
         .onAppear { camera.start() }
         .onDisappear { camera.stop() }
         .onReceive(ticker) { now in

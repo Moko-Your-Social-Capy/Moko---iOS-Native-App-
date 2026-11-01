@@ -137,6 +137,8 @@ struct GroundingExerciseScreen: View {
             value: isCompleted
         )
         .navigationBarTitleDisplayMode(.inline)
+        // Immersive session: keep the tab bar out of the way.
+        .toolbar(.hidden, for: .tabBar)
         .onAppear {
             // Only start the stopwatch once
             if startDate == nil { startDate = Date() }

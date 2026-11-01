@@ -276,7 +276,6 @@ struct RelaxScreen: View {
 
         case .mirrorPrep(let camera):
             mirrorPrepDestination(camera: camera)
-                .navigationTitle("Get ready")
                 .navigationBarTitleDisplayMode(.inline)
 
         case .mirrorTimer(let camera):
@@ -285,14 +284,12 @@ struct RelaxScreen: View {
                     onBack: {},
                     onContinue: { navigationPath.append(.mirrorComplete(camera: true)) }
                 )
-                .navigationTitle("Mirror Reflection")
                 .navigationBarTitleDisplayMode(.inline)
             } else {
                 MirrorTimerScreen(
                     onBack: {},
                     onContinue: { navigationPath.append(.mirrorComplete(camera: false)) }
                 )
-                .navigationTitle("Mirror Reflection")
                 .navigationBarTitleDisplayMode(.inline)
             }
 
