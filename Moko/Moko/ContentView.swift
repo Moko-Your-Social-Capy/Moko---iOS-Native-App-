@@ -54,6 +54,18 @@ struct ContentView: View {
         return !profiles.isEmpty && !onboardingResponses.isEmpty && (onboardingStates.first?.isCompleted == true)
     }
 
+    /// Drives the auth screen as a pushed destination so it inherits the system back button.
+    private var isShowingAuth: Binding<Bool> {
+        Binding(
+            get: { currentScreen == .auth },
+            set: { isShown in
+                if !isShown, currentScreen == .auth {
+                    currentScreen = .intro
+                }
+            }
+        )
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -81,59 +93,48 @@ struct ContentView: View {
                     )
                 )
 
-            // MARK: Intro
+            // MARK: Intro + Authentication
 
-            case .intro:
-                OnboardingIntroView(
-                    onLetsBegin: {
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
-                            currentScreen = .auth
-                        }
+            case .intro, .auth:
+                NavigationStack {
+                    OnboardingIntroView(
+                        onLetsBegin: { currentScreen = .auth }
+                    )
+                    .toolbar(.hidden, for: .navigationBar)
+                    .navigationDestination(isPresented: isShowingAuth) {
+                        OnboardingAuthView(
+                            onAuthenticated: { user in
+                                completeAuthentication(email: user.email ?? "User")
+                            },
+
+                            onContinueWithEmail: { email in
+                                completeAuthentication(email: email)
+                            },
+
+                            onContinueWithApple: {
+                                completeAuthentication(email: "Apple User")
+                            },
+
+                            onContinueWithGoogle: {
+                                Task {
+                                    if let user = try? await auth.getCurrentUser() {
+                                        completeAuthentication(email: user.email ?? "Google User")
+                                    } else {
+                                        completeAuthentication(email: "Google User")
+                                    }
+                                }
+                            }
+                        )
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar(.visible, for: .navigationBar)
+                        .toolbarBackground(.hidden, for: .navigationBar)
                     }
-                )
+                }
+                .tint(MokoTheme.forestGreen)
                 .transition(
                     .asymmetric(
                         insertion: .move(edge: .trailing).combined(with: .opacity),
                         removal: .move(edge: .leading).combined(with: .opacity)
-                    )
-                )
-
-            // MARK: Authentication
-
-            case .auth:
-                OnboardingAuthView(
-                    onAuthenticated: { user in
-                        completeAuthentication(email: user.email ?? "User")
-                    },
-
-                    onContinueWithEmail: { email in
-                        completeAuthentication(email: email)
-                    },
-
-                    onContinueWithApple: {
-                        completeAuthentication(email: "Apple User")
-                    },
-
-                    onContinueWithGoogle: {
-                        Task {
-                            if let user = try? await auth.getCurrentUser() {
-                                completeAuthentication(email: user.email ?? "Google User")
-                            } else {
-                                completeAuthentication(email: "Google User")
-                            }
-                        }
-                    },
-
-                    onBack: {
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
-                            currentScreen = .intro
-                        }
-                    }
-                )
-                .transition(
-                    .asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .move(edge: .trailing).combined(with: .opacity)
                     )
                 )
 
@@ -306,38 +307,34 @@ struct OnboardingFlowContainer: View {
             .navigationDestination(for: OnboardingStep.self) { step in
                 switch step {
                 case .nameEntry:
-                    NameEntryView(
-                        onBack: { path.removeLast() },
-                        onContinue: { name in
-                            userName = name
-                            path.append(.ageEntry)
-                        }
-                    )
-                    .toolbar(.hidden, for: .navigationBar)
+                    NameEntryView { name in
+                        userName = name
+                        path.append(.ageEntry)
+                    }
+                    .onboardingNavigationBar()
 
                 case .ageEntry:
                     AgeEntryView(
                         initialAge: userAge,
-                        onBack: { path.removeLast() },
                         onContinue: { age in
                             userAge = age
                             path.append(.welcome)
                         }
                     )
-                    .toolbar(.hidden, for: .navigationBar)
+                    .onboardingNavigationBar()
 
                 case .welcome:
                     WelcomeView(
                         name: userName,
-                        onBack: { path.removeLast() },
                         onStart: {
                             onComplete(userName, userAge)
                         }
                     )
-                    .toolbar(.hidden, for: .navigationBar)
+                    .onboardingNavigationBar()
                 }
             }
         }
+        .tint(MokoTheme.forestGreen)
     }
 }
 
