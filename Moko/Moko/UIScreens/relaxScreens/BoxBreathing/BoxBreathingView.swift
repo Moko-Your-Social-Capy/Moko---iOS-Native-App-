@@ -131,6 +131,8 @@ struct BoxBreathingView: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        // Immersive session: keep the tab bar out of the way.
+        .toolbar(.hidden, for: .tabBar)
         .task(id: state) { await runClock() }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase != .active && state == .running { pause() }
