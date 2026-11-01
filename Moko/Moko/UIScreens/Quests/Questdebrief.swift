@@ -25,10 +25,10 @@ enum DebriefOutcome {
 
 // MARK: - Style
 enum DebriefStyle {
-    static let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255)  // #F2F2F7
+    static let screenBg = MokoTheme.limeBackground  // #F6FAE8
     static let green = Color(red: 54/255, green: 89/255, blue: 72/255)        // #365948
     static let deepGreen = Color(red: 27/255, green: 66/255, blue: 47/255)    // #1B422F
-    static let title = Color(red: 47/255, green: 42/255, blue: 40/255)        // #2F2A28
+    static let title = MokoTheme.titleBrown        // #5C4330
     static let subtext = Color(red: 111/255, green: 103/255, blue: 98/255)    // #6F6762
     static let cream = Color(red: 251/255, green: 247/255, blue: 238/255)
     static let border = Color(red: 234/255, green: 224/255, blue: 204/255)

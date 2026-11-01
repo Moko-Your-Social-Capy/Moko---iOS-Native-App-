@@ -37,7 +37,7 @@ struct NameEntryView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 38)
         }
-        .background(Color.white.ignoresSafeArea())
+        .background(MokoTheme.limeBackground.ignoresSafeArea())
         .contentShape(Rectangle())
         .task { isFocused = true }
     }

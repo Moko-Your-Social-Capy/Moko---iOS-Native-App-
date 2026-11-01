@@ -63,6 +63,8 @@ final class Quest {
     /// Set when the user taps the check on the quest card. The default value lets SwiftData
     /// add this column to quests that were saved before it existed.
     var isCompleted: Bool = false
+    /// Actual completion time, used for streak and time-based achievements.
+    var completedAt: Date?
     /// True once this quest's XP and streak have been added to the Profile.
     var xpAwarded: Bool = false
     /// True once this quest's debrief scores have been saved as an Insights entry.
@@ -90,6 +92,7 @@ final class Quest {
         self.date = date
         self.createdAt = Date()
         self.isCompleted = false
+        self.completedAt = nil
         self.xpAwarded = false
         self.debriefRecorded = false
         self.xp = xp
@@ -158,13 +161,13 @@ enum MokoDatabase {
 
 // MARK: - Shared style
 enum QuestStyle {
-    static let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255)  // #F2F2F7
+    static let screenBg = MokoTheme.limeBackground  // #F6FAE8
     static let green = Color(red: 54/255, green: 89/255, blue: 72/255)        // #365948
     static let deepGreen = Color(red: 27/255, green: 66/255, blue: 47/255)    // #1B422F
-    static let title = Color(red: 47/255, green: 42/255, blue: 40/255)        // #2F2A28
+    static let title = MokoTheme.titleBrown        // #5C4330
     static let subtext = Color(red: 111/255, green: 103/255, blue: 98/255)    // #6F6762
-    static let chipSelectedFill = Color(red: 221/255, green: 231/255, blue: 224/255)
-    static let chipSelectedBorder = Color(red: 128/255, green: 156/255, blue: 140/255)
+    static let chipSelectedFill = MokoTheme.limeSelected
+    static let chipSelectedBorder = Color(red: 193.0 / 255.0, green: 220.0 / 255.0, blue: 133.0 / 255.0)
     static let divider = Color.black.opacity(0.08)
 }
 

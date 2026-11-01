@@ -266,7 +266,7 @@ struct CameraTimerScreen: View {
                 )
 
             if runState == .completed {
-                MirrorCompletionBadge(size: 170, showRipples: false)
+                MokoCompletionAnimation(ringDiameter: 150)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 cameraLayer

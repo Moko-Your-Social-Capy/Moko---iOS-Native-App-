@@ -1,0 +1,7 @@
+name: MokoWelcomeRive
+main: Moko Welcome
+output:
+  dir: ../../Moko/Resources/Animations
+logs:
+  file: build/rive.log
+  problems: build/problems.log

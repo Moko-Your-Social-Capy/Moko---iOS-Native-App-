@@ -36,6 +36,7 @@ struct Overview: View {
     @State private var showRadarInfo: Bool = false      // "How your radar chart works" sheet
     @State private var openInsights: Bool = false       // set by the sheet's button
     @State private var showInsights: Bool = false       // pushes InsightsView
+    @State private var showProfile: Bool = false
 
     private var data: OverviewData {
         OverviewData(insights: insights, calmDowns: calmDowns)
@@ -48,10 +49,10 @@ struct Overview: View {
     }
 
     // Custom Palette based on design specs
-    private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
+    private let screenBg = MokoTheme.limeBackground // #F6FAE8
     private let primaryGreen = Color(red: 27/255, green: 66/255, blue: 47/255) // #1B422F
     private let micGreen = Color(red: 47/255, green: 79/255, blue: 64/255)
-    private let titleDark = Color(red: 47/255, green: 42/255, blue: 40/255) // #2F2A28
+    private let titleDark = MokoTheme.titleBrown // #5C4330
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
 
     var body: some View {
@@ -96,6 +97,11 @@ struct Overview: View {
             }) {
                 RadarInfoSheet(onViewInsights: { openInsights = true })
             }
+            .sheet(isPresented: $showProfile) {
+                ProfileOverView()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
         }
     }
 
@@ -104,13 +110,13 @@ struct Overview: View {
         HStack(alignment: .center) {
             Text("Overview")
                 .font(.system(size: 34, weight: .bold))
-                .foregroundColor(.black)
+                .foregroundColor(MokoTheme.titleBrown)
 
             Spacer()
 
             // Avatar Circle: opens the Profile screen
-            NavigationLink {
-                ProfileOverView()
+            Button {
+                showProfile = true
             } label: {
                 ZStack {
                     Circle()
@@ -128,6 +134,7 @@ struct Overview: View {
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Open profile")
         }
     }
 
@@ -291,7 +298,7 @@ struct Overview: View {
 
                     Image(systemName: "arrow.right")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.black)
+                        .foregroundColor(MokoTheme.titleBrown)
                 }
                 .offset(x: 2.5 + slideOffset)
                 .gesture(

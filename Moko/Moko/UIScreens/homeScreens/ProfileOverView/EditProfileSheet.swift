@@ -15,7 +15,7 @@ import SwiftData
 
 struct ProfileOverViewEditProfile: View {
 
-    private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255)   // #F2F2F7
+    private let screenBg = MokoTheme.limeBackground   // #F6FAE8
     private let deepGreen = Color(red: 27/255, green: 66/255, blue: 47/255)     // #1B422F
 
     @Environment(\.dismiss) private var dismiss

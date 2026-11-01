@@ -108,7 +108,7 @@ struct ReflectionView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .background(Color.white.ignoresSafeArea())
+        .background(MokoTheme.limeBackground.ignoresSafeArea())
         .safeAreaInset(edge: .bottom, spacing: 0) {
             PillButton(title: "Overview", action: onOverview)
                 .padding(.horizontal, 36)

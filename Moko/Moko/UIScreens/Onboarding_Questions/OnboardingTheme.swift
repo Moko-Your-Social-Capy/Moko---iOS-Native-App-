@@ -8,12 +8,12 @@ import SwiftUI
 
 /// Colours pulled straight from the Figma export.
 enum OBColor {
-    static let ink         = Color(hex: 0x292B26)   // title + question text
+    static let ink         = MokoTheme.titleBrown   // title + question text
     static let yes         = Color(hex: 0x2F6E4A)
     static let no          = Color(hex: 0xB9583F)
     static let progressOn  = Color(hex: 0x406A52)
-    static let progressOff = Color(hex: 0xEBDCD5)
-    static let cardFill    = Color(hex: 0xFCF8F0)
+    static let progressOff = MokoTheme.limeSelected
+    static let cardFill    = Color(red: 250.0 / 255.0, green: 253.0 / 255.0, blue: 241.0 / 255.0)
     static let cardStroke  = Color(hex: 0xDED6C7)
     static let muted       = Color(hex: 0x887B75, opacity: 0.8)   // the "of" in "1 of 8"
 }

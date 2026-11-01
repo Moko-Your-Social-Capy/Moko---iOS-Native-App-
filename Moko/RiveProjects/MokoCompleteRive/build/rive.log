@@ -1,0 +1,7 @@
+[09:50:53.303] rive  verified (0 bytes, 22ms, 0 errors, 0 warnings)
+[09:50:53.364] rive  could not write Moko/Resources/Animations/MokoCompleteRive.riv
+[09:50:53.364] rive  built (2294 bytes, 15ms, 0 errors, 0 warnings)
+[09:52:15.069] rive  could not write Moko/Resources/Animations/MokoCompleteRive.riv
+[09:52:15.071] rive  built (2294 bytes, 26ms, 0 errors, 0 warnings)
+[09:53:27.624] rive  built Moko/Resources/Animations/MokoCompleteRive.riv (2294 bytes, 25ms, 0 errors, 0 warnings)
+[09:53:40.867] rive  verified (0 bytes, 22ms, 0 errors, 0 warnings)

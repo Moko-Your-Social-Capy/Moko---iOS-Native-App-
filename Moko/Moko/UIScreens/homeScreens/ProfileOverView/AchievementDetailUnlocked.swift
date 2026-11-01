@@ -1,71 +1,45 @@
-//
-//  ProfileOverViewAchievementDetailUnlocked.swift
-//  Moko
-//
-//  Achievement detail, unlocked (matches the "Achievement · Detail unlocked" prototype).
-//  Push it with:
-//      NavigationLink { ProfileOverViewAchievementDetailUnlocked() } label: { ... }
-//  The NavigationStack gives the default back button, so none is drawn here.
-//
-
 import SwiftUI
 
 struct ProfileOverViewAchievementDetailUnlocked: View {
-
-    private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255)   // #F2F2F7
-    private let cardGreen = Color(red: 54/255, green: 89/255, blue: 72/255)     // #365948
-    private let cream = Color(red: 246/255, green: 232/255, blue: 190/255)
-
-    // Defaults match the prototype; pass other values for other achievements.
-    var title = "30-Streak"
-    var symbol = "trophy"
-    var detail = "Practise 30 days in a row."
-
+    let achievement: Achievement
     @Environment(\.dismiss) private var dismiss
 
+    init(achievement: Achievement) {
+        self.achievement = achievement
+    }
+
     var body: some View {
-        VStack(spacing: 14) {
-            Spacer()
+        VStack(spacing: 16) {
+            Spacer(minLength: 24)
 
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: symbol)
-                    .font(.system(size: 64))
-                    .foregroundStyle(.orange)
-                    .frame(width: 140, height: 140)
-                    .background(Circle().fill(Color.orange.opacity(0.18)))
+            BadgeUnlockRiveView(achievement: achievement)
+            .padding(.bottom, 12)
 
-                Image(systemName: "party.popper.fill")
-                    .font(.title)
-                    .foregroundStyle(.orange)
-                    .frame(width: 80, height: 80)
-                    .background(Circle().fill(cream))
-                    .offset(x: 50, y: -50)
-            }
-            .padding(.bottom, 20)
+            Text(achievement.title)
+                .font(.system(size: 30, weight: .bold, design: .rounded))
+                .foregroundStyle(MokoTheme.titleBrown)
+                .multilineTextAlignment(.center)
 
-            Text(title)
-                .font(.largeTitle.bold())
-
-            Text("Unlocked")
+            Text(achievement.unlocked ? "Earned · \(achievement.tier.title)" : "Locked · \(achievement.tier.title)")
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(achievement.unlocked ? Color(hex: 0x1F7488) : MokoTheme.titleBrown.opacity(0.7))
                 .padding(.horizontal, 16)
-                .padding(.vertical, 6)
-                .background(Capsule().fill(cream))
+                .padding(.vertical, 7)
+                .background(MokoTheme.limeSelected, in: Capsule())
 
-            Text(detail)
-                .font(.title3)
-                .foregroundStyle(.secondary)
-
-            Text("Sample state for design only.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Text(achievement.detail)
+                .font(.system(size: 17))
+                .foregroundStyle(MokoTheme.bodyBrown)
+                .multilineTextAlignment(.center)
+                .lineSpacing(4)
+                .padding(.horizontal, 28)
 
             Spacer()
             Spacer()
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 24)
-        .background(screenBg)
+        .background(MokoTheme.limeBackground.ignoresSafeArea())
         .safeAreaInset(edge: .bottom) {
             Button {
                 dismiss()
@@ -75,7 +49,7 @@ struct ProfileOverViewAchievementDetailUnlocked: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(cardGreen)
+            .tint(MokoTheme.forestGreen)
             .controlSize(.large)
             .buttonBorderShape(.capsule)
             .padding(.horizontal, 24)
@@ -87,6 +61,16 @@ struct ProfileOverViewAchievementDetailUnlocked: View {
 
 #Preview {
     NavigationStack {
-        ProfileOverViewAchievementDetailUnlocked()
+        ProfileOverViewAchievementDetailUnlocked(
+            achievement: Achievement(
+                id: 6,
+                title: "One Month",
+                detail: "Practise on thirty consecutive days.",
+                symbol: "calendar",
+                shape: .streak,
+                tier: .two,
+                unlocked: true
+            )
+        )
     }
 }

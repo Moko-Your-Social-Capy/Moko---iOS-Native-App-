@@ -69,7 +69,7 @@ struct QuestsScreen: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text("Quest")
                     .font(.system(size: 34, weight: .bold))
-                    .foregroundColor(.black)
+                    .foregroundColor(MokoTheme.titleBrown)
                     .padding(.horizontal, 20)
                     .padding(.top, 14)
 
@@ -128,7 +128,7 @@ struct QuestsScreen: View {
                 Text(option?.rawValue ?? "All")
                     .font(.system(size: 12, weight: .medium))
             }
-            .foregroundColor(isSelected ? QuestStyle.green : QuestStyle.subtext)
+            .foregroundColor(isSelected ? MokoTheme.titleBrown : QuestStyle.subtext)
             .padding(.horizontal, 12)
             .frame(height: 32)
             .background(Capsule().fill(isSelected ? QuestStyle.chipSelectedFill : Color.white))

@@ -38,6 +38,7 @@ struct QuestLibraryView: View {
 
     // MARK: - Properties
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query private var savedQuests: [Quest]
     @State private var searchText: String = ""
     @State private var openedQuest: Quest?
@@ -74,7 +75,7 @@ struct QuestLibraryView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                Color(hex: 0xF2F2F7)
+                MokoTheme.limeBackground
                     .ignoresSafeArea()
 
                 ScrollView(.vertical) {
@@ -86,8 +87,8 @@ struct QuestLibraryView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.top, 40)
                         } else {
-                            ForEach(filteredSections) { section in
-                                sectionView(for: section)
+                            ForEach(Array(filteredSections.enumerated()), id: \.element.id) { sectionIndex, section in
+                                sectionView(for: section, sectionIndex: sectionIndex)
                             }
                         }
                     }
@@ -136,26 +137,28 @@ struct QuestLibraryView: View {
     private var headerSection: some View {
         Text("Quest Library")
             .font(.system(size: 34, weight: .bold))
-            .foregroundColor(.black)
+            .foregroundColor(MokoTheme.titleBrown)
             .padding(.horizontal, 20)
             .padding(.top, 14)
     }
 
     // MARK: - Section View
     @ViewBuilder
-    private func sectionView(for section: QuestSection) -> some View {
+    private func sectionView(for section: QuestSection, sectionIndex: Int) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             // Heading: size 22, weight medium, colour #111827, 20pt left padding
             Text(section.title)
                 .font(.system(size: 22, weight: .medium))
-                .foregroundStyle(Color(hex: 0x111827))
+                .foregroundStyle(MokoTheme.titleBrown)
                 .padding(.leading, 20)
 
             // Horizontal scroll with snapping
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 14) {
-                    ForEach(section.quests) { quest in
+                    ForEach(Array(section.quests.enumerated()), id: \.element.id) { questIndex, quest in
+                        let firstCardIndex = filteredSections.prefix(sectionIndex).reduce(0) { $0 + $1.quests.count }
                         situationCard(for: quest, in: section)
+                            .questCardEntrance(order: firstCardIndex + questIndex, reduceMotion: reduceMotion)
                     }
                 }
                 .scrollTargetLayout()
@@ -208,7 +211,7 @@ struct QuestLibraryView: View {
             // 2. Title: size 16, weight medium, colour #111827, max 2 lines, left aligned, min height 39, 5pt above it
             Text(quest.title)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(Color(hex: 0x111827))
+                .foregroundStyle(MokoTheme.titleBrown)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, minHeight: 39, alignment: .topLeading)
@@ -455,6 +458,31 @@ private struct QuestAddedBanner: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct QuestCardEntranceModifier: ViewModifier {
+    let order: Int
+    let reduceMotion: Bool
+    @State private var isVisible = false
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(order < 6 && !isVisible ? 0 : 1)
+            .offset(y: order < 6 && !reduceMotion && !isVisible ? 12 : 0)
+            .onAppear {
+                guard order < 6, !isVisible else { return }
+                let animation = reduceMotion
+                    ? Animation.easeInOut(duration: 0.2)
+                    : Animation.spring(response: 0.42, dampingFraction: 0.86).delay(Double(order) * 0.04)
+                withAnimation(animation) { isVisible = true }
+            }
+    }
+}
+
+private extension View {
+    func questCardEntrance(order: Int, reduceMotion: Bool) -> some View {
+        modifier(QuestCardEntranceModifier(order: order, reduceMotion: reduceMotion))
     }
 }
 

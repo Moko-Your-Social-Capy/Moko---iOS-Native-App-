@@ -294,7 +294,7 @@ struct GroundingExerciseScreen: View {
 
                 Text("Everyday anchors")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.black)
+                    .foregroundColor(MokoTheme.titleBrown)
             }
 
             Text(currentStep.examples)
@@ -424,20 +424,8 @@ struct GroundingExerciseScreen: View {
 
             Spacer(minLength: 16)
 
-            // Match the breathing completion ring dimensions and colors.
-            ZStack {
-                Circle()
-                    .stroke(lime, lineWidth: 14)
-                    .frame(width: 270, height: 270)
-
-                Circle()
-                    .fill(lime.opacity(0.55))
-                    .frame(width: 236, height: 236)
-
-                MokoLottieView(animationType: .complete, size: 210)
-                    .transition(.scale(scale: 0.6).combined(with: .opacity))
-            }
-            .frame(width: 270, height: 270)
+            MokoCompletionAnimation(ringDiameter: 190)
+                .transition(.scale(scale: 0.6).combined(with: .opacity))
 
             VStack(spacing: 8) {
                 Text("Well done")

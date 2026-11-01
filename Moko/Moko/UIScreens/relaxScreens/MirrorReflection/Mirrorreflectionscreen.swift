@@ -186,7 +186,7 @@ struct MirrorHero: View {
 
                     Text("Meet Your Eyes")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.black)
+                        .foregroundColor(MokoTheme.titleBrown)
                         .padding(.top, 4)
 
                     Text("Quiet presence")

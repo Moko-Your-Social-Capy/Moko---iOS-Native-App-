@@ -59,7 +59,7 @@ struct OnboardingDoneView: View {
                 .padding(.bottom, 55)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white.ignoresSafeArea())
+        .background(MokoTheme.limeBackground.ignoresSafeArea())
     }
 }
 
@@ -76,7 +76,7 @@ private struct StatusRow: View {
                 Circle().fill(iconBackground)
                 Image(systemName: icon)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(MokoTheme.titleBrown)
             }
             .frame(width: 32, height: 32)
 

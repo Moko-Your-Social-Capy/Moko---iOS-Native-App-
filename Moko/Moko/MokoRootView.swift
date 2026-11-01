@@ -58,15 +58,10 @@ struct MokoRootView: View {
 
         // Native iOS tab bar minimization
         .tabBarMinimizeBehavior(.onScrollDown)
+        .foregroundStyle(MokoTheme.titleBrown)
 
         // MOKO Forest Green
-        .tint(
-            Color(
-                red: 27.0 / 255.0,
-                green: 66.0 / 255.0,
-                blue: 47.0 / 255.0
-            )
-        )
+        .tint(MokoTheme.forestGreen)
 
         // Lets the quest debrief send the user back to a specific Overview state
         .environment(\.openOverview) { mode in
