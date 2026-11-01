@@ -2,7 +2,6 @@ import SwiftUI
 
 struct WelcomeView: View {
     let name: String                       // the name the user typed earlier
-    var onBack: () -> Void = {}
     var onStart: () -> Void = {}
 
     private var greeting: String {
@@ -47,25 +46,13 @@ struct WelcomeView: View {
         .background(MokoTheme.limeBackground.ignoresSafeArea())
     }
 
-    // MARK: Header (back button + full progress bar)
+    // MARK: Header (full progress bar)
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.ink)
-                    .frame(width: 44, height: 44)
-                    .background(.ultraThinMaterial, in: Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Back")
-
-            Capsule()
-                .fill(Color.forestLight)
-                .frame(height: 3)
-        }
-        .padding(.horizontal, 20)
+        Capsule()
+            .fill(Color.forestLight)
+            .frame(height: 3)
+            .padding(.horizontal, 20)
     }
 
     // MARK: Start button

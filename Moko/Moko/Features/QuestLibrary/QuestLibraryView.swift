@@ -127,9 +127,9 @@ struct QuestLibraryView: View {
                 text: $searchText,
                 placement: .navigationBarDrawer(displayMode: .always)
             )
-        }
-        .fullScreenCover(item: $openedQuest) { quest in
-            QuestDetailScreen(quest: quest)
+            .navigationDestination(item: $openedQuest) { quest in
+                QuestDetailScreen(quest: quest)
+            }
         }
     }
 

@@ -4,7 +4,6 @@ struct AgeEntryView: View {
     var progress: CGFloat = 0.903          // 352 / 390 in the design
     var initialAge: Int = 20
     var ageRange: ClosedRange<Int> = 13...100
-    var onBack: () -> Void = {}
     var onContinue: (Int) -> Void = { _ in }
 
     @State private var selected: Int?
@@ -16,13 +15,11 @@ struct AgeEntryView: View {
         progress: CGFloat = 0.903,
         initialAge: Int = 20,
         ageRange: ClosedRange<Int> = 13...100,
-        onBack: @escaping () -> Void = {},
         onContinue: @escaping (Int) -> Void = { _ in }
     ) {
         self.progress = progress
         self.initialAge = initialAge
         self.ageRange = ageRange
-        self.onBack = onBack
         self.onContinue = onContinue
         _selected = State(initialValue: initialAge)
     }
@@ -55,29 +52,17 @@ struct AgeEntryView: View {
         .sensoryFeedback(.selection, trigger: selected)
     }
 
-    // MARK: Header (back button + progress bar)
+    // MARK: Header (progress bar)
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.ink)
-                    .frame(width: 44, height: 44)
-                    .background(.ultraThinMaterial, in: Circle())
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.track)
+                Capsule().fill(Color.forestLight)
+                    .frame(width: geo.size.width * progress)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Back")
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.track)
-                    Capsule().fill(Color.forestLight)
-                        .frame(width: geo.size.width * progress)
-                }
-            }
-            .frame(height: 3)
         }
+        .frame(height: 3)
         .padding(.horizontal, 20)
     }
 

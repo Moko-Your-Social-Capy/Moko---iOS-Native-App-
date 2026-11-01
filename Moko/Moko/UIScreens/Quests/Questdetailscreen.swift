@@ -167,6 +167,11 @@ struct QuestDetailScreen: View {
             }
         }
         .background(QuestStyle.screenBg.ignoresSafeArea())
+        // The NavigationStack supplies the default back button.
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.visible, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .task {
             // Runs once, not each time you come back from the debrief
             guard brief == nil else { return }
@@ -190,29 +195,11 @@ struct QuestDetailScreen: View {
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
-                    HStack {
-                        Button {
-                            dismiss()
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(MokoTheme.titleBrown)
-                                .frame(width: 38, height: 38)
-                                .background(Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255)))
-                                .contentShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-
-                        Spacer()
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-
                     Text("Quest")
                         .font(.system(size: 30, weight: .bold))
                         .foregroundColor(MokoTheme.titleBrown)
                         .padding(.horizontal, 24)
-                        .padding(.top, 18)
+                        .padding(.top, 8)
 
                     card
                         .padding(.horizontal, 20)

@@ -2,7 +2,6 @@ import SwiftUI
 
 struct NameEntryView: View {
     var progress: CGFloat = 0.677
-    var onBack: () -> Void = {}
     var onContinue: (String) -> Void = { _ in }
 
     @State private var name = ""
@@ -42,29 +41,17 @@ struct NameEntryView: View {
         .task { isFocused = true }
     }
 
-    // MARK: Header (back button + progress bar)
+    // MARK: Header (progress bar)
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color.ink)
-                    .frame(width: 44, height: 44)
-                    .background(.ultraThinMaterial, in: Circle())
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.track)
+                Capsule().fill(Color.forestLight)
+                    .frame(width: geo.size.width * progress)
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Back")
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.track)
-                    Capsule().fill(Color.forestLight)
-                        .frame(width: geo.size.width * progress)
-                }
-            }
-            .frame(height: 3)
         }
+        .frame(height: 3)
         .padding(.horizontal, 20)
     }
 

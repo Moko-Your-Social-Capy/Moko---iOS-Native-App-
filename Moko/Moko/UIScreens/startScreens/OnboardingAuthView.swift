@@ -14,7 +14,6 @@ struct OnboardingAuthView: View {
     var onContinueWithEmail: ((String) -> Void)? = nil
     var onContinueWithApple: (() -> Void)? = nil
     var onContinueWithGoogle: (() -> Void)? = nil
-    var onBack: (() -> Void)? = nil
     
     // Auth Services
     private let auth = AuthService()
@@ -55,29 +54,6 @@ struct OnboardingAuthView: View {
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
-                        // Top Bar with Optional Back Navigation
-                        HStack {
-                            if let onBack = onBack {
-                                Button(action: {
-                                    MokoTheme.playFeedback(.light)
-                                    onBack()
-                                }) {
-                                    Image(systemName: "chevron.left")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundColor(MokoTheme.textPrimary)
-                                        .frame(width: 40, height: 40)
-                                        .background(
-                                            Circle()
-                                                .fill(MokoTheme.white.opacity(0.9))
-                                                .shadow(color: MokoTheme.primaryText.opacity(0.06), radius: 6, x: 0, y: 2)
-                                        )
-                                }
-                            }
-                            Spacer()
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.top, 8)
-                        
                         // Top Avatar Area: Sitting Capybara with Orange & Sprout
                         ZStack {
                             // Soft ambient halo glow
