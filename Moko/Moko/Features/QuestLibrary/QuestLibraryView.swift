@@ -11,35 +11,11 @@ import SwiftData
 import UIKit
 
 struct QuestLibraryView: View {
-    // MARK: - Models
-    struct LibraryQuest: Identifiable, Hashable {
-        var id: String { title }
-        let title: String
-        let imageName: String
-        let xp: Int
-        let tint: Color
-
-        /// The saved quest's intensity, chosen from the XP the library awards.
-        var intensity: QuestIntensity {
-            switch xp {
-            case ...100: return .easy
-            case 101...200: return .medium
-            default: return .hard
-            }
-        }
-    }
-
-    struct QuestSection: Identifiable, Hashable {
-        var id: String { title }
-        let title: String
-        let category: QuestCategory
-        let quests: [LibraryQuest]
-    }
-
     // MARK: - Properties
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query private var savedQuests: [Quest]
+    @State private var store = QuestLibraryStore()
     @State private var searchText: String = ""
     @State private var openedQuest: Quest?
     @State private var addedToast: AddedQuestToast?
@@ -58,10 +34,10 @@ struct QuestLibraryView: View {
     private var filteredSections: [QuestSection] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else {
-            return Self.sections
+            return store.sections
         }
         let normalizedQuery = query.replacingOccurrences(of: "’", with: "'")
-        return Self.sections.compactMap { section in
+        return store.sections.compactMap { section in
             let matchingQuests = section.quests.filter { quest in
                 let normalizedTitle = quest.title.replacingOccurrences(of: "’", with: "'")
                 return normalizedTitle.localizedCaseInsensitiveContains(normalizedQuery)
@@ -82,17 +58,12 @@ struct QuestLibraryView: View {
                     VStack(alignment: .leading, spacing: 30) {
                         headerSection
 
-                        if filteredSections.isEmpty {
-                            ContentUnavailableView.search(text: searchText)
-                                .frame(maxWidth: .infinity)
-                                .padding(.top, 40)
-                        } else {
-                            ForEach(Array(filteredSections.enumerated()), id: \.element.id) { sectionIndex, section in
-                                sectionView(for: section, sectionIndex: sectionIndex)
-                            }
-                        }
+                        libraryContent
                     }
                     .padding(.bottom, 16)
+                }
+                .refreshable {
+                    await store.load()
                 }
 
                 if let addedToast {
@@ -120,6 +91,9 @@ struct QuestLibraryView: View {
                 } catch {}
             }
             .sensoryFeedback(.success, trigger: addFeedback)
+            .task {
+                await store.loadIfNeeded()
+            }
             // Matches the Overview, Quests and Relax tab headers.
             .navigationTitle("Quest Library")
             .toolbar(.hidden, for: .navigationBar)
@@ -140,6 +114,77 @@ struct QuestLibraryView: View {
             .foregroundColor(MokoTheme.titleBrown)
             .padding(.horizontal, 20)
             .padding(.top, 14)
+    }
+
+    // MARK: - Content
+    @ViewBuilder
+    private var libraryContent: some View {
+        if store.isLoading && store.sections.isEmpty {
+            ProgressView("Loading quests…")
+                .tint(QuestStyle.green)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 60)
+        } else if let error = store.errorMessage, store.sections.isEmpty {
+            ContentUnavailableView {
+                Label("Couldn't load quests", systemImage: "wifi.exclamationmark")
+            } description: {
+                Text(error)
+            } actions: {
+                Button("Try Again") {
+                    Task { await store.load() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(QuestStyle.green)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 40)
+        } else if store.sections.isEmpty {
+            ContentUnavailableView {
+                Label("No quests yet", systemImage: "sparkles")
+            } description: {
+                Text("New quests will appear here as soon as they're added.")
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 40)
+        } else if filteredSections.isEmpty {
+            ContentUnavailableView.search(text: searchText)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 40)
+        } else {
+            if let error = store.errorMessage {
+                refreshFailedBanner(error)
+            }
+
+            ForEach(Array(filteredSections.enumerated()), id: \.element.id) { sectionIndex, section in
+                sectionView(for: section, sectionIndex: sectionIndex)
+            }
+        }
+    }
+
+    private func refreshFailedBanner(_ message: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 13, weight: .semibold))
+
+            Text(message)
+                .font(.system(size: 13, weight: .medium))
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 6)
+
+            Button("Retry") {
+                Task { await store.load() }
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(QuestStyle.green)
+        }
+        .foregroundStyle(QuestStyle.title)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color.white.opacity(0.72))
+        )
+        .padding(.horizontal, 20)
     }
 
     // MARK: - Section View
@@ -195,16 +240,7 @@ struct QuestLibraryView: View {
                 .fill(quest.tint)
                 .frame(width: 128, height: 98)
                 .overlay {
-                    if UIImage(named: quest.imageName) != nil {
-                        Image(quest.imageName)
-                            .resizable()
-                            .scaledToFill()
-                    } else {
-                        // Artwork not added yet: keep the card legible with the category symbol.
-                        Image(systemName: section.category.symbol)
-                            .font(.system(size: 32, weight: .semibold))
-                            .foregroundStyle(QuestStyle.green.opacity(0.45))
-                    }
+                    artwork(for: quest, in: section)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
 
@@ -244,6 +280,45 @@ struct QuestLibraryView: View {
         )
         .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    /// Card artwork from Supabase Storage. Until a file is uploaded, or while it
+    /// is loading, the category symbol keeps the card legible.
+    @ViewBuilder
+    private func artwork(for quest: LibraryQuest, in section: QuestSection) -> some View {
+        if let url = quest.artworkURL {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                case .empty:
+                    ZStack {
+                        Color.white.opacity(0.25)
+                        ProgressView()
+                            .tint(QuestStyle.green)
+                    }
+                case .failure:
+                    categorySymbol(for: section.category)
+                @unknown default:
+                    categorySymbol(for: section.category)
+                }
+            }
+        } else if let imageName = quest.imageName, UIImage(named: imageName) != nil {
+            // Optional fallback for artwork bundled in Assets.xcassets.
+            Image(imageName)
+                .resizable()
+                .scaledToFill()
+        } else {
+            categorySymbol(for: section.category)
+        }
+    }
+
+    private func categorySymbol(for category: QuestCategory) -> some View {
+        Image(systemName: category.symbol)
+            .font(.system(size: 32, weight: .semibold))
+            .foregroundStyle(QuestStyle.green.opacity(0.45))
     }
 
     // MARK: - Add button
@@ -484,63 +559,6 @@ private extension View {
     func questCardEntrance(order: Int, reduceMotion: Bool) -> some View {
         modifier(QuestCardEntranceModifier(order: order, reduceMotion: reduceMotion))
     }
-}
-
-// MARK: - Quest Library Data
-// Keep this data in one clearly commented place so it is easy to edit later.
-extension QuestLibraryView {
-    static let sections: [QuestSection] = [
-        // Work
-        QuestSection(
-            title: "Work",
-            category: .work,
-            quests: [
-                LibraryQuest(title: "Speak up in a meeting", imageName: "quest_speak_up", xp: 100, tint: Color(hex: 0xFAEDD9)),
-                LibraryQuest(title: "Decline extra work", imageName: "quest_decline_extra_work", xp: 150, tint: Color(hex: 0xF5E6D3)),
-                LibraryQuest(title: "Correct your boss", imageName: "quest_correct_your_boss", xp: 200, tint: Color(hex: 0xF0DFC8)),
-                LibraryQuest(title: "Ask for a Raise", imageName: "quest_ask_for_a_raise", xp: 250, tint: Color(hex: 0xEBD8BC)),
-                LibraryQuest(title: "Ask a Mentor", imageName: "quest_ask_a_mentor", xp: 300, tint: Color(hex: 0xE6D1B1))
-            ]
-        ),
-
-        // Dating
-        QuestSection(
-            title: "Dating",
-            category: .dating,
-            quests: [
-                LibraryQuest(title: "Send the first message", imageName: "quest_send_first_message", xp: 100, tint: Color(hex: 0xFBE7E4)),
-                LibraryQuest(title: "Name what you felt", imageName: "quest_name_what_you_felt", xp: 150, tint: Color(hex: 0xF8DAD4)),
-                LibraryQuest(title: "Ask where things stand", imageName: "quest_ask_where_things_stand", xp: 200, tint: Color(hex: 0xF5CBBE)),
-                LibraryQuest(title: "First Date", imageName: "quest_first_date", xp: 250, tint: Color(hex: 0xF1BDAE)),
-                LibraryQuest(title: "The Ex", imageName: "quest_the_ex", xp: 300, tint: Color(hex: 0xEDAF9F))
-            ]
-        ),
-
-        // Friends
-        QuestSection(
-            title: "Friends",
-            category: .friends,
-            quests: [
-                LibraryQuest(title: "Say you’re hurt", imageName: "quest_say_youre_hurt", xp: 100, tint: Color(hex: 0xE7EFE9)),
-                LibraryQuest(title: "Bring up the distance", imageName: "quest_bring_up_distance", xp: 150, tint: Color(hex: 0xDBE8DE)),
-                LibraryQuest(title: "Turn down the plan", imageName: "quest_turn_down_plan", xp: 200, tint: Color(hex: 0xCEDECF)),
-                LibraryQuest(title: "Make a Real Friend", imageName: "quest_make_a_real_friend", xp: 250, tint: Color(hex: 0xC1D4C3)),
-                LibraryQuest(title: "Check On a Friend", imageName: "quest_check_on_a_friend", xp: 300, tint: Color(hex: 0xB4CAB7))
-            ]
-        ),
-
-        // Family
-        QuestSection(
-            title: "Family",
-            category: .family,
-            quests: [
-                LibraryQuest(title: "The Holiday Table", imageName: "quest_holiday_table", xp: 100, tint: Color(hex: 0xE9EBF7)),
-                LibraryQuest(title: "The Sibling Talk", imageName: "quest_sibling_talk", xp: 150, tint: Color(hex: 0xDDE1F2)),
-                LibraryQuest(title: "Hold the Line with Mom", imageName: "quest_hold_the_line_with_mom", xp: 200, tint: Color(hex: 0xCED4EC)),
-                LibraryQuest(title: "Open Up to Dad", imageName: "quest_open_up_to_dad", xp: 250, tint: Color(hex: 0xC0C8E6))
-            ]
-        )
-    ]
 }
 
 // MARK: - Preview
