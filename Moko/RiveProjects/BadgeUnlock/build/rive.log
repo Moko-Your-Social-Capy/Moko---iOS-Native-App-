@@ -1,0 +1,90 @@
+[11:37:46.337] error   scene.rml:59:1  [rml] ViewModel has no property "propertyValue" to animate
+[11:37:46.338] error   scene.rml:77:1  [rml] Image has no property "width"; did you mean "fit"?
+[11:37:46.338] error   scene.rml:77:1  [rml] Image has no property "height"
+[11:37:46.338] error   scene.rml:83:1  [rml] styleId="0:72" matches no id in this file
+[11:37:46.338] rive  build failed (0 bytes, 35ms, 4 errors, 0 warnings)
+[11:38:15.050] error   scene.rml:109:1  [rml] badge_face.png: file "badge_face.png" is missing or empty
+[11:38:15.050] rive  build failed (0 bytes, 26ms, 1 errors, 0 warnings)
+[11:38:18.653] error   scene.rml:109:1  [rml] badge_face.png: file "badge_face.png" is missing or empty
+[11:38:18.653] rive  build failed (0 bytes, 34ms, 1 errors, 0 warnings)
+[11:38:23.057] rive  verified (0 bytes, 29ms, 0 errors, 0 warnings)
+[11:38:25.979] rive  built Moko/Resources/Animations/BadgeUnlock.riv (776893 bytes, 24ms, 0 errors, 0 warnings)
+[11:38:25.981] rive  showing BadgeUnlock [1/1]
+[11:38:25.982] rive  viewport 512x512 @1x
+[11:38:26.038] rive  wrote RiveProjects/BadgeUnlock/../../Moko/Resources/Animations/BadgeUnlock.png
+[11:38:35.959] rive  built Moko/Resources/Animations/BadgeUnlock.riv (776893 bytes, 28ms, 0 errors, 0 warnings)
+[11:38:35.960] rive  data: locked = false
+[11:38:35.960] rive  showing BadgeUnlock [1/1]
+[11:38:35.960] rive  viewport 512x512 @1x
+[11:38:36.046] rive  wrote RiveProjects/BadgeUnlock/build/earned.png
+[11:39:52.694] error   scene.rml:112:1  [rml] duplicate id "0:30", first used on line 95; every authored id must be unique
+[11:39:52.694] rive  build failed (0 bytes, 33ms, 1 errors, 0 warnings)
+[11:40:03.316] rive  verified (0 bytes, 31ms, 0 errors, 0 warnings)
+[11:40:03.505] rive  built Moko/Resources/Animations/BadgeUnlock.riv (777082 bytes, 26ms, 0 errors, 0 warnings)
+[11:40:03.507] rive  data: locked = true
+[11:40:03.508] rive  showing BadgeUnlock [1/1]
+[11:40:03.509] rive  viewport 512x512 @1x
+[11:40:03.574] rive  wrote RiveProjects/BadgeUnlock/../../Moko/Resources/Animations/BadgeUnlock.png
+[11:40:03.690] rive  built Moko/Resources/Animations/BadgeUnlock.riv (777082 bytes, 25ms, 0 errors, 0 warnings)
+[11:40:03.690] rive  data: locked = false
+[11:40:03.691] rive  data: unlock = 1
+[11:40:03.691] rive  showing BadgeUnlock [1/1]
+[11:40:03.691] rive  viewport 512x512 @1x
+[11:40:03.712] rive  wrote RiveProjects/BadgeUnlock/build/unlocked.png
+[11:40:10.701] rive  built Moko/Resources/Animations/BadgeUnlock.riv (777082 bytes, 26ms, 0 errors, 0 warnings)
+[11:40:10.701] rive  data: locked = false
+[11:40:10.701] rive  data: unlock = 1
+[11:40:10.701] rive  showing BadgeUnlock [1/1]
+[11:40:10.823] rive  built Moko/Resources/Animations/BadgeUnlock.riv (777082 bytes, 26ms, 0 errors, 0 warnings)
+[11:40:10.824] rive  data: locked = false
+[11:40:10.824] rive  data: unlock = 1
+[11:40:10.824] rive  showing BadgeUnlock [1/1]
+[11:40:10.824] rive  viewport 512x512 @1x
+[11:40:10.881] rive  wrote RiveProjects/BadgeUnlock/build/phase.png
+[11:40:22.005] rive  built Moko/Resources/Animations/BadgeUnlock.riv (777082 bytes, 43ms, 0 errors, 0 warnings)
+[11:40:22.007] rive  data: locked = false
+[11:40:22.008] rive  showing BadgeUnlock [1/1]
+[11:40:22.009] rive  data: unlock = 1 (mid-run)
+[11:40:22.009] rive  viewport 512x512 @1x
+[11:40:22.065] rive  wrote RiveProjects/BadgeUnlock/build/try.png
+[11:40:22.066] rive  wrote RiveProjects/BadgeUnlock/build/try.json
+[11:40:34.220] rive  verified (0 bytes, 36ms, 0 errors, 0 warnings)
+[11:40:34.248] rive  built Moko/Resources/Animations/BadgeUnlock.riv (777041 bytes, 29ms, 0 errors, 0 warnings)
+[11:40:34.250] rive  data: locked = false
+[11:40:34.252] rive  showing BadgeUnlock [1/1]
+[11:40:34.252] rive  data: unlock = 1 (mid-run)
+[11:40:34.253] rive  viewport 512x512 @1x
+[11:40:34.320] rive  wrote RiveProjects/BadgeUnlock/build/final.png
+[11:41:16.537] rive  verified (0 bytes, 43ms, 0 errors, 0 warnings)
+[11:41:16.731] rive  built Moko/Resources/Animations/BadgeUnlock.riv (777017 bytes, 27ms, 0 errors, 0 warnings)
+[11:41:16.733] rive  data: locked = true
+[11:41:16.735] rive  showing BadgeUnlock [1/1]
+[11:41:16.736] rive  viewport 512x512 @1x
+[11:41:16.781] rive  wrote RiveProjects/BadgeUnlock/../../Moko/Resources/Animations/BadgeUnlock.png
+[11:41:48.206] rive  verified (0 bytes, 40ms, 0 errors, 0 warnings)
+[11:46:02.205] rive  verified (0 bytes, 38ms, 0 errors, 0 warnings)
+[11:46:02.410] rive  built Moko/Resources/Animations/BadgeUnlock.riv (777017 bytes, 38ms, 0 errors, 0 warnings)
+[11:46:02.411] rive  data: locked = true
+[11:46:02.413] rive  showing BadgeUnlock [1/1]
+[11:46:02.413] rive  viewport 512x512 @1x
+[11:46:02.481] rive  wrote RiveProjects/BadgeUnlock/../../Moko/Resources/Animations/BadgeUnlock.png
+[11:46:10.574] rive  verified (0 bytes, 25ms, 0 errors, 0 warnings)
+[11:46:10.746] rive  built Moko/Resources/Animations/BadgeUnlock.riv (777101 bytes, 30ms, 0 errors, 0 warnings)
+[11:46:10.747] rive  data: locked = true
+[11:46:10.747] rive  showing BadgeUnlock [1/1]
+[11:46:10.747] rive  viewport 512x512 @1x
+[11:46:10.809] rive  wrote RiveProjects/BadgeUnlock/../../Moko/Resources/Animations/BadgeUnlock.png
+[11:47:24.071] rive  verified (0 bytes, 43ms, 0 errors, 0 warnings)
+[11:47:39.145] rive  built Moko/Resources/Animations/BadgeUnlock.riv (777166 bytes, 31ms, 0 errors, 0 warnings)
+[11:47:39.146] rive  data: locked = true
+[11:47:39.146] rive  showing BadgeUnlock [1/1]
+[11:47:39.146] rive  viewport 512x512 @1x
+[11:47:39.183] rive  wrote RiveProjects/BadgeUnlock/../../Moko/Resources/Animations/BadgeUnlock.png
+[11:47:56.673] rive  verified (0 bytes, 60ms, 0 errors, 0 warnings)
+[11:48:14.663] rive  verified (0 bytes, 25ms, 0 errors, 0 warnings)
+[11:48:42.206] rive  verified (0 bytes, 49ms, 0 errors, 0 warnings)
+[11:48:42.360] rive  built Moko/Resources/Animations/BadgeUnlock.riv (777048 bytes, 27ms, 0 errors, 0 warnings)
+[11:48:42.361] rive  data: locked = true
+[11:48:42.362] rive  showing BadgeUnlock [1/1]
+[11:48:42.362] rive  viewport 512x512 @1x
+[11:48:42.394] rive  wrote RiveProjects/BadgeUnlock/../../Moko/Resources/Animations/BadgeUnlock.png

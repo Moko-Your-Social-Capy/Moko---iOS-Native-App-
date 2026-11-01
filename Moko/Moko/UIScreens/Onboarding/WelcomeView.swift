@@ -44,7 +44,7 @@ struct WelcomeView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 36)
         }
-        .background(Color.white.ignoresSafeArea())
+        .background(MokoTheme.limeBackground.ignoresSafeArea())
     }
 
     // MARK: Header (back button + full progress bar)

@@ -1,0 +1,133 @@
+<Rive version="1" kind="fragment">
+    <Artboard defaultStateMachineId="0:7" viewModelId="0:40" styleId="0:5" width="512" height="512" name="BadgeUnlock" id="0:2">
+        <LayoutComponentStyle name="Artboard Style" id="0:5"/>
+
+        <StateMachine name="BadgeUnlock" id="0:7">
+            <StateMachineLayer name="Unlock" id="0:8">
+                <AnyState x="440" y="-80"/>
+                <ExitState x="560" y="-80"/>
+                <EntryState x="0" y="100">
+                    <StateTransition stateToId="0:12"/>
+                </EntryState>
+                <AnimationState x="150" y="100" animationId="0:23" id="0:12">
+                    <StateTransition stateToId="0:13">
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="0:40-0:42" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="0:14">
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="0:40-0:43" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator value="1"/>
+                        </TransitionViewModelCondition>
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="0:40-0:44" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                    <StateTransition stateToId="0:15">
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator><BindablePropertyTrigger><DataBindContext sourcePathIds="0:40-0:43" propertyKey="686"/></BindablePropertyTrigger></TransitionPropertyViewModelComparator>
+                            <TransitionValueTriggerComparator value="1"/>
+                        </TransitionViewModelCondition>
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="0:40-0:44" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="true"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState x="310" y="100" animationId="0:22" id="0:13">
+                    <StateTransition stateToId="0:12">
+                        <TransitionViewModelCondition>
+                            <TransitionPropertyViewModelComparator><BindablePropertyBoolean><DataBindContext sourcePathIds="0:40-0:42" propertyKey="634"/></BindablePropertyBoolean></TransitionPropertyViewModelComparator>
+                            <TransitionValueBooleanComparator value="false"/>
+                        </TransitionViewModelCondition>
+                    </StateTransition>
+                </AnimationState>
+                <AnimationState x="470" y="100" animationId="0:20" id="0:14"/>
+                <AnimationState x="470" y="220" animationId="0:21" id="0:15"/>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <LinearAnimation duration="120" fps="60" name="Unlock • 2 seconds" id="0:20">
+            <KeyedObject objectId="0:30"><KeyedProperty property="scaleX"><KeyFrameDouble value="0.6" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.16" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble><KeyFrameDouble value="1" frame="18" interpolationType="linear"/><KeyFrameDouble value="1" frame="120" interpolationType="linear"/></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0.6" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.16" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble><KeyFrameDouble value="1" frame="18" interpolationType="linear"/><KeyFrameDouble value="1.04" frame="82" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble><KeyFrameDouble value="1" frame="96" interpolationType="linear"/><KeyFrameDouble value="1" frame="120" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/><KeyFrameDouble value="0" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble><KeyFrameDouble value="6.283185" frame="78" interpolationType="cubic"><CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/></KeyFrameDouble><KeyFrameDouble value="6.283185" frame="120" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:54"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="18" interpolationType="linear"/><KeyFrameDouble value="0.12" frame="33" interpolationType="linear"/><KeyFrameDouble value="1" frame="48" interpolationType="linear"/><KeyFrameDouble value="0.12" frame="63" interpolationType="linear"/><KeyFrameDouble value="1" frame="78" interpolationType="linear"/><KeyFrameDouble value="1" frame="120" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            
+            <KeyedObject objectId="0:52"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/><KeyFrameDouble value="0.4" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.16" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble><KeyFrameDouble value="0.4" frame="120" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:32"><KeyedProperty property="scaleX"><KeyFrameDouble value="1" frame="18" interpolationType="linear"/><KeyFrameDouble value="0" frame="33" interpolationType="linear"/><KeyFrameDouble value="-1" frame="48" interpolationType="linear"/><KeyFrameDouble value="0" frame="63" interpolationType="linear"/><KeyFrameDouble value="1" frame="78" interpolationType="linear"/><KeyFrameDouble value="1" frame="120" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/><KeyFrameDouble value="1" frame="33" interpolationType="hold"/><KeyFrameDouble value="0" frame="34" interpolationType="hold"/><KeyFrameDouble value="0" frame="63" interpolationType="hold"/><KeyFrameDouble value="1" frame="64" interpolationType="hold"/><KeyFrameDouble value="1" frame="120" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:33"><KeyedProperty property="scaleX"><KeyFrameDouble value="0" frame="18" interpolationType="linear"/><KeyFrameDouble value="1" frame="33" interpolationType="linear"/><KeyFrameDouble value="0" frame="48" interpolationType="linear"/><KeyFrameDouble value="-1" frame="63" interpolationType="linear"/><KeyFrameDouble value="0" frame="78" interpolationType="linear"/><KeyFrameDouble value="0" frame="120" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/><KeyFrameDouble value="0" frame="33" interpolationType="hold"/><KeyFrameDouble value="1" frame="34" interpolationType="hold"/><KeyFrameDouble value="1" frame="63" interpolationType="hold"/><KeyFrameDouble value="0" frame="64" interpolationType="hold"/><KeyFrameDouble value="0" frame="120" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:34"><KeyedProperty property="scaleX"><KeyFrameDouble value="0.72" frame="18" interpolationType="linear"/><KeyFrameDouble value="0.25" frame="33" interpolationType="linear"/><KeyFrameDouble value="0.72" frame="48" interpolationType="linear"/><KeyFrameDouble value="0.25" frame="63" interpolationType="linear"/><KeyFrameDouble value="0.72" frame="78" interpolationType="linear"/><KeyFrameDouble value="0.72" frame="120" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/><KeyFrameDouble value="1" frame="33" interpolationType="hold"/><KeyFrameDouble value="0" frame="34" interpolationType="hold"/><KeyFrameDouble value="0" frame="63" interpolationType="hold"/><KeyFrameDouble value="1" frame="64" interpolationType="hold"/><KeyFrameDouble value="1" frame="120" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:35"><KeyedProperty property="x"><KeyFrameDouble value="110" frame="18" interpolationType="linear"/><KeyFrameDouble value="-110" frame="78" interpolationType="linear"/><KeyFrameDouble value="-110" frame="120" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0.08" frame="0" interpolationType="linear"/><KeyFrameDouble value="0.24" frame="48" interpolationType="linear"/><KeyFrameDouble value="0.08" frame="78" interpolationType="linear"/><KeyFrameDouble value="0.08" frame="120" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:36"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/><KeyFrameDouble value="0" frame="95" interpolationType="linear"/><KeyFrameDouble value="1" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.16" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:37"><KeyedProperty property="scaleX"><KeyFrameDouble value="0.04" frame="0" interpolationType="linear"/><KeyFrameDouble value="0.04" frame="31" interpolationType="linear"/><KeyFrameDouble value="1" frame="33" interpolationType="linear"/><KeyFrameDouble value="0.04" frame="48" interpolationType="linear"/><KeyFrameDouble value="0.04" frame="61" interpolationType="linear"/><KeyFrameDouble value="1" frame="63" interpolationType="linear"/><KeyFrameDouble value="0.04" frame="78" interpolationType="linear"/><KeyFrameDouble value="0.04" frame="95" interpolationType="linear"/><KeyFrameDouble value="1" frame="120" interpolationType="linear"/></KeyedProperty><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/><KeyFrameDouble value="0" frame="31" interpolationType="linear"/><KeyFrameDouble value="1" frame="33" interpolationType="linear"/><KeyFrameDouble value="0" frame="35" interpolationType="linear"/><KeyFrameDouble value="0" frame="61" interpolationType="linear"/><KeyFrameDouble value="1" frame="63" interpolationType="linear"/><KeyFrameDouble value="0" frame="65" interpolationType="linear"/><KeyFrameDouble value="0" frame="95" interpolationType="linear"/><KeyFrameDouble value="1" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.16" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:38"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/><KeyFrameDouble value="0" frame="95" interpolationType="linear"/><KeyFrameDouble value="1" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.16" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:50"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/><KeyFrameDouble value="0" frame="30" interpolationType="linear"/><KeyFrameDouble value="1" frame="36" interpolationType="cubic"><CubicEaseInterpolator x1="0.16" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble><KeyFrameDouble value="1" frame="78" interpolationType="linear"/><KeyFrameDouble value="0" frame="84" interpolationType="cubic"><CubicEaseInterpolator x1="0.16" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble><KeyFrameDouble value="0" frame="120" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:39"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/><KeyFrameDouble value="0" frame="95" interpolationType="linear"/><KeyFrameDouble value="1" frame="120" interpolationType="cubic"><CubicEaseInterpolator x1="0.16" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation duration="24" fps="60" name="Reduced motion • crossfade" id="0:21">
+            <KeyedObject objectId="0:34"><KeyedProperty property="scaleX"><KeyFrameDouble value="0.98" frame="0" interpolationType="linear"/><KeyFrameDouble value="1" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.16" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble></KeyedProperty><KeyedProperty property="scaleY"><KeyFrameDouble value="0.98" frame="0" interpolationType="linear"/><KeyFrameDouble value="1" frame="24" interpolationType="cubic"><CubicEaseInterpolator x1="0.16" y1="0.8" x2="0.3" y2="1"/></KeyFrameDouble></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:52"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/><KeyFrameDouble value="0.4" frame="24" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:35"><KeyedProperty property="opacity"><KeyFrameDouble value="0.08" frame="0" interpolationType="linear"/><KeyFrameDouble value="0.24" frame="24" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:36"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/><KeyFrameDouble value="1" frame="24" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:37"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/><KeyFrameDouble value="1" frame="24" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:38"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/><KeyFrameDouble value="1" frame="24" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            
+            <KeyedObject objectId="0:39"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="linear"/><KeyFrameDouble value="1" frame="24" interpolationType="linear"/></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation duration="1" fps="60" name="Locked • still" id="0:22">
+            <KeyedObject objectId="0:51"><KeyedProperty property="opacity"><KeyFrameDouble value="1" frame="0" interpolationType="hold"/><KeyFrameDouble value="1" frame="1" interpolationType="linear"/></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+        <LinearAnimation duration="1" fps="60" name="Unlocked • idle" id="0:23">
+            <KeyedObject objectId="0:51"><KeyedProperty property="opacity"><KeyFrameDouble value="0" frame="0" interpolationType="hold"/><KeyFrameDouble value="0" frame="1" interpolationType="linear"/></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+
+        <Text x="256" y="438" sizingValue="fixed" width="380" height="38" originX="0.5" originY="0.5" alignValue="center" verticalAlignValue="middle" name="Badge name" id="0:39" opacity="0">
+            <TextStylePaint fontSize="22" fontAssetId="0:71" name="Badge title" id="0:72"><Fill><SolidColor colorValue="FF4A3826"/></Fill></TextStylePaint>
+            <TextValueRun styleId="0:72" text="First Step" name="badgeName"><DataBindContext sourcePathIds="0:40-0:46" propertyKey="268"/></TextValueRun>
+        </Text>
+
+        <!-- Angle is a single host-settable degree value, limited to a gentle 25° tilt. -->
+        <Node x="256" y="238" name="Drag tilt" id="0:56">
+            <DataBindContext sourcePathIds="0:40-0:48" propertyKey="15" converterId="0:57"/>
+            <Node name="Badge turn" id="0:30">
+        <Shape x="0" y="0" name="Face clip source" id="0:60"><Ellipse width="250" height="250" originX="0.5" originY="0.5" name="Circle"/></Shape>
+        <Shape x="0" y="0" name="Locked silhouette" id="0:51" opacity="0"><Ellipse width="282" height="282" originX="0.5" originY="0.5" name="Circle"/><Fill><SolidColor colorValue="FF777777"/></Fill></Shape>
+        <Shape x="0" y="0" name="Diagonal highlight" id="0:35"><Rectangle width="48" height="290" originX="0.5" originY="0.5" name="Band"/><Fill><SolidColor colorValue="3FFFFFFF"/></Fill><ClippingShape sourceId="0:60" name="Clip to face"/></Shape>
+        <Image x="0" y="0" fit="contain" assetId="0:70" name="Swappable badge glyph" id="0:34" opacity="1"><DataBindContext sourcePathIds="0:40-0:41" propertyKey="206"/></Image>
+        <Shape x="0" y="0" name="Badge face base" id="0:32"><Ellipse width="250" height="250" originX="0.5" originY="0.5" name="Circle"/><Fill><SolidColor colorValue="FF1F7488"/></Fill><Stroke thickness="2" name="Outline"><SolidColor colorValue="FF4A3826"/></Stroke></Shape>
+        <Shape x="0" y="0" name="Badge back face" id="0:33" opacity="0"><Ellipse width="250" height="250" originX="0.5" originY="0.5" name="Circle"/><Fill><SolidColor colorValue="FF165564"/></Fill><Stroke thickness="2" name="Outline"><SolidColor colorValue="FF4A3826"/></Stroke></Shape>
+        <Shape x="0" y="0" name="Badge rim" id="0:36"><Ellipse width="270" height="270" originX="0.5" originY="0.5" name="Rim path"/><Stroke thickness="9" name="Tier rim"><SolidColor colorValue="FF3D94A8"><DataBindContext sourcePathIds="0:40-0:45" propertyKey="37"/></SolidColor></Stroke></Shape>
+        <Shape x="0" y="0" name="Badge outer edge" id="0:37" opacity="0"><Ellipse width="282" height="282" originX="0.5" originY="0.5" name="Edge"/><Stroke thickness="2" name="Edge color"><SolidColor colorValue="FFD9A441"><DataBindContext sourcePathIds="0:40-0:45" propertyKey="37"/></SolidColor></Stroke></Shape>
+        <Shape x="0" y="200" name="Badge name backing" id="0:38" opacity="0"><Rectangle width="290" height="48" originX="0.5" originY="0.5" cornerRadiusTL="20" name="Pill"/><Fill><SolidColor colorValue="FFF7F5F2"/></Fill></Shape>
+            </Node>
+            <Shape x="0" y="164" name="Ground shadow" id="0:54"><Ellipse width="225" height="18" originX="0.5" originY="0.5" name="Shadow"/><Fill><SolidColor colorValue="242E5133"/></Fill></Shape>
+        </Node>
+        <Shape x="31" y="64" name="Moko corner" id="0:50" opacity="0"><Ellipse width="34" height="34" originX="0.5" originY="0.5" name="Head"/><Fill><SolidColor colorValue="FFFFC06B"/></Fill><Stroke thickness="2" name="Line"><SolidColor colorValue="FF4A3826"/></Stroke><Shape x="-12" y="-13" name="Ear left"><Ellipse width="11" height="13" originX="0.5" originY="0.5" name="Ear"/><Fill><SolidColor colorValue="FF86583C"/></Fill></Shape><Shape x="12" y="-13" name="Ear right"><Ellipse width="11" height="13" originX="0.5" originY="0.5" name="Ear"/><Fill><SolidColor colorValue="FF86583C"/></Fill></Shape></Shape>
+        <Shape x="256" y="238" name="Unlock scrim" id="0:52" opacity="0"><Rectangle width="512" height="512" originX="0.5" originY="0.5" name="Scrim"/><Fill><SolidColor colorValue="FF30291F"/></Fill></Shape>
+
+    </Artboard>
+    <ImageAsset file="badge_face.png" name="badge_face.png" id="0:70"/>
+    <FontAsset file="BadgeLabel.ttf" name="Badge Label Font" id="0:71"/>
+    <DataConverterRangeMapper minInput="-25" maxInput="25" minOutput="-0.436332" maxOutput="0.436332" clampLower="true" clampUpper="true" name="Degrees to tilt" id="0:57"/>
+    <ViewModel defaultInstanceId="0:49" name="BadgeUnlock" id="0:40">
+        <ViewModelPropertyAssetImage name="badgeFace" id="0:41"/>
+        <ViewModelPropertyBoolean name="locked" id="0:42"/>
+        <ViewModelPropertyTrigger name="unlock" id="0:43"/>
+        <ViewModelPropertyBoolean name="reduceMotion" id="0:44"/>
+        <ViewModelPropertyColor name="tierColor" id="0:45"/>
+        <ViewModelPropertyString name="badgeName" id="0:46"/>
+        <ViewModelPropertyNumber name="tier" id="0:47"/>
+        <ViewModelPropertyNumber name="angle" id="0:48"/>
+        <ViewModelInstance exports="true" name="Default" id="0:49">
+            <ViewModelInstanceAssetImage propertyValue="0:70" viewModelPropertyId="0:41"/>
+            <ViewModelInstanceBoolean propertyValue="true" viewModelPropertyId="0:42"/>
+            <ViewModelInstanceTrigger viewModelPropertyId="0:43"/>
+            <ViewModelInstanceBoolean propertyValue="false" viewModelPropertyId="0:44"/>
+            <ViewModelInstanceColor propertyValue="FF3D94A8" viewModelPropertyId="0:45"/>
+            <ViewModelInstanceString propertyValue="First Step" viewModelPropertyId="0:46"/>
+            <ViewModelInstanceNumber propertyValue="1" viewModelPropertyId="0:47"/>
+            <ViewModelInstanceNumber propertyValue="0" viewModelPropertyId="0:48"/>
+        </ViewModelInstance>
+    </ViewModel>
+</Rive>

@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "artboard": "BadgeUnlock",
+  "stateMachine": "BadgeUnlock",
+  "viewModel": {
+    "name": "Default",
+    "viewModel": "BadgeUnlock",
+    "properties": [
+      {
+        "name": "badgeFace",
+        "path": "badgeFace",
+        "type": "image"
+      },
+      {
+        "name": "locked",
+        "path": "locked",
+        "type": "boolean",
+        "value": false,
+        "changed": true
+      },
+      {
+        "name": "unlock",
+        "path": "unlock",
+        "type": "trigger",
+        "changed": true
+      },
+      {
+        "name": "reduceMotion",
+        "path": "reduceMotion",
+        "type": "boolean",
+        "value": false,
+        "changed": false
+      },
+      {
+        "name": "tierColor",
+        "path": "tierColor",
+        "type": "color",
+        "value": "FF3D94A8",
+        "changed": false
+      },
+      {
+        "name": "badgeName",
+        "path": "badgeName",
+        "type": "string",
+        "value": "First Step",
+        "changed": false
+      },
+      {
+        "name": "tier",
+        "path": "tier",
+        "type": "number",
+        "value": 1,
+        "changed": false
+      },
+      {
+        "name": "angle",
+        "path": "angle",
+        "type": "number",
+        "value": 0,
+        "changed": false
+      }
+    ]
+  },
+  "globals": [],
+  "nested": []
+}

@@ -5,13 +5,13 @@
 //  Guided breathing timer. One screen with four states:
 //  idle (Start) -> running (pause / reset) -> paused (play / reset) -> completed.
 //  The progress ring fills during the session; the capybara follows a 4s inhale / 6s exhale rhythm.
-//  When the timer completes, a looping green pulse-and-check Lottie replaces the capybara.
+//  When the timer completes, a green completion badge and falling lemons replace the capybara.
 //
 
 import SwiftUI
 import SwiftData
 import Combine
-import Lottie
+import RiveRuntime
 
 struct BreathingSessionScreen: View {
     let minutes: Int
@@ -128,35 +128,46 @@ struct BreathingSessionScreen: View {
     private var breathingFocus: some View {
         VStack(spacing: 10) {
             ZStack {
-                Circle()
-                    .fill(mist.opacity(0.58))
+                if runState == .completed {
+                    MokoCompletionAnimation(ringDiameter: 190)
+                        .transition(.scale(scale: 0.92).combined(with: .opacity))
+                } else {
+                    Circle()
+                        .fill(mist.opacity(0.58))
+                        .frame(width: 250, height: 250)
+                    Circle()
+                        .stroke(cardGreen.opacity(0.12), lineWidth: 5)
+                        .frame(width: 270, height: 270)
+
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(cardGreen, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                        .frame(width: 270, height: 270)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.linear(duration: 1.0 / 30.0), value: progress)
+                        .accessibilityLabel("Session progress, \(Int(progress * 100)) percent")
+
+                    AsyncRiveUIViewRepresentable {
+                        let worker = try await Worker()
+                        let file = try await File(
+                            source: .local("MokoMeditationRive", Bundle.main),
+                            worker: worker
+                        )
+                        return try await Rive(file: file)
+                    }
+                    .paused(runState == .paused)
                     .frame(width: 250, height: 250)
-                Circle()
-                    .stroke(cardGreen.opacity(0.12), lineWidth: 5)
-                    .frame(width: 270, height: 270)
-
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(
-                        cardGreen,
-                        style: StrokeStyle(lineWidth: 7, lineCap: .round)
-                    )
-                    .frame(width: 270, height: 270)
-                    .rotationEffect(.degrees(-90))
-                    .animation(.linear(duration: 1.0 / 30.0), value: progress)
-                    .accessibilityLabel("Session progress, \(Int(progress * 100)) percent")
-
-                Group {
-                    if runState == .completed {
-                        CompletionPulseLottieView()
-                            .frame(width: 250, height: 250)
-                            .transition(.scale(scale: 0.92).combined(with: .opacity))
-                    } else {
-                        MokoLottieView(animationType: .meditation, size: 200)
-                            .frame(width: 200, height: 200)
+                    // The mascot is the direct start / pause / resume control.
+                    .overlay {
+                        Button(action: toggleMascotPlayback) {
+                            Color.clear
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(mascotAccessibilityLabel)
+                        .accessibilityHint("Starts the breathing timer, or pauses and resumes it")
                     }
                 }
-                .animation(.easeInOut(duration: 0.24), value: runState)
             }
             .frame(maxWidth: .infinity)
             .accessibilityLabel(runState == .completed ? "Breathing session complete" : "Moko breathing animation")
@@ -205,7 +216,7 @@ struct BreathingSessionScreen: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Gentle Breathing")
                 .font(.system(size: 30, weight: .bold))
-                .foregroundColor(.black)
+                .foregroundColor(MokoTheme.titleBrown)
 
             Text("Set your own meditation timer for a calmer mind")
                 .font(.system(size: 15))
@@ -301,6 +312,26 @@ struct BreathingSessionScreen: View {
         runState = (runState == .running) ? .paused : .running
     }
 
+    private func toggleMascotPlayback() {
+        switch runState {
+        case .idle:
+            start()
+        case .running, .paused:
+            togglePause()
+        case .completed:
+            break
+        }
+    }
+
+    private var mascotAccessibilityLabel: String {
+        switch runState {
+        case .idle: return "Start breathing session"
+        case .running: return "Pause breathing session"
+        case .paused: return "Resume breathing session"
+        case .completed: return "Breathing session complete"
+        }
+    }
+
     private func reset() {
         elapsed = 0
         lastTick = nil
@@ -314,79 +345,4 @@ struct BreathingSessionScreen: View {
 
 #Preview("Completed") {
     NavigationStack { BreathingSessionScreen(minutes: 1, previewCompleted: true) }
-}
-
-
-/// Plays the transparent green completion Lottie in a fixed, clipped viewport.
-private struct CompletionPulseLottieView: UIViewRepresentable {
-    private let animationName = "MokoComplete"
-
-    final class Coordinator {
-        weak var animationView: LottieAnimationView?
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    func makeUIView(context: Context) -> UIView {
-        let container = UIView()
-        container.backgroundColor = .clear
-        container.clipsToBounds = true
-
-        let paths: [String?] = [
-            "Resources/Animations",
-            "Animations",
-            nil
-        ]
-
-        for path in paths {
-            guard let animation = LottieAnimation.named(
-                animationName,
-                bundle: .main,
-                subdirectory: path
-            ) else {
-                continue
-            }
-
-            let animationView = LottieAnimationView(
-                animation: animation,
-                configuration: LottieConfiguration(renderingEngine: .mainThread)
-            )
-            animationView.translatesAutoresizingMaskIntoConstraints = false
-            animationView.contentMode = .scaleAspectFit
-            animationView.loopMode = .loop
-            animationView.backgroundBehavior = .pauseAndRestore
-            animationView.backgroundColor = .clear
-            animationView.clipsToBounds = true
-            context.coordinator.animationView = animationView
-
-            container.addSubview(animationView)
-            NSLayoutConstraint.activate([
-                animationView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-                animationView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-                animationView.topAnchor.constraint(equalTo: container.topAnchor),
-                animationView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-            ])
-
-            print("MOKO SUCCESS: Loaded completion animation \(animationName) from \(path ?? "Bundle Root")")
-            return container
-        }
-
-        print("MOKO ERROR: Could not find completion animation: \(animationName).json")
-        return container
-    }
-
-    func updateUIView(_ uiView: UIView, context: Context) {
-        // Start after SwiftUI has inserted the representable, and recover if the
-        // completion view is updated while the session is already complete.
-        guard let animationView = context.coordinator.animationView,
-              let animation = animationView.animation,
-              !animationView.isAnimationPlaying else { return }
-        animationView.play(
-            fromFrame: animation.startFrame,
-            toFrame: animation.endFrame,
-            loopMode: .loop
-        )
-    }
 }

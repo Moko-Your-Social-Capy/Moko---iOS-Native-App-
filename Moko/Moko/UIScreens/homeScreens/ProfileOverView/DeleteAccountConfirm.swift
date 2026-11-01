@@ -13,7 +13,7 @@ import SwiftData
 
 struct ProfileOverViewDeleteAccountConfirm: View {
 
-    private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255)   // #F2F2F7
+    private let screenBg = MokoTheme.limeBackground   // #F6FAE8
     private let cardGreen = Color(red: 54/255, green: 89/255, blue: 72/255)     // #365948
     private let cream = Color(red: 246/255, green: 232/255, blue: 190/255)
 

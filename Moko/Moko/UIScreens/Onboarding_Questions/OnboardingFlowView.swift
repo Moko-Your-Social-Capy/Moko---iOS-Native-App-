@@ -58,7 +58,7 @@ struct OnboardingFlowView: View {
             .onAppear { screenWidth = geo.size.width }
             .onChange(of: geo.size.width) { _, newWidth in screenWidth = newWidth }
         }
-        .background(Color.white.ignoresSafeArea())
+        .background(MokoTheme.limeBackground.ignoresSafeArea())
         .sensoryFeedback(.impact(weight: .light), trigger: hapticTick)
         // Native navigation bar + back button
         .navigationBarBackButtonHidden(true)
@@ -72,7 +72,7 @@ struct OnboardingFlowView: View {
                     Image(systemName: "chevron.left")
                         .fontWeight(.semibold)
                 }
-                .tint(OBColor.ink)
+                .tint(MokoTheme.forestGreen)
                 .accessibilityLabel("Back")
             }
         }

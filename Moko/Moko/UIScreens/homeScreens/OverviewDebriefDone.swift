@@ -24,9 +24,9 @@ struct OverviewDebriefDone: View {
     }
 
     // Palette matching design specifications
-    private let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255) // #F2F2F7
+    private let screenBg = MokoTheme.limeBackground // #F6FAE8
     private let primaryGreen = Color(red: 27/255, green: 66/255, blue: 47/255) // #1B422F
-    private let titleDark = Color(red: 47/255, green: 42/255, blue: 40/255) // #2F2A28
+    private let titleDark = MokoTheme.titleBrown // #5C4330
     private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
     private let timerBlue = Color(red: 10/255, green: 132/255, blue: 255/255) // #0A84FF
 
@@ -80,7 +80,7 @@ struct OverviewDebriefDone: View {
         HStack(alignment: .center) {
             Text("Overview")
                 .font(.system(size: 34, weight: .bold))
-                .foregroundColor(.black)
+                .foregroundColor(MokoTheme.titleBrown)
 
             Spacer()
 

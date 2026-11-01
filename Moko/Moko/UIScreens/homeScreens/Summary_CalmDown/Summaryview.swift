@@ -565,11 +565,7 @@ struct SummaryView: View {
 
     @State private var range: SummaryRange = .day
 
-    private let screenBg = Color(
-        red: 242.0 / 255.0,
-        green: 242.0 / 255.0,
-        blue: 247.0 / 255.0
-    )
+    private let screenBg = MokoTheme.limeBackground
 
     private let darkGreen = Color(
         red: 27.0 / 255.0,
@@ -583,11 +579,7 @@ struct SummaryView: View {
         blue: 207.0 / 255.0
     )
 
-    private let titleDark = Color(
-        red: 47.0 / 255.0,
-        green: 42.0 / 255.0,
-        blue: 40.0 / 255.0
-    )
+    private let titleDark = MokoTheme.titleBrown
 
     private let subtextGray = Color(
         red: 111.0 / 255.0,

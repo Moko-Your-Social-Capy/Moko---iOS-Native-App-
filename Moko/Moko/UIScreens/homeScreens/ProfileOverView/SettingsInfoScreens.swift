@@ -11,7 +11,7 @@ import SwiftUI
 // MARK: - Shared style
 
 private enum InfoTheme {
-    static let screenBg = Color(red: 242/255, green: 242/255, blue: 247/255)   // #F2F2F7
+    static let screenBg = MokoTheme.limeBackground   // #F6FAE8
     static let deepGreen = Color(red: 27/255, green: 66/255, blue: 47/255)     // #1B422F
     static let cream = Color(red: 246/255, green: 232/255, blue: 190/255)
 }

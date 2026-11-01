@@ -115,7 +115,7 @@ struct ImageryGuideListView: View {
                 Text(title)
                     .font(.system(size: 13, weight: .semibold))
             }
-            .foregroundStyle(deepGreen)
+            .foregroundStyle(Color(hex: 0x5C4330))
             .padding(.horizontal, 14)
             .frame(height: 36)
             .background {

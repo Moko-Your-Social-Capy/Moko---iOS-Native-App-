@@ -51,7 +51,7 @@ struct AgeEntryView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
         }
-        .background(Color.white.ignoresSafeArea())
+        .background(MokoTheme.limeBackground.ignoresSafeArea())
         .sensoryFeedback(.selection, trigger: selected)
     }
 

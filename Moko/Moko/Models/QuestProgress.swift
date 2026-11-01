@@ -17,7 +17,8 @@ struct QuestReward: Equatable {
 enum QuestProgress {
 
     /// The streak after activity on `date`: same day keeps the streak,
-    /// the next day extends it, and a longer gap starts a new one.
+    /// the next day extends it, one rest day is allowed after seven active days,
+    /// and a longer gap starts a new one.
     static func nextStreak(
         current: Int,
         lastActivity: Date?,
@@ -35,6 +36,13 @@ enum QuestProgress {
             return max(current, 0) + 1
         }
 
+        // One missed calendar day is a rest day once the user has built a week-long streak.
+        if current >= 7, current.isMultiple(of: 7),
+           let twoDaysAgo = calendar.date(byAdding: .day, value: -2, to: date),
+           calendar.isDate(lastActivity, inSameDayAs: twoDaysAgo) {
+            return current
+        }
+
         return 1
     }
 
@@ -49,6 +57,7 @@ enum QuestProgress {
     ) -> QuestReward {
         let profile = profile(in: context)
         quest.isCompleted = true
+        if quest.completedAt == nil { quest.completedAt = date }
 
         if !quest.xpAwarded {
             let streak = nextStreak(

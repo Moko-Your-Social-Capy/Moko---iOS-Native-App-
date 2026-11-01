@@ -1,0 +1,73 @@
+<Rive version="1" kind="fragment">
+    <Artboard defaultStateMachineId="0:7" styleId="0:5" width="512" height="512" name="Moko Complete" id="0:2">
+        <LayoutComponentStyle name="Artboard Style" id="0:5"/>
+
+        <StateMachine name="Moko Complete" id="0:7">
+            <StateMachineLayer name="Celebration" id="0:8">
+                <AnyState x="280" y="-100"/>
+                <ExitState x="450" y="-100"/>
+                <EntryState>
+                    <StateTransition stateToId="0:12"/>
+                </EntryState>
+                <AnimationState x="280" y="40" animationId="0:6" id="0:12"/>
+            </StateMachineLayer>
+        </StateMachine>
+
+        <!-- A restrained, continuous lemon cascade; the check lands once and remains readable. -->
+        <LinearAnimation duration="240" fps="60" loopValue="loop" name="Lemon Celebration" id="0:6">
+            <KeyedObject objectId="0:30">
+                <KeyedProperty property="scaleX">
+                    <KeyFrameDouble value="0.72" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.18" y1="0.75" x2="0.28" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.04" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0" x2="0.5" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="240" interpolationType="linear"/>
+                </KeyedProperty>
+                <KeyedProperty property="scaleY">
+                    <KeyFrameDouble value="0.72" frame="0" interpolationType="cubic"><CubicEaseInterpolator x1="0.18" y1="0.75" x2="0.28" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1.04" frame="18" interpolationType="cubic"><CubicEaseInterpolator x1="0.2" y1="0" x2="0.5" y2="1"/></KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="36" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="240" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+            <KeyedObject objectId="0:32">
+                <KeyedProperty property="opacity">
+                    <KeyFrameDouble value="0" frame="0" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="14" interpolationType="linear"/>
+                    <KeyFrameDouble value="1" frame="240" interpolationType="linear"/>
+                </KeyedProperty>
+            </KeyedObject>
+
+            <KeyedObject objectId="0:50"><KeyedProperty property="y"><KeyFrameDouble value="-58" frame="0" interpolationType="linear"/><KeyFrameDouble value="570" frame="200" interpolationType="linear"/><KeyFrameDouble value="570" frame="240" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-18" frame="0" interpolationType="linear"/><KeyFrameDouble value="342" frame="200" interpolationType="linear"/><KeyFrameDouble value="342" frame="240" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:52"><KeyedProperty property="y"><KeyFrameDouble value="-240" frame="0" interpolationType="linear"/><KeyFrameDouble value="570" frame="240" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="28" frame="0" interpolationType="linear"/><KeyFrameDouble value="388" frame="240" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:54"><KeyedProperty property="y"><KeyFrameDouble value="-410" frame="0" interpolationType="linear"/><KeyFrameDouble value="570" frame="240" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-35" frame="0" interpolationType="linear"/><KeyFrameDouble value="325" frame="240" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:56"><KeyedProperty property="y"><KeyFrameDouble value="-120" frame="0" interpolationType="linear"/><KeyFrameDouble value="570" frame="210" interpolationType="linear"/><KeyFrameDouble value="570" frame="240" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="42" frame="0" interpolationType="linear"/><KeyFrameDouble value="402" frame="210" interpolationType="linear"/><KeyFrameDouble value="402" frame="240" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:58"><KeyedProperty property="y"><KeyFrameDouble value="-320" frame="0" interpolationType="linear"/><KeyFrameDouble value="570" frame="240" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-12" frame="0" interpolationType="linear"/><KeyFrameDouble value="348" frame="240" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:60"><KeyedProperty property="y"><KeyFrameDouble value="-500" frame="0" interpolationType="linear"/><KeyFrameDouble value="570" frame="240" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="35" frame="0" interpolationType="linear"/><KeyFrameDouble value="395" frame="240" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:62"><KeyedProperty property="y"><KeyFrameDouble value="-180" frame="0" interpolationType="linear"/><KeyFrameDouble value="570" frame="220" interpolationType="linear"/><KeyFrameDouble value="570" frame="240" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="-48" frame="0" interpolationType="linear"/><KeyFrameDouble value="312" frame="220" interpolationType="linear"/><KeyFrameDouble value="312" frame="240" interpolationType="linear"/></KeyedProperty></KeyedObject>
+            <KeyedObject objectId="0:64"><KeyedProperty property="y"><KeyFrameDouble value="-440" frame="0" interpolationType="linear"/><KeyFrameDouble value="570" frame="240" interpolationType="linear"/></KeyedProperty><KeyedProperty property="rotation"><KeyFrameDouble value="12" frame="0" interpolationType="linear"/><KeyFrameDouble value="372" frame="240" interpolationType="linear"/></KeyedProperty></KeyedObject>
+        </LinearAnimation>
+
+        <!-- A crisp completion badge and check sit in front of the falling fruit. -->
+        <Shape x="256" y="256" scaleX="0.72" scaleY="0.72" name="Completion badge" id="0:30">
+            <Ellipse width="150" height="150" originX="0.5" originY="0.5" name="Badge circle"/>
+            <Fill name="Badge fill"><SolidColor colorValue="FF315F37" name="Deep green"/></Fill>
+        </Shape>
+        <Shape x="256" y="256" opacity="0" name="Completion tick" id="0:32">
+            <PointsPath name="Tick path">
+                <StraightVertex x="-34" y="1"/>
+                <StraightVertex x="-9" y="26"/>
+                <StraightVertex x="43" y="-31"/>
+            </PointsPath>
+            <Stroke thickness="15" cap="round" join="round" name="White tick"><SolidColor colorValue="FFFFFFFF" name="White"/></Stroke>
+        </Shape>
+
+        <Shape x="88" y="-58" name="Lemon 1" id="0:50"><PointsPath isClosed="true" name="Lemon silhouette"><StraightVertex x="-23" y="0" radius="10"/><StraightVertex x="0" y="-18" radius="8"/><StraightVertex x="23" y="0" radius="10"/><StraightVertex x="0" y="18" radius="8"/></PointsPath><Fill name="Lemon peel"><SolidColor colorValue="FFFFC928" name="Lemon yellow"/></Fill></Shape>
+        <Shape x="185" y="-240" name="Lemon 2" id="0:52"><PointsPath isClosed="true" name="Lemon silhouette"><StraightVertex x="-19" y="0" radius="8"/><StraightVertex x="0" y="-15" radius="7"/><StraightVertex x="19" y="0" radius="8"/><StraightVertex x="0" y="15" radius="7"/></PointsPath><Fill name="Lemon peel"><SolidColor colorValue="FFFFD84D" name="Lemon yellow"/></Fill></Shape>
+        <Shape x="284" y="-410" name="Lemon 3" id="0:54"><PointsPath isClosed="true" name="Lemon silhouette"><StraightVertex x="-25" y="0" radius="10"/><StraightVertex x="0" y="-19" radius="8"/><StraightVertex x="25" y="0" radius="10"/><StraightVertex x="0" y="19" radius="8"/></PointsPath><Fill name="Lemon peel"><SolidColor colorValue="FFFFC928" name="Lemon yellow"/></Fill></Shape>
+        <Shape x="407" y="-120" name="Lemon 4" id="0:56"><PointsPath isClosed="true" name="Lemon silhouette"><StraightVertex x="-20" y="0" radius="8"/><StraightVertex x="0" y="-16" radius="7"/><StraightVertex x="20" y="0" radius="8"/><StraightVertex x="0" y="16" radius="7"/></PointsPath><Fill name="Lemon peel"><SolidColor colorValue="FFFFD84D" name="Lemon yellow"/></Fill></Shape>
+        <Shape x="130" y="-320" name="Lemon 5" id="0:58"><PointsPath isClosed="true" name="Lemon silhouette"><StraightVertex x="-22" y="0" radius="9"/><StraightVertex x="0" y="-17" radius="7"/><StraightVertex x="22" y="0" radius="9"/><StraightVertex x="0" y="17" radius="7"/></PointsPath><Fill name="Lemon peel"><SolidColor colorValue="FFFFC928" name="Lemon yellow"/></Fill></Shape>
+        <Shape x="355" y="-500" name="Lemon 6" id="0:60"><PointsPath isClosed="true" name="Lemon silhouette"><StraightVertex x="-24" y="0" radius="10"/><StraightVertex x="0" y="-18" radius="8"/><StraightVertex x="24" y="0" radius="10"/><StraightVertex x="0" y="18" radius="8"/></PointsPath><Fill name="Lemon peel"><SolidColor colorValue="FFFFD84D" name="Lemon yellow"/></Fill></Shape>
+        <Shape x="230" y="-180" name="Lemon 7" id="0:62"><PointsPath isClosed="true" name="Lemon silhouette"><StraightVertex x="-18" y="0" radius="8"/><StraightVertex x="0" y="-15" radius="7"/><StraightVertex x="18" y="0" radius="8"/><StraightVertex x="0" y="15" radius="7"/></PointsPath><Fill name="Lemon peel"><SolidColor colorValue="FFFFC928" name="Lemon yellow"/></Fill></Shape>
+        <Shape x="460" y="-440" name="Lemon 8" id="0:64"><PointsPath isClosed="true" name="Lemon silhouette"><StraightVertex x="-21" y="0" radius="9"/><StraightVertex x="0" y="-16" radius="7"/><StraightVertex x="21" y="0" radius="9"/><StraightVertex x="0" y="16" radius="7"/></PointsPath><Fill name="Lemon peel"><SolidColor colorValue="FFFFD84D" name="Lemon yellow"/></Fill></Shape>
+    </Artboard>
+</Rive>

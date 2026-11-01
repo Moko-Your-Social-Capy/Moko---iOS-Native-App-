@@ -14,7 +14,18 @@ enum MokoTheme {
     static let warmCream = Color(red: 246/255, green: 240/255, blue: 228/255)
     
     /// Forest Green: #1B422F (27, 66, 47)
-    static let forestGreen = Color(red: 27/255, green: 66/255, blue: 47/255)
+    static let forestGreen = Color(red: 27.0 / 255.0, green: 66.0 / 255.0, blue: 47.0 / 255.0)
+
+    /// Pale lime canvas used across the Relax screens: #F6FAE8.
+    static let limeBackground = Color(red: 246.0 / 255.0, green: 250.0 / 255.0, blue: 232.0 / 255.0)
+
+    /// Selected control fill: #E2F5B1.
+    static let limeSelected = Color(red: 226.0 / 255.0, green: 245.0 / 255.0, blue: 177.0 / 255.0)
+
+    /// Warm title brown used across the Relax screens: #5C4330.
+    static let titleBrown = Color(red: 92.0 / 255.0, green: 67.0 / 255.0, blue: 48.0 / 255.0)
+
+    static let bodyBrown = Color(red: 81.0 / 255.0, green: 68.0 / 255.0, blue: 62.0 / 255.0)
     
     /// White: #FFFFFF (255, 255, 255)
     static let white = Color(red: 255/255, green: 255/255, blue: 255/255)
@@ -37,24 +48,24 @@ enum MokoTheme {
     static let secondaryText = Color(red: 102/255, green: 102/255, blue: 102/255)
     
     /// Primary Text: #262626 (38, 38, 38)
-    static let primaryText = Color(red: 38/255, green: 38/255, blue: 38/255)
+    static let primaryText = titleBrown
     
     // MARK: - Semantic Mappings (Strictly using the above colors)
     
     /// Screen background
-    static let background = warmCream
+    static let background = limeBackground
     
     /// Card and text field background
-    static let cardBackground = white
+    static let cardBackground = Color(red: 250.0 / 255.0, green: 253.0 / 255.0, blue: 241.0 / 255.0)
     
     /// Primary heading text
-    static let textPrimary = primaryText
+    static let textPrimary = titleBrown
     
     /// Secondary description / subtitle text
-    static let textSecondary = secondaryText
+    static let textSecondary = bodyBrown
     
     /// Muted placeholder text
-    static let textTertiary = secondaryText
+    static let textTertiary = Color(red: 111.0 / 255.0, green: 103.0 / 255.0, blue: 98.0 / 255.0)
     
     /// Subtle borders and divider lines
     static let borderLight = dividerGray

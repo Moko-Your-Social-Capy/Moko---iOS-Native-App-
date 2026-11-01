@@ -353,7 +353,7 @@ struct RelaxScreen: View {
     private var headerSection: some View {
         Text("Relax")
             .font(.system(size: 34, weight: .bold))
-            .foregroundColor(.black)
+            .foregroundColor(MokoTheme.titleBrown)
             .padding(.horizontal, 20)
             .padding(.top, 14)
     }
@@ -376,7 +376,7 @@ struct RelaxScreen: View {
 
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.black)
+                            .foregroundColor(MokoTheme.titleBrown)
                     }
 
                     Text("Set your own meditation timer for a calmer mind")
@@ -399,7 +399,7 @@ struct RelaxScreen: View {
 
                 Text("\(minutes) min")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.black)
+                    .foregroundColor(MokoTheme.titleBrown)
                     .monospacedDigit()
                     .frame(minWidth: 44)
 
@@ -452,7 +452,7 @@ struct RelaxScreen: View {
 
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.black)
+                        .foregroundColor(MokoTheme.titleBrown)
                 }
 
                 Spacer(minLength: 8)
@@ -582,7 +582,7 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
                             .background(Circle().fill(cardGreen))
                         Text(step)
                             .font(.system(size: 15))
-                            .foregroundColor(.black)
+                            .foregroundColor(MokoTheme.titleBrown)
                     }
                 }
             }

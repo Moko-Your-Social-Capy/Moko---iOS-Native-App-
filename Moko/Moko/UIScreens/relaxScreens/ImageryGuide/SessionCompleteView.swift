@@ -13,7 +13,6 @@ struct SessionCompleteView: View {
 
     private let accent = Color(hex: 0x365948)
     private let titleBrown = Color(hex: 0x5C4330)
-    private let lime = Color(hex: 0xE2F5B1)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,32 +27,22 @@ struct SessionCompleteView: View {
                 .foregroundStyle(Color(hex: 0x8A7B68))
                 .padding(.top, 4)
 
-            ZStack {
-                Ellipse()
-                    .fill(Color.white.opacity(0.72))
-                    .frame(width: 259, height: 250)
-
-                Circle()
-                    .fill(lime.opacity(0.62))
-                    .frame(width: 220, height: 220)
-
-                MokoLottieView(animationType: .complete, size: 210)
-            }
-            .padding(.top, 35)
+            MokoCompletionAnimation(ringDiameter: 190)
+                .padding(.top, 18)
 
             Text("You did it!")
                 .font(.system(size: 28, weight: .bold))
                 .tracking(-0.4)
                 .foregroundStyle(titleBrown)
-                .padding(.top, 97)
+                .padding(.top, 54)
 
             Text(message)
                 .font(.system(size: 18, weight: .light))
                 .lineSpacing(12)
-                .foregroundStyle(.black)
+                .foregroundStyle(MokoTheme.titleBrown)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 52)
-                .padding(.top, 42)
+                .padding(.top, 24)
 
             Spacer(minLength: 24)
 

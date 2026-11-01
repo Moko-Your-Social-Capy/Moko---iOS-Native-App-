@@ -194,6 +194,7 @@ struct ContentView: View {
                     .transition(.opacity)
             }
         }
+        .foregroundStyle(MokoTheme.titleBrown)
     }
 
     // MARK: - Navigation & Registration Logic

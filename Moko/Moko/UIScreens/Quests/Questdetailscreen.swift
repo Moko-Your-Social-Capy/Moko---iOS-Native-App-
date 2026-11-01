@@ -196,7 +196,7 @@ struct QuestDetailScreen: View {
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.black)
+                                .foregroundColor(MokoTheme.titleBrown)
                                 .frame(width: 38, height: 38)
                                 .background(Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255)))
                                 .contentShape(Circle())
@@ -210,7 +210,7 @@ struct QuestDetailScreen: View {
 
                     Text("Quest")
                         .font(.system(size: 30, weight: .bold))
-                        .foregroundColor(.black)
+                        .foregroundColor(MokoTheme.titleBrown)
                         .padding(.horizontal, 24)
                         .padding(.top, 18)
 
@@ -529,7 +529,7 @@ struct QuestSlideButton: View {
 
                     Image(systemName: completed ? "checkmark" : "arrow.right")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.black)
+                        .foregroundColor(MokoTheme.titleBrown)
                 }
                 .frame(width: knob, height: knob)
                 .offset(x: inset + drag)

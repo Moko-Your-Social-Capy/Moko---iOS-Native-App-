@@ -574,7 +574,7 @@ struct MirrorTimerRing: View {
 
             // Center
             if isCompleted {
-                MirrorCompletionBadge(size: 156, showRipples: false)
+                MokoCompletionAnimation(ringDiameter: 140)
                     .transition(.scale(scale: 0.7).combined(with: .opacity))
             } else {
                 MirrorFaceIcon()
@@ -607,16 +607,7 @@ struct MirrorCompletionScreen: View {
 
                 Spacer(minLength: 12)
 
-                ZStack {
-                    Circle()
-                        .stroke(MirrorPalette.mint, lineWidth: 14)
-                        .frame(width: 270, height: 270)
-                    Circle()
-                        .fill(MirrorPalette.mint.opacity(0.58))
-                        .frame(width: 230, height: 230)
-                    MokoLottieView(animationType: .complete, size: 210)
-                }
-                .frame(height: 340)
+                MokoCompletionAnimation(ringDiameter: 190)
 
                 Text("You did it!")
                     .font(.system(size: 32, weight: .bold))
@@ -637,85 +628,6 @@ struct MirrorCompletionScreen: View {
                     .padding(.horizontal, 28)
                     .padding(.bottom, 12)
             }
-        }
-    }
-}
-
-// MARK: - Completion illustration
-struct MirrorCheckShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.minX + rect.width * 0.27, y: rect.minY + rect.height * 0.52))
-        path.addLine(to: CGPoint(x: rect.minX + rect.width * 0.44, y: rect.minY + rect.height * 0.69))
-        path.addLine(to: CGPoint(x: rect.minX + rect.width * 0.75, y: rect.minY + rect.height * 0.33))
-        return path
-    }
-}
-
-/// Badge that pops in, with rippling rings and a check that draws itself.
-struct MirrorCompletionBadge: View {
-    var size: CGFloat
-    var showRipples: Bool
-
-    @State private var popped = false
-    @State private var drawn: CGFloat = 0
-    @State private var ripple = false
-
-    var body: some View {
-        ZStack {
-            if showRipples {
-                ForEach(0..<2, id: \.self) { index in
-                    Circle()
-                        .stroke(MirrorPalette.mint, lineWidth: 3)
-                        .frame(width: size, height: size)
-                        .scaleEffect(ripple ? 1.6 : 1)
-                        .opacity(ripple ? 0 : 0.9)
-                        .animation(
-                            .easeOut(duration: 2.2)
-                                .repeatForever(autoreverses: false)
-                                .delay(Double(index) * 1.1),
-                            value: ripple
-                        )
-                }
-            }
-
-            Circle()
-                .fill(MirrorPalette.mint.opacity(0.7))
-                .frame(width: size, height: size)
-
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [MirrorPalette.softGreen, MirrorPalette.green, MirrorPalette.deepGreen],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: size * 0.78, height: size * 0.78)
-                .shadow(color: MirrorPalette.deepGreen.opacity(0.35), radius: size * 0.08, x: 0, y: size * 0.04)
-
-            Circle()
-                .stroke(MirrorPalette.cream.opacity(0.35), lineWidth: 2)
-                .frame(width: size * 0.66, height: size * 0.66)
-
-            MirrorCheckShape()
-                .trim(from: 0, to: drawn)
-                .stroke(
-                    MirrorPalette.cream,
-                    style: StrokeStyle(lineWidth: size * 0.07, lineCap: .round, lineJoin: .round)
-                )
-                .frame(width: size * 0.78, height: size * 0.78)
-        }
-        .scaleEffect(popped ? 1 : 0.6)
-        .opacity(popped ? 1 : 0)
-        .onAppear {
-            withAnimation(.spring(response: 0.55, dampingFraction: 0.6)) {
-                popped = true
-            }
-            withAnimation(.easeOut(duration: 0.5).delay(0.3)) {
-                drawn = 1
-            }
-            ripple = true
         }
     }
 }

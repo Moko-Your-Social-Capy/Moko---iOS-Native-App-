@@ -257,7 +257,7 @@ struct BoxBreathingView: View {
                 Text(timeString)
                     .font(.system(size: 40, weight: .bold))
                     .monospacedDigit()
-                    .foregroundStyle(.black)
+                    .foregroundStyle(MokoTheme.titleBrown)
             }
     }
 
@@ -297,18 +297,7 @@ struct BoxBreathingView: View {
             .padding(.trailing, 39)
             .padding(.top, 40)
 
-            // Use the same completion animation as the guided breathing timer.
-            ZStack {
-                Circle()
-                    .stroke(BBColor.lime, lineWidth: 14)
-                    .frame(width: 270, height: 270)
-                Circle()
-                    .fill(BBColor.lime.opacity(0.58))
-                    .frame(width: 230, height: 230)
-                MokoLottieView(animationType: .complete, size: 210)
-            }
-            .frame(width: 270, height: 270)
-            .accessibilityHidden(true)
+            MokoCompletionAnimation(ringDiameter: 190)
 
             Text("You did it!")
                 .font(.system(size: 22, weight: .bold))
