@@ -18,7 +18,7 @@ struct BoxBreathingInfoView: View {
                             .resizable()
                             .scaledToFill()
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 0, style: .continuous))
                     .accessibilityHidden(true)
 
                 Text("Box Breathing")
