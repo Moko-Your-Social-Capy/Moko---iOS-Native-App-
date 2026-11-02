@@ -24,10 +24,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Resources/Animations/MokoCompleteRive/rive.yaml,
-				Resources/Animations/MokoCompleteRive/scene.rml,
-				Resources/Animations/MokoMeditationRive/build/problems.log,
-				Resources/Animations/MokoMeditationRive/build/rive.log,
 				Resources/Animations/MokoMeditationRive/rive.yaml,
 				Resources/Animations/MokoMeditationRive/scene.rml,
 			);
