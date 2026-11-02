@@ -47,9 +47,15 @@ struct QuestsScreen: View {
         var id: Date { day }
     }
 
+    private var customQuests: [Quest] {
+        // Library scenarios are started from Explore and should never appear
+        // in the Quests tab.
+        quests.filter { !$0.isFromLibrary }
+    }
+
     private var filteredQuests: [Quest] {
-        guard let filter else { return quests }
-        return quests.filter { $0.category == filter }
+        guard let filter else { return customQuests }
+        return customQuests.filter { $0.category == filter }
     }
 
     private var groups: [DayGroup] {
@@ -97,8 +103,9 @@ struct QuestsScreen: View {
                 NewQuestScreen(quest: quest)
             }
         }
-        // After a quest is added, show the full list so the new quest is visible
-        .onChange(of: quests.count) { oldCount, newCount in
+        // After a custom quest is added, show the full list so it is visible.
+        // Library scenarios are started from Explore and never affect this screen.
+        .onChange(of: customQuests.count) { oldCount, newCount in
             if newCount > oldCount { filter = nil }
         }
     }
@@ -144,7 +151,7 @@ struct QuestsScreen: View {
     // MARK: Content
     @ViewBuilder
     private var content: some View {
-        if quests.isEmpty {
+        if customQuests.isEmpty {
             emptyCard(
                 title: "No Active Quest",
                 message: "Tap below to add a Custom Quest, or use explore option to browse library of quests"

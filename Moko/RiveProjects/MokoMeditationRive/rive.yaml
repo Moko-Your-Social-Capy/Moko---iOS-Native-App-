@@ -1,7 +1,7 @@
 name: MokoMeditationRive
 main: Moko Meditation
 output:
-  dir: ..
+  dir: ../../Moko/Resources/Animations
 logs:
   file: build/rive.log
   problems: build/problems.log

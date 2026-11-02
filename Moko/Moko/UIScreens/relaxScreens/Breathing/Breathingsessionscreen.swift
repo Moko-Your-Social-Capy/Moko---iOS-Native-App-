@@ -28,6 +28,8 @@ struct BreathingSessionScreen: View {
     @State private var runState: RunState
     @State private var elapsed: TimeInterval = 0
     @State private var lastTick: Date?
+    /// Bumped on reset so the Rive state machine starts again from frame 0.
+    @State private var riveResetID = UUID()
 
     private let ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
 
@@ -60,21 +62,6 @@ struct BreathingSessionScreen: View {
 
     private var isInhaling: Bool {
         elapsed.truncatingRemainder(dividingBy: cycle) < inhaleDuration
-    }
-
-    /// 0.6 (fully exhaled) ... 1.0 (fully inhaled), eased
-    private var breathScale: CGFloat {
-        switch runState {
-        case .idle, .completed:
-            return 0.6
-        case .running, .paused:
-            let t = elapsed.truncatingRemainder(dividingBy: cycle)
-            let p = t < inhaleDuration
-                ? t / inhaleDuration
-                : 1 - (t - inhaleDuration) / exhaleDuration
-            let eased = p * p * (3 - 2 * p)
-            return 0.6 + 0.4 * CGFloat(eased)
-        }
     }
 
     private var phaseTitle: String {
@@ -155,7 +142,8 @@ struct BreathingSessionScreen: View {
                         )
                         return try await Rive(file: file)
                     }
-                    .paused(runState == .paused)
+                    .paused(runState != .running)
+                    .id(riveResetID)
                     .frame(width: 250, height: 250)
                     // The mascot is the direct start / pause / resume control.
                     .overlay {
@@ -336,6 +324,7 @@ struct BreathingSessionScreen: View {
         elapsed = 0
         lastTick = nil
         runState = .idle
+        riveResetID = UUID()
     }
 }
 

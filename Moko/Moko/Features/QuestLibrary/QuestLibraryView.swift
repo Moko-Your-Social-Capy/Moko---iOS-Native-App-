@@ -14,21 +14,9 @@ struct QuestLibraryView: View {
     // MARK: - Properties
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Query private var savedQuests: [Quest]
     @State private var store = QuestLibraryStore()
     @State private var searchText: String = ""
     @State private var openedQuest: Quest?
-    @State private var addedToast: AddedQuestToast?
-    @State private var addFeedback = 0
-
-    init() {
-        let ownerID = CurrentUser.localID
-        _savedQuests = Query(
-            filter: #Predicate<Quest> { $0.ownerID == ownerID },
-            sort: \Quest.createdAt,
-            order: .reverse
-        )
-    }
 
     // MARK: - Filtered Data
     private var filteredSections: [QuestSection] {
@@ -65,32 +53,7 @@ struct QuestLibraryView: View {
                 .refreshable {
                     await store.load()
                 }
-
-                if let addedToast {
-                    QuestAddedBanner(
-                        title: addedToast.title,
-                        xp: addedToast.xp,
-                        alreadyAdded: addedToast.alreadyAdded
-                    )
-                    .padding(.horizontal, 16)
-                    .padding(.top, 56)
-                    .id(addedToast.id)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .zIndex(1)
-                    .allowsHitTesting(false)
-                }
             }
-            .animation(.spring(response: 0.42, dampingFraction: 0.84), value: addedToast)
-            .task(id: addedToast?.id) {
-                guard addedToast != nil else { return }
-                do {
-                    try await Task.sleep(for: .seconds(2.4))
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        addedToast = nil
-                    }
-                } catch {}
-            }
-            .sensoryFeedback(.success, trigger: addFeedback)
             .task {
                 await store.loadIfNeeded()
             }
@@ -217,20 +180,14 @@ struct QuestLibraryView: View {
 
     // MARK: - Situation Card (fixed 150 x 202)
     private func situationCard(for quest: LibraryQuest, in section: QuestSection) -> some View {
-        ZStack(alignment: .topTrailing) {
-            Button {
-                open(quest, in: section)
-            } label: {
-                cardContent(for: quest, in: section)
-            }
-            .buttonStyle(DebriefPressStyle())
-            .accessibilityLabel("\(quest.title), \(quest.xp) XP")
-            .accessibilityHint("Opens the quest briefing")
-
-            addButton(for: quest, in: section)
-                .padding(.top, 120)
-                .padding(.trailing, 11)
+        Button {
+            open(quest, in: section)
+        } label: {
+            cardContent(for: quest, in: section)
         }
+        .buttonStyle(DebriefPressStyle())
+        .accessibilityLabel("\(quest.title), \(quest.xp) XP")
+        .accessibilityHint("Opens the quest briefing")
     }
 
     private func cardContent(for quest: LibraryQuest, in section: QuestSection) -> some View {
@@ -251,7 +208,6 @@ struct QuestLibraryView: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, minHeight: 39, alignment: .topLeading)
-                .padding(.trailing, 28)
                 .padding(.top, 5)
 
             // 3. Flexible spacer
@@ -321,84 +277,17 @@ struct QuestLibraryView: View {
             .foregroundStyle(QuestStyle.green.opacity(0.45))
     }
 
-    // MARK: - Add button
-    private func addButton(for quest: LibraryQuest, in section: QuestSection) -> some View {
-        let added = isAdded(quest, in: section)
-
-        return Button {
-            add(quest, in: section)
-        } label: {
-            ZStack {
-                if added {
-                    Circle()
-                        .fill(QuestStyle.chipSelectedFill)
-
-                    Circle()
-                        .strokeBorder(QuestStyle.chipSelectedBorder.opacity(0.6), lineWidth: 1)
-
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .heavy))
-                        .foregroundColor(QuestStyle.green)
-                        .symbolEffect(.bounce, value: added)
-                } else {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [QuestStyle.green, QuestStyle.deepGreen],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-
-                    Circle()
-                        .strokeBorder(Color.white.opacity(0.2), lineWidth: 1)
-
-                    Image(systemName: "plus")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.white)
-                }
-            }
-            .frame(width: 26, height: 26)
-            .shadow(
-                color: added ? Color.black.opacity(0.05) : QuestStyle.deepGreen.opacity(0.28),
-                radius: 5,
-                x: 0,
-                y: 2
-            )
-            .contentShape(Circle())
-        }
-        .buttonStyle(DebriefPressStyle())
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: added)
-        .accessibilityLabel(added ? "\(quest.title) is already in Quests" : "Add \(quest.title) to Quests")
-    }
-
     // MARK: - Connections
-    /// Opens the quest briefing for a library card. The card is added to the
-    /// user's quests the first time it's opened, and reopened after that.
+    /// Opens the quest briefing for a library card. Library cards live outside
+    /// the Quests tab, so the saved record is only used to run the debrief.
     private func open(_ item: LibraryQuest, in section: QuestSection) {
-        openedQuest = savedQuest(for: item, in: section)
+        openedQuest = libraryQuest(for: item, in: section)
     }
 
-    /// Adds the card straight to the Quests tab and confirms it in place.
-    private func add(_ item: LibraryQuest, in section: QuestSection) {
-        let alreadyAdded = isAdded(item, in: section)
-        _ = savedQuest(for: item, in: section)
-
-        addFeedback += 1
-        addedToast = AddedQuestToast(
-            title: item.title,
-            xp: item.xp,
-            alreadyAdded: alreadyAdded
-        )
-    }
-
-    private func isAdded(_ item: LibraryQuest, in section: QuestSection) -> Bool {
-        savedQuests.contains {
-            !$0.isCompleted && $0.title == item.title && $0.category == section.category
-        }
-    }
-
-    private func savedQuest(for item: LibraryQuest, in section: QuestSection) -> Quest {
+    /// Reuses an unfinished library quest or creates a new hidden one. Library
+    /// quests carry a specific XP value, which keeps them out of the Quests tab
+    /// while still letting their debrief scores reach Insights.
+    private func libraryQuest(for item: LibraryQuest, in section: QuestSection) -> Quest {
         let ownerID = CurrentUser.localID
         let title = item.title
         let descriptor = FetchDescriptor<Quest>(
@@ -408,7 +297,9 @@ struct QuestLibraryView: View {
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
         let matches = (try? modelContext.fetch(descriptor)) ?? []
-        if let existing = matches.first(where: { !$0.isCompleted && $0.category == section.category }) {
+        if let existing = matches.first(where: {
+            $0.isFromLibrary && !$0.debriefRecorded && $0.category == section.category
+        }) {
             return existing
         }
 
@@ -424,115 +315,6 @@ struct QuestLibraryView: View {
         modelContext.insert(quest)
         try? modelContext.save()
         return quest
-    }
-}
-
-// MARK: - Confirmation
-private struct AddedQuestToast: Identifiable, Equatable {
-    let id = UUID()
-    let title: String
-    let xp: Int
-    let alreadyAdded: Bool
-}
-
-private struct QuestAddedBanner: View {
-    let title: String
-    let xp: Int
-    let alreadyAdded: Bool
-
-    @State private var pop = false
-    @State private var progress: CGFloat = 1
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.12))
-
-                    Circle()
-                        .fill(QuestStyle.chipSelectedFill)
-                        .padding(4)
-
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 13, weight: .black))
-                        .foregroundColor(QuestStyle.deepGreen)
-                        .symbolEffect(.bounce, value: pop)
-                }
-                .frame(width: 42, height: 42)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 5) {
-                        Text(alreadyAdded ? "Already in Quests" : "Added to Quests")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.white)
-
-                        if !alreadyAdded {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(QuestStyle.chipSelectedFill)
-                        }
-                    }
-
-                    Text(title)
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.white.opacity(0.72))
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 6)
-
-                HStack(spacing: 3) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 9, weight: .bold))
-
-                    Text("\(xp) XP")
-                        .font(.system(size: 11, weight: .bold))
-                }
-                .foregroundColor(QuestStyle.chipSelectedFill)
-                .padding(.horizontal, 9)
-                .frame(height: 26)
-                .background(Capsule().fill(Color.white.opacity(0.14)))
-                .overlay(Capsule().stroke(Color.white.opacity(0.1), lineWidth: 1))
-            }
-
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.white.opacity(0.14))
-
-                    Capsule()
-                        .fill(QuestStyle.chipSelectedFill)
-                        .frame(width: proxy.size.width * progress)
-                }
-            }
-            .frame(height: 3)
-        }
-        .padding(.horizontal, 14)
-        .padding(.top, 13)
-        .padding(.bottom, 11)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [QuestStyle.deepGreen, QuestStyle.green],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
-        )
-        .shadow(color: QuestStyle.deepGreen.opacity(0.3), radius: 18, x: 0, y: 8)
-        .onAppear {
-            pop = true
-            withAnimation(.linear(duration: 2.4)) {
-                progress = 0
-            }
-        }
-        .accessibilityElement(children: .combine)
     }
 }
 

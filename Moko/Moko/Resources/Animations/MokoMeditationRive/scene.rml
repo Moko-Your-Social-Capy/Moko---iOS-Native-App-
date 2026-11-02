@@ -13,25 +13,35 @@
             </StateMachineLayer>
         </StateMachine>
 
-        <LinearAnimation duration="120" fps="60" loopValue="pingPong" name="Deep Breath" id="0:6">
+        <!-- 10 s loop: expand for 4 s (frames 0-240), release for 6 s (frames 240-600). -->
+        <LinearAnimation duration="600" fps="60" loopValue="loop" name="Deep Breath" id="0:6">
             <KeyedObject objectId="0:21">
                 <KeyedProperty property="scaleX">
                     <KeyFrameDouble value="0.5" frame="0" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
                     </KeyFrameDouble>
-                    <KeyFrameDouble value="0.508" frame="120" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.508" frame="240" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="0.5" frame="600" interpolationType="linear"/>
                 </KeyedProperty>
                 <KeyedProperty property="scaleY">
                     <KeyFrameDouble value="0.5" frame="0" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
                     </KeyFrameDouble>
-                    <KeyFrameDouble value="0.515" frame="120" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.515" frame="240" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="0.5" frame="600" interpolationType="linear"/>
                 </KeyedProperty>
                 <KeyedProperty property="y">
                     <KeyFrameDouble value="256" frame="0" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
                     </KeyFrameDouble>
-                    <KeyFrameDouble value="253" frame="120" interpolationType="linear"/>
+                    <KeyFrameDouble value="253" frame="240" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="256" frame="600" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
 
@@ -40,19 +50,28 @@
                     <KeyFrameDouble value="1" frame="0" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
                     </KeyFrameDouble>
-                    <KeyFrameDouble value="1.035" frame="120" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.035" frame="240" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="600" interpolationType="linear"/>
                 </KeyedProperty>
                 <KeyedProperty property="scaleY">
                     <KeyFrameDouble value="1" frame="0" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
                     </KeyFrameDouble>
-                    <KeyFrameDouble value="1.035" frame="120" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.035" frame="240" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="600" interpolationType="linear"/>
                 </KeyedProperty>
                 <KeyedProperty property="opacity">
                     <KeyFrameDouble value="0.22" frame="0" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
                     </KeyFrameDouble>
-                    <KeyFrameDouble value="0.08" frame="120" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.08" frame="240" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="0.22" frame="600" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
 
@@ -61,19 +80,28 @@
                     <KeyFrameDouble value="1" frame="0" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
                     </KeyFrameDouble>
-                    <KeyFrameDouble value="1.07" frame="120" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.07" frame="240" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="600" interpolationType="linear"/>
                 </KeyedProperty>
                 <KeyedProperty property="scaleY">
                     <KeyFrameDouble value="1" frame="0" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
                     </KeyFrameDouble>
-                    <KeyFrameDouble value="1.07" frame="120" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.07" frame="240" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="600" interpolationType="linear"/>
                 </KeyedProperty>
                 <KeyedProperty property="opacity">
                     <KeyFrameDouble value="0.24" frame="0" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
                     </KeyFrameDouble>
-                    <KeyFrameDouble value="0.04" frame="120" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.04" frame="240" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="0.24" frame="600" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
 
@@ -82,19 +110,28 @@
                     <KeyFrameDouble value="1" frame="0" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
                     </KeyFrameDouble>
-                    <KeyFrameDouble value="1.045" frame="120" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.045" frame="240" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="600" interpolationType="linear"/>
                 </KeyedProperty>
                 <KeyedProperty property="scaleY">
                     <KeyFrameDouble value="1" frame="0" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
                     </KeyFrameDouble>
-                    <KeyFrameDouble value="1.045" frame="120" interpolationType="linear"/>
+                    <KeyFrameDouble value="1.045" frame="240" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="1" frame="600" interpolationType="linear"/>
                 </KeyedProperty>
                 <KeyedProperty property="opacity">
                     <KeyFrameDouble value="0.18" frame="0" interpolationType="cubic">
                         <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
                     </KeyFrameDouble>
-                    <KeyFrameDouble value="0.03" frame="120" interpolationType="linear"/>
+                    <KeyFrameDouble value="0.03" frame="240" interpolationType="cubic">
+                        <CubicEaseInterpolator x1="0.42" y1="0" x2="0.58" y2="1"/>
+                    </KeyFrameDouble>
+                    <KeyFrameDouble value="0.18" frame="600" interpolationType="linear"/>
                 </KeyedProperty>
             </KeyedObject>
         </LinearAnimation>
