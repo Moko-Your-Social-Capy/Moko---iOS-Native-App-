@@ -28,7 +28,7 @@ struct MokoRootView: View {
 
             Tab(
                 "Quests",
-                systemImage: "clipboard.fill",
+                systemImage: "list.bullet.clipboard",
                 value: .quests
             ) {
                 QuestsScreen()
@@ -76,8 +76,9 @@ struct MokoRootView: View {
                 handleDebriefOutcome(outcome, for: quest)
             }
         }
-        .onChange(of: quests.count) { oldCount, newCount in
-            // A new quest resets the Overview back to today's mission
+        .onChange(of: customQuestCount) { oldCount, newCount in
+            // A new custom quest resets the Overview back to today's mission.
+            // Library scenarios are started from Explore and must not affect it.
             if newCount > oldCount {
                 overviewMode = .todo
             }
@@ -115,6 +116,12 @@ struct MokoRootView: View {
         case .debriefDone:
             OverviewDebriefDone()
         }
+    }
+
+    /// Custom quests only. Library scenarios live in Explore and never enter
+    /// the Quests tab or the Overview mission.
+    private var customQuestCount: Int {
+        quests.filter { !$0.isFromLibrary }.count
     }
 
     /// The quest Overview shows as today's mission.
