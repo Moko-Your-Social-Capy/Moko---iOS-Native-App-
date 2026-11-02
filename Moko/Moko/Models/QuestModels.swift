@@ -100,13 +100,17 @@ final class Quest {
 }
 
 extension Quest {
+    /// Library scenarios award a specific XP amount. Custom quests leave `xp` nil.
+    var isFromLibrary: Bool { xp != nil }
+
     /// The quest the Overview shows: the earliest completed quest that still needs
     /// a debrief, otherwise the soonest incomplete quest. Only this device's user.
+    /// Library scenarios are started from Explore and never become the daily mission.
     static func overviewMission(
         from quests: [Quest],
         ownerID: String = CurrentUser.localID
     ) -> Quest? {
-        let mine = quests.filter { $0.ownerID == ownerID }
+        let mine = quests.filter { $0.ownerID == ownerID && !$0.isFromLibrary }
 
         if let awaitingDebrief = mine
             .filter({ $0.isCompleted && !$0.debriefRecorded })
