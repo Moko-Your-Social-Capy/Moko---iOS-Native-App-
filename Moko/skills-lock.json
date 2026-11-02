@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "rive-animation": {
+      "source": "iabhi1610/rive-animation-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "63b331a198e001242494ee51dda87600fa7b3e9275bac640d0eb4de3b81c4dfc"
+    }
+  }
+}
