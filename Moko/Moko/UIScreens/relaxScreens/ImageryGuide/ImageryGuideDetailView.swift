@@ -3,6 +3,8 @@ import SwiftUI
 struct ImageryGuideDetailView: View {
     let guide: ImageryGuide
 
+    @Environment(ImageryGuideStore.self) private var store
+
     private let accent = Color(hex: 0x365948)
     private let tileFill = Color(hex: 0xE2F5B1)
     private let ink = Color(hex: 0x5C4330)
@@ -10,6 +12,36 @@ struct ImageryGuideDetailView: View {
     private let caption = Color(hex: 0x6F6762)
 
     var body: some View {
+        Group {
+            if let screen = store.screen {
+                content(screen)
+            } else if store.isLoading {
+                ProgressView()
+                    .tint(accent)
+            } else {
+                ContentUnavailableView {
+                    Label(store.screen?.errorTitle ?? "Couldn't load guides", systemImage: store.screen?.errorIcon ?? "wifi.exclamationmark")
+                } description: {
+                    Text(store.errorMessage ?? "")
+                } actions: {
+                    Button(store.screen?.retryButtonTitle ?? "Try Again") {
+                        Task { await store.load() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(accent)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(hex: 0xF6FAE8).ignoresSafeArea())
+        .navigationBarTitleDisplayMode(.inline)
+        // Keep the tab bar hidden on the info screen too, so returning from a
+        // session doesn't animate it back in after a delay.
+        .toolbar(.hidden, for: .tabBar)
+        .task { await store.loadIfNeeded() }
+    }
+
+    private func content(_ screen: ImageryGuideScreenContent) -> some View {
         VStack(spacing: 0) {
             Spacer(minLength: 24)
 
@@ -43,7 +75,7 @@ struct ImageryGuideDetailView: View {
                 .padding(.top, 18)
 
             NavigationLink(value: RelaxRoute.guideSession(guide)) {
-                Text("Start")
+                Text(screen.detailStartButton)
                     .font(.system(size: 18, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 244, height: 61)
@@ -52,7 +84,7 @@ struct ImageryGuideDetailView: View {
             .buttonStyle(.plain)
             .padding(.top, 44)
 
-            Text("About 2 minutes · pause any time")
+            Text(screen.detailCaption)
                 .font(.system(size: 15))
                 .tracking(0.3)
                 .foregroundStyle(caption)
@@ -60,14 +92,12 @@ struct ImageryGuideDetailView: View {
 
             Spacer(minLength: 24)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(hex: 0xF6FAE8).ignoresSafeArea())
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
 #Preview {
     NavigationStack {
-        ImageryGuideDetailView(guide: ImageryGuide.all[0])
+        ImageryGuideDetailView(guide: .preview)
     }
+    .environment(ImageryGuideStore())
 }
