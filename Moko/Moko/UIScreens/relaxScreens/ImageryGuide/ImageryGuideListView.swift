@@ -3,6 +3,7 @@ import SwiftUI
 struct ImageryGuideListView: View {
     var onSelect: (ImageryGuide) -> Void = { _ in }
 
+    @Environment(ImageryGuideStore.self) private var store
     @State private var selectedTag: String? = nil      // nil = "All"
 
     private let sage      = Color(hex: 0x365948)
@@ -12,11 +13,12 @@ struct ImageryGuideListView: View {
     private let muted     = Color(hex: 0x6F6762)
     private let mint      = Color(hex: 0xE2F5B1)
     private let screenBg  = Color(hex: 0xF6FAE8)
-    private let tags      = ["Cozy", "Peace", "Fresh", "Own"]
+
+    private var screen: ImageryGuideScreenContent? { store.screen }
 
     private var visibleGuides: [ImageryGuide] {
-        guard let selectedTag else { return ImageryGuide.all }
-        return ImageryGuide.all.filter { $0.tag == selectedTag }
+        guard let selectedTag else { return store.guides }
+        return store.guides.filter { $0.tag == selectedTag }
     }
 
     var body: some View {
@@ -28,82 +30,71 @@ struct ImageryGuideListView: View {
             chips
                 .padding(.top, 8)
 
-            ScrollView(showsIndicators: false) {
-                LazyVStack(spacing: 16) {
-                    ForEach(visibleGuides) { guide in
-                        Button {
-                            onSelect(guide)
-                        } label: {
-                            card(for: guide)
-                        }
-                        .buttonStyle(ImageryGuidePressStyle())
-                        .scrollTransition(.interactive, axis: .vertical) { content, phase in
-                            content
-                                .scaleEffect(phase.isIdentity ? 1 : 0.97)
-                                .opacity(phase.isIdentity ? 1 : 0.85)
-                        }
-                        .accessibilityLabel("\(guide.title), \(guide.tag), 2 minute guided imagery")
-                        .accessibilityHint("Opens the guide")
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 18)
-                .padding(.bottom, 28)
-            }
-            .padding(.top, 12)
+            guideContent
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Text("\(ImageryGuide.all.count) GUIDES")
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(0.7)
-                    .foregroundStyle(sage)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
-                    .background(Capsule().fill(mint))
+                if let screen {
+                    Text(screen.format(screen.guidesCountFormat, ["count": "\(store.guides.count)"]))
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(0.7)
+                        .foregroundStyle(sage)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(Capsule().fill(mint))
+                }
             }
         }
+        .task { await store.loadIfNeeded() }
         .animation(.spring(response: 0.38, dampingFraction: 0.86), value: selectedTag)
         .sensoryFeedback(.selection, trigger: selectedTag)
     }
 
     // MARK: Header
 
+    @ViewBuilder
     private var header: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text("GUIDED IMAGERY")
-                .font(.system(size: 11, weight: .bold))
-                .tracking(1.6)
-                .foregroundStyle(sage)
+        if let screen {
+            VStack(alignment: .leading, spacing: 7) {
+                Text(screen.eyebrow)
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(1.6)
+                    .foregroundStyle(sage)
 
-            Text("Imagery Guide")
-                .font(.system(size: 34, weight: .bold))
-                .tracking(-0.7)
-                .foregroundStyle(ink)
+                Text(screen.title)
+                    .font(.system(size: 34, weight: .bold))
+                    .tracking(-0.7)
+                    .foregroundStyle(ink)
+            }
         }
     }
 
     // MARK: Filter chips
 
+    @ViewBuilder
     private var chips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 9) {
-                chip(title: "All", symbol: "square.grid.2x2.fill", isSelected: selectedTag == nil) {
-                    selectedTag = nil
-                }
+        if let screen {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 9) {
+                    chip(title: screen.allFilterTitle,
+                         symbol: screen.allFilterIcon,
+                         isSelected: selectedTag == nil) {
+                        selectedTag = nil
+                    }
 
-                ForEach(tags, id: \.self) { tag in
-                    chip(title: tag, symbol: symbol(for: tag), isSelected: selectedTag == tag) {
-                        selectedTag = tag
+                    ForEach(store.tags) { tag in
+                        chip(title: tag.title, symbol: tag.icon, isSelected: selectedTag == tag.title) {
+                            selectedTag = tag.title
+                        }
                     }
                 }
+                .padding(.horizontal, 20)
             }
-            .padding(.horizontal, 20)
+            .scrollClipDisabled()
         }
-        .scrollClipDisabled()
     }
 
     private func chip(title: String, symbol: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
@@ -135,6 +126,76 @@ struct ImageryGuideListView: View {
         .buttonStyle(ImageryGuidePressStyle())
     }
 
+    // MARK: Content
+
+    @ViewBuilder
+    private var guideContent: some View {
+        if store.isLoading && store.guides.isEmpty {
+            ProgressView(screen?.loadingText ?? "")
+                .tint(sage)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.top, 40)
+        } else if store.guides.isEmpty, let error = store.errorMessage {
+            ContentUnavailableView {
+                Label(screen?.errorTitle ?? "Couldn't load guides", systemImage: screen?.errorIcon ?? "wifi.exclamationmark")
+            } description: {
+                Text(screen?.errorMessage ?? error)
+            } actions: {
+                Button(screen?.retryButtonTitle ?? "Try Again") {
+                    Task { await store.load() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(sage)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.top, 40)
+        } else if store.guides.isEmpty {
+            ContentUnavailableView {
+                Label(screen?.emptyTitle ?? "No guides yet", systemImage: screen?.emptyIcon ?? "sparkles")
+            } description: {
+                Text(screen?.emptyMessage ?? "")
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.top, 40)
+        } else {
+            ScrollView(showsIndicators: false) {
+                LazyVStack(spacing: 16) {
+                    ForEach(visibleGuides) { guide in
+                        Button {
+                            onSelect(guide)
+                        } label: {
+                            card(for: guide)
+                        }
+                        .buttonStyle(ImageryGuidePressStyle())
+                        .scrollTransition(.interactive, axis: .vertical) { content, phase in
+                            content
+                                .scaleEffect(phase.isIdentity ? 1 : 0.97)
+                                .opacity(phase.isIdentity ? 1 : 0.85)
+                        }
+                        .accessibilityLabel(accessibilityLabel(for: guide))
+                        .accessibilityHint(screen?.listAccessibilityHint ?? "")
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+                .padding(.bottom, 28)
+            }
+            .padding(.top, 12)
+            .refreshable { await store.load() }
+        }
+    }
+
+    private func accessibilityLabel(for guide: ImageryGuide) -> String {
+        guard let screen else {
+            return "\(guide.title), \(guide.tag), \(guide.durationLabel)"
+        }
+        return screen.format(screen.accessibilityLabelFormat, [
+            "title": guide.title,
+            "tag": guide.tag,
+            "duration": guide.durationLabel
+        ])
+    }
+
     // MARK: Guide card
 
     private func card(for guide: ImageryGuide) -> some View {
@@ -164,7 +225,7 @@ struct ImageryGuideListView: View {
                     .padding(14)
             }
             .overlay(alignment: .topTrailing) {
-                durationPill
+                durationPill(for: guide)
                     .padding(14)
             }
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -177,22 +238,46 @@ struct ImageryGuideListView: View {
 
     @ViewBuilder
     private func cardImage(for guide: ImageryGuide) -> some View {
-        if let imageName = guide.sessionImage {
-            Image(imageName)
-                .resizable()
-                .scaledToFill()
-        } else {
-            ZStack {
-                LinearGradient(
-                    colors: [mint, sage.opacity(0.35)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+        if let url = guide.artworkURL {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                case .empty:
+                    ZStack {
+                        LinearGradient(
+                            colors: [mint, sage.opacity(0.35)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
 
-                Image(systemName: guide.icon)
-                    .font(.system(size: 64, weight: .semibold))
-                    .foregroundStyle(sage.opacity(0.6))
+                        ProgressView()
+                            .tint(sage)
+                    }
+                case .failure:
+                    iconFallback(for: guide)
+                @unknown default:
+                    iconFallback(for: guide)
+                }
             }
+        } else {
+            iconFallback(for: guide)
+        }
+    }
+
+    private func iconFallback(for guide: ImageryGuide) -> some View {
+        ZStack {
+            LinearGradient(
+                colors: [mint, sage.opacity(0.35)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            Image(systemName: guide.icon)
+                .font(.system(size: 64, weight: .semibold))
+                .foregroundStyle(sage.opacity(0.6))
         }
     }
 
@@ -224,7 +309,7 @@ struct ImageryGuideListView: View {
                 Circle()
                     .stroke(Color.white.opacity(0.25), lineWidth: 1)
 
-                Image(systemName: "arrow.up.right")
+                Image(systemName: screen?.cardOpenIcon ?? "arrow.up.right")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white)
             }
@@ -234,8 +319,10 @@ struct ImageryGuideListView: View {
     }
 
     private func tagPill(for guide: ImageryGuide) -> some View {
-        HStack(spacing: 5) {
-            Image(systemName: symbol(for: guide.tag))
+        let symbol = store.tags.first(where: { $0.title == guide.tag })?.icon ?? guide.icon
+
+        return HStack(spacing: 5) {
+            Image(systemName: symbol)
                 .font(.system(size: 10, weight: .semibold))
 
             Text(guide.tag)
@@ -248,12 +335,12 @@ struct ImageryGuideListView: View {
         .overlay(Capsule().stroke(Color.white.opacity(0.16), lineWidth: 1))
     }
 
-    private var durationPill: some View {
+    private func durationPill(for guide: ImageryGuide) -> some View {
         HStack(spacing: 4) {
-            Image(systemName: "clock")
+            Image(systemName: screen?.durationIcon ?? "clock")
                 .font(.system(size: 10, weight: .semibold))
 
-            Text("2 min")
+            Text(guide.durationLabel)
                 .font(.system(size: 11, weight: .semibold))
         }
         .foregroundStyle(.white)
@@ -261,16 +348,6 @@ struct ImageryGuideListView: View {
         .frame(height: 27)
         .background(Capsule().fill(Color.black.opacity(0.32)))
         .overlay(Capsule().stroke(Color.white.opacity(0.16), lineWidth: 1))
-    }
-
-    private func symbol(for tag: String) -> String {
-        switch tag {
-        case "Cozy":  return "sofa"
-        case "Peace": return "leaf.fill"
-        case "Fresh": return "wind"
-        case "Own":   return "heart.fill"
-        default:      return "sparkles"
-        }
     }
 
     private var background: some View {
@@ -291,4 +368,5 @@ private struct ImageryGuidePressStyle: ButtonStyle {
     NavigationStack {
         ImageryGuideListView()
     }
+    .environment(ImageryGuideStore())
 }

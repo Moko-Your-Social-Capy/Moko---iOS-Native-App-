@@ -11,9 +11,9 @@ import Combine
 
 struct GuideSessionView: View {
     let guide: ImageryGuide
-    var totalSeconds: TimeInterval = 120          // 2 minutes
     var onContinue: () -> Void = {}
 
+    @Environment(ImageryGuideStore.self) private var store
     @State private var elapsed: TimeInterval = 0
     @State private var isRunning = true           // starts as soon as the screen opens
     @State private var lastTick = Date()
@@ -29,7 +29,9 @@ struct GuideSessionView: View {
 
     // MARK: Derived state
 
-    private var steps: [String] { guide.sessionSteps }
+    private var screen: ImageryGuideScreenContent? { store.screen }
+    private var totalSeconds: TimeInterval { TimeInterval(guide.durationSeconds) }
+    private var steps: [String] { guide.sessionSteps.isEmpty ? [""] : guide.sessionSteps }
     private var isComplete: Bool { elapsed >= totalSeconds }
 
     private var stepIndex: Int {
@@ -38,14 +40,24 @@ struct GuideSessionView: View {
     }
 
     private var headerText: String {
-        if isComplete { return "SESSION COMPLETE" }
-        return "STEP \(stepIndex + 1) OF \(steps.count)" + (isRunning ? "" : " · PAUSED")
+        guard let screen else { return "" }
+        if isComplete { return screen.sessionCompleteHeader }
+
+        let step = screen.format(screen.sessionStepFormat, [
+            "current": "\(stepIndex + 1)",
+            "total": "\(steps.count)"
+        ])
+        return isRunning ? step : step + screen.sessionPausedSuffix
     }
 
     private var instruction: String {
-        isComplete
-        ? "You imagined for \(format(Int(totalSeconds))). Take a moment before you continue."
-        : steps[stepIndex]
+        if isComplete {
+            guard let screen else { return "" }
+            return screen.format(screen.sessionCompleteInstructionFormat, [
+                "duration": format(Int(totalSeconds))
+            ])
+        }
+        return steps[stepIndex]
     }
 
     private func format(_ seconds: Int) -> String {
@@ -64,9 +76,9 @@ struct GuideSessionView: View {
         }
         .navigationTitle(guide.title)
         .navigationBarTitleDisplayMode(.inline)
-        // Immersive session: give the guidance panel the full screen. The system
-        // brings the tab bar back when the user pops this screen.
+        // Immersive session: give the guidance panel the full screen.
         .toolbar(.hidden, for: .tabBar)
+        .task { await store.loadIfNeeded() }
         .onReceive(ticker) { date in
             let dt = min(date.timeIntervalSince(lastTick), 0.5)
             lastTick = date
@@ -85,28 +97,44 @@ struct GuideSessionView: View {
     // MARK: Background photo
 
     private var background: some View {
-        Group {
-            if let name = guide.sessionImage {
-                Color.clear
-                    .overlay {
-                        Image(name)
-                            .resizable()
-                            .scaledToFill()
-                            .scaleEffect(guide.sessionImageScale, anchor: .top)
-                            .offset(x: guide.sessionImageShift)   // framing used in the design
-                    }
-                    .clipped()
-            } else {
-                // Guides without a photo yet
+        // Keep the photo in an overlay so its intrinsic size can never stretch
+        // the session's layout beyond the screen edges.
+        Color.clear
+            .overlay {
                 ZStack {
                     tileFill
-                    Image(systemName: guide.icon)
-                        .font(.system(size: 140, weight: .semibold))
-                        .foregroundStyle(accent.opacity(0.35))
+
+                    if let url = guide.artworkURL {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFill()
+                                    .scaleEffect(guide.sessionImageScale, anchor: .top)
+                                    .offset(x: guide.sessionImageShift)   // framing comes from Supabase
+                            case .empty:
+                                ProgressView()
+                                    .tint(accent)
+                            case .failure:
+                                iconArtwork
+                            @unknown default:
+                                iconArtwork
+                            }
+                        }
+                    } else {
+                        iconArtwork
+                    }
                 }
             }
-        }
-        .ignoresSafeArea()
+            .clipped()
+            .ignoresSafeArea()
+    }
+
+    private var iconArtwork: some View {
+        Image(systemName: guide.icon)
+            .font(.system(size: 140, weight: .semibold))
+            .foregroundStyle(accent.opacity(0.35))
     }
 
     // MARK: Guidance panel
@@ -151,19 +179,19 @@ struct GuideSessionView: View {
 
             // Elapsed / remaining
             HStack {
-                Text("Elapsed \(format(Int(elapsed)))")
+                Text(elapsedLabel)
                 Spacer()
-                Text("Remaining \(format(Int(totalSeconds) - Int(elapsed)))")
+                Text(remainingLabel)
             }
             .font(.system(size: 14))
             .monospacedDigit()
             .foregroundStyle(caption)
             .padding(.top, 10)
 
-            // Appears once the 2 minutes are over
+            // Appears once the timer is over
             if isComplete {
                 Button(action: onContinue) {
-                    Text("Continue")
+                    Text(screen?.sessionContinueButton ?? "")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -185,17 +213,32 @@ struct GuideSessionView: View {
         .animation(.spring(duration: 0.4), value: isComplete)
     }
 
+    private var elapsedLabel: String {
+        guard let screen else { return "" }
+        return screen.format(screen.sessionElapsedFormat, [
+            "duration": format(Int(elapsed))
+        ])
+    }
+
+    private var remainingLabel: String {
+        guard let screen else { return "" }
+        return screen.format(screen.sessionRemainingFormat, [
+            "duration": format(Int(totalSeconds) - Int(elapsed))
+        ])
+    }
+
     // MARK: Subtle reset + play/pause
 
     private var controls: some View {
         HStack(spacing: 8) {
-            controlButton(icon: "arrow.counterclockwise", label: "Restart") {
+            controlButton(icon: screen?.sessionRestartIcon ?? "",
+                          label: screen?.sessionRestartLabel ?? "") {
                 elapsed = 0
                 lastTick = Date()
                 isRunning = true
             }
-            controlButton(icon: isRunning ? "pause.fill" : "play.fill",
-                          label: isRunning ? "Pause" : "Play") {
+            controlButton(icon: isRunning ? (screen?.sessionPauseIcon ?? "") : (screen?.sessionPlayIcon ?? ""),
+                          label: isRunning ? (screen?.sessionPauseLabel ?? "") : (screen?.sessionPlayLabel ?? "")) {
                 lastTick = Date()
                 isRunning.toggle()
             }
@@ -216,5 +259,6 @@ struct GuideSessionView: View {
 }
 
 #Preview {
-    GuideSessionView(guide: ImageryGuide.all[0])
+    GuideSessionView(guide: .preview)
+        .environment(ImageryGuideStore())
 }

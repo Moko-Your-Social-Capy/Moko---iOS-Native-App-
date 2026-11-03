@@ -1,83 +1,194 @@
 import SwiftUI
 
-// MARK: - Model
+// MARK: - Guide
 
-struct ImageryGuide: Identifiable, Hashable {
+/// One card in the Relax > Imagery guide list. Rows live in the
+/// `imagery_guides` table in Supabase.
+nonisolated struct ImageryGuide: Identifiable, Hashable, Decodable {
     let id: String
     let title: String
     let description: String
-    let tag: String        // matches a filter chip
-    let icon: String       // SF Symbol name
-    var detailText: String? = nil       // longer text for the detail screen
-    var sessionImage: String? = nil     // full-screen photo for the timer screen
-    var sessionImageShift: CGFloat = 0  // nudges the photo left (-) or right (+) to match the design
-    var sessionImageScale: CGFloat = 1  // zooms the photo in from the top edge to match the design
-    var steps: [String]? = nil          // instructions shown during the 2 minutes
-    var completionText: String? = nil   // message on the "You did it!" screen
+    /// Matches a row in `imagery_guide_tags`, used by the filter chips.
+    let tag: String
+    /// SF Symbol name.
+    let icon: String
+    let detailText: String
+    /// Public URL in the `imagery-guide` Supabase Storage bucket.
+    let imageURL: String?
+    /// Nudges the full-screen photo left (-) or right (+) to match the design.
+    let imageShift: Double
+    /// Zooms the full-screen photo in from the top edge to match the design.
+    let imageScale: Double
+    /// Instructions shown in order while the timer runs.
+    let steps: [String]
+    let completionText: String
+    let durationSeconds: Int
+    /// Short duration shown on the card, for example "2 min".
+    let durationLabel: String
 
-    var detailDescription: String { detailText ?? description }
-    var completionMessage: String {
-        completionText ?? "You took a moment to slow down, breathe, and imagine a place where you feel at peace."
+    var detailDescription: String { detailText }
+    var completionMessage: String { completionText }
+    var sessionSteps: [String] { steps }
+
+    var artworkURL: URL? {
+        guard let imageURL else { return nil }
+        return URL(string: imageURL)
     }
 
-    /// Three instructions that change while the timer runs.
-    var sessionSteps: [String] {
-        steps ?? [
-            "Picture \(title.lowercased()). Notice the colors and shapes around you.",
-            "Notice how it feels to be there. Let your body settle.",
-            "Take one slow breath. When you are ready, come back to the present."
-        ]
-    }
+    var sessionImageShift: CGFloat { CGFloat(imageShift) }
+    var sessionImageScale: CGFloat { CGFloat(imageScale) }
 
-    static let all: [ImageryGuide] = [
-        ImageryGuide(id: "cozy-room",
-                     title: "A Cozy Room",
-                     description: "Imagine yourself in a cozy room where you feel safe, comfortable, and relaxed.",
-                     tag: "Cozy", icon: "sofa",
-                     detailText: "Imagine a quiet, warm room. Picture the soft sofa beneath you and the gentle light around you. You can listen to the guidance or simply explore the scene in your own way.",
-                     sessionImage: "cozy_room",
-                     sessionImageShift: -66.5,
-                     steps: [
-                        "Picture a comfortable room. Notice the soft light on the walls.",
-                        "Notice the soft sofa and the warm blanket. Let your body settle.",
-                        "Take one slow breath. When you are ready, come back to the room."
-                     ]),
-        ImageryGuide(id: "calm-garden",
-                     title: "A Calm Garden",
-                     description: "Imagine a peaceful garden with gentle sounds, fresh air, and greenery all around you.",
-                     tag: "Peace", icon: "tree",
-                     detailText: "Imagine a peaceful garden, fresh flowers, and a gentle breeze. Take a deep breath and let yourself relax.",
-                     sessionImage: "calm_garden",
-                     steps: [
-                        "Picture a quiet garden. Notice the green around you and the gentle sounds.",
-                        "Feel the fresh air and the soft breeze. Let your shoulders relax.",
-                        "Take one slow breath. When you are ready, come back to the garden."
-                     ],
-                     completionText: "You took a moment to slow down, breathe, and picture a calm garden where you feel at peace."),
-        ImageryGuide(id: "misty-hill",
-                     title: "A Misty Hill Station",
-                     description: "Imagine cool mountain air, misty green hills, and peaceful morning around you.",
-                     tag: "Fresh", icon: "mountain.2",
-                     detailText: "We\u{2019}re about to take you to a peaceful, misty hill station. Picture yourself surrounded by cool air, green hills, and soft clouds drifting by. Get ready to unwind.",
-                     sessionImage: "misty_hill",
-                     steps: [
-                        "Picture cool mountain air and soft mist over green hills.",
-                        "Watch the clouds drift slowly by. Let each breath feel cool and light.",
-                        "Take one slow breath. When you are ready, come back to the hills."
-                     ],
-                     completionText: "You took a moment to slow down, breathe, and picture a misty hill station where you feel at peace."),
-        ImageryGuide(id: "childhood-memory",
-                     title: "A Childhood Memory",
-                     description: "Imagine a happy childhood moment that makes you feel safe, warm, and at peace.",
-                     tag: "Own", icon: "teddybear",
-                     detailText: "Imagine a happy childhood memory, filled with familiar faces, warm smiles, and simple joys. Take a deep breath and let yourself feel safe, calm, and relaxed.",
-                     sessionImage: "childhood_memory",
-                     sessionImageScale: 1.061,
-                     steps: [
-                        "Picture a happy childhood moment. Notice who is with you and how it feels.",
-                        "Notice the warm evening light and the comfort of being together.",
-                        "Take one slow breath. When you are ready, come back to the present."
-                     ],
-                     completionText: "You took a moment to slow down, breathe, and revisit a childhood memory that makes you feel safe and at peace.")
-    ]
+    enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case description
+        case tag
+        case icon
+        case steps
+        case detailText = "detail_text"
+        case imageURL = "image_url"
+        case imageShift = "image_shift"
+        case imageScale = "image_scale"
+        case completionText = "completion_text"
+        case durationSeconds = "duration_seconds"
+        case durationLabel = "duration_label"
+    }
 }
+
+// MARK: - Filter tag
+
+/// A filter chip above the guide list. Rows live in `imagery_guide_tags`.
+nonisolated struct ImageryGuideTag: Identifiable, Hashable, Decodable {
+    let title: String
+    /// SF Symbol name.
+    let icon: String
+
+    var id: String { title }
+}
+
+// MARK: - Screen copy
+
+/// Shared labels and copy for every Imagery Guide screen. Stored as the single
+/// row with `id = 1` in `imagery_guide_screen_content`.
+nonisolated struct ImageryGuideScreenContent: Hashable, Decodable {
+    let eyebrow: String
+    let title: String
+    let guidesCountFormat: String
+    let allFilterTitle: String
+    let allFilterIcon: String
+    let errorIcon: String
+    let emptyIcon: String
+    let cardOpenIcon: String
+    let durationIcon: String
+    let listAccessibilityHint: String
+    let accessibilityLabelFormat: String
+    let loadingText: String
+    let errorTitle: String
+    let errorMessage: String
+    let retryButtonTitle: String
+    let emptyTitle: String
+    let emptyMessage: String
+    let detailStartButton: String
+    let detailCaption: String
+    let sessionStepFormat: String
+    let sessionPausedSuffix: String
+    let sessionCompleteHeader: String
+    let sessionCompleteInstructionFormat: String
+    let sessionElapsedFormat: String
+    let sessionRemainingFormat: String
+    let sessionRestartLabel: String
+    let sessionPauseLabel: String
+    let sessionPlayLabel: String
+    let sessionRestartIcon: String
+    let sessionPauseIcon: String
+    let sessionPlayIcon: String
+    let sessionContinueButton: String
+    let completeTitle: String
+    let completeSubtitle: String
+    let completeHeadline: String
+    let completeDoneButton: String
+    let completeDefaultMessage: String
+    let sessionCompleteNavigationTitle: String
+
+    /// Replaces `{placeholders}` in a Supabase template string.
+    func format(_ template: String, _ values: [String: String]) -> String {
+        values.reduce(template) { result, pair in
+            result.replacingOccurrences(of: "{\(pair.key)}", with: pair.value)
+        }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case eyebrow
+        case title
+        case guidesCountFormat = "guides_count_format"
+        case allFilterTitle = "all_filter_title"
+        case allFilterIcon = "all_filter_icon"
+        case errorIcon = "error_icon"
+        case emptyIcon = "empty_icon"
+        case cardOpenIcon = "card_open_icon"
+        case durationIcon = "duration_icon"
+        case listAccessibilityHint = "list_accessibility_hint"
+        case accessibilityLabelFormat = "accessibility_label_format"
+        case loadingText = "loading_text"
+        case errorTitle = "error_title"
+        case errorMessage = "error_message"
+        case retryButtonTitle = "retry_button_title"
+        case emptyTitle = "empty_title"
+        case emptyMessage = "empty_message"
+        case detailStartButton = "detail_start_button"
+        case detailCaption = "detail_caption"
+        case sessionStepFormat = "session_step_format"
+        case sessionPausedSuffix = "session_paused_suffix"
+        case sessionCompleteHeader = "session_complete_header"
+        case sessionCompleteInstructionFormat = "session_complete_instruction_format"
+        case sessionElapsedFormat = "session_elapsed_format"
+        case sessionRemainingFormat = "session_remaining_format"
+        case sessionRestartLabel = "session_restart_label"
+        case sessionPauseLabel = "session_pause_label"
+        case sessionPlayLabel = "session_play_label"
+        case sessionRestartIcon = "session_restart_icon"
+        case sessionPauseIcon = "session_pause_icon"
+        case sessionPlayIcon = "session_play_icon"
+        case sessionContinueButton = "session_continue_button"
+        case completeTitle = "complete_title"
+        case completeSubtitle = "complete_subtitle"
+        case completeHeadline = "complete_headline"
+        case completeDoneButton = "complete_done_button"
+        case completeDefaultMessage = "complete_default_message"
+        case sessionCompleteNavigationTitle = "session_complete_navigation_title"
+    }
+}
+
+// MARK: - Loaded content
+
+/// Everything the Imagery Guide flow needs from Supabase in one value.
+nonisolated struct ImageryGuideContent: Hashable {
+    let guides: [ImageryGuide]
+    let tags: [ImageryGuideTag]
+    let screen: ImageryGuideScreenContent
+}
+
+#if DEBUG
+extension ImageryGuide {
+    /// Preview-only sample. Runtime content always comes from Supabase.
+    static let preview = ImageryGuide(
+        id: "cozy-room",
+        title: "A Cozy Room",
+        description: "Imagine yourself in a cozy room where you feel safe, comfortable, and relaxed.",
+        tag: "Cozy",
+        icon: "sofa",
+        detailText: "Imagine a quiet, warm room. Picture the soft sofa beneath you and the gentle light around you.",
+        imageURL: nil,
+        imageShift: 0,
+        imageScale: 1,
+        steps: [
+            "Picture a comfortable room. Notice the soft light on the walls.",
+            "Notice the soft sofa and the warm blanket. Let your body settle.",
+            "Take one slow breath. When you are ready, come back to the room."
+        ],
+        completionText: "You took a moment to slow down, breathe, and imagine a place where you feel at peace.",
+        durationSeconds: 120,
+        durationLabel: "2 min"
+    )
+}
+#endif
