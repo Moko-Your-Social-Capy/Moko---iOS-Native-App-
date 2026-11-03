@@ -9,6 +9,7 @@ enum RelaxStep: Hashable {
 struct RelaxFlow: View {
     @Binding var selectedTab: MokoTab
     @State private var path: [RelaxStep] = []
+    @State private var imageryStore = ImageryGuideStore()
 
     init(selectedTab: Binding<MokoTab> = .constant(.relax)) {
         self._selectedTab = selectedTab
@@ -34,11 +35,12 @@ struct RelaxFlow: View {
                             message: guide.completionMessage,
                             onDone: { path.removeAll() }
                         )
-                        .navigationTitle("Session complete")
+                        .navigationTitle(imageryStore.screen?.sessionCompleteNavigationTitle ?? "")
                         .navigationBarTitleDisplayMode(.inline)
                     }
                 }
         }
+        .environment(imageryStore)
     }
 
     private var guideList: some View {
