@@ -141,6 +141,7 @@ struct RelaxScreen: View {
     @State private var pendingBreathing = false   // push the timer only after the sheet has closed
     @State private var pendingSessionNavigation: RelaxSession?
     @State private var navigationPath: [RelaxRoute] = []
+    @State private var imageryStore = ImageryGuideStore()
 
     // Palette matching design specifications
     private let screenBg = Color(red: 246/255, green: 250/255, blue: 232/255) // pale lime
@@ -217,6 +218,7 @@ struct RelaxScreen: View {
             }
         }
         .tint(cardGreen)
+        .environment(imageryStore)
     }
 
     @ViewBuilder
@@ -271,7 +273,7 @@ struct RelaxScreen: View {
                     navigationPath.removeAll()
                 }
             }
-            .navigationTitle("Session complete")
+            .navigationTitle(imageryStore.screen?.sessionCompleteNavigationTitle ?? "")
             .navigationBarTitleDisplayMode(.inline)
 
         case .mirrorPrep(let camera):
