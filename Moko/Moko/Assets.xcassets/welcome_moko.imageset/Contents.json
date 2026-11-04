@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "Image.png",
+      "filename" : "Happy Moko in a Blooming Meadow.png",
       "idiom" : "universal",
       "scale" : "1x"
     },
@@ -10,6 +10,7 @@
       "scale" : "2x"
     },
     {
+      "filename" : "Image.png",
       "idiom" : "universal",
       "scale" : "3x"
     }
