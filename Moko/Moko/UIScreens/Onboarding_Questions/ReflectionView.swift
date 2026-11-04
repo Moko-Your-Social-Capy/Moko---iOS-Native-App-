@@ -114,7 +114,7 @@ struct ReflectionView: View {
                 .padding(.horizontal, 36)
                 .padding(.top, 12)
                 .padding(.bottom, 34)
-                .background(Color.white)
+                .background(MokoTheme.limeBackground.ignoresSafeArea(edges: .bottom))
         }
     }
 
