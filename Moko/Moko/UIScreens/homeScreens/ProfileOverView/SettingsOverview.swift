@@ -1,56 +1,56 @@
-//
-//  ProfileOverViewSettingsOverview.swift
-//  Moko
-//
-//  Settings screen (matches the "Settings · Overview · Light" prototype).
-//  Push it from Profile with:
-//      NavigationLink("Settings") { ProfileOverViewSettingsOverview() }
-//  The NavigationStack gives the default back button, so none is drawn here.
-//
-
 import SwiftUI
+import UIKit
 
 struct ProfileOverViewSettingsOverview: View {
-
-    private let screenBg = MokoTheme.limeBackground   // #F6FAE8
-    private let deepGreen = Color(red: 27/255, green: 66/255, blue: 47/255)     // #1B422F
-
-    @Environment(\.endSession) private var endSession
-
-    @State private var showEditProfile = false
-    @State private var showSignOut = false
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         List {
             Section("Account") {
-                Button {
-                    showEditProfile = true
-                } label: {
-                    row("Edit Profile", systemImage: "person")
-                }
-
                 NavigationLink {
-                    ProfileOverViewNotifications()
+                    ProfileOverViewAccountAndData()
                 } label: {
-                    Label("Notifications", systemImage: "bell")
+                    Label("Account Info", systemImage: "person.crop.circle")
                 }
             }
 
-            Section("Privacy") {
+            Section("Reminders") {
                 NavigationLink {
-                    ProfileOverViewPrivacy()
+                    ProfileOverViewNotifications()
                 } label: {
-                    Label("Privacy", systemImage: "lock")
+                    Label("Reminders and Notifications", systemImage: "bell")
                 }
+            }
+
+            Section("Privacy and legal") {
                 NavigationLink {
                     ProfileOverViewPrivacyPolicy()
                 } label: {
-                    Label("Privacy Policy", systemImage: "shield")
+                    Label("Privacy Policy", systemImage: "hand.raised")
                 }
                 NavigationLink {
                     ProfileOverViewTerms()
                 } label: {
-                    Label("Terms of Service", systemImage: "doc")
+                    Label("Terms of Use", systemImage: "doc.text")
+                }
+                NavigationLink {
+                    ProfileOverViewPrivacy()
+                } label: {
+                    Label("Data we collect", systemImage: "list.bullet.rectangle")
+                }
+                Button {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                } label: {
+                    Label("Manage permissions", systemImage: "lock")
+                        .foregroundStyle(ProfilePalette.text)
+                        .frame(minHeight: 44)
+                }
+                NavigationLink {
+                    ProfileOverViewDeleteAccountConfirm()
+                } label: {
+                    Label("Delete my data", systemImage: "trash")
+                        .foregroundStyle(ProfilePalette.error)
+                        .frame(minHeight: 44)
                 }
             }
 
@@ -58,68 +58,24 @@ struct ProfileOverViewSettingsOverview: View {
                 NavigationLink {
                     ProfileOverViewHelpSupport()
                 } label: {
-                    Label("Help & Support", systemImage: "questionmark.circle")
+                    Label("Help and Support", systemImage: "questionmark.circle")
                 }
                 NavigationLink {
                     ProfileOverViewAboutMoko()
                 } label: {
-                    Label("About MOKO", systemImage: "info.circle")
+                    Label("About Moko", systemImage: "info.circle")
                 }
-            }
-
-            Section {
-                NavigationLink {
-                    ProfileOverViewAccountAndData()
-                } label: {
-                    Label("Account & Data", systemImage: "person.crop.circle")
-                }
-
-                Button(role: .destructive) {
-                    showSignOut = true
-                } label: {
-                    Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
-                }
-            } header: {
-                Text("Data")
-            } footer: {
-                Text("No appearance switch: MOKO follows the system Light/Dark setting.")
             }
         }
-        .tint(deepGreen)
+        .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(screenBg)
+        .background(ProfilePalette.background)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
-        // Edit Profile opens as a sheet
-        .sheet(isPresented: $showEditProfile) {
-            ProfileOverViewEditProfile()
-        }
-        .signOutAlert(isPresented: $showSignOut) {
-            guard let endSession else { return }
-            // Return to the login flow immediately; the Supabase call clears
-            // the remote session in the background.
-            endSession(.signOut)
-            Task {
-                try? await AuthService().signOut()
-            }
-        }
-    }
-
-    /// Button row that looks like a NavigationLink row (label + chevron).
-    private func row(_ title: String, systemImage: String) -> some View {
-        HStack {
-            Label(title, systemImage: systemImage)
-                .foregroundStyle(.primary)
-            Spacer()
-            Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.tertiary)
-        }
+        .tint(ProfilePalette.accent)
     }
 }
 
 #Preview {
-    NavigationStack {
-        ProfileOverViewSettingsOverview()
-    }
+    NavigationStack { ProfileOverViewSettingsOverview() }
 }

@@ -42,16 +42,25 @@ struct QuestLibraryView: View {
                 MokoTheme.limeBackground
                     .ignoresSafeArea()
 
-                ScrollView(.vertical) {
-                    VStack(alignment: .leading, spacing: 30) {
-                        headerSection
+                if store.isLoading || !store.hasAttemptedLoad {
+                    VStack(spacing: 14) {
+                        MokoFlossLoadingView(size: 176)
+                            .frame(width: 176, height: 176)
 
-                        libraryContent
+                        Text("Loading quests…")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(QuestStyle.title)
                     }
-                    .padding(.bottom, 16)
-                }
-                .refreshable {
-                    await store.load()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView(.vertical) {
+                        VStack(alignment: .leading, spacing: 30) {
+                            headerSection
+
+                            libraryContent
+                        }
+                        .padding(.bottom, 16)
+                    }
                 }
             }
             .task {
@@ -72,22 +81,34 @@ struct QuestLibraryView: View {
 
     // MARK: - Header
     private var headerSection: some View {
-        Text("Quest Library")
-            .font(.system(size: 34, weight: .bold))
-            .foregroundColor(MokoTheme.titleBrown)
-            .padding(.horizontal, 20)
-            .padding(.top, 14)
+        HStack(alignment: .firstTextBaseline) {
+            Text("Quest Library")
+                .font(.system(size: 34, weight: .bold))
+                .foregroundColor(MokoTheme.titleBrown)
+
+            Spacer(minLength: 12)
+
+            Button {
+                Task { await store.load() }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(QuestStyle.green)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .disabled(store.isLoading)
+            .accessibilityLabel("Refresh quests")
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 14)
     }
 
     // MARK: - Content
     @ViewBuilder
     private var libraryContent: some View {
-        if store.isLoading && store.sections.isEmpty {
-            ProgressView("Loading quests…")
-                .tint(QuestStyle.green)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 60)
-        } else if let error = store.errorMessage, store.sections.isEmpty {
+        if let error = store.errorMessage, store.sections.isEmpty {
             ContentUnavailableView {
                 Label("Couldn't load quests", systemImage: "wifi.exclamationmark")
             } description: {
@@ -252,8 +273,8 @@ struct QuestLibraryView: View {
                 case .empty:
                     ZStack {
                         Color.white.opacity(0.25)
-                        ProgressView()
-                            .tint(QuestStyle.green)
+                        MokoFlossLoadingView(size: 44)
+                            .frame(width: 44, height: 44)
                     }
                 case .failure:
                     categorySymbol(for: section.category)

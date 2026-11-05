@@ -1,0 +1,118 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="color-scheme" content="only light"><title>Moko loader</title><style>
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent !important; }
+  body { display: grid; place-items: center; }
+  #moko { width: 100%; height: 100%; display: block; overflow: visible; }
+  .outline { stroke: #39241A; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+  .fur { fill: #F1A653; }
+  .muzzle { fill: #8B5A3C; }
+  .ink { fill: #27180F; }
+  .arm-outline { fill: none; stroke: #39241A; stroke-width: 17; stroke-linecap: round; stroke-linejoin: round; }
+  .arm-fur { fill: none; stroke: #F1A653; stroke-width: 12.5; stroke-linecap: round; stroke-linejoin: round; }
+</style></head><body><svg id="moko" viewBox="0 0 256 256" role="img" aria-label="Moko the capybara floss dancing">
+      <!-- soft lime disc keeps the loader readable on light surfaces -->
+      <circle cx="128" cy="128" r="91" fill="#E2F5B1" opacity=".46"/>
+      <circle cx="128" cy="128" r="82" fill="none" stroke="#1F7488" stroke-width="1.5" opacity=".12"/>
+
+      <ellipse id="shadow" cx="128" cy="232" rx="43" ry="7" fill="#4A3826" opacity=".19"/>
+      <g id="tail" transform="translate(164 185) rotate(0)">
+        <path d="M0 0 C11 4 16 15 12 25" fill="none" stroke="#39241A" stroke-width="9" stroke-linecap="round"/>
+        <path d="M0 0 C11 4 16 15 12 25" fill="none" stroke="#B9773D" stroke-width="5" stroke-linecap="round"/>
+      </g>
+
+      <g id="legs">
+        <path d="M102 192 C98 204 98 217 101 226 C106 231 117 231 122 227 L125 197Z" fill="#F1A653" class="outline"/>
+        <path d="M131 197 L134 227 C140 231 151 231 156 226 C159 217 158 204 154 192Z" fill="#F1A653" class="outline"/>
+        <path d="M100 223 C106 220 116 222 123 227 C122 234 117 237 107 236 C100 236 97 232 100 223Z" fill="#81543B" class="outline"/>
+        <path d="M133 227 C140 222 150 220 157 223 C160 232 157 236 149 236 C139 237 134 234 133 227Z" fill="#81543B" class="outline"/>
+      </g>
+
+      <g id="bodyRig">
+        <path d="M91 132 C82 142 78 160 81 181 C83 202 101 216 128 217 C155 216 173 202 175 181 C178 160 174 142 165 132 C149 138 107 138 91 132Z" class="fur outline"/>
+        <path d="M103 151 C112 157 144 157 153 151" fill="none" stroke="#F8C373" stroke-width="2.5" opacity=".72" stroke-linecap="round"/>
+      </g>
+
+      <!-- Articulated arms remain separate vector groups for the floss swing. -->
+      <g id="armLeft" transform="translate(94 149) rotate(0)">
+        <path d="M0 0 C14 3 30 8 50 14" class="arm-outline"/>
+        <path d="M0 0 C14 3 30 8 50 14" class="arm-fur"/>
+        <ellipse cx="51" cy="14" rx="8.5" ry="7" fill="#81543B" class="outline" transform="rotate(18 51 14)"/>
+      </g>
+      <g id="armRight" transform="translate(162 149) rotate(0)">
+        <path d="M0 0 C-14 3 -30 8 -50 14" class="arm-outline"/>
+        <path d="M0 0 C-14 3 -30 8 -50 14" class="arm-fur"/>
+        <ellipse cx="-51" cy="14" rx="8.5" ry="7" fill="#81543B" class="outline" transform="rotate(-18 -51 14)"/>
+      </g>
+
+      <g id="head" transform="translate(0 0)">
+        <g id="earLeft" transform="translate(70 58) rotate(0)">
+          <ellipse cx="0" cy="0" rx="15" ry="18" fill="#F1A653" class="outline"/>
+          <ellipse cx="1" cy="2" rx="8" ry="11" fill="#81543B"/>
+        </g>
+        <g id="earRight" transform="translate(186 58) rotate(0)">
+          <ellipse cx="0" cy="0" rx="15" ry="18" fill="#F1A653" class="outline"/>
+          <ellipse cx="-1" cy="2" rx="8" ry="11" fill="#81543B"/>
+        </g>
+        <!-- Broad cheeks, forehead tuft, and rounded silhouette follow Moko's mascot art. -->
+        <path d="M52 93 C52 62 74 39 104 34 C111 17 126 12 134 17 C141 21 138 30 135 35 C146 23 158 25 162 32 C166 39 159 47 154 51 C184 57 204 78 204 104 C204 132 182 145 153 148 C136 151 120 151 103 148 C73 145 52 126 52 93Z" class="fur outline"/>
+        <path d="M57 89 C62 61 82 43 108 39" fill="none" stroke="#F8C373" stroke-width="3" stroke-linecap="round" opacity=".78"/>
+
+        <path d="M80 67 Q85 62 90 65" fill="none" stroke="#4A3826" stroke-width="2.4" stroke-linecap="round"/>
+        <path d="M166 65 Q171 62 176 67" fill="none" stroke="#4A3826" stroke-width="2.4" stroke-linecap="round"/>
+        <ellipse cx="86" cy="81" rx="7.2" ry="9.5" class="ink"/>
+        <ellipse cx="170" cy="81" rx="7.2" ry="9.5" class="ink"/>
+        <ellipse cx="84" cy="77.5" rx="2.3" ry="3" fill="#FFFFFF"/>
+        <circle cx="90" cy="85" r="1.5" fill="#FFFFFF"/>
+        <ellipse cx="168" cy="77.5" rx="2.3" ry="3" fill="#FFFFFF"/>
+        <circle cx="174" cy="85" r="1.5" fill="#FFFFFF"/>
+
+        <ellipse cx="69" cy="101" rx="9" ry="5.4" fill="#F47F62" opacity=".86"/>
+        <ellipse cx="187" cy="101" rx="9" ry="5.4" fill="#F47F62" opacity=".86"/>
+        <ellipse cx="128" cy="98" rx="26" ry="22" class="muzzle"/>
+        <ellipse cx="118" cy="91" rx="3.1" ry="2.4" class="ink"/>
+        <ellipse cx="138" cy="91" rx="3.1" ry="2.4" class="ink"/>
+        <path d="M115 102 C119 111 125 115 131 114 C138 113 142 108 144 101 C144 114 137 122 129 122 C121 122 115 115 115 102Z" fill="#2D211A"/>
+        <path d="M121 112 Q129 116 137 112 Q135 120 129 120 Q124 119 121 112Z" fill="#F27D91"/>
+      </g>
+    </svg><script>
+(() => {
+  const get = (id) => document.getElementById(id);
+  const TAU = Math.PI * 2;
+  const reducedPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let reduceMotion = Boolean(window.__MOKO_REDUCE_MOTION__) || reducedPreference.matches;
+  let start = performance.now();
+  let running = true;
+  window.setMokoReduceMotion = (value) => { reduceMotion = Boolean(value) || reducedPreference.matches; };
+  window.setMokoRunning = (active) => {
+    const wasRunning = running;
+    running = Boolean(active);
+    if (running && !wasRunning) requestAnimationFrame(frame);
+  };
+  reducedPreference.addEventListener?.('change', (event) => { reduceMotion = Boolean(window.__MOKO_REDUCE_MOTION__) || event.matches; });
+  const frame = (now) => {
+    if (!running) return;
+    const elapsed = (now - start) / 1000;
+    const period = reduceMotion ? 2 : 1.2;
+    const phase = (elapsed % period) / period * TAU;
+    const swing = Math.sin(phase);
+    const delayed = Math.sin(phase - TAU * (reduceMotion ? 0.04 : 3 / 60));
+    const late = Math.sin(phase - TAU * (reduceMotion ? 0.06 : 4 / 60));
+    const hop = reduceMotion ? 0 : Math.pow(Math.sin(phase), 2);
+    const amp = reduceMotion ? 0.32 : 1;
+    const hip = swing * 9 * amp;
+    const squashX = 1 + 0.035 * hop;
+    const squashY = 1 - 0.035 * hop;
+    get('bodyRig').setAttribute('transform', `translate(${5 * swing * amp} ${-4 * hop}) translate(128 177) rotate(${hip}) scale(${squashX} ${squashY}) translate(-128 -177)`);
+    get('armLeft').setAttribute('transform', `translate(${94 + 8 * delayed * amp} 149) rotate(${-16 * delayed * amp})`);
+    get('armRight').setAttribute('transform', `translate(${162 - 8 * delayed * amp} 149) rotate(${16 * delayed * amp})`);
+    get('head').setAttribute('transform', `translate(128 94) rotate(${-1.8 * delayed * amp}) translate(-128 -94)`);
+    get('earLeft').setAttribute('transform', `translate(70 58) rotate(${2.2 * delayed * amp})`);
+    get('earRight').setAttribute('transform', `translate(186 58) rotate(${-2.2 * delayed * amp})`);
+    get('tail').setAttribute('transform', `translate(164 185) rotate(${4 * late * amp})`);
+    get('shadow').setAttribute('transform', `translate(128 232) scale(${1 - 0.13 * hop} 1) translate(-128 -232)`);
+    get('shadow').setAttribute('opacity', String(0.20 - 0.07 * hop));
+    requestAnimationFrame(frame);
+  };
+  frame(performance.now());
+  window.addEventListener('pagehide', () => { running = false; }, { once: true });
+})();
+</script></body></html>

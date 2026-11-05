@@ -8,26 +8,23 @@ struct ProfileOverView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.endSession) private var endSession
     @Query private var profiles: [Profile]
     @Query private var calmDowns: [CalmDownModel]
     @Query private var quests: [Quest]
     @Query private var insights: [InsightsModel]
     @Query private var onboardingStates: [OnboardingState]
 
-    @State private var showSignOut = false
     @State private var countProgress = 0.0
+    @State private var xpRange: XPChartRange = .week
+    @State private var selectedXPDay: Date?
+    @State private var activeSheet: ProfileSheet?
 
     private var profile: Profile? { profiles.first }
     private var username: String { profile?.username.trimmingCharacters(in: .whitespacesAndNewlines) ?? "" }
     private var displayName: String { username.isEmpty ? "Your profile" : username }
-    private var initials: String {
-        let parts = username.split(whereSeparator: \.isWhitespace)
-        let letters = parts.prefix(2).compactMap(\.first)
-        return letters.isEmpty ? "M" : String(letters).uppercased()
-    }
     private var xp: Int { profile?.xp ?? 0 }
-    private var level: Int { xp / 100 + 1 }
+    private var level: Int { xp / 400 + 1 }
+    private var levelXP: Int { xp % 400 }
     private var streak: Int { profile?.currentStreak ?? 0 }
     private var localQuests: [Quest] { quests.filter { $0.ownerID == CurrentUser.localID } }
     private var achievements: [Achievement] {
@@ -66,7 +63,7 @@ struct ProfileOverView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
-                    VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 18) {
                         identityHeader
                         if earnedBadges.isEmpty { profileEmptyScene }
                     }
@@ -74,10 +71,10 @@ struct ProfileOverView: View {
                     streakRow.profileEntrance(order: 1, reduceMotion: reduceMotion)
                     badgesSection.profileEntrance(order: 2, reduceMotion: reduceMotion)
                     growthSection.profileEntrance(order: 3, reduceMotion: reduceMotion)
-                    settingsSection.profileEntrance(order: 4, reduceMotion: reduceMotion)
-                    signOutButton.profileEntrance(order: 5, reduceMotion: reduceMotion)
+                    wardrobeLink.profileEntrance(order: 4, reduceMotion: reduceMotion)
+                    settingsSection.profileEntrance(order: 5, reduceMotion: reduceMotion)
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 16)
                 .padding(.top, 12)
                 .padding(.bottom, 28)
             }
@@ -85,18 +82,36 @@ struct ProfileOverView: View {
             .navigationTitle("Profile")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .accessibilityLabel("Close profile")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button("Edit") { activeSheet = .editProfile }
                         .fontWeight(.semibold)
-                        .accessibilityLabel("Close profile")
+                        .frame(minWidth: 44, minHeight: 44)
                 }
             }
             .tint(ProfilePalette.accent)
             .task { animateNumbersOnce() }
-            .signOutAlert(isPresented: $showSignOut) {
-                guard let endSession else { return }
-                endSession(.signOut)
-                Task { try? await AuthService().signOut() }
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .editProfile:
+                    ProfileOverViewEditProfile()
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
+                case .badge(let achievement):
+                    NavigationStack {
+                        ProfileOverViewAchievementDetailUnlocked(achievement: achievement)
+                    }
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                }
             }
         }
         .preferredColorScheme(nil)
@@ -104,12 +119,7 @@ struct ProfileOverView: View {
 
     private var identityHeader: some View {
         HStack(spacing: 16) {
-            Text(initials)
-                .font(.system(size: 22, weight: .semibold, design: .rounded))
-                .foregroundStyle(ProfilePalette.accent)
-                .frame(width: 64, height: 64)
-                .background(ProfilePalette.grouped, in: Circle())
-                .accessibilityHidden(true)
+            MokoCostumeAvatar(level: level, photoData: profile?.profileImageData, size: 68)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(displayName)
@@ -117,20 +127,23 @@ struct ProfileOverView: View {
                     .foregroundStyle(ProfilePalette.text)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                Text("Level \(animated(level)) · \(animated(xp)) XP")
-                    .font(.body)
+                Text("Level \(animated(level)) · \(animated(levelXP)) / 400 XP")
+                    .font(.system(.body, design: .rounded))
                     .foregroundStyle(ProfilePalette.secondary)
                     .contentTransition(.numericText())
                     .accessibilityLabel("Level \(level), \(xp) experience points")
+                ProgressView(value: Double(levelXP), total: 400)
+                    .tint(ProfilePalette.accent)
+                    .frame(maxWidth: 210)
             }
             Spacer(minLength: 0)
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(displayName), level \(level), \(xp) XP")
+        .accessibilityElement(children: .contain)
     }
 
     private var streakRow: some View {
-        HStack(spacing: 14) {
+        VStack(alignment: .leading, spacing: 8) {
+          HStack(spacing: 14) {
             Image(systemName: "flame.fill")
                 .font(.system(size: 21, weight: .semibold))
                 .foregroundStyle(ProfilePalette.accent)
@@ -142,7 +155,7 @@ struct ProfileOverView: View {
                         .font(.system(.headline, design: .rounded, weight: .semibold))
                         .foregroundStyle(ProfilePalette.text)
                         .contentTransition(.numericText())
-                    Text("1 rest day available")
+                        Text("One rest day can keep your streak after seven practice days.")
                         .font(.subheadline)
                         .foregroundStyle(ProfilePalette.secondary)
                 } else {
@@ -152,13 +165,55 @@ struct ProfileOverView: View {
                 }
             }
             Spacer(minLength: 0)
+          }
+          weeklyStreakDots
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(ProfilePalette.grouped, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(streak > 0 ? "\(streak) day streak. 1 rest day available." : "Your first quest starts it.")
+        .accessibilityLabel(streak > 0 ? "\(streak) day streak. One rest day is available after seven practice days." : "Your first quest starts it.")
+    }
+
+    private var weeklyStreakDots: some View {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        let weekStart = calendar.dateInterval(of: .weekOfYear, for: today)?.start ?? today
+        let activityDays = Set(localQuests.filter(\.isCompleted).map { calendar.startOfDay(for: $0.completedAt ?? $0.date) })
+        return HStack(spacing: 0) {
+            ForEach(0..<7, id: \.self) { offset in
+                let day = calendar.date(byAdding: .day, value: offset, to: weekStart) ?? weekStart
+                let practiced = activityDays.contains(day)
+                let dayBefore = calendar.date(byAdding: .day, value: -1, to: day)
+                let dayAfter = calendar.date(byAdding: .day, value: 1, to: day)
+                let restDay = !practiced && dayBefore.map(activityDays.contains) == true && dayAfter.map(activityDays.contains) == true
+                let isToday = calendar.isDate(day, inSameDayAs: today)
+                VStack(spacing: 5) {
+                    Circle()
+                        .fill(practiced ? ProfilePalette.success : (restDay ? ProfilePalette.accent.opacity(0.25) : ProfilePalette.text.opacity(0.12)))
+                        .overlay(Circle().stroke(isToday ? ProfilePalette.accent : .clear, lineWidth: 1.5))
+                        .frame(width: 12, height: 12)
+                    Text(day.formatted(.dateTime.weekday(.narrow)))
+                        .font(.caption2)
+                        .foregroundStyle(ProfilePalette.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .accessibilityLabel("\(day.formatted(.dateTime.weekday(.wide))), \(practiced ? "practice completed" : (restDay ? "rest day" : "no practice recorded"))")
+            }
+        }
+        .padding(.leading, 58)
+        .overlay(alignment: .bottom) {
+            HStack(spacing: 12) {
+                Label("Done", systemImage: "circle.fill").foregroundStyle(ProfilePalette.success)
+                Label("Rest", systemImage: "circle.fill").foregroundStyle(ProfilePalette.accent.opacity(0.55))
+                Label("No practice yet", systemImage: "circle.fill").foregroundStyle(ProfilePalette.text.opacity(0.34))
+            }
+            .font(.caption2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .offset(y: 18)
+        }
+        .padding(.bottom, 18)
     }
 
     /// The new-user illustration follows Moko's calm seated pose. The room is
@@ -195,7 +250,7 @@ struct ProfileOverView: View {
                 Rectangle()
                     .fill(ProfilePalette.secondary.opacity(0.12))
                     .frame(height: 1)
-                    .padding(.horizontal, 18)
+                    .padding(.horizontal, 16)
                     .padding(.bottom, 1)
             }
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -233,8 +288,7 @@ struct ProfileOverView: View {
                         .foregroundStyle(ProfilePalette.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(14)
-                .background(ProfilePalette.grouped, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .padding(.vertical, 8)
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("No badges yet. Your first badge will appear here.")
             } else {
@@ -256,8 +310,8 @@ struct ProfileOverView: View {
     }
 
     private func badgeButton(_ achievement: Achievement) -> some View {
-        NavigationLink {
-            ProfileOverViewAchievementDetailUnlocked(achievement: achievement)
+        Button {
+            activeSheet = .badge(achievement)
         } label: {
             VStack(spacing: 6) {
                 AchievementBadgeView(achievement: achievement, size: 72)
@@ -285,6 +339,14 @@ struct ProfileOverView: View {
                 .font(.subheadline)
                 .foregroundStyle(ProfilePalette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            Picker("XP period", selection: $xpRange) {
+                ForEach(XPChartRange.allCases) { range in Text(range.title).tag(range) }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityLabel("XP chart period")
+
+            xpChart
 
             if weeklyAverages.isEmpty {
                 Text("Your first reflection will start this line.")
@@ -320,6 +382,98 @@ struct ProfileOverView: View {
         }
     }
 
+    private var xpChart: some View {
+        let values = dailyXP
+        let domainStart = values.first?.day ?? .now
+        let domainEnd = values.last?.day ?? .now
+        return Chart {
+            ForEach(values) { item in
+                BarMark(x: .value("Day", item.day, unit: .day), y: .value("XP", item.xp), width: .ratio(0.56))
+                    .foregroundStyle(ProfilePalette.accent)
+                    .cornerRadius(4)
+                    .opacity(selectedXPDay.map { Calendar.current.isDate($0, inSameDayAs: item.day) ? 1 : 0.58 } ?? 0.9)
+                if item.xp == 0 {
+                    RuleMark(x: .value("Day", item.day, unit: .day), yStart: .value("Base", 0), yEnd: .value("Empty", max(1, maxDailyXP * 0.035)))
+                        .foregroundStyle(ProfilePalette.secondary.opacity(0.28))
+                        .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round))
+                }
+            }
+            if let selectedXPDay, let value = values.first(where: { Calendar.current.isDate($0.day, inSameDayAs: selectedXPDay) }) {
+                RuleMark(x: .value("Selected day", value.day, unit: .day))
+                    .foregroundStyle(ProfilePalette.secondary.opacity(0.5))
+                    .annotation(position: .top, alignment: .center) {
+                        Text("\(value.xp) XP · \(value.day.formatted(.dateTime.weekday(.abbreviated)))")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(ProfilePalette.text)
+                            .padding(.horizontal, 8).padding(.vertical, 5)
+                            .background(ProfilePalette.grouped, in: Capsule())
+                    }
+            }
+        }
+        .chartXScale(domain: domainStart...domainEnd)
+        .chartXAxis {
+            AxisMarks(values: .stride(by: .day, count: xpRange == .threeMonths ? 14 : 1)) { value in
+                AxisGridLine().foregroundStyle(ProfilePalette.secondary.opacity(0.1))
+                AxisTick()
+                AxisValueLabel(format: xpRange == .week ? .dateTime.weekday(.narrow) : .dateTime.day(), centered: true)
+            }
+        }
+        .chartYScale(domain: 0...maxDailyXP)
+        .chartYAxis {
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
+                AxisGridLine().foregroundStyle(ProfilePalette.text.opacity(0.10))
+                AxisValueLabel {
+                    if let xp = value.as(Int.self) {
+                        Text("\(xp)")
+                            .font(.caption2)
+                            .foregroundStyle(ProfilePalette.secondary)
+                    }
+                }
+            }
+        }
+        .chartPlotStyle { plot in
+            plot.background(ProfilePalette.grouped.opacity(0.22))
+        }
+        .chartXSelection(value: $selectedXPDay)
+        .frame(height: 132)
+        .padding(12)
+        .background(ProfilePalette.grouped, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .accessibilityLabel("Daily XP chart")
+    }
+
+    private var maxDailyXP: Double { max(1, dailyXP.map(\.xp).max() ?? 1) }
+
+    private var dailyXP: [DailyXP] {
+        let calendar = Calendar.current
+        let count = xpRange.dayCount
+        let start = calendar.date(byAdding: .day, value: -(count - 1), to: calendar.startOfDay(for: .now)) ?? .now
+        let sums = Dictionary(grouping: localQuests.filter(\.isCompleted)) { calendar.startOfDay(for: $0.completedAt ?? $0.date) }
+            .mapValues { $0.reduce(0) { $0 + $1.awardedXP } }
+        return (0..<count).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: start) else { return nil }
+            return DailyXP(day: date, xp: Double(sums[date, default: 0]))
+        }
+    }
+
+    private var wardrobeLink: some View {
+        NavigationLink {
+            MokoWardrobeView(level: level)
+        } label: {
+            HStack(spacing: 14) {
+                MokoCostumeAvatar(level: level, photoData: nil, size: 52)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Moko’s wardrobe").font(.system(.headline, design: .rounded)).foregroundStyle(ProfilePalette.text)
+                    Text("\(MokoCostume.unlockedCount(for: level)) of \(MokoCostume.all.count) costumes unlocked").font(.subheadline).foregroundStyle(ProfilePalette.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(ProfilePalette.secondary)
+            }
+            .padding(14)
+            .frame(minHeight: 68)
+            .background(ProfilePalette.grouped, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }.buttonStyle(.plain)
+    }
+
     private var growthTakeaway: String {
         guard weeklyAverages.count >= 2,
               let first = weeklyAverages.first?.score,
@@ -338,19 +492,13 @@ struct ProfileOverView: View {
                 .foregroundStyle(ProfilePalette.text)
 
             VStack(spacing: 0) {
-                settingsLink("Reminders", symbol: "bell", destination: AnyView(ProfileOverViewNotifications()))
+                settingsLink("Account Info", symbol: "person.crop.circle", destination: AnyView(ProfileOverViewAccountAndData()))
                 settingsDivider
-                settingsLink("Apple Health", symbol: "heart", destination: AnyView(ProfileSettingInfoScreen(title: "Apple Health", detail: "Apple Health connection is not available yet.")))
+                settingsLink("Reminders and Notifications", symbol: "bell", destination: AnyView(ProfileOverViewNotifications()))
                 settingsDivider
-                settingsLink("Privacy and voice data", symbol: "hand.raised", destination: AnyView(ProfileOverViewPrivacy()))
-                settingsDivider
-                settingsLink("Language", symbol: "globe", destination: AnyView(ProfileSettingInfoScreen(title: "Language", detail: "MOKO currently follows the language set for your iPhone.")))
-                settingsDivider
-                settingsLink("Help", symbol: "questionmark.circle", destination: AnyView(ProfileOverViewHelpSupport()))
-                settingsDivider
-                settingsLink("About", symbol: "info.circle", destination: AnyView(ProfileOverViewAboutMoko()))
+                settingsLink("All Settings", symbol: "gearshape", destination: AnyView(ProfileOverViewSettingsOverview()))
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 16)
             .background(ProfilePalette.grouped, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
     }
@@ -385,14 +533,6 @@ struct ProfileOverView: View {
         .accessibilityLabel(title)
     }
 
-    private var signOutButton: some View {
-        Button("Sign Out", role: .destructive) { showSignOut = true }
-            .font(.body)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .contentShape(Rectangle())
-            .accessibilityLabel("Sign out of MOKO")
-    }
-
     private var emptyLockedAchievement: Achievement {
         Achievement(id: -1, title: "First Step", detail: "Finish onboarding.", symbol: "shoeprints.fill", shape: .quest, tier: .one, unlocked: false)
     }
@@ -417,27 +557,44 @@ struct ProfileOverView: View {
     }
 }
 
+private enum ProfileSheet: Identifiable {
+    case editProfile
+    case badge(Achievement)
+
+    var id: String {
+        switch self {
+        case .editProfile: "edit-profile"
+        case .badge(let achievement): "badge-\(achievement.id)"
+        }
+    }
+}
+
 @MainActor
 private enum ProfileSessionAnimation {
     static var didAnimateNumbers = false
 }
 
-private enum ProfilePalette {
-    static let background = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark ? UIColor(red: 0.07, green: 0.07, blue: 0.08, alpha: 1) : .white
-    })
-    static let grouped = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark ? UIColor(red: 0.11, green: 0.11, blue: 0.12, alpha: 1) : UIColor(red: 247/255, green: 245/255, blue: 242/255, alpha: 1)
-    })
-    static let text = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark ? UIColor(white: 0.95, alpha: 1) : UIColor(red: 74/255, green: 56/255, blue: 38/255, alpha: 1)
-    })
-    static let secondary = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark ? UIColor(white: 0.72, alpha: 1) : UIColor(red: 107/255, green: 91/255, blue: 68/255, alpha: 1)
-    })
-    static let accent = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark ? UIColor(red: 61/255, green: 148/255, blue: 168/255, alpha: 1) : UIColor(red: 31/255, green: 116/255, blue: 136/255, alpha: 1)
-    })
+enum ProfilePalette {
+    static let background = Color(hex: 0xF7F5F2)
+    static let grouped = Color(hex: 0xF7F5F2)
+    static let text = Color(hex: 0x4A3826)
+    static let secondary = Color(hex: 0x4A3826).opacity(0.70)
+    static let accent = Color(hex: 0x1F7488)
+    static let lime = Color(hex: 0xE2F5B1)
+    static let success = Color(hex: 0x2F6E4A)
+    static let error = Color(hex: 0xB9583F)
+}
+
+private enum XPChartRange: String, CaseIterable, Identifiable {
+    case week, month, threeMonths
+    var id: Self { self }
+    var title: String { switch self { case .week: "Week"; case .month: "Month"; case .threeMonths: "3 Months" } }
+    var dayCount: Int { switch self { case .week: 7; case .month: 30; case .threeMonths: 90 } }
+}
+private struct DailyXP: Identifiable {
+    let day: Date
+    let xp: Double
+    var id: Date { day }
 }
 
 private struct ProfileEntranceModifier: ViewModifier {

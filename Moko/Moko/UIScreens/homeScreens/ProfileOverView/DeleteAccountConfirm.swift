@@ -1,149 +1,103 @@
-//
-//  ProfileOverViewDeleteAccountConfirm.swift
-//  Moko
-//
-//  Delete account screen (matches the "Delete account · Confirm" prototype).
-//  Pushed from Account & Data. Tapping "Delete my account" shows the final
-//  alert from ProfileOverViewDeleteAccountFinalConfirm.swift.
-//  The NavigationStack gives the default back button, so none is drawn here.
-//
-
 import SwiftUI
-import SwiftData
+import Auth
 
 struct ProfileOverViewDeleteAccountConfirm: View {
-
-    private let screenBg = MokoTheme.limeBackground   // #F6FAE8
-    private let cardGreen = Color(red: 54/255, green: 89/255, blue: 72/255)     // #365948
-    private let cream = Color(red: 246/255, green: 232/255, blue: 190/255)
-
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.endSession) private var endSession
-    @State private var showFinalConfirm = false
-
-    private let consequences = [
-        "Your profile, quests and reflections are permanently removed.",
-        "Your Insights and Calm Down history are deleted from our servers.",
-        "You’ll be signed out on all devices and can’t get this back."
-    ]
-
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("This can’t be undone. If you delete your account:")
-                    .foregroundStyle(.secondary)
-
-                // What gets deleted
-                VStack(alignment: .leading, spacing: 14) {
-                    ForEach(consequences, id: \.self) { text in
-                        Label {
-                            Text(text)
-                        } icon: {
-                            Image(systemName: "circle.fill")
-                                .font(.system(size: 8))
-                                .foregroundStyle(.orange)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-                .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
-
-                // Export first
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Want a copy first?").font(.headline)
-                    Text("Export your reflections and progress before you go.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    ShareLink("Export my data", item: "Moko data export: reflections and progress.")
-                        .font(.subheadline.bold())
-                        .foregroundStyle(cardGreen)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(16)
-                .background(cream, in: RoundedRectangle(cornerRadius: 20))
+        List {
+            Section {
+                Text("This permanently deletes your account and cannot be undone.")
+                    .foregroundStyle(ProfilePalette.text)
+                Label("Your profile and account details", systemImage: "person.crop.circle")
+                Label("Quests, scores, streaks and badges", systemImage: "chart.bar")
+                Label("Reflection text and calm-session history", systemImage: "text.alignleft")
+                Label("Voice recordings, if you have any", systemImage: "waveform")
+            } header: {
+                Text("What will be deleted")
+            } footer: {
+                Text("Moko does not currently record voice reflections. Your local app data is cleared only after the server confirms account deletion.")
             }
-            .padding(.horizontal, 16)
+            Section {
+                NavigationLink {
+                    ProfileOverViewDeleteReauthentication()
+                } label: {
+                    Text("Continue to verification")
+                        .fontWeight(.semibold)
+                        .frame(minHeight: 44)
+                }
+            }
         }
-        .background(screenBg)
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(ProfilePalette.background)
         .navigationTitle("Delete account")
         .navigationBarTitleDisplayMode(.large)
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: 12) {
-                Button {
-                    dismiss()
-                } label: {
-                    Text("Keep my account").font(.headline).frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(cardGreen)
+        .tint(ProfilePalette.accent)
+    }
+}
 
-                Button {
-                    showFinalConfirm = true
-                } label: {
-                    Text("Delete my account").font(.headline).frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .tint(.primary)
+struct ProfileOverViewDeleteReauthentication: View {
+    @State private var email = ""
+    @State private var password = ""
+    @State private var error: String?
+    @State private var isLoading = false
+    @State private var isVerified = false
+
+    var body: some View {
+        Form {
+            Section {
+                Text("Sign in again to confirm that it is you.")
+                    .foregroundStyle(ProfilePalette.secondary)
+                TextField("Email", text: $email)
+                    .textContentType(.username)
+                    .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                SecureField("Password", text: $password)
+                    .textContentType(.password)
+            } header: {
+                Text("Verify your account")
             }
-            .controlSize(.large)
-            .buttonBorderShape(.capsule)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
+            if let error { Section { Text(error).foregroundStyle(ProfilePalette.error) } }
+            Section {
+                Button {
+                    Task { await reauthenticate() }
+                } label: {
+                    HStack {
+                        Spacer()
+                        if isLoading {
+                            MokoFlossLoadingView(size: 30)
+                                .frame(width: 30, height: 30)
+                        } else {
+                            Text("Verify and continue").fontWeight(.semibold)
+                        }
+                        Spacer()
+                    }.frame(minHeight: 44)
+                }
+                .disabled(isLoading || email.isEmpty || password.isEmpty)
+            }
         }
-        .deleteAccountAlert(isPresented: $showFinalConfirm) {
-            deleteAllData()
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(ProfilePalette.background)
+        .navigationTitle("Verify identity")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $isVerified) {
+            ProfileOverViewDeleteFinalConfirmation()
         }
+        .task {
+            if let user = try? await AuthService().getCurrentUser() { email = user.email ?? "" }
+        }
+        .tint(ProfilePalette.accent)
     }
-}
 
-extension ProfileOverViewDeleteAccountConfirm {
-    /// Removes the account and all of its history, signs out of Supabase
-    /// and returns to the start of the app.
-    @MainActor
-    func deleteAllData() {
+    @MainActor private func reauthenticate() async {
+        isLoading = true
+        defer { isLoading = false }
         do {
-            try modelContext.delete(model: Quest.self)
-            try modelContext.delete(model: CalmDownModel.self)
-            try modelContext.delete(model: InsightsModel.self)
-            try modelContext.delete(model: Profile.self)
-            try modelContext.delete(model: OnboardingResponse.self)
-            try modelContext.delete(model: OnboardingQuestion.self)
-            try modelContext.delete(model: OnboardingState.self)
-            try modelContext.save()
+            try await AuthService().signIn(email: email, password: password)
+            isVerified = true
         } catch {
-            print("Delete failed:", error)
-        }
-
-        PendingDebriefStore.clear()
-        CurrentUser.reset()
-        UserDefaults.standard.removeObject(forKey: "userName")
-        UserDefaults.standard.removeObject(forKey: "userAge")
-
-        // Leave the account screens right away; clearing the Supabase session
-        // must not trap the user here if the network is unavailable.
-        endSession?(.deleteAccount)
-        Task {
-            try? await AuthService().signOut()
+            self.error = "We could not verify those details. Check them and try again."
         }
     }
-}
-
-#Preview {
-    NavigationStack {
-        ProfileOverViewDeleteAccountConfirm()
-    }
-    .modelContainer(
-        for: [
-            OnboardingState.self,
-            OnboardingQuestion.self,
-            OnboardingResponse.self,
-            Profile.self,
-            Quest.self,
-            CalmDownModel.self,
-            InsightsModel.self
-        ],
-        inMemory: true
-    )
 }

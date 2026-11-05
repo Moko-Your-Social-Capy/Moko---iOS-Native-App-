@@ -11,9 +11,10 @@ import SwiftUI
 // MARK: - Shared style
 
 private enum InfoTheme {
-    static let screenBg = MokoTheme.limeBackground   // #F6FAE8
-    static let deepGreen = Color(red: 27/255, green: 66/255, blue: 47/255)     // #1B422F
-    static let cream = Color(red: 246/255, green: 232/255, blue: 190/255)
+    static let screenBg = Color(hex: 0xF7F5F2)
+    static let deepGreen = Color(hex: 0x1F7488)
+    static let cream = Color(hex: 0xF7F5F2)
+    static let ink = Color(hex: 0x4A3826)
 }
 
 private struct InfoScrollView<Content: View>: View {
@@ -48,7 +49,7 @@ private struct InfoCard<Content: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
+        .background(InfoTheme.cream, in: RoundedRectangle(cornerRadius: 20))
     }
 }
 
@@ -59,10 +60,11 @@ private struct InfoSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.headline)
+                .font(.system(.headline, design: .rounded, weight: .semibold))
+                .foregroundStyle(InfoTheme.ink)
             Text(text)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(InfoTheme.ink.opacity(0.72))
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -83,10 +85,11 @@ private struct InfoPoint: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                    .foregroundStyle(InfoTheme.ink)
                 Text(text)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(InfoTheme.ink.opacity(0.72))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -105,7 +108,7 @@ private struct InfoLinkRow: View {
                 .background(Circle().fill(InfoTheme.cream))
 
             Text(title)
-                .foregroundStyle(.primary)
+                .foregroundStyle(InfoTheme.ink)
 
             Spacer()
 
@@ -126,14 +129,14 @@ private struct FAQItem: View {
         DisclosureGroup {
             Text(answer)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(InfoTheme.ink.opacity(0.72))
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 6)
         } label: {
             Text(question)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(InfoTheme.ink)
         }
         .tint(InfoTheme.deepGreen)
     }
@@ -147,28 +150,28 @@ private let supportEmail = "support@moko.app"
 struct ProfileOverViewPrivacy: View {
     var body: some View {
         InfoScrollView {
-            Text("MOKO is built to keep your reflections personal. Here is what stays on your device and what leaves it.")
+            Text("Your account details support sign-in. Your practice history is stored on this device.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(InfoTheme.ink.opacity(0.72))
                 .fixedSize(horizontal: false, vertical: true)
 
             InfoCard {
                 InfoPoint(
                     symbol: "iphone",
-                    title: "Your progress stays on this device",
-                    text: "Your profile, quests, reflections, XP, streaks, Insights and Calm Down history are stored locally using Apple’s SwiftData."
+                    title: "Profile and practice data",
+                    text: "Your profile, self-rated scores, reflection text, quests, XP, streaks and calm-session history are stored locally on this device."
                 )
                 Divider()
                 InfoPoint(
                     symbol: "person.badge.key",
-                    title: "Sign-in is handled securely",
-                    text: "Your email and authentication are managed by Supabase. MOKO never stores your password on the device."
+                    title: "Account information",
+                    text: "Your email address and authentication session are handled by Supabase. Moko does not store your password."
                 )
                 Divider()
                 InfoPoint(
                     symbol: "hand.raised",
-                    title: "No advertising profile",
-                    text: "MOKO does not sell your personal data or use your reflections to target advertising."
+                    title: "Microphone and reminders",
+                    text: "Voice reflection recording is not available in this build. Microphone access is optional. Reminder settings stay on your device."
                 )
             }
 
@@ -197,10 +200,10 @@ struct ProfileOverViewPrivacy: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
+        .background(InfoTheme.cream, in: RoundedRectangle(cornerRadius: 20))
             .tint(InfoTheme.deepGreen)
         }
-        .navigationTitle("Privacy")
+        .navigationTitle("Data we collect")
         .navigationBarTitleDisplayMode(.large)
     }
 }
@@ -212,7 +215,7 @@ struct ProfileOverViewPrivacyPolicy: View {
         InfoScrollView {
             Text("Last updated 1 November 2026")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(InfoTheme.ink.opacity(0.72))
 
             InfoCard {
                 InfoSection(
@@ -224,7 +227,7 @@ struct ProfileOverViewPrivacyPolicy: View {
             InfoCard {
                 InfoSection(
                     title: "Information we collect",
-                    text: "Account details: your email address and authentication information are processed by Supabase when you create an account or sign in. MOKO does not store your password.\n\nApp content: your profile name, age, photo, onboarding answers, quests, reflections, Insights and Calm Down sessions are stored on this device. They are not uploaded to a MOKO server."
+                    text: "Account details: your email address and authentication session are handled by Supabase when you create an account or sign in. Moko does not store your password.\n\nApp content: your profile name, optional username, age range, photo, onboarding answers, quest notes, self-rated scores, reflection text, XP, streaks and calm-session history are stored locally on this device. In this build, this content is not uploaded to Moko’s server.\n\nVoice: voice reflection recording is not available in this build, so Moko does not collect voice recordings or transcripts."
                 )
             }
 
@@ -238,21 +241,21 @@ struct ProfileOverViewPrivacyPolicy: View {
             InfoCard {
                 InfoSection(
                     title: "Storage and retention",
-                    text: "Your app content stays on your device until you delete it in the app or remove the app from your device. Signing out does not delete your local data. Deleting your account from Account & Data removes your profile and history from this device and signs you out."
+                    text: "Local app content stays on this device until you delete your account in Moko or remove the app. Signing out does not erase local history. Supabase keeps account credentials until account deletion succeeds."
                 )
             }
 
             InfoCard {
                 InfoSection(
-                    title: "Sharing",
-                    text: "We do not sell your personal information. We use Supabase for account authentication and Apple platform services for storage and notifications. These providers process information only as needed to run those services."
+                    title: "Who can see your data",
+                    text: "Your local reflections and scores are available to people with access to your unlocked device. Supabase processes account sign-in details. Moko does not sell your data or use it for targeted advertising."
                 )
             }
 
             InfoCard {
                 InfoSection(
                     title: "Your choices",
-                    text: "You can change notification permissions at any time in iOS Settings or in MOKO’s Notifications screen. You can export a copy of your data or delete your account from Account & Data."
+                    text: "Export your local data or delete your account from Account Info. You can manage microphone and notification access in iOS Settings. You can skip microphone access and use text reflections."
                 )
             }
 
@@ -260,6 +263,20 @@ struct ProfileOverViewPrivacyPolicy: View {
                 InfoSection(
                     title: "Children",
                     text: "MOKO is intended for people aged 13 and over. We do not knowingly collect personal information from children under 13."
+                )
+            }
+
+            InfoCard {
+                InfoSection(
+                    title: "Wellbeing",
+                    text: "Moko is a self-improvement tool. It is not medical advice or a substitute for professional care."
+                )
+            }
+
+            InfoCard {
+                InfoSection(
+                    title: "Need support?",
+                    text: "If you are in India and need mental health support, call Tele-MANAS at 14416 or 1800-89-14416."
                 )
             }
 
@@ -290,7 +307,7 @@ struct ProfileOverViewTerms: View {
         InfoScrollView {
             Text("Last updated 1 November 2026")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(InfoTheme.ink.opacity(0.72))
 
             InfoCard {
                 InfoSection(
@@ -406,7 +423,7 @@ struct ProfileOverViewHelpSupport: View {
                         .font(.headline)
                     Text("Tell us what happened and which screen you were on. We usually reply within two working days.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(InfoTheme.ink.opacity(0.72))
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
@@ -439,7 +456,7 @@ struct ProfileOverViewHelpSupport: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
+            .background(InfoTheme.cream, in: RoundedRectangle(cornerRadius: 20))
             .tint(InfoTheme.deepGreen)
         }
         .navigationTitle("Help & Support")
@@ -470,7 +487,7 @@ struct ProfileOverViewAboutMoko: View {
 
                 Text("Small daily nudges, an honest chat after.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(InfoTheme.ink.opacity(0.72))
                     .multilineTextAlignment(.center)
 
                 Text(versionText)
@@ -532,12 +549,12 @@ struct ProfileOverViewAboutMoko: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(Color.white, in: RoundedRectangle(cornerRadius: 20))
+            .background(InfoTheme.cream, in: RoundedRectangle(cornerRadius: 20))
             .tint(InfoTheme.deepGreen)
 
             Text("© 2026 MOKO. Made with care.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(InfoTheme.ink.opacity(0.72))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
         }
