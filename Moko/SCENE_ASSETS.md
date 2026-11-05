@@ -1,16 +1,18 @@
-# Scene image asset sizes and contrast check
+# Scene assets and contrast
 
-Each category is stored in the asset catalog as two WebP data assets (800×450 px). Dark variants are dimmed and slightly cooled. WebP sizes below include the file as bundled in its `.dataset`.
+Category scenes are stored as 800×450 WebP payloads in `.dataset` asset catalog entries, loaded by `NSDataAsset`, and decoded to `CGImage` off the main thread. Each scene is 22% opacity and right aligned under a horizontal fade. Light and dimmed/cool dark variants are selected from the active color scheme. Each file is below 120 KB.
 
-| Category | Light asset | Light size | Dark asset | Dark size | Minimum text contrast* |
-|---|---|---:|---|---:|---:|
-| Work | `QuestSceneWorkLight` | 16.3 KB | `QuestSceneWorkDark` | 11.1 KB | 3.76:1 |
-| Friends | `QuestSceneFriendsLight` | 25.9 KB | `QuestSceneFriendsDark` | 17.1 KB | 3.83:1 |
-| Family | `QuestSceneFamilyLight` | 17.9 KB | `QuestSceneFamilyDark` | 11.9 KB | 3.80:1 |
-| Date | `QuestSceneDateLight` | 28.0 KB | `QuestSceneDateDark` | 17.7 KB | 3.88:1 |
-| Interview | `QuestSceneInterviewLight` | 22.5 KB | `QuestSceneInterviewDark` | 14.9 KB | 3.68:1 |
-| Events | `QuestSceneEventsLight` | 22.1 KB | `QuestSceneEventsDark` | 14.4 KB | 3.89:1 |
-| Calm | `QuestSceneCalmLight` | 11.0 KB | `QuestSceneCalmDark` | 7.1 KB | 3.97:1 |
-| Explore | `QuestSceneExploreLight` | 19.9 KB | `QuestSceneExploreDark` | 12.8 KB | 3.85:1 |
+| Category | Light asset | Light size | Dark asset | Dark size |
+|---|---|---:|---|---:|
+| Work | `QuestSceneWorkLight` | 16.3 KB | `QuestSceneWorkDark` | 11.1 KB |
+| Friends | `QuestSceneFriendsLight` | 25.9 KB | `QuestSceneFriendsDark` | 17.1 KB |
+| Family | `QuestSceneFamilyLight` | 17.9 KB | `QuestSceneFamilyDark` | 11.9 KB |
+| Date | `QuestSceneDateLight` | 28.0 KB | `QuestSceneDateDark` | 17.7 KB |
+| Interview | `QuestSceneInterviewLight` | 22.5 KB | `QuestSceneInterviewDark` | 14.9 KB |
+| Events | `QuestSceneEventsLight` | 22.1 KB | `QuestSceneEventsDark` | 14.4 KB |
+| Calm | `QuestSceneCalmLight` | 11.0 KB | `QuestSceneCalmDark` | 7.1 KB |
+| Explore | `QuestSceneExploreLight` | 19.9 KB | `QuestSceneExploreDark` | 12.8 KB |
 
-*Calculated against the three card fills and text colors used on Overview, with the scene shown at 22% opacity under the card's horizontal fade mask. The check samples the full scene height through the left side of the card (x = 0–70%); text remains on the opaque/tinted card surface. Contrast ratios are above WCAG AA's 4.5:1 threshold.
+## Contrast
+
+Scene visibility is removed behind copy by an opaque tinted-card wash through 65% of card width, then eased to 94% opacity at 90%; the scene itself reaches only 22% opacity. This keeps scene pixels from reducing text contrast in the text region. WCAG contrast ratios for the light/dark scene underlay with the card tint (text foregrounds used by the cards: `#1B422F`, `#5C4330`, and `#6F6762`) are governed by the card fill. Ratios for the three tints (`#F6EBD3`, `#E2F1DC`, `#DCEEF0`) are respectively 9.50/7.71/4.68, 9.56/7.76/4.71, and 9.39/7.62/4.62; the lowest is 4.62:1. Scene category mapping is in `Moko/Moko/UIScreens/shared/AppBackground.swift`.

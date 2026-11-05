@@ -27,7 +27,6 @@ struct ProfileOverView: View {
     private var displayName: String { username.isEmpty ? "Your profile" : username }
     private var xp: Int { profile?.xp ?? 0 }
     private var level: Int { xp / 400 + 1 }
-    private var levelXP: Int { xp % 400 }
     private var streak: Int { profile?.currentStreak ?? 0 }
     private var localQuests: [Quest] { quests.filter { $0.ownerID == CurrentUser.localID } }
     private var achievements: [Achievement] {
@@ -210,15 +209,8 @@ struct ProfileOverView: View {
                     .foregroundStyle(ProfilePalette.text)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                Text("Level \(animated(level)) · \(animated(levelXP)) / 400 XP")
-                    .font(.system(.body, design: .rounded))
-                    .foregroundStyle(ProfilePalette.secondary)
-                    .contentTransition(.numericText())
+                MokoXPProgressView(xp: xp, size: .profile)
                     .accessibilityLabel("Level \(level), \(xp) experience points")
-                ProgressView(value: Double(levelXP), total: 400)
-                    .tint(ProfilePalette.accent)
-                    .frame(maxWidth: 210)
-                    .scaleEffect(y: 2.2, anchor: .center)
             }
             Spacer(minLength: 0)
         }
