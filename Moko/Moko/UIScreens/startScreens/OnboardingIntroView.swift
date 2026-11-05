@@ -19,9 +19,7 @@ struct OnboardingIntroView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Warm Ivory Background
-                MokoTheme.background
-                    .ignoresSafeArea()
+                AppBackground()
                 
                 VStack(spacing: 0) {
                     Spacer(minLength: 20)
@@ -33,7 +31,7 @@ struct OnboardingIntroView: View {
                         .padding(.bottom, 16)
                     
                     // Title
-                    Text("Hello, I’m Moko.")
+                        Text("Hi, I’m Moko.")
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundColor(MokoTheme.textPrimary)
                         .multilineTextAlignment(.center)
@@ -63,12 +61,9 @@ struct OnboardingIntroView: View {
                             .font(.system(size: 17, weight: .semibold, design: .rounded))
                             .foregroundColor(MokoTheme.white)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .background(
-                                Capsule()
-                                    .fill(MokoTheme.forestGreen)
-                                    .shadow(color: MokoTheme.forestGreen.opacity(0.25), radius: 12, x: 0, y: 6)
-                            )
+                            .frame(height: 50)
+                            .background(Capsule().fill(Color(hex: 0x1F7488)))
+                            .shadow(color: Color(hex: 0x1F7488).opacity(0.18), radius: 8, x: 0, y: 4)
                     }
                     .buttonStyle(MokoPrimaryButtonStyle())
                     .padding(.horizontal, 24)

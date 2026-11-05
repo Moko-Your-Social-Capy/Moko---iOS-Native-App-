@@ -2,9 +2,12 @@
 import SwiftUI
 import SwiftData
 
+
 struct MokoRootView: View {
 
     @Query(sort: \Quest.date, order: .reverse) private var quests: [Quest]
+    @Query private var profiles: [Profile]
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var selectedTab: MokoTab = .overview
     @State private var overviewMode: OverviewMode = .todo
@@ -92,6 +95,14 @@ struct MokoRootView: View {
                 PendingDebriefStore.clear()
             }
         }
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            while !Task.isCancelled {
+                await syncDateBoundLiveActivities()
+                let nextCheck = nextLiveActivityBoundary(after: .now)
+                try? await Task.sleep(for: .seconds(max(1, nextCheck.timeIntervalSinceNow)))
+            }
+        }
     }
 
     // MARK: - Overview versions
@@ -133,6 +144,23 @@ struct MokoRootView: View {
     private var pendingDebriefQuest: Quest? {
         guard let id = PendingDebriefStore.questID else { return nil }
         return quests.first(where: { $0.id == id })
+    }
+
+    private func syncDateBoundLiveActivities() async {
+        await MokoLiveActivityManager.endExpiredActivities()
+        guard let profile = profiles.first else { return }
+        await MokoLiveActivityManager.startStreakReminderIfNeeded(
+            streak: profile.currentStreak,
+            lastActivityDate: profile.lastActivityDate
+        )
+    }
+
+    private func nextLiveActivityBoundary(after date: Date) -> Date {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: date)
+        let evening = calendar.date(byAdding: .hour, value: 19, to: today) ?? date.addingTimeInterval(3_600)
+        if date < evening { return evening }
+        return calendar.date(byAdding: .day, value: 1, to: today) ?? date.addingTimeInterval(3_600)
     }
 
     /// Reopens the debrief for the quest that was left unfinished.

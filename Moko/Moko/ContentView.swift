@@ -210,6 +210,7 @@ struct ContentView: View {
             }
         }
         .foregroundStyle(MokoTheme.titleBrown)
+        .onOpenURL(perform: handleLiveActivityURL)
     }
 
     // MARK: - Navigation & Registration Logic
@@ -221,6 +222,29 @@ struct ContentView: View {
             } else {
                 currentScreen = .intro
             }
+        }
+    }
+
+    private func handleLiveActivityURL(_ url: URL) {
+        guard url.scheme == "moko" else { return }
+        switch url.host {
+        case "calm":
+            if url.path == "/end" {
+                Task { await MokoLiveActivityManager.endCalmSession(completed: false) }
+            }
+            currentScreen = .home
+        case "quest":
+            currentScreen = .home
+            guard url.path == "/done",
+                  let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                  let idString = components.queryItems?.first(where: { $0.name == "id" })?.value,
+                  let id = UUID(uuidString: idString),
+                  let quest = (try? modelContext.fetch(FetchDescriptor<Quest>()))?.first(where: { $0.id == id }) else { return }
+            QuestProgress.complete(quest, in: modelContext)
+        case "overview":
+            currentScreen = .home
+        default:
+            break
         }
     }
 

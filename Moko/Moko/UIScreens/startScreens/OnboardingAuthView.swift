@@ -187,11 +187,13 @@ struct OnboardingAuthView: View {
                                     
                                     Text(showPasswordField ? (isSignUpMode ? "Create Account" : "Sign In") : "Continue")
                                         .font(.system(size: 15, weight: .medium, design: .rounded))
-                                        .foregroundColor(isEmailValid ? MokoTheme.forestGreen : MokoTheme.textSecondary)
-                                        .underline(isEmailValid, color: MokoTheme.forestGreen)
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 50)
+                                        .background(Color(hex: 0x1F7488), in: Capsule())
                                 }
-                                .padding(.vertical, 4)
                             }
+                            .buttonStyle(MokoPrimaryButtonStyle())
                             .disabled(email.isEmpty || isLoading)
                             .opacity(email.isEmpty ? 0.6 : 1.0)
                             .animation(.easeInOut(duration: 0.2), value: isEmailValid)
@@ -245,11 +247,11 @@ struct OnboardingAuthView: View {
                                 }
                                 .foregroundColor(MokoTheme.white)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 54)
+                                .frame(height: 50)
                                 .background(
                                     Capsule()
-                                        .fill(MokoTheme.forestGreen)
-                                        .shadow(color: MokoTheme.forestGreen.opacity(0.2), radius: 10, x: 0, y: 5)
+                                        .fill(Color(hex: 0x1F7488))
+                                        .shadow(color: Color(hex: 0x1F7488).opacity(0.16), radius: 8, x: 0, y: 4)
                                 )
                             }
                             .buttonStyle(MokoPrimaryButtonStyle())
@@ -276,16 +278,11 @@ struct OnboardingAuthView: View {
                                     Text("Continue with Google")
                                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                                 }
-                                .foregroundColor(MokoTheme.white)
+                                .foregroundColor(MokoTheme.titleBrown)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 54)
-                                .background(
-                                    Capsule()
-                                        .fill(MokoTheme.forestGreen)
-                                        .shadow(color: MokoTheme.forestGreen.opacity(0.2), radius: 10, x: 0, y: 5)
-                                )
+                                .frame(height: 50)
                             }
-                            .buttonStyle(MokoPrimaryButtonStyle())
+                            .buttonStyle(MokoSecondaryButtonStyle())
                             .disabled(isLoading || isGoogleLoading)
                         }
                         .padding(.horizontal, 24)

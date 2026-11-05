@@ -22,11 +22,10 @@ struct PillButton: View {
                 .font(.system(size: 16, weight: .medium))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .background(Capsule().fill(RColor.green))
+                .frame(height: 50)
+                .background(Capsule().fill(Color(hex: 0x1F7488)))
         }
-        .buttonStyle(.plain)
-        .shadow(color: .black.opacity(0.1), radius: 6, y: 4)
-        .shadow(color: .black.opacity(0.1), radius: 15, y: 10)
+        .buttonStyle(MokoPrimaryButtonStyle())
+        .shadow(color: Color(hex: 0x1F7488).opacity(0.18), radius: 8, y: 4)
     }
 }

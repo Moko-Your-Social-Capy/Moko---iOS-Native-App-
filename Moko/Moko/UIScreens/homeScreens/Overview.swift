@@ -58,9 +58,7 @@ struct Overview: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background
-                screenBg
-                    .ignoresSafeArea()
+                AppBackground()
 
                 // Scrollable Content Area
                 ScrollView(.vertical, showsIndicators: false) {
@@ -101,6 +99,10 @@ struct Overview: View {
                 ProfileOverView()
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
+            }
+            .task(id: mission?.id) {
+                guard let mission, !mission.isCompleted else { return }
+                await MokoLiveActivityManager.startTodayQuest(id: mission.id, title: mission.title)
             }
         }
     }
@@ -181,7 +183,15 @@ struct Overview: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white)
+            .background {
+                ZStack {
+                    Color(red: 0.965, green: 0.922, blue: 0.827)
+                    QuestCategoryScene(
+                        category: mission?.category.rawValue ?? "",
+                        cardTint: Color(red: 0.965, green: 0.922, blue: 0.827)
+                    )
+                }
+            }
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
             .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isMissionCompleted)
@@ -200,11 +210,14 @@ struct Overview: View {
 
     private var emptyMissionContent: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("No Active Quest")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(primaryGreen)
-                .padding(.top, 24)
-                .padding(.horizontal, 20)
+            HStack(alignment: .top, spacing: 8) {
+                Text("No Active Quest")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(primaryGreen)
+                    .padding(.top, 24)
+                    .padding(.horizontal, 20)
+                Spacer(minLength: 0)
+            }
 
             Text("Choose a quest from the library to give today a direction.")
                 .font(.system(size: 15, weight: .regular))
@@ -393,13 +406,23 @@ struct Overview: View {
                 // Radar / Diamond Shape Chart
                 InsightsRadarChartView(scores: data.insights)
                     .frame(width: 106, height: 106)
+                    .overlay(alignment: .bottom) {
+                        if data.insights.warmth == 0 {
+                            Text("Complete a quest to see this")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundStyle(primaryGreen.opacity(0.8))
+                                .fixedSize()
+                                .offset(y: 15)
+                        }
+                    }
             }
             .padding(.horizontal, 20)
             .padding(.top, 10)
             .padding(.bottom, 16)
         }
         .frame(maxWidth: .infinity)
-        .background(Color.white)
+        .background(Color(red: 0.886, green: 0.945, blue: 0.863))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.white.opacity(0.86), lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
         .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -450,15 +473,21 @@ struct Overview: View {
                 Spacer()
 
                 // Bar Chart Visual
-                CalmDownBarChartView(minutes: data.calmDownBars)
-                    .frame(height: 72)
+                if data.calmDownMinutes == 0 {
+                    HStack(spacing: 5) { ForEach(0..<7, id: \.self) { _ in Capsule().fill(primaryGreen.opacity(0.30)).frame(width: 8, height: 2).overlay(Capsule().strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [2, 2])).foregroundStyle(primaryGreen.opacity(0.38))) } }
+                        .frame(width: 106, height: 42)
+                } else {
+                    CalmDownBarChartView(minutes: data.calmDownBars)
+                        .frame(height: 72)
+                }
             }
             .padding(.horizontal, 20)
             .padding(.top, 14)
             .padding(.bottom, 18)
         }
         .frame(maxWidth: .infinity)
-        .background(Color.white)
+        .background(Color(red: 0.863, green: 0.933, blue: 0.941))
+        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.white.opacity(0.86), lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
         .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))

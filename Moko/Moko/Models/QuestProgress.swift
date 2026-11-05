@@ -75,6 +75,9 @@ enum QuestProgress {
             quest.xpAwarded = true
         }
 
+        let questID = quest.id
+        Task { await MokoLiveActivityManager.completeTodayQuest(id: questID) }
+
         save(context)
         return QuestReward(xp: quest.awardedXP, streak: profile.currentStreak)
     }

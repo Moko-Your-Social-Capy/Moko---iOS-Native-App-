@@ -39,8 +39,7 @@ struct QuestLibraryView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                MokoTheme.limeBackground
-                    .ignoresSafeArea()
+                AppBackground()
 
                 if store.isLoading || !store.hasAttemptedLoad {
                     VStack(spacing: 14) {

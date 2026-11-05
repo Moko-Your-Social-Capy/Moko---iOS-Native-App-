@@ -96,12 +96,35 @@ struct MokoPrimaryButtonStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
             .opacity(configuration.isPressed ? 0.92 : 1.0)
+            .overlay {
+                Capsule().stroke(.white.opacity(0.58), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+            .overlay(alignment: .top) {
+                Capsule().fill(.white.opacity(0.10))
+                    .frame(height: 17)
+                    .padding(.horizontal, 2)
+                    .padding(.top, 2)
+                    .allowsHitTesting(false)
+            }
             .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, isPressed in
                 if isPressed {
                     MokoTheme.playFeedback(.light)
                 }
             }
+    }
+}
+
+/// Quiet, unfilled companion style for secondary capsule actions.
+struct MokoSecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(.regularMaterial, in: Capsule())
+            .overlay(Capsule().stroke(.white.opacity(0.75), lineWidth: 1))
+            .scaleEffect(configuration.isPressed ? 0.985 : 1)
+            .opacity(configuration.isPressed ? 0.86 : 1)
+            .animation(.easeOut(duration: 0.14), value: configuration.isPressed)
     }
 }
 

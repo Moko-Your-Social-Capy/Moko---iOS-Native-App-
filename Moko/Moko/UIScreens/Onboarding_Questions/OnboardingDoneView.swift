@@ -22,22 +22,22 @@ struct OnboardingDoneView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 0)
-
+        VStack(alignment: .leading, spacing: 0) {
             Image("capybara_celebrate")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 257, height: 257)
+                .frame(maxWidth: .infinity)
+                .frame(height: 220)
                 .accessibilityHidden(true)
 
             Text("You rock!!!")
                 .font(.system(size: 28, weight: .bold))
                 .tracking(-1)
                 .foregroundStyle(RColor.text)
-                .padding(.top, 20)
+                .padding(.top, 16)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(spacing: 30) {
+            VStack(spacing: 14) {
                 StatusRow(icon: "checkmark",
                           iconBackground: RColor.mint,
                           title: "\(completed) of \(total) reflections completed",
@@ -49,17 +49,23 @@ struct OnboardingDoneView: View {
                           status: "READY",
                           statusColor: RColor.body)
             }
-            .padding(.top, 55)
-            .padding(.horizontal, 48)
+            .padding(.top, 24)
+            .padding(.horizontal, 0)
 
             Spacer(minLength: 0)
 
             PillButton(title: "Continue to your strengths", action: onContinue)
-                .padding(.horizontal, 48)
-                .padding(.bottom, 55)
         }
+        .padding(.horizontal, 16)
+        .safeAreaPadding(.top, 24)
+        .safeAreaPadding(.bottom, 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(MokoTheme.limeBackground.ignoresSafeArea())
+        .background {
+            ZStack {
+                AppBackground(baseColor: Color(hex: 0xF7F5F2))
+            }
+            .ignoresSafeArea()
+        }
     }
 }
 
@@ -97,7 +103,7 @@ private struct StatusRow: View {
         .frame(height: 60)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(OBColor.cardFill)
+                .fill(Color.white.opacity(0.88))
         )
         .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
     }

@@ -43,7 +43,7 @@ struct WelcomeView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 36)
         }
-        .background(MokoTheme.limeBackground.ignoresSafeArea())
+        .background(AppBackground())
     }
 
     // MARK: Header (full progress bar)
@@ -65,9 +65,11 @@ struct WelcomeView: View {
             .font(.system(size: 17))
             .foregroundStyle(Color.cream)
             .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(Color.forest, in: Capsule())
+                    .frame(height: 50)
+                    .background(Color(hex: 0x1F7488), in: Capsule())
         }
+            .buttonStyle(MokoPrimaryButtonStyle())
+            .shadow(color: Color(hex: 0x1F7488).opacity(0.18), radius: 8, y: 4)
     }
 }
 

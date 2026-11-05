@@ -69,8 +69,7 @@ struct QuestsScreen: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
-                QuestStyle.screenBg
-                    .ignoresSafeArea()
+                AppBackground()
 
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Quest")
@@ -276,7 +275,17 @@ struct QuestsScreen: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isDebriefed ? Color(red: 235/255, green: 235/255, blue: 240/255) : Color.white)
+        .background {
+            ZStack {
+                isDebriefed ? Color(red: 0.91, green: 0.91, blue: 0.93) : Color(red: 0.965, green: 0.973, blue: 0.925)
+                QuestCategoryScene(
+                    category: quest.category.rawValue,
+                    cardTint: isDebriefed
+                        ? Color(red: 0.91, green: 0.91, blue: 0.93)
+                        : Color(red: 0.965, green: 0.973, blue: 0.925)
+                )
+            }
+        }
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: Color.black.opacity(isDebriefed ? 0 : 0.03), radius: 8, x: 0, y: 2)
         .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))

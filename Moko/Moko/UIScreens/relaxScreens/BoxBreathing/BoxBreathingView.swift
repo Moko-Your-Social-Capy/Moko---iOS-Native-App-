@@ -143,6 +143,10 @@ struct BoxBreathingView: View {
         .sensoryFeedback(trigger: state) { _, new in
             new == .complete ? .success : nil
         }
+        .onChange(of: stepIndex) { _, _ in
+            guard state == .running else { return }
+            syncCalmActivity()
+        }
     }
 
     // MARK: Start / running / paused screen
@@ -340,6 +344,7 @@ struct BoxBreathingView: View {
             guard !Task.isCancelled else { return }
             withAnimation(.easeInOut(duration: 0.3)) { state = .complete }
             modelContext.logCalmDown("Box Breathing", seconds: totalLength)
+            await MokoLiveActivityManager.endCalmSession(completed: true)
         default:
             break
         }
@@ -361,17 +366,22 @@ struct BoxBreathingView: View {
         elapsedAtResume = 0
         resumeDate = Date()
         state = .running
+        Task { await MokoLiveActivityManager.startCalmSession(totalDuration: totalLength) }
     }
 
     private func pause() {
         tick()
-        if state == .running { state = .paused }
+        if state == .running {
+            state = .paused
+            syncCalmActivity(isPaused: true)
+        }
     }
 
     private func resume() {
         elapsedAtResume = elapsed
         resumeDate = Date()
         state = .running
+        syncCalmActivity()
     }
 
     private func togglePause() {
@@ -383,6 +393,27 @@ struct BoxBreathingView: View {
         elapsedAtResume = 0
         resumeDate = nil
         withAnimation(.easeInOut(duration: 0.3)) { state = .idle }
+        Task { await MokoLiveActivityManager.endCalmSession(completed: false) }
+    }
+
+    private func syncCalmActivity(isPaused: Bool = false) {
+        let elapsedInPhase = elapsed.truncatingRemainder(dividingBy: phaseLength)
+        let phaseRemaining = max(0, phaseLength - elapsedInPhase)
+        let activityPhase: MokoBreathingPhase = switch phase {
+        case .inhale: .inhale
+        case .holdFull: .holdIn
+        case .exhale: .exhale
+        case .holdEmpty: .holdOut
+        }
+        Task {
+            await MokoLiveActivityManager.updateCalmSession(
+                phase: activityPhase,
+                progress: elapsed / totalLength,
+                remaining: max(0, totalLength - elapsed),
+                phaseRemaining: phaseRemaining,
+                isPaused: isPaused
+            )
+        }
     }
 }
 

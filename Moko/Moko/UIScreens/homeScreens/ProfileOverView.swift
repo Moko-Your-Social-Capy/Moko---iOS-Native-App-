@@ -13,11 +13,14 @@ struct ProfileOverView: View {
     @Query private var quests: [Quest]
     @Query private var insights: [InsightsModel]
     @Query private var onboardingStates: [OnboardingState]
+    @AppStorage("moko.selectedCostumeLevel") private var selectedCostumeLevel = 1
 
     @State private var countProgress = 0.0
     @State private var xpRange: XPChartRange = .week
     @State private var selectedXPDay: Date?
     @State private var activeSheet: ProfileSheet?
+    @State private var selectedProfilePage: ProfilePage = .profile
+    @State private var mokoIsBreathing = false
 
     private var profile: Profile? { profiles.first }
     private var username: String { profile?.username.trimmingCharacters(in: .whitespacesAndNewlines) ?? "" }
@@ -61,7 +64,18 @@ struct ProfileOverView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            VStack(spacing: 12) {
+                Picker("Profile section", selection: $selectedProfilePage) {
+                    ForEach(ProfilePage.allCases) { page in
+                        Text(page.title).tag(page)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+
+                if selectedProfilePage == .profile {
+                    ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                 VStack(alignment: .leading, spacing: 18) {
                         identityHeader
@@ -78,8 +92,12 @@ struct ProfileOverView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 28)
             }
-            .background(ProfilePalette.background.ignoresSafeArea())
-            .navigationTitle("Profile")
+                } else {
+                    mokoShowcase
+                }
+            }
+            .background(AppBackground())
+            .navigationTitle(selectedProfilePage.title)
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -92,9 +110,11 @@ struct ProfileOverView: View {
                     .accessibilityLabel("Close profile")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Edit") { activeSheet = .editProfile }
-                        .fontWeight(.semibold)
-                        .frame(minWidth: 44, minHeight: 44)
+                    if selectedProfilePage == .profile {
+                        Button("Edit") { activeSheet = .editProfile }
+                            .fontWeight(.semibold)
+                            .frame(minWidth: 44, minHeight: 44)
+                    }
                 }
             }
             .tint(ProfilePalette.accent)
@@ -117,9 +137,72 @@ struct ProfileOverView: View {
         .preferredColorScheme(nil)
     }
 
+    private var mokoShowcase: some View {
+        let equipped = MokoCostume.selected(unlockedAt: level, selection: selectedCostumeLevel)
+        return ScrollView {
+            VStack(spacing: 20) {
+                ZStack(alignment: .topTrailing) {
+                    Circle()
+                        .fill(ProfilePalette.lightGreen.opacity(0.6))
+                        .frame(width: 292, height: 292)
+                        .overlay(Circle().stroke(ProfilePalette.midGreen.opacity(0.45), lineWidth: 1.5).padding(-12))
+                    Image(equipped.assetName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 268, height: 268)
+                        .scaleEffect(x: 1, y: reduceMotion || !mokoIsBreathing ? 1 : 1.012)
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 2.3).repeatForever(autoreverses: true), value: mokoIsBreathing)
+                        .accessibilityLabel("Moko wearing \(equipped.name)")
+                    Text("Hi!")
+                        .font(.system(.title3, design: .rounded, weight: .bold))
+                        .foregroundStyle(ProfilePalette.text)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 10)
+                        .background(.regularMaterial, in: Capsule())
+                        .overlay(Capsule().stroke(.white.opacity(0.72), lineWidth: 1))
+                        .offset(x: 2, y: 12)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 24)
+
+                VStack(spacing: 5) {
+                    Text("Hi, I’m Moko")
+                        .font(.system(.title2, design: .rounded, weight: .bold))
+                        .foregroundStyle(ProfilePalette.text)
+                    Text(equipped.name)
+                        .font(.subheadline)
+                        .foregroundStyle(ProfilePalette.secondary)
+                }
+
+                NavigationLink {
+                    MokoWardrobeView(level: level)
+                } label: {
+                    Label("Wardrobe", systemImage: "tshirt")
+                        .font(.system(.headline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .background(ProfilePalette.accent, in: Capsule())
+                        .shadow(color: ProfilePalette.accent.opacity(0.16), radius: 8, y: 3)
+                }
+                .buttonStyle(MokoPrimaryButtonStyle())
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                Spacer(minLength: 12)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24)
+        }
+        .onAppear {
+            guard !reduceMotion else { return }
+            mokoIsBreathing = true
+        }
+    }
+
     private var identityHeader: some View {
         HStack(spacing: 16) {
             MokoCostumeAvatar(level: level, photoData: profile?.profileImageData, size: 68)
+                .overlay(Circle().stroke(ProfilePalette.success.opacity(0.62), lineWidth: 2.5))
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(displayName)
@@ -135,6 +218,7 @@ struct ProfileOverView: View {
                 ProgressView(value: Double(levelXP), total: 400)
                     .tint(ProfilePalette.accent)
                     .frame(maxWidth: 210)
+                    .scaleEffect(y: 2.2, anchor: .center)
             }
             Spacer(minLength: 0)
         }
@@ -190,10 +274,13 @@ struct ProfileOverView: View {
                 let restDay = !practiced && dayBefore.map(activityDays.contains) == true && dayAfter.map(activityDays.contains) == true
                 let isToday = calendar.isDate(day, inSameDayAs: today)
                 VStack(spacing: 5) {
-                    Circle()
-                        .fill(practiced ? ProfilePalette.success : (restDay ? ProfilePalette.accent.opacity(0.25) : ProfilePalette.text.opacity(0.12)))
-                        .overlay(Circle().stroke(isToday ? ProfilePalette.accent : .clear, lineWidth: 1.5))
-                        .frame(width: 12, height: 12)
+                    Image(systemName: practiced ? "leaf.fill" : (restDay ? "moon.fill" : "leaf"))
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(practiced ? ProfilePalette.success : (restDay ? ProfilePalette.accent : ProfilePalette.text.opacity(0.28)))
+                        .overlay {
+                            if isToday { Image(systemName: "leaf").font(.system(size: 20, weight: .regular)).foregroundStyle(ProfilePalette.accent) }
+                        }
+                        .frame(width: 24, height: 24)
                     Text(day.formatted(.dateTime.weekday(.narrow)))
                         .font(.caption2)
                         .foregroundStyle(ProfilePalette.secondary)
@@ -205,9 +292,9 @@ struct ProfileOverView: View {
         .padding(.leading, 58)
         .overlay(alignment: .bottom) {
             HStack(spacing: 12) {
-                Label("Done", systemImage: "circle.fill").foregroundStyle(ProfilePalette.success)
-                Label("Rest", systemImage: "circle.fill").foregroundStyle(ProfilePalette.accent.opacity(0.55))
-                Label("No practice yet", systemImage: "circle.fill").foregroundStyle(ProfilePalette.text.opacity(0.34))
+            Label("Done", systemImage: "leaf.fill").foregroundStyle(ProfilePalette.success)
+                Label("Rest", systemImage: "moon.fill").foregroundStyle(ProfilePalette.accent.opacity(0.75))
+                Label("No practice yet", systemImage: "leaf").foregroundStyle(ProfilePalette.text.opacity(0.55))
             }
             .font(.caption2)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -238,9 +325,9 @@ struct ProfileOverView: View {
                         .font(.system(size: 18))
                         .foregroundStyle(ProfilePalette.accent.opacity(0.72))
                         .padding(.bottom, 56)
-                    Image("profile_empty_moko")
-                        .resizable()
-                        .scaledToFit()
+                    Image(systemName: "leaf.fill")
+                        .font(.system(size: 48, weight: .regular))
+                        .foregroundStyle(ProfilePalette.success.opacity(0.45))
                         .frame(width: 96, height: 126)
                         .accessibilityHidden(true)
                 }
@@ -581,6 +668,8 @@ enum ProfilePalette {
     static let secondary = Color(hex: 0x4A3826).opacity(0.70)
     static let accent = Color(hex: 0x1F7488)
     static let lime = Color(hex: 0xE2F5B1)
+    static let lightGreen = Color(hex: 0xCFE6C4)
+    static let midGreen = Color(hex: 0x8FBF8A)
     static let success = Color(hex: 0x2F6E4A)
     static let error = Color(hex: 0xB9583F)
 }

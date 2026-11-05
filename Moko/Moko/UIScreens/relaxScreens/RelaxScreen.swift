@@ -180,7 +180,7 @@ struct RelaxScreen: View {
                 }
                 .padding(.bottom, 24)
             }
-            .background(screenBg)
+            .background(AppBackground())
             // Matches the other tab headers (Overview, Quests and Quest Library).
             .navigationTitle("Relax")
             .toolbar(.hidden, for: .navigationBar)

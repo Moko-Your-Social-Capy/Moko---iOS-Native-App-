@@ -13,10 +13,38 @@
 		297922A53089EFF00016BAEE /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 297922A43089EFF00016BAEE /* GoogleSignInSwift */; };
 		297922B1308A00000016BAEE /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 297922B0308A00000016BAEE /* Lottie */; };
 		A1B2C3D4E5F60718293A4B5E /* RiveRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F60718293A4B5D /* RiveRuntime */; };
+		B10000000000000000000001 /* MokoLiveActivities.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* MokoLiveActivities.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		B1000000000000000000000D /* Moko/LiveActivities/MokoLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000C /* Moko/LiveActivities/MokoLiveActivityAttributes.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B10000000000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 177E22EB3089D968002C18EB /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B10000000000000000000006;
+			remoteInfo = MokoLiveActivities;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B10000000000000000000003 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				B10000000000000000000001 /* MokoLiveActivities.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		177E22F33089D968002C18EB /* Moko.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Moko.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000004 /* MokoLiveActivities.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MokoLiveActivities.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1000000000000000000000C /* Moko/LiveActivities/MokoLiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Moko/LiveActivities/MokoLiveActivityAttributes.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -40,6 +68,11 @@
 			path = Moko;
 			sourceTree = "<group>";
 		};
+		B10000000000000000000005 /* MokoWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MokoWidgets;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -56,6 +89,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B10000000000000000000009 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -63,6 +103,8 @@
 			isa = PBXGroup;
 			children = (
 				177E22F53089D968002C18EB /* Moko */,
+				B10000000000000000000005 /* MokoWidgets */,
+				B1000000000000000000000C /* Moko/LiveActivities/MokoLiveActivityAttributes.swift */,
 				177E22F43089D968002C18EB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -71,6 +113,7 @@
 			isa = PBXGroup;
 			children = (
 				177E22F33089D968002C18EB /* Moko.app */,
+				B10000000000000000000004 /* MokoLiveActivities.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -85,10 +128,12 @@
 				177E22EF3089D968002C18EB /* Sources */,
 				177E22F03089D968002C18EB /* Frameworks */,
 				177E22F13089D968002C18EB /* Resources */,
+				B10000000000000000000003 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B1000000000000000000000B /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				177E22F53089D968002C18EB /* Moko */,
@@ -106,6 +151,27 @@
 			productReference = 177E22F33089D968002C18EB /* Moko.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B10000000000000000000006 /* MokoLiveActivities */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B10000000000000000000007 /* Build configuration list for PBXNativeTarget "MokoLiveActivities" */;
+			buildPhases = (
+				B10000000000000000000008 /* Sources */,
+				B10000000000000000000009 /* Frameworks */,
+				B1000000000000000000000A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B1000000000000000000000B /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				B10000000000000000000005 /* MokoWidgets */,
+			);
+			name = MokoLiveActivities;
+			productName = MokoLiveActivities;
+			productReference = B10000000000000000000004 /* MokoLiveActivities.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -117,6 +183,9 @@
 				LastUpgradeCheck = 2710;
 				TargetAttributes = {
 					177E22F23089D968002C18EB = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					B10000000000000000000006 = {
 						CreatedOnToolsVersion = 26.6;
 					};
 				};
@@ -142,12 +211,20 @@
 			projectRoot = "";
 			targets = (
 				177E22F23089D968002C18EB /* Moko */,
+				B10000000000000000000006 /* MokoLiveActivities */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		177E22F13089D968002C18EB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B1000000000000000000000A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -164,7 +241,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B10000000000000000000008 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B1000000000000000000000D /* Moko/LiveActivities/MokoLiveActivityAttributes.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B1000000000000000000000B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B10000000000000000000006 /* MokoLiveActivities */;
+			targetProxy = B10000000000000000000002 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		177E22FE3089D969002C18EB /* Debug */ = {
@@ -355,6 +448,60 @@
 			};
 			name = Release;
 		};
+		B1000000000000000000000E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 599ALZV448;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MokoLiveActivities-Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Aayushmaan.Moko.LiveActivities;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B1000000000000000000000F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 599ALZV448;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MokoLiveActivities-Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.Aayushmaan.Moko.LiveActivities;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -372,6 +519,15 @@
 			buildConfigurations = (
 				177E23013089D969002C18EB /* Debug */,
 				177E23023089D969002C18EB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B10000000000000000000007 /* Build configuration list for PBXNativeTarget "MokoLiveActivities" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B1000000000000000000000E /* Debug */,
+				B1000000000000000000000F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
