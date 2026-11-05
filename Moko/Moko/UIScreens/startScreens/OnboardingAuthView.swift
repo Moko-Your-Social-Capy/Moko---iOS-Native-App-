@@ -181,9 +181,8 @@ struct OnboardingAuthView: View {
                             }) {
                                 HStack(spacing: 8) {
                                     if isLoading {
-                                        ProgressView()
-                                            .tint(MokoTheme.forestGreen)
-                                            .scaleEffect(0.85)
+                                        MokoFlossLoadingView(size: 28)
+                                            .frame(width: 28, height: 28)
                                     }
                                     
                                     Text(showPasswordField ? (isSignUpMode ? "Create Account" : "Sign In") : "Continue")
@@ -265,9 +264,8 @@ struct OnboardingAuthView: View {
                             }) {
                                 HStack(spacing: 12) {
                                     if isGoogleLoading {
-                                        ProgressView()
-                                            .tint(MokoTheme.white)
-                                            .scaleEffect(0.9)
+                                        MokoFlossLoadingView(size: 30)
+                                            .frame(width: 30, height: 30)
                                     } else {
                                         Image("google_logo")
                                             .resizable()

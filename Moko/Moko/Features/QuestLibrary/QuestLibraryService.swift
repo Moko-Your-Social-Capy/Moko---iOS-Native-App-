@@ -38,6 +38,7 @@ final class QuestLibraryStore {
     private(set) var sections: [QuestSection] = []
     private(set) var isLoading = false
     private(set) var errorMessage: String?
+    private(set) var hasAttemptedLoad = false
 
     private let service: QuestLibraryService
     private var hasLoaded = false
@@ -46,7 +47,7 @@ final class QuestLibraryStore {
         self.service = service
     }
 
-    /// Loads once when the screen first appears. Pull to refresh calls `load()`.
+    /// Loads once on entry. The Quest Library refresh button also calls `load()`.
     func loadIfNeeded() async {
         guard !hasLoaded else { return }
         await load()
@@ -55,17 +56,35 @@ final class QuestLibraryStore {
     func load() async {
         guard !isLoading else { return }
 
+        let loadingStartedAt = ContinuousClock.now
+        hasAttemptedLoad = true
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
             let quests = try await service.fetchQuests()
+            try await keepLoaderVisible(since: loadingStartedAt)
             sections = QuestSection.grouped(from: quests)
             hasLoaded = true
+        } catch is CancellationError {
+            return
         } catch {
+            do {
+                try await keepLoaderVisible(since: loadingStartedAt)
+            } catch {
+                return
+            }
             print("[QuestLibrary] Failed to load quests: \(error)")
             errorMessage = "Couldn't load quests. Check your connection and try again."
+        }
+    }
+
+    private func keepLoaderVisible(since start: ContinuousClock.Instant) async throws {
+        let minimumDuration = Duration.seconds(5)
+        let elapsed = start.duration(to: .now)
+        if elapsed < minimumDuration {
+            try await Task.sleep(for: minimumDuration - elapsed)
         }
     }
 }

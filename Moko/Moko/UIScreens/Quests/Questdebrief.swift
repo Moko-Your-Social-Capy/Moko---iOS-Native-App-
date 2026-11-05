@@ -850,9 +850,8 @@ struct DebriefUserBubble: View {
                         .foregroundColor(DebriefStyle.green)
                         .monospacedDigit()
                 } else {
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(DebriefStyle.green)
+                    MokoFlossLoadingView(size: 28)
+                        .frame(width: 28, height: 28)
                 }
 
                 Image(systemName: "chevron.down")

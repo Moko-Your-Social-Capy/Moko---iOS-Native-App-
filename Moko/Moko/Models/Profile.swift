@@ -14,6 +14,8 @@ final class Profile : Identifiable {
     var userID = UUID()
 
     var username: String
+    var handle: String?
+    var ageRange: String?
     var age: Int
 
     @Attribute(.externalStorage)
@@ -30,6 +32,8 @@ final class Profile : Identifiable {
     init(
         userID: UUID = UUID(),
         username: String = "",
+        handle: String? = nil,
+        ageRange: String? = nil,
         age: Int,
         profileImageData: Data? = nil,
         xp: Int = 0,
@@ -41,6 +45,8 @@ final class Profile : Identifiable {
     ) {
         self.userID = userID
         self.username = username
+        self.handle = handle
+        self.ageRange = ageRange
         self.age = age
         self.profileImageData = profileImageData
         self.xp = xp

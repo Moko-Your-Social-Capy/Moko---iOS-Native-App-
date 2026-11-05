@@ -26,6 +26,8 @@ struct ContentView: View {
         case onboardingQuestions // Swipeable Onboarding Questions
         case done
         case reflection
+        case microphonePreprompt
+        case accountDeleted
         case home
     }
 
@@ -180,8 +182,20 @@ struct ContentView: View {
             case .reflection:
                 ReflectionView(userName: currentUserName) {
                     withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) {
-                        currentScreen = .home
+                        currentScreen = .microphonePreprompt
                     }
+                }
+                .transition(.opacity)
+
+            case .microphonePreprompt:
+                MicrophonePermissionView {
+                    withAnimation(.easeInOut(duration: 0.2)) { currentScreen = .home }
+                }
+                .transition(.opacity)
+
+            case .accountDeleted:
+                AccountDeletedConfirmation {
+                    withAnimation(.easeInOut(duration: 0.2)) { currentScreen = .intro }
                 }
                 .transition(.opacity)
 
@@ -229,7 +243,7 @@ struct ContentView: View {
         isSignedOut = true
 
         withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
-            currentScreen = reason == .signOut ? .auth : .intro
+            currentScreen = reason == .deleteAccount ? .accountDeleted : .intro
         }
     }
 

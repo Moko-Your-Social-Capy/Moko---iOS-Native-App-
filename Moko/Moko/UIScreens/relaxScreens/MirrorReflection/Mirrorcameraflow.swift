@@ -324,8 +324,8 @@ struct CameraTimerScreen: View {
             CameraPreviewView(session: camera.camera.session)
 
         case .checking:
-            ProgressView()
-                .tint(MirrorPalette.green)
+            MokoFlossLoadingView(size: 84)
+                .frame(width: 84, height: 84)
 
         case .denied, .unavailable:
             VStack(spacing: 10) {

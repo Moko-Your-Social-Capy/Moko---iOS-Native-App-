@@ -251,9 +251,15 @@ struct AchievementBadgeView: View {
     var body: some View {
         let artSize = size * 0.76 // leaves 12% clear space on every side
         ZStack {
-            AchievementBadgeShape(kind: achievement.shape).fill(rim)
-            AchievementBadgeShape(kind: achievement.shape).fill(achievement.unlocked ? BadgePalette.teal : BadgePalette.lockedFace).padding(artSize * 0.075)
-            AchievementBadgeShape(kind: achievement.shape).stroke(achievement.unlocked ? BadgePalette.brown.opacity(0.38) : BadgePalette.locked.opacity(0.75), lineWidth: 1).padding(artSize * 0.12)
+            if achievement.unlocked {
+                AchievementBadgeShape(kind: achievement.shape).fill(rim)
+                AchievementBadgeShape(kind: achievement.shape).fill(BadgePalette.teal).padding(artSize * 0.075)
+                AchievementBadgeShape(kind: achievement.shape).stroke(BadgePalette.brown.opacity(0.38), lineWidth: 1).padding(artSize * 0.12)
+            } else {
+                AchievementBadgeShape(kind: achievement.shape)
+                    .stroke(BadgePalette.locked, style: StrokeStyle(lineWidth: max(1.4, size * 0.035), lineJoin: .round))
+                    .padding(artSize * 0.10)
+            }
             Image(systemName: achievement.symbol)
                 .font(.system(size: artSize * 0.31, weight: .regular))
                 .foregroundStyle(achievement.unlocked ? BadgePalette.white : BadgePalette.locked)
@@ -267,6 +273,7 @@ struct AchievementBadgeView: View {
 }
 
 struct ProfileOverViewAchievementsList: View {
+    @State private var selectedAchievement: Achievement?
     @Query private var profiles: [Profile]
     @Query private var quests: [Quest]
     @Query private var calmDowns: [CalmDownModel]
@@ -291,16 +298,23 @@ struct ProfileOverViewAchievementsList: View {
                 }
                 LazyVGrid(columns: columns, spacing: 12) {
                     ForEach(achievements) { item in
-                        NavigationLink { ProfileOverViewAchievementDetailUnlocked(achievement: item) } label: { card(item) }
+                        Button { selectedAchievement = item } label: { card(item) }
                             .buttonStyle(.plain)
                     }
                 }
             }
             .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 24)
         }
-        .background(MokoTheme.limeBackground.ignoresSafeArea())
+        .background(ProfilePalette.background.ignoresSafeArea())
         .navigationTitle("Achievements")
         .navigationBarTitleDisplayMode(.large)
+        .sheet(item: $selectedAchievement) { achievement in
+            NavigationStack {
+                ProfileOverViewAchievementDetailUnlocked(achievement: achievement)
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     private func card(_ item: Achievement) -> some View {
@@ -313,8 +327,7 @@ struct ProfileOverViewAchievementsList: View {
                 .lineLimit(1)
         }
         .frame(maxWidth: .infinity, minHeight: 152).padding(.vertical, 14).padding(.horizontal, 8)
-        .background(Color(hex: 0xFFFFFF), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(BadgePalette.lightTeal.opacity(0.16), lineWidth: 1))
+        .background(Color.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 

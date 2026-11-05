@@ -14,8 +14,8 @@ import UIKit
 
 struct ProfileOverViewNotifications: View {
 
-    private let screenBg = MokoTheme.limeBackground   // #F6FAE8
-    private let deepGreen = Color(red: 27/255, green: 66/255, blue: 47/255)     // #1B422F
+    private let screenBg = Color(hex: 0xF7F5F2)
+    private let deepGreen = Color(hex: 0x1F7488)
 
     // Saved on the device so the switches keep their state. Switches start off
     // until iOS has granted notification permission.
@@ -30,6 +30,8 @@ struct ProfileOverViewNotifications: View {
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
     @State private var showPermissionAlert = false
     @State private var isRequestingPermission = false
+    @State private var showPreprompt = false
+    @State private var pendingReminder: String?
 
     var body: some View {
         List {
@@ -54,16 +56,16 @@ struct ProfileOverViewNotifications: View {
             }
 
             Section {
-                Toggle(isOn: permissionBinding($dailyReminder)) {
+                Toggle(isOn: permissionBinding($dailyReminder, key: "daily")) {
                     Label("Daily practice reminder", systemImage: "bell")
                 }
-                Toggle(isOn: permissionBinding($streakAtRisk)) {
+                Toggle(isOn: permissionBinding($streakAtRisk, key: "streak")) {
                     Label("Streak at risk", systemImage: "flame")
                 }
-                Toggle(isOn: permissionBinding($newQuests)) {
+                Toggle(isOn: permissionBinding($newQuests, key: "quests")) {
                     Label("New quests & scenarios", systemImage: "star")
                 }
-                Toggle(isOn: permissionBinding($cooldownBreathing)) {
+                Toggle(isOn: permissionBinding($cooldownBreathing, key: "cooldown")) {
                     Label("Cooldown breathing", systemImage: "sparkle")
                 }
             } header: {
@@ -72,7 +74,7 @@ struct ProfileOverViewNotifications: View {
                 Text("Turning on a reminder asks iOS for notification permission. If notifications are off for MOKO, these switches stay off until you allow them in Settings.")
             }
         }
-        .tint(deepGreen)   // green switches
+        .tint(deepGreen)
         .scrollContentBackground(.hidden)
         .background(screenBg)
         .navigationTitle("Notifications")
@@ -94,17 +96,25 @@ struct ProfileOverViewNotifications: View {
         } message: {
             Text("Allow notifications for MOKO in iOS Settings to use reminders.")
         }
+        .sheet(isPresented: $showPreprompt) {
+            NotificationPermissionPreprompt(
+                onAllow: { Task { await requestPendingReminder() } },
+                onNotNow: { pendingReminder = nil; showPreprompt = false }
+            )
+            .presentationDetents([.medium])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     // MARK: - Permission-aware toggle
 
-    private func permissionBinding(_ value: Binding<Bool>) -> Binding<Bool> {
+    private func permissionBinding(_ value: Binding<Bool>, key: String) -> Binding<Bool> {
         Binding(
             get: { value.wrappedValue },
             set: { isOn in
                 if isOn {
                     Task {
-                        await enableReminder(value)
+                        await enableReminder(value, key: key)
                     }
                 } else {
                     value.wrappedValue = false
@@ -114,7 +124,7 @@ struct ProfileOverViewNotifications: View {
     }
 
     @MainActor
-    private func enableReminder(_ value: Binding<Bool>) async {
+    private func enableReminder(_ value: Binding<Bool>, key: String) async {
         guard !isRequestingPermission else { return }
         isRequestingPermission = true
         defer { isRequestingPermission = false }
@@ -132,26 +142,41 @@ struct ProfileOverViewNotifications: View {
             showPermissionAlert = true
 
         case .notDetermined:
-            value.wrappedValue = true
-            do {
-                let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
-                let updated = await center.notificationSettings()
-                authorizationStatus = updated.authorizationStatus
-                value.wrappedValue = granted
-                if !granted {
-                    showPermissionAlert = true
-                }
-            } catch {
-                authorizationStatus = .denied
-                value.wrappedValue = false
-                showPermissionAlert = true
-                print("Notification permission request failed:", error)
-            }
+            pendingReminder = key
+            showPreprompt = true
 
         @unknown default:
             value.wrappedValue = false
         }
     }
+
+    @MainActor
+    private func requestPendingReminder() async {
+        guard !isRequestingPermission else { return }
+        isRequestingPermission = true
+        defer { isRequestingPermission = false }
+        showPreprompt = false
+        do {
+            let granted = try await UNUserNotificationCenter.current()
+                .requestAuthorization(options: [.alert, .sound, .badge])
+            authorizationStatus = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+            if granted {
+                switch pendingReminder {
+                case "daily": dailyReminder = true
+                case "streak": streakAtRisk = true
+                case "quests": newQuests = true
+                case "cooldown": cooldownBreathing = true
+                default: break
+                }
+            } else {
+                showPermissionAlert = true
+            }
+        } catch {
+            showPermissionAlert = true
+        }
+        pendingReminder = nil
+    }
+
 
     // MARK: - System status
 
@@ -181,6 +206,38 @@ struct ProfileOverViewNotifications: View {
     private func openSystemSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         openURL(url)
+    }
+}
+
+private struct NotificationPermissionPreprompt: View {
+    let onAllow: () -> Void
+    let onNotNow: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Spacer(minLength: 4)
+            Image(systemName: "bell.badge")
+                .font(.system(size: 34, weight: .medium))
+                .foregroundStyle(ProfilePalette.accent)
+            Text("Want a gentle nudge each day?")
+                .font(.system(.title2, design: .rounded, weight: .bold))
+                .foregroundStyle(ProfilePalette.text)
+            Text("Moko can remind you about a practice. You can change this any time in Settings.")
+                .font(.body)
+                .foregroundStyle(ProfilePalette.secondary)
+            Spacer()
+            Button("Allow reminders", action: onAllow)
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .buttonStyle(.borderedProminent)
+                .tint(ProfilePalette.accent)
+                .buttonBorderShape(.capsule)
+            Button("Not now", action: onNotNow)
+                .frame(maxWidth: .infinity, minHeight: 44)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .background(ProfilePalette.background.ignoresSafeArea())
     }
 }
 
