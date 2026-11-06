@@ -5,3 +5,5 @@ DerivedData/
 .build/
 **/DerivedData/
 **/.build/
+*.xcuserstate
+xcuserdata/
