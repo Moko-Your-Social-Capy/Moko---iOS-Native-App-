@@ -165,12 +165,11 @@ Animations respect **Reduce Motion**: when it is on, Moko shows a still frame in
 
 Tabs are defined once in `Models/MokoTab.swift` and shared by `MokoRootView`, `MainHomeContainerView`, `Overview`, and `RelaxScreen`, so tab selection has a single source of truth.
 
-The Relax flow uses a `RelaxStep` enum:
+The Relax flow uses a `RelaxStep` enum. Tapping a guide opens its session
+directly (the former info/detail screen was removed):
 
 ```swift
 enum RelaxStep: Hashable {
-    case guideList
-    case guideDetail(ImageryGuide)
     case session(ImageryGuide)
     case complete(ImageryGuide)
 }

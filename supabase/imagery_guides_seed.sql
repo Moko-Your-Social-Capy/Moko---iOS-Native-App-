@@ -16,7 +16,7 @@ on conflict (title) do update set
 
 insert into public.imagery_guides
     (id, title, description, tag, icon, detail_text, image_url,
-     image_shift, image_scale, steps, completion_text,
+     image_shift, image_scale, audio_url, steps, completion_text,
      duration_seconds, duration_label, sort_order)
 values
     (
@@ -29,6 +29,7 @@ values
         'https://qyxnhmnfzcxbtphzwsiq.supabase.co/storage/v1/object/public/imagery-guide/cozy_room.png',
         -66.5,
         1,
+        'https://qyxnhmnfzcxbtphzwsiq.supabase.co/storage/v1/object/public/music/cozy_room_ambient.mp3',
         jsonb_build_array(
             'Picture a comfortable room. Notice the soft light on the walls.',
             'Notice the soft sofa and the warm blanket. Let your body settle.',
@@ -49,6 +50,7 @@ values
         'https://qyxnhmnfzcxbtphzwsiq.supabase.co/storage/v1/object/public/imagery-guide/calm_garden.png',
         0,
         1,
+        'https://qyxnhmnfzcxbtphzwsiq.supabase.co/storage/v1/object/public/music/calm_garden_ambient.mp3',
         jsonb_build_array(
             'Picture a quiet garden. Notice the green around you and the gentle sounds.',
             'Feel the fresh air and the soft breeze. Let your shoulders relax.',
@@ -69,6 +71,7 @@ values
         'https://qyxnhmnfzcxbtphzwsiq.supabase.co/storage/v1/object/public/imagery-guide/misty_hill.png',
         0,
         1,
+        'https://qyxnhmnfzcxbtphzwsiq.supabase.co/storage/v1/object/public/music/misty_hill_station_ambient.mp3',
         jsonb_build_array(
             'Picture cool mountain air and soft mist over green hills.',
             'Watch the clouds drift slowly by. Let each breath feel cool and light.',
@@ -89,6 +92,7 @@ values
         'https://qyxnhmnfzcxbtphzwsiq.supabase.co/storage/v1/object/public/imagery-guide/childhood_memory.png',
         0,
         1.061,
+        'https://qyxnhmnfzcxbtphzwsiq.supabase.co/storage/v1/object/public/music/childhood_memory_ambient.mp3',
         jsonb_build_array(
             'Picture a happy childhood moment. Notice who is with you and how it feels.',
             'Notice the warm evening light and the comfort of being together.',
@@ -108,6 +112,7 @@ on conflict (id) do update set
     image_url = excluded.image_url,
     image_shift = excluded.image_shift,
     image_scale = excluded.image_scale,
+    audio_url = excluded.audio_url,
     steps = excluded.steps,
     completion_text = excluded.completion_text,
     duration_seconds = excluded.duration_seconds,
@@ -122,7 +127,6 @@ insert into public.imagery_guide_screen_content
      list_accessibility_hint, accessibility_label_format,
      loading_text, error_title, error_message, retry_button_title,
      empty_title, empty_message,
-     detail_start_button, detail_caption,
      session_step_format, session_paused_suffix, session_complete_header,
      session_complete_instruction_format, session_elapsed_format,
      session_remaining_format, session_restart_label, session_pause_label,
@@ -150,8 +154,6 @@ values
         'Try Again',
         'No guides yet',
         'New guides will appear here as soon as they''re added.',
-        'Start',
-        'About 2 minutes · pause any time',
         'STEP {current} OF {total}',
         ' · PAUSED',
         'SESSION COMPLETE',
@@ -190,8 +192,6 @@ on conflict (id) do update set
     retry_button_title = excluded.retry_button_title,
     empty_title = excluded.empty_title,
     empty_message = excluded.empty_message,
-    detail_start_button = excluded.detail_start_button,
-    detail_caption = excluded.detail_caption,
     session_step_format = excluded.session_step_format,
     session_paused_suffix = excluded.session_paused_suffix,
     session_complete_header = excluded.session_complete_header,

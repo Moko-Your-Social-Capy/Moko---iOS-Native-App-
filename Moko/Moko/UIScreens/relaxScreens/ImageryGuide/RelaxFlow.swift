@@ -1,7 +1,6 @@
 import SwiftUI
 
 enum RelaxStep: Hashable {
-    case guideDetail(ImageryGuide)
     case session(ImageryGuide)
     case complete(ImageryGuide)
 }
@@ -20,10 +19,6 @@ struct RelaxFlow: View {
             guideList
                 .navigationDestination(for: RelaxStep.self) { step in
                     switch step {
-                    case .guideDetail(let guide):
-                        ImageryGuideDetailView(guide: guide)
-                            .nativeBackBarOnly()
-
                     case .session(let guide):
                         GuideSessionView(guide: guide) {
                             path.append(.complete(guide))
@@ -45,7 +40,7 @@ struct RelaxFlow: View {
 
     private var guideList: some View {
         ImageryGuideListView { guide in
-            path.append(.guideDetail(guide))
+            path.append(.session(guide))
         }
     }
 }
