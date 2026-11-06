@@ -1,3 +1,10 @@
 Secrets.xcconfig
 .DS_Store
 supabase/.temp/
+# Xcode Derived Data
+DerivedData/
+**/DerivedData/
+
+# Xcode user-specific files
+*.xcuserstate
+xcuserdata/
