@@ -1,3 +1,7 @@
 Secrets.xcconfig
 .DS_Store
 supabase/.temp/
+DerivedData/
+.build/
+**/DerivedData/
+**/.build/
