@@ -32,6 +32,9 @@ create table if not exists public.imagery_guides (
     -- Framing applied to the full-screen session artwork.
     image_shift double precision not null default 0,
     image_scale double precision not null default 1,
+    -- Public URL in the imagery-guide Storage bucket for the ambient
+    -- background music that plays during the session (loops while running).
+    audio_url text,
     -- Instructions shown while the timer runs, in order.
     steps jsonb not null default '[]'::jsonb,
     completion_text text not null,
@@ -53,9 +56,12 @@ comment on column public.imagery_guides.duration_seconds is
     'Timer length for the session screen.';
 comment on column public.imagery_guides.duration_label is
     'Short duration shown on the card, for example 2 min.';
+comment on column public.imagery_guides.audio_url is
+    'Public Supabase Storage URL of the ambient background music for the session.';
 
--- All copy used by the list, detail, session and completion screens.
--- Exactly one row is kept; the app reads id = 1.
+-- All copy used by the list, session and completion screens.
+-- The guide detail screen was removed: tapping a guide now opens the session
+-- directly. Exactly one row is kept; the app reads id = 1.
 create table if not exists public.imagery_guide_screen_content (
     id integer primary key default 1 check (id = 1),
     eyebrow text not null,
@@ -75,8 +81,6 @@ create table if not exists public.imagery_guide_screen_content (
     retry_button_title text not null,
     empty_title text not null,
     empty_message text not null,
-    detail_start_button text not null,
-    detail_caption text not null,
     session_step_format text not null,
     session_paused_suffix text not null,
     session_complete_header text not null,
