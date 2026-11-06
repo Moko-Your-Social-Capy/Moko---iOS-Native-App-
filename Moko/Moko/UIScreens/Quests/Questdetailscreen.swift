@@ -134,6 +134,11 @@ struct QuestDetailScreen: View {
     let quest: Quest
     var generator: any QuestBriefGenerating = DummyQuestBriefGenerator()
 
+    /// When this quest was opened from the Quest Library, the artwork URL from
+    /// the library card, so the detail shows the same image instead of the
+    /// category placeholder. Nil for custom quests opened from the Quests tab.
+    var libraryArtworkURL: URL? = nil
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openOverview) private var openOverview
@@ -226,6 +231,8 @@ struct QuestDetailScreen: View {
         switch outcome {
         case .completed:
             PendingDebriefStore.clear()
+            // Play the success sound for both custom quests and Quest Library quests.
+            DebriefSoundPlayer.shared.playSuccess()
             openOverview?(.debriefDone)
         case .finishLater:
             PendingDebriefStore.save(quest)
@@ -324,8 +331,45 @@ struct QuestDetailScreen: View {
         .shadow(color: Color.black.opacity(0.04), radius: 12, x: 0, y: 4)
     }
 
-    // MARK: Category image
+    // MARK: Card artwork
+    @ViewBuilder
     private var banner: some View {
+        if let url = libraryArtworkURL {
+            // Quest opened from the Quest Library: show the card's own artwork
+            // instead of the category placeholder.
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: 190)
+                .overlay {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .empty:
+                            ZStack {
+                                Color.white.opacity(0.25)
+                                MokoFlossLoadingView(size: 44)
+                                    .frame(width: 44, height: 44)
+                            }
+                        case .failure:
+                            categoryPlaceholder
+                        @unknown default:
+                            categoryPlaceholder
+                        }
+                    }
+                }
+                .clipped()
+        } else {
+            categoryPlaceholder
+        }
+    }
+
+    /// The category placeholder art shown for custom quests (opened from the
+    /// Quests tab), and as a fallback when a library quest's artwork fails to
+    /// load.
+    private var categoryPlaceholder: some View {
         let art = QuestCategoryArt.art(for: quest.category)
 
         // The base view fixes the size; the artwork sits in overlays so a large
