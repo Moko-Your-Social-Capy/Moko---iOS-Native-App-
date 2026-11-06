@@ -14,7 +14,6 @@ struct MokoXPProgressView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @State private var animatedProgress: CGFloat = 0
-    @State private var displayedXP = 0
     @State private var rewardLabel: String?
     @State private var shine = false
     @State private var unlockedCostume: MokoCostume?
@@ -23,9 +22,9 @@ struct MokoXPProgressView: View {
     private var levelXP: Int { max(0, xp) % 400 }
     private var progress: CGFloat { CGFloat(levelXP) / 400 }
     private var isProfileSize: Bool { size == .profile }
-    private var textColor: Color { colorScheme == .dark ? Color(hex: 0xF7F0E6) : ProfilePalette.text }
-    private var secondaryColor: Color { colorScheme == .dark ? Color(hex: 0xDDD5C9).opacity(0.82) : ProfilePalette.secondary }
-    private var trackColor: Color { colorScheme == .dark ? Color(hex: 0x365246) : ProfilePalette.midGreen.opacity(0.26) }
+    private var textColor: Color { colorScheme == .dark ? MokoTheme.warmCream : ProfilePalette.text }
+    private var secondaryColor: Color { colorScheme == .dark ? MokoTheme.warmNeutral.opacity(0.82) : ProfilePalette.secondary }
+    private var trackColor: Color { colorScheme == .dark ? MokoTheme.forestGreen.opacity(0.26) : ProfilePalette.midGreen.opacity(0.26) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: isProfileSize ? 11 : 9) {
@@ -94,7 +93,6 @@ struct MokoXPProgressView: View {
             }
         }
         .onAppear {
-            displayedXP = xp
             withAnimation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.7, dampingFraction: 0.78)) {
                 animatedProgress = progress
             }
@@ -104,10 +102,20 @@ struct MokoXPProgressView: View {
         }
         .onChange(of: xp) { oldValue, newValue in
             let gained = max(0, newValue - oldValue)
+            let previousLevel = max(0, oldValue) / 400 + 1
+            let updatedLevel = max(0, newValue) / 400 + 1
             withAnimation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.68, dampingFraction: 0.76)) {
-                animatedProgress = CGFloat(max(0, newValue) % 400) / 400
-                displayedXP = newValue
+                animatedProgress = updatedLevel > previousLevel ? 1 : CGFloat(max(0, newValue) % 400) / 400
                 rewardLabel = gained > 0 ? "+\(gained) XP" : nil
+            }
+
+            if updatedLevel > previousLevel {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(reduceMotion ? 0.2 : 0.46))
+                    withAnimation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.48, dampingFraction: 0.84)) {
+                        animatedProgress = CGFloat(max(0, newValue) % 400) / 400
+                    }
+                }
             }
 
             if gained > 0 {
@@ -117,8 +125,6 @@ struct MokoXPProgressView: View {
                 }
             }
 
-            let previousLevel = max(0, oldValue) / 400 + 1
-            let updatedLevel = max(0, newValue) / 400 + 1
             if updatedLevel > previousLevel,
                let costume = MokoCostume.all.first(where: { $0.level == updatedLevel }) {
                 onLevelUp?()
@@ -215,6 +221,7 @@ private struct MokoCostumeUnlockSheet: View {
     let level: Int
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     @AppStorage("moko.selectedCostumeLevel") private var selectedCostumeLevel = 1
     @State private var hopped = false
 
@@ -230,10 +237,10 @@ private struct MokoCostumeUnlockSheet: View {
 
             Text("Level Up!")
                 .font(.system(.title2, design: .rounded, weight: .bold))
-                .foregroundStyle(ProfilePalette.text)
+                .foregroundStyle(colorScheme == .dark ? Color(hex: 0xF7F0E6) : ProfilePalette.text)
             Text("You reached Level \(level). \(costume.name) is now in Moko’s wardrobe.")
                 .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(ProfilePalette.secondary)
+                .foregroundStyle(colorScheme == .dark ? Color(hex: 0xDDD5C9).opacity(0.82) : ProfilePalette.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
 

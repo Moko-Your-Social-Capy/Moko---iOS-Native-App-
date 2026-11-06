@@ -24,6 +24,7 @@ struct ContentView: View {
         case auth
         case onboardingInfo      // Carousel -> Name -> Age -> Welcome
         case onboardingQuestions // Swipeable Onboarding Questions
+        case sudsCheckIn
         case done
         case reflection
         case microphonePreprompt
@@ -160,10 +161,23 @@ struct ContentView: View {
                             mapAndSaveQuestionsToSwiftData(results: result)
 
                             withAnimation(.easeInOut(duration: 0.3)) {
-                                currentScreen = .done
+                                currentScreen = .sudsCheckIn
                             }
                         }
                     )
+                }
+                .transition(.opacity)
+
+            case .sudsCheckIn:
+                MokoSUDSCheckInView { score in
+                    if let score {
+                        MokoSUDSStore.save(score)
+                    } else {
+                        MokoSUDSStore.clear()
+                    }
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        currentScreen = .done
+                    }
                 }
                 .transition(.opacity)
 

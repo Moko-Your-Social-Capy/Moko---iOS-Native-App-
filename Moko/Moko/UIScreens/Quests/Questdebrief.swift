@@ -168,7 +168,7 @@ struct DebriefResult {
 // MARK: - Session (drives the whole conversation)
 @MainActor
 @Observable
-final class DebriefSession {
+final class LegacyDebriefSession {
     static let followUpCount = 3
 
     let context: DebriefContext
@@ -330,7 +330,7 @@ final class DebriefSession {
             self.apply(grade, to: messageID)
             self.isGrading = false
 
-            if self.questionNumber < DebriefSession.followUpCount {
+            if self.questionNumber < LegacyDebriefSession.followUpCount {
                 self.questionNumber += 1
                 self.append(.divider(question: self.questionNumber))
 
@@ -405,7 +405,7 @@ struct QuestDebriefScreen: View {
     @Query private var profiles: [Profile]
 
     private let quest: Quest?
-    @State private var session: DebriefSession
+    @State private var session: LegacyDebriefSession
     @State private var draft = ""
     @State private var showLeave = false
     @FocusState private var isTyping: Bool
@@ -414,7 +414,7 @@ struct QuestDebriefScreen: View {
          coach: any DebriefCoaching = DummyDebriefCoach(),
          onExit: @escaping (DebriefOutcome) -> Void) {
         self.quest = nil
-        _session = State(initialValue: DebriefSession(context: context, coach: coach))
+        _session = State(initialValue: LegacyDebriefSession(context: context, coach: coach))
         self.onExit = onExit
     }
 
@@ -423,7 +423,7 @@ struct QuestDebriefScreen: View {
          onExit: @escaping (DebriefOutcome) -> Void) {
         self.quest = quest
         _session = State(
-            initialValue: DebriefSession(
+            initialValue: LegacyDebriefSession(
                 context: DebriefContext(
                     questTitle: quest.title,
                     category: quest.category,
@@ -549,7 +549,7 @@ struct QuestDebriefScreen: View {
 
             // Four segments: the story, then three follow-ups
             HStack(spacing: 6) {
-                ForEach(0..<(DebriefSession.followUpCount + 1), id: \.self) { index in
+                ForEach(0..<(LegacyDebriefSession.followUpCount + 1), id: \.self) { index in
                     Capsule()
                         .fill(index < session.gradedCount ? DebriefStyle.green : Color.black.opacity(0.08))
                         .frame(height: 5)
@@ -600,7 +600,7 @@ struct QuestDebriefScreen: View {
         case .user(let text, let grade):
             DebriefUserBubble(text: text, grade: grade)
         case .divider(let number):
-            DebriefQuestionHeader(number: number, total: DebriefSession.followUpCount)
+            DebriefQuestionHeader(number: number, total: LegacyDebriefSession.followUpCount)
         }
     }
 

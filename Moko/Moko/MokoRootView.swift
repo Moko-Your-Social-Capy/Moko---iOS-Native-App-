@@ -75,7 +75,7 @@ struct MokoRootView: View {
             overviewMode = mode
         }
         .fullScreenCover(item: $debriefQuest) { quest in
-            QuestDebriefScreen(quest: quest) { outcome in
+            MokoDebriefView(quest: quest) { outcome in
                 handleDebriefOutcome(outcome, for: quest)
             }
         }

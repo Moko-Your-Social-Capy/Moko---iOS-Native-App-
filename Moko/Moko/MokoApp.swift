@@ -39,7 +39,12 @@ struct MokoApp: App {
             Profile.self,
             CalmDownModel.self,
             Quest.self,
-            InsightsModel.self
+            InsightsModel.self,
+            DebriefSession.self,
+            DebriefTurn.self,
+            SkillScore.self,
+            ScoreReport.self,
+            MissionResult.self
         ])
     }
 }

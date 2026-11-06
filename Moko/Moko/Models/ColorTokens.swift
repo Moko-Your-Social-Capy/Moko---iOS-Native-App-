@@ -27,6 +27,41 @@ public enum ColorTokens {
     // Control States
     public static let controlSelected = Color(red: 226.0 / 255.0, green: 245.0 / 255.0, blue: 177.0 / 255.0)
     public static let controlInactive = ColorTokens.textSecondary
+
+    // MARK: - Profile Palette
+
+    /// Primary text color for profiles
+    public static let profileText = Color(red: 92.0 / 255.0, green: 67.0 / 255.0, blue: 48.0 / 255.0)
+
+    /// Secondary text color for profiles
+    public static let profileSecondary = Color(red: 81.0 / 255.0, green: 68.0 / 255.0, blue: 62.0 / 255.0)
+
+    /// Success/green indicator
+    public static let profileSuccess = Color(red: 27.0 / 255.0, green: 66.0 / 255.0, blue: 47.0 / 255.0)
+
+    /// Mid green for backgrounds
+    public static let profileMidGreen = Color(red: 54.0 / 255.0, green: 89.0 / 255.0, blue: 72.0 / 255.0)
+
+    /// Accent color for profiles
+    public static let profileAccent = Color(red: 226.0 / 255.0, green: 245.0 / 255.0, blue: 177.0 / 255.0)
+
+    // MARK: - Costume Asset Reference
+
+    public enum CostumeAssetType: String, CaseIterable, Identifiable {
+        case mokoSittingRaw = "moko_sitting_raw"
+        case mokoWavingRaw = "moko_waving_raw"
+        case capybaraPeek = "capybara_peek"
+
+        public var id: String { rawValue }
+
+        func description() -> String {
+            switch self {
+            case .mokoSittingRaw: return "The original Moko - sitting quietly in the forest"
+            case .mokoWavingRaw: return "Saying hello to friends across the landscape"
+            case .capybaraPeek: return "A peek into capybara culture"
+            }
+        }
+    }
 }
 
 extension View {

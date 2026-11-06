@@ -12,65 +12,34 @@
 import SwiftUI
 import SwiftData
 
-// MARK: - Briefing (what the on-device model will generate)
+// MARK: - On-device quest briefing
 struct QuestBrief: Equatable {
     var scene: String
     var who: String
     var goal: String
 }
 
-/// Plain values the generator needs. Keeping it separate from the database object
-/// makes it easy to hand to a model prompt later.
 struct QuestBriefRequest {
     var title: String
     var notes: String
     var category: QuestCategory
     var intensity: QuestIntensity
+    var sudsScore: Int?
+    var personalizationSignals: [String]
+}
+
+enum QuestBriefSource: Equatable {
+    case onDevice
+    case fallback
+}
+
+enum QuestBriefResult {
+    case brief(QuestBrief, source: QuestBriefSource)
+    case support(String)
 }
 
 protocol QuestBriefGenerating {
-    func brief(for request: QuestBriefRequest) async -> QuestBrief
-}
-
-/// Placeholder content. To use Apple Foundation Models, write another type that
-/// conforms to QuestBriefGenerating and pass it to QuestDetailScreen(generator:).
-struct DummyQuestBriefGenerator: QuestBriefGenerating {
-    func brief(for request: QuestBriefRequest) async -> QuestBrief {
-        // Pretend it takes a moment, like a real model would
-        try? await Task.sleep(for: .milliseconds(1100))
-
-        let scene: String
-        let who: String
-        switch request.category {
-        case .work:
-            scene = "A professional moment where this comes up. Keep the tone calm, clear and kind to yourself."
-            who = "You and the people involved at work."
-        case .dating:
-            scene = "A relaxed, low-pressure moment together. No agenda, just time to talk and get to know each other."
-            who = "Your date and you."
-        case .friends:
-            scene = "A casual hangout with someone you trust. No pressure, just time to catch up."
-            who = "Your friend and you."
-        case .family:
-            scene = "A familiar, comfortable setting. Slow down and really talk."
-            who = "Your family member and you."
-        case .others:
-            scene = "A new or unfamiliar situation. Take your time and settle in before you begin."
-            who = "You and the people involved."
-        }
-
-        let goal: String
-        switch request.intensity {
-        case .easy:
-            goal = "Take one small step: start the conversation and listen for one thing worth following up on."
-        case .medium:
-            goal = "Open with one question, then ask a follow-up on something they said and let the conversation flow naturally."
-        case .hard:
-            goal = "Share something real about yourself, then ask a deeper question and stay with the answer."
-        }
-
-        return QuestBrief(scene: scene, who: who, goal: goal)
-    }
+    func brief(for request: QuestBriefRequest) async -> QuestBriefResult
 }
 
 // MARK: - Category image (placeholder until the artwork is added)
@@ -132,13 +101,14 @@ private struct QuestCategoryArt {
 // MARK: - Detail screen
 struct QuestDetailScreen: View {
     let quest: Quest
-    var generator: any QuestBriefGenerating = DummyQuestBriefGenerator()
+    var generator: any QuestBriefGenerating = MokoAFMQuestBriefGenerator()
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openOverview) private var openOverview
 
-    @State private var brief: QuestBrief?
+    @State private var briefResult: QuestBriefResult?
+    @Query private var onboardingResponses: [OnboardingResponse]
     @State private var showingDebrief = false
 
     // Timeline colours: warm sand for the scene, sky blue for who, green for the goal
@@ -157,7 +127,7 @@ struct QuestDetailScreen: View {
     var body: some View {
         ZStack {
             if showingDebrief {
-                QuestDebriefScreen(quest: quest) { outcome in
+                MokoDebriefView(quest: quest) { outcome in
                     finishDebrief(outcome)
                 }
                 .transition(.move(edge: .trailing))
@@ -174,18 +144,44 @@ struct QuestDetailScreen: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .task {
             // Runs once, not each time you come back from the debrief
-            guard brief == nil else { return }
+            guard briefResult == nil else { return }
+            let affirmativeIDs = Set(onboardingResponses.compactMap { response -> Int? in
+                guard response.userID == quest.ownerID,
+                      response.userResponse.caseInsensitiveCompare("yes") == .orderedSame,
+                      response.questionID.hasPrefix("q_") else { return nil }
+                return Int(response.questionID.dropFirst(2))
+            })
             let request = QuestBriefRequest(
                 title: quest.title,
                 notes: quest.notes,
                 category: quest.category,
-                intensity: quest.intensity
+                intensity: quest.intensity,
+                sudsScore: MokoSUDSStore.latest(),
+                personalizationSignals: MokoAFMPolicy.personalizationSignals(
+                    category: quest.category.rawValue,
+                    affirmativeQuestionIDs: affirmativeIDs
+                )
             )
             let result = await generator.brief(for: request)
             withAnimation(.easeOut(duration: 0.4)) {
-                brief = result
+                briefResult = result
             }
         }
+    }
+
+    private var currentBrief: QuestBrief? {
+        guard case let .brief(value, _) = briefResult else { return nil }
+        return value
+    }
+
+    private var crisisMessage: String? {
+        guard case let .support(message) = briefResult else { return nil }
+        return message
+    }
+
+    private var generatedOnDevice: Bool {
+        guard case let .brief(_, source) = briefResult else { return false }
+        return source == .onDevice
     }
 
     // MARK: Detail content
@@ -282,6 +278,28 @@ struct QuestDetailScreen: View {
                     .padding(.top, 20)
                     .padding(.bottom, 22)
 
+                if let crisisMessage {
+                    VStack(alignment: .leading, spacing: 14) {
+                        Text("A note of care")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(QuestStyle.title)
+                        Text(crisisMessage)
+                            .font(.system(size: 15))
+                            .foregroundColor(QuestStyle.title)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if Locale.current.region?.identifier == "IN" {
+                            Link(destination: URL(string: "tel:14416")!) {
+                                Label("Call Tele-MANAS · 14416", systemImage: "phone.fill")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity, minHeight: 48)
+                                    .background(QuestStyle.deepGreen, in: Capsule())
+                            }
+                        }
+                    }
+                    .padding(18)
+                    .background(QuestStyle.screenBg, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                } else {
                 // Briefing label
                 HStack(spacing: 6) {
                     Image(systemName: "sparkles")
@@ -297,7 +315,7 @@ struct QuestDetailScreen: View {
                     top: sceneTop, bottom: sceneBottom, iconColor: sceneIcon,
                     label: "THE SCENE",
                     lineTo: whoTop,
-                    text: brief?.scene, showLine: true
+                    text: currentBrief?.scene, showLine: true
                 )
 
                 timelineRow(
@@ -305,7 +323,7 @@ struct QuestDetailScreen: View {
                     top: whoTop, bottom: whoBottom, iconColor: whoIcon,
                     label: "WHO",
                     lineTo: goalTop,
-                    text: brief?.who, showLine: true
+                    text: currentBrief?.who, showLine: true
                 )
 
                 timelineRow(
@@ -313,8 +331,15 @@ struct QuestDetailScreen: View {
                     top: goalTop, bottom: goalBottom, iconColor: goalIcon,
                     label: "YOUR GOAL",
                     lineTo: goalTop,
-                    text: brief?.goal, showLine: false
+                    text: currentBrief?.goal, showLine: false
                 )
+                if generatedOnDevice {
+                    Text("Prepared privately on this device")
+                        .font(.system(size: 12))
+                        .foregroundColor(QuestStyle.title.opacity(0.62))
+                        .padding(.top, 12)
+                }
+                }
             }
             .padding(22)
         }
