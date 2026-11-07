@@ -45,6 +45,10 @@ enum MokoAFMPolicy {
         guard let sudsScore else { return false }
         return min(10, max(0, sudsScore)) >= 7
     }
+
+    static func personalizationSignals(category: String, affirmativeQuestionIDs: some Sequence<Int>) -> [String] {
+        return affirmativeQuestionIDs.map { "q_\($0)" }
+    }
 }
 
 /// On-device SUDS check-in store with 24-hour retention.

@@ -21,7 +21,7 @@ struct MokoAFMQuestBriefGenerator: QuestBriefGenerating {
         if brief.scene == Self.crisisMessage {
             return .support(brief.scene)
         }
-        return .brief(brief, source: .ai)
+        return .brief(brief, source: .fallback)
     }
 
     private func generateBrief(for request: QuestBriefRequest) async -> QuestBrief {
@@ -137,7 +137,7 @@ struct MokoAFMQuestBriefGenerator: QuestBriefGenerating {
                 who: "You and the people involved.",
                 goal: "Choose one small step that feels manageable, or pause for now."
             ),
-            source: .staticFallback
+            source: .fallback
         )
     }
 }
