@@ -132,7 +132,7 @@ private struct QuestCategoryArt {
 // MARK: - Detail screen
 struct QuestDetailScreen: View {
     let quest: Quest
-    var generator: any QuestBriefGenerating = DummyQuestBriefGenerator()
+    var generator: any QuestBriefGenerating = MokoAFMQuestBriefGenerator()
 
     /// When this quest was opened from the Quest Library, the artwork URL from
     /// the library card, so the detail shows the same image instead of the

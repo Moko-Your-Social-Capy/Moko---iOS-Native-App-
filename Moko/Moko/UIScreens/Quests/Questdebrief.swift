@@ -411,7 +411,7 @@ struct QuestDebriefScreen: View {
     @FocusState private var isTyping: Bool
 
     init(context: DebriefContext,
-         coach: any DebriefCoaching = DummyDebriefCoach(),
+         coach: any DebriefCoaching = MokoDebriefAFMCoach(),
          onExit: @escaping (DebriefOutcome) -> Void) {
         self.quest = nil
         _session = State(initialValue: DebriefSession(context: context, coach: coach))
@@ -419,7 +419,7 @@ struct QuestDebriefScreen: View {
     }
 
     init(quest: Quest,
-         coach: any DebriefCoaching = DummyDebriefCoach(),
+         coach: any DebriefCoaching = MokoDebriefAFMCoach(),
          onExit: @escaping (DebriefOutcome) -> Void) {
         self.quest = quest
         _session = State(
