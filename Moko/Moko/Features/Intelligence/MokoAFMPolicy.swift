@@ -1,7 +1,11 @@
 import Foundation
 
+<<<<<<< HEAD
 /// Small deterministic policy helpers shared by the app and the terminal smoke test.
 /// These checks are product guardrails, not a clinical assessment.
+=======
+/// Deterministic policy and guardrail helpers for Apple Foundation Models integration.
+>>>>>>> recovered-local-code
 enum MokoAFMPolicy {
     static let maximumTitleCharacters = 120
     static let maximumNotesCharacters = 500
@@ -20,10 +24,14 @@ enum MokoAFMPolicy {
     ]
 
     static func containsCrisisLanguage(_ text: String) -> Bool {
+<<<<<<< HEAD
         let normalized = text
             .lowercased()
             .replacingOccurrences(of: "’", with: "'")
             .replacingOccurrences(of: "\n", with: " ")
+=======
+        let normalized = text.lowercased()
+>>>>>>> recovered-local-code
         return crisisPhrases.contains { normalized.contains($0) }
     }
 
@@ -35,6 +43,7 @@ enum MokoAFMPolicy {
         text.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).count
     }
 
+<<<<<<< HEAD
     /// Validate only generated text. Numbers must be grounded in the supplied facts.
     static func passesChecks(_ text: String, maxWords: Int, source: String) -> Bool {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -44,10 +53,19 @@ enum MokoAFMPolicy {
         guard !prohibitedTerms.contains(where: lowercased.contains) else { return false }
         guard !containsCrisisLanguage(trimmed) else { return false }
 
+=======
+    static func passesChecks(_ text: String, maxWords: Int, source: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, wordCount(trimmed) <= maxWords else { return false }
+        let lowercased = trimmed.lowercased()
+        guard !prohibitedTerms.contains(where: lowercased.contains) else { return false }
+        guard !containsCrisisLanguage(trimmed) else { return false }
+>>>>>>> recovered-local-code
         let sourceDigits = Set(source.filter(\.isNumber))
         return trimmed.filter(\.isNumber).allSatisfy(sourceDigits.contains)
     }
 
+<<<<<<< HEAD
     /// Translate only relevant affirmative onboarding answers into short preference hints.
     /// These are not diagnoses, trait labels, or risk scores.
     static func personalizationSignals(category: String, affirmativeQuestionIDs: Set<Int>) -> [String] {
@@ -79,12 +97,19 @@ enum MokoAFMPolicy {
 
     static func shouldOfferOptionalTinyStep(sudsScore: Int?) -> Bool {
         // This is an app interaction choice, not a SUDS clinical cutoff.
+=======
+    static func shouldOfferOptionalTinyStep(sudsScore: Int?) -> Bool {
+>>>>>>> recovered-local-code
         guard let sudsScore else { return false }
         return min(10, max(0, sudsScore)) >= 7
     }
 }
 
+<<<<<<< HEAD
 /// A temporary, on-device check-in. It expires after 24 hours and is never uploaded.
+=======
+/// On-device SUDS check-in store with 24-hour retention.
+>>>>>>> recovered-local-code
 enum MokoSUDSStore {
     private static let scoreKey = "moko.suds.today.score"
     private static let dateKey = "moko.suds.today.timestamp"

@@ -15,6 +15,9 @@ nonisolated struct ImageryGuide: Identifiable, Hashable, Decodable {
     let detailText: String
     /// Public URL in the `imagery-guide` Supabase Storage bucket.
     let imageURL: String?
+    /// Public URL in the `imagery-guide` Supabase Storage bucket for the
+    /// looping ambient background music of this session.
+    let audioURL: String?
     /// Nudges the full-screen photo left (-) or right (+) to match the design.
     let imageShift: Double
     /// Zooms the full-screen photo in from the top edge to match the design.
@@ -38,6 +41,11 @@ nonisolated struct ImageryGuide: Identifiable, Hashable, Decodable {
     var sessionImageShift: CGFloat { CGFloat(imageShift) }
     var sessionImageScale: CGFloat { CGFloat(imageScale) }
 
+    var sessionAudioURL: URL? {
+        guard let audioURL else { return nil }
+        return URL(string: audioURL)
+    }
+
     enum CodingKeys: String, CodingKey {
         case id
         case title
@@ -47,6 +55,7 @@ nonisolated struct ImageryGuide: Identifiable, Hashable, Decodable {
         case steps
         case detailText = "detail_text"
         case imageURL = "image_url"
+        case audioURL = "audio_url"
         case imageShift = "image_shift"
         case imageScale = "image_scale"
         case completionText = "completion_text"
@@ -88,8 +97,6 @@ nonisolated struct ImageryGuideScreenContent: Hashable, Decodable {
     let retryButtonTitle: String
     let emptyTitle: String
     let emptyMessage: String
-    let detailStartButton: String
-    let detailCaption: String
     let sessionStepFormat: String
     let sessionPausedSuffix: String
     let sessionCompleteHeader: String
@@ -135,8 +142,6 @@ nonisolated struct ImageryGuideScreenContent: Hashable, Decodable {
         case retryButtonTitle = "retry_button_title"
         case emptyTitle = "empty_title"
         case emptyMessage = "empty_message"
-        case detailStartButton = "detail_start_button"
-        case detailCaption = "detail_caption"
         case sessionStepFormat = "session_step_format"
         case sessionPausedSuffix = "session_paused_suffix"
         case sessionCompleteHeader = "session_complete_header"
@@ -150,6 +155,7 @@ nonisolated struct ImageryGuideScreenContent: Hashable, Decodable {
         case sessionPauseIcon = "session_pause_icon"
         case sessionPlayIcon = "session_play_icon"
         case sessionContinueButton = "session_continue_button"
+
         case completeTitle = "complete_title"
         case completeSubtitle = "complete_subtitle"
         case completeHeadline = "complete_headline"
@@ -179,6 +185,7 @@ extension ImageryGuide {
         icon: "sofa",
         detailText: "Imagine a quiet, warm room. Picture the soft sofa beneath you and the gentle light around you.",
         imageURL: nil,
+        audioURL: nil,
         imageShift: 0,
         imageScale: 1,
         steps: [

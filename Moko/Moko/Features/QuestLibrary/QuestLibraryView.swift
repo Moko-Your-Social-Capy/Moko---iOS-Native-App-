@@ -17,6 +17,10 @@ struct QuestLibraryView: View {
     @State private var store = QuestLibraryStore()
     @State private var searchText: String = ""
     @State private var openedQuest: Quest?
+    /// Artwork URL of the library quest currently being opened. Passed to the
+    /// detail screen so it shows the card's image instead of the category
+    /// placeholder. Only set for quest library quests, never custom quests.
+    @State private var libraryArtworkURL: URL?
 
     // MARK: - Filtered Data
     private var filteredSections: [QuestSection] {
@@ -73,7 +77,7 @@ struct QuestLibraryView: View {
                 placement: .navigationBarDrawer(displayMode: .always)
             )
             .navigationDestination(item: $openedQuest) { quest in
-                QuestDetailScreen(quest: quest)
+                QuestDetailScreen(quest: quest, libraryArtworkURL: libraryArtworkURL)
             }
         }
     }
@@ -301,6 +305,7 @@ struct QuestLibraryView: View {
     /// Opens the quest briefing for a library card. Library cards live outside
     /// the Quests tab, so the saved record is only used to run the debrief.
     private func open(_ item: LibraryQuest, in section: QuestSection) {
+        libraryArtworkURL = item.artworkURL
         openedQuest = libraryQuest(for: item, in: section)
     }
 

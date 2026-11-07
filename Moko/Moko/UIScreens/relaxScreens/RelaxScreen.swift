@@ -114,7 +114,6 @@ private enum ActiveRelaxSheet: Identifiable {
 enum RelaxRoute: Hashable {
     case breathing(Int)
     case session(RelaxSession)
-    case guideDetail(ImageryGuide)
     case guideSession(ImageryGuide)
     case guideComplete(ImageryGuide)
     case mirrorPrep(camera: Bool)
@@ -231,7 +230,7 @@ struct RelaxScreen: View {
             switch session {
             case .imagery:
                 ImageryGuideListView { guide in
-                    navigationPath.append(.guideDetail(guide))
+                    navigationPath.append(.guideSession(guide))
                 }
 
             case .boxBreathing:
@@ -253,10 +252,6 @@ struct RelaxScreen: View {
                 .navigationBarTitleDisplayMode(.inline)
             }
 
-        case .guideDetail(let guide):
-            ImageryGuideDetailView(guide: guide)
-                .navigationBarTitleDisplayMode(.inline)
-
         case .guideSession(let guide):
             GuideSessionView(guide: guide) {
                 navigationPath.append(.guideComplete(guide))
@@ -267,8 +262,8 @@ struct RelaxScreen: View {
         case .guideComplete(let guide):
             SessionCompleteView(message: guide.completionMessage) {
                 // Keep the imagery gallery on the stack and return to it.
-                if navigationPath.count >= 3 {
-                    navigationPath.removeLast(3)
+                if navigationPath.count >= 2 {
+                    navigationPath.removeLast(2)
                 } else {
                     navigationPath.removeAll()
                 }

@@ -17,12 +17,20 @@ enum MokoDebriefTokenizer {
     private static let stopWords: Set = ["i", "was", "but", "the", "a", "an", "and", "for", "to", "of", "my", "in", "on", "with", "it", "that"]
 
     static func tokenize(_ text: String) -> MokoDebriefTokens {
+<<<<<<< HEAD
         let tokenizer = NLTokenizer(unit: .word); tokenizer.string = text.lowercased()
         let tagger = NLTagger(tagSchemes: [.lexicalClass]); tagger.string = text.lowercased()
+=======
+        let tokenizer = NLTokenizer(unit: .word)
+        tokenizer.string = text.lowercased()
+        let tagger = NLTagger(tagSchemes: [.lexicalClass])
+        tagger.string = text.lowercased()
+>>>>>>> recovered-local-code
         var words: [String] = []
         tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
             let word = String(text[range]).lowercased().trimmingCharacters(in: .punctuationCharacters)
             let tag = tagger.tag(at: range.lowerBound, unit: .word, scheme: .lexicalClass).0
+<<<<<<< HEAD
             if !word.isEmpty, !stopWords.contains(word), tag == .noun || tag == .verb || tag == .adjective { words.append(word) }
             return words.count < 12
         }
@@ -31,6 +39,27 @@ enum MokoDebriefTokenizer {
 }
 
 enum MokoFollowUpRule: Equatable { case emotionNoAction, actionNoOutcome, outcomeNoEmotion, sparse, none }
+=======
+            if !word.isEmpty, !stopWords.contains(word), tag == .noun || tag == .verb || tag == .adjective {
+                words.append(word)
+            }
+            return words.count < 12
+        }
+        return MokoDebriefTokens(
+            words: words,
+            emotions: words.filter(emotions.contains),
+            actions: words.filter(actions.contains),
+            people: words.filter(people.contains),
+            outcomes: words.filter(outcomes.contains)
+        )
+    }
+}
+
+enum MokoFollowUpRule: Equatable {
+    case emotionNoAction, actionNoOutcome, outcomeNoEmotion, sparse, none
+}
+
+>>>>>>> recovered-local-code
 enum MokoDebriefRules {
     static func rule(for tokens: MokoDebriefTokens) -> MokoFollowUpRule {
         if tokens.words.count < 3 { return .sparse }
@@ -39,8 +68,20 @@ enum MokoDebriefRules {
         if !tokens.outcomes.isEmpty && tokens.emotions.isEmpty { return .outcomeNoEmotion }
         return .none
     }
+<<<<<<< HEAD
     static func fallback(for rule: MokoFollowUpRule) -> String {
         switch rule { case .emotionNoAction: return "What did you do despite that feeling?"; case .actionNoOutcome: return "What happened next?"; case .outcomeNoEmotion: return "How did that feel in the moment?"; case .sparse: return "What was the hardest part?"; case .none: return "What stands out most from that moment?" }
+=======
+
+    static func fallback(for rule: MokoFollowUpRule) -> String {
+        switch rule {
+        case .emotionNoAction: return "What did you do despite that feeling?"
+        case .actionNoOutcome: return "What happened next?"
+        case .outcomeNoEmotion: return "How did that feel in the moment?"
+        case .sparse: return "What was the hardest part?"
+        case .none: return "What stands out most from that moment?"
+        }
+>>>>>>> recovered-local-code
     }
 }
 

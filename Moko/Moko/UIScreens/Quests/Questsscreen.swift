@@ -90,6 +90,7 @@ struct QuestsScreen: View {
                     .padding(.bottom, 20)
             }
             .toolbar(.hidden, for: .navigationBar)
+            .toolbar(.visible, for: .tabBar)
             .navigationDestination(item: $detailQuest) { quest in
                 QuestDetailScreen(quest: quest)
             }

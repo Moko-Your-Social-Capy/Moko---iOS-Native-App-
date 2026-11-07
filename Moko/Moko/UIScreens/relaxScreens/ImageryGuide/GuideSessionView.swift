@@ -8,6 +8,7 @@
 import SwiftUI
 import SwiftData
 import Combine
+import AVFoundation
 
 struct GuideSessionView: View {
     let guide: ImageryGuide
@@ -17,6 +18,9 @@ struct GuideSessionView: View {
     @State private var elapsed: TimeInterval = 0
     @State private var isRunning = true           // starts as soon as the screen opens
     @State private var lastTick = Date()
+    @State private var audioPlayer: AVPlayer?
+    @State private var loopObserver: NSObjectProtocol?
+    @State private var audioCancellables = Set<AnyCancellable>()
     @Environment(\.modelContext) private var modelContext
 
     private let ticker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
@@ -79,6 +83,10 @@ struct GuideSessionView: View {
         // Immersive session: give the guidance panel the full screen.
         .toolbar(.hidden, for: .tabBar)
         .task { await store.loadIfNeeded() }
+        .onAppear { setupAmbientAudio() }
+        .onChange(of: isRunning, initial: false) { _, newValue in
+            if newValue { playAmbientAudio() } else { pauseAmbientAudio() }
+        }
         .onReceive(ticker) { date in
             let dt = min(date.timeIntervalSince(lastTick), 0.5)
             lastTick = date
@@ -89,7 +97,10 @@ struct GuideSessionView: View {
                 modelContext.logCalmDown("Imagery Guide", seconds: totalSeconds)
             }
         }
-        .onDisappear { isRunning = false }
+        .onDisappear {
+            isRunning = false
+            stopAmbientAudio()
+        }
         .sensoryFeedback(.impact(weight: .light), trigger: stepIndex)
         .sensoryFeedback(.success, trigger: isComplete)
     }
@@ -235,6 +246,9 @@ struct GuideSessionView: View {
                           label: screen?.sessionRestartLabel ?? "") {
                 elapsed = 0
                 lastTick = Date()
+                // Restart the ambient music from the beginning too.
+                audioPlayer?.seek(to: .zero)
+                if isRunning { playAmbientAudio() } else { pauseAmbientAudio() }
                 isRunning = true
             }
             controlButton(icon: isRunning ? (screen?.sessionPauseIcon ?? "") : (screen?.sessionPlayIcon ?? ""),
@@ -255,6 +269,83 @@ struct GuideSessionView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+    }
+
+    // MARK: Ambient background music
+
+    /// Creates the AVPlayer for the guide's ambient track and starts it if the
+    /// session is already running. The track loops softly for the whole session.
+    private func setupAmbientAudio() {
+        guard audioPlayer == nil else { return }
+        guard let audioURL = guide.sessionAudioURL else {
+            print("[ImageryAudio] No audioURL for guide \(guide.title)")
+            return
+        }
+
+        // Configure the audio session so sound plays through the speakers
+        // even on Mac / when the device is silent.
+        do {
+            try AVAudioSession.sharedInstance().setCategory(
+                .playback,
+                options: [.mixWithOthers, .duckOthers]
+            )
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("[ImageryAudio] Failed to configure AVAudioSession: \(error)")
+        }
+
+        let player = AVPlayer(url: audioURL)
+        player.actionAtItemEnd = .none
+        player.volume = 0.5
+        player.actionAtItemEnd = .none
+
+        // Loop the ambient track seamlessly.
+        loopObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: player.currentItem,
+            queue: .main
+        ) { [weak player] _ in
+            player?.seek(to: .zero)
+            player?.play()
+        }
+
+        // Log when the item is ready / fails so we can diagnose URL issues.
+        player.currentItem?.publisher(for: \.status)
+            .sink { status in
+                switch status {
+                case .readyToPlay:
+                    print("[ImageryAudio] Ready to play: \(audioURL.lastPathComponent)")
+                case .failed:
+                    print("[ImageryAudio] Failed to load: \(audioURL.lastPathComponent) — \(player.currentItem?.error?.localizedDescription ?? "unknown")")
+                default:
+                    break
+                }
+            }
+            .store(in: &audioCancellables)
+
+        audioPlayer = player
+        if isRunning { playAmbientAudio() }
+    }
+
+    private func playAmbientAudio() {
+        audioPlayer?.play()
+        print("[ImageryAudio] Playing \(guide.sessionAudioURL?.lastPathComponent ?? "audio")")
+    }
+
+    private func pauseAmbientAudio() {
+        audioPlayer?.pause()
+        print("[ImageryAudio] Paused \(guide.sessionAudioURL?.lastPathComponent ?? "audio")")
+    }
+
+    private func stopAmbientAudio() {
+        if let observer = loopObserver {
+            NotificationCenter.default.removeObserver(observer)
+            loopObserver = nil
+        }
+        audioPlayer?.pause()
+        audioPlayer?.seek(to: .zero)
+        audioPlayer = nil
+        print("[ImageryAudio] Stopped \(guide.sessionAudioURL?.lastPathComponent ?? "audio")")
     }
 }
 
