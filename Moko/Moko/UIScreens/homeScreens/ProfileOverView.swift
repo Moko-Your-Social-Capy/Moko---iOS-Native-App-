@@ -47,7 +47,7 @@ struct ProfileOverView: View {
         let score: Double
         var id: Date { week }
     }
-
+//dd
     private var weeklyAverages: [WeeklyAverage] {
         let calendar = Calendar.current
         let cutoff = calendar.date(byAdding: .day, value: -56, to: .now) ?? .distantPast
