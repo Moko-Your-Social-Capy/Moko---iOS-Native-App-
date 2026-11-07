@@ -1,5 +1,23 @@
 import Foundation
 
+struct MokoScoreProposal: Equatable {
+    var values: [String: Int]
+    var evidence: [String: String]
+    var nextSteps: [String: String]
+    var capReasons: [String: String?]
+    var judgeRuns: Int
+    static let manual = MokoScoreProposal(
+        values: [:],
+        evidence: [:],
+        nextSteps: [:],
+        capReasons: [:],
+        judgeRuns: 0
+    )
+}
+
+typealias MokoDebriefGenerating = DebriefCoaching
+typealias MokoDebriefAFM = MokoDebriefAFMCoach
+
 #if canImport(FoundationModels)
 import FoundationModels
 

@@ -16,7 +16,15 @@ struct MokoGeneratedQuestBrief {
 }
 
 struct MokoAFMQuestBriefGenerator: QuestBriefGenerating {
-    func brief(for request: QuestBriefRequest) async -> QuestBrief {
+    func brief(for request: QuestBriefRequest) async -> QuestBriefResult {
+        let brief = await generateBrief(for: request)
+        if brief.scene == crisisMessage {
+            return .support(brief.scene)
+        }
+        return .brief(brief, source: .ai)
+    }
+
+    private func generateBrief(for request: QuestBriefRequest) async -> QuestBrief {
         let title = MokoAFMPolicy.bounded(request.title, characters: MokoAFMPolicy.maximumTitleCharacters)
         let notes = MokoAFMPolicy.bounded(request.notes, characters: MokoAFMPolicy.maximumNotesCharacters)
         let userText = "\(title)\n\(notes)"
@@ -122,11 +130,14 @@ struct MokoAFMQuestBriefGenerator: QuestBriefGenerating {
 #else
 
 struct MokoAFMQuestBriefGenerator: QuestBriefGenerating {
-    func brief(for request: QuestBriefRequest) async -> QuestBrief {
-        QuestBrief(
-            scene: "Take a moment to picture a comfortable setting for this practice.",
-            who: "You and the people involved.",
-            goal: "Choose one small step that feels manageable, or pause for now."
+    func brief(for request: QuestBriefRequest) async -> QuestBriefResult {
+        .brief(
+            QuestBrief(
+                scene: "Take a moment to picture a comfortable setting for this practice.",
+                who: "You and the people involved.",
+                goal: "Choose one small step that feels manageable, or pause for now."
+            ),
+            source: .staticFallback
         )
     }
 }
