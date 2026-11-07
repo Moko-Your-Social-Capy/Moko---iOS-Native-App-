@@ -18,7 +18,7 @@ struct MokoGeneratedQuestBrief {
 struct MokoAFMQuestBriefGenerator: QuestBriefGenerating {
     func brief(for request: QuestBriefRequest) async -> QuestBriefResult {
         let brief = await generateBrief(for: request)
-        if brief.scene == crisisMessage {
+        if brief.scene == Self.crisisMessage {
             return .support(brief.scene)
         }
         return .brief(brief, source: .ai)
