@@ -2,8 +2,8 @@
 //  OverviewNoActiveQuestScreen.swift
 //  Moko
 //
-//  Overview content only. Insights card opens the radar info sheet,
-//  Calm Down card pushes the Summary screen.
+//  Overview content only. Avatar opens Profile (sheet), Insights card opens the
+//  radar info sheet, Calm Down card pushes the Summary screen.
 //
 
 import SwiftUI
@@ -14,6 +14,9 @@ struct OverviewDebriefDone: View {
     @State private var showRadarInfo: Bool = false
     @State private var openInsights: Bool = false
     @State private var showInsights: Bool = false
+
+    // Profile is presented as a sheet (it has its own NavigationStack)
+    @State private var showProfile: Bool = false
 
     @Query private var profiles: [Profile]
     @Query private var insights: [InsightsModel]
@@ -57,6 +60,9 @@ struct OverviewDebriefDone: View {
                             .padding(.bottom, 24)
                     }
                 }
+                .sheet(isPresented: $showProfile) {
+                    ProfileOverView()
+                }
             }
             // This screen keeps its own header; pushed screens get the default bar and back button
             .toolbar(.hidden, for: .navigationBar)
@@ -84,9 +90,9 @@ struct OverviewDebriefDone: View {
 
             Spacer()
 
-            // Avatar Circle: opens the Profile screen
-            NavigationLink {
-                ProfileOverView()
+            // Avatar Circle: opens the Profile screen as a sheet
+            Button {
+                showProfile = true
             } label: {
                 ZStack {
                     Circle()
@@ -104,6 +110,7 @@ struct OverviewDebriefDone: View {
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Open profile")
         }
     }
 
@@ -214,6 +221,8 @@ struct OverviewDebriefDone: View {
                 .onTapGesture {
                     showRadarInfo = true
                 }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel("Insights")
 
             // Calm Down Card (pushes the Summary screen)
             NavigationLink {
@@ -330,7 +339,7 @@ struct OverviewDebriefDone: View {
 
                 // Bar Chart Visual
                 CalmDownBarChartView(minutes: data.calmDownBars)
-                    .frame(height: 72)
+                    .frame(width: 106, height: 72)
             }
             .padding(.horizontal, 20)
             .padding(.top, 14)

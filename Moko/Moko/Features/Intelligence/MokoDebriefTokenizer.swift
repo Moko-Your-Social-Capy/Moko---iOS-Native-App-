@@ -10,25 +10,26 @@ struct MokoDebriefTokens: Equatable {
 }
 
 enum MokoDebriefTokenizer {
-    private static let emotions: Set = ["nervous", "anxious", "calm", "excited", "scared"]
-    private static let actions: Set = ["said", "asked", "went", "joined", "spoke", "left"]
-    private static let people: Set = ["friend", "boss", "classmate", "parent"]
-    private static let outcomes: Set = ["smiled", "laughed", "ignored", "agreed"]
+    private static let emotions: Set = ["nervous", "anxious", "calm", "excited", "scared", "afraid", "worried", "awkward", "shy", "happy", "relieved", "proud", "embarrassed", "stressed", "tense", "comfortable"]
+    private static let actions: Set = ["said", "asked", "went", "joined", "spoke", "left", "talked", "introduced", "answered", "waved", "greeted", "shared", "told", "started", "replied", "tried"]
+    private static let people: Set = ["friend", "friends", "boss", "classmate", "classmates", "parent", "parents", "mom", "dad", "teacher", "coworker", "colleague", "neighbor", "stranger", "sister", "brother", "family"]
+    private static let outcomes: Set = ["smiled", "laughed", "ignored", "agreed", "nodded", "thanked", "replied", "welcomed", "listened", "responded", "invited"]
     private static let stopWords: Set = ["i", "was", "but", "the", "a", "an", "and", "for", "to", "of", "my", "in", "on", "with", "it", "that"]
 
     static func tokenize(_ text: String) -> MokoDebriefTokens {
+        let lowered = text.lowercased()
         let tokenizer = NLTokenizer(unit: .word)
-        tokenizer.string = text.lowercased()
+        tokenizer.string = lowered
         let tagger = NLTagger(tagSchemes: [.lexicalClass])
-        tagger.string = text.lowercased()
+        tagger.string = lowered
         var words: [String] = []
-        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
-            let word = String(text[range]).lowercased().trimmingCharacters(in: .punctuationCharacters)
+        tokenizer.enumerateTokens(in: lowered.startIndex..<lowered.endIndex) { range, _ in
+            let word = String(lowered[range]).trimmingCharacters(in: .punctuationCharacters)
             let tag = tagger.tag(at: range.lowerBound, unit: .word, scheme: .lexicalClass).0
             if !word.isEmpty, !stopWords.contains(word), tag == .noun || tag == .verb || tag == .adjective {
                 words.append(word)
             }
-            return words.count < 12
+            return words.count < 40
         }
         return MokoDebriefTokens(
             words: words,

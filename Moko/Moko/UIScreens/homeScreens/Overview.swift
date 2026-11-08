@@ -2,7 +2,11 @@
 //  TodoOverviewScreen.swift
 //  Moko
 //
-//  Overview content only. Calm Down card pushes the Summary screen.
+//  Overview content only. Avatar opens Profile (sheet), Insights card opens the
+//  radar info sheet then InsightsView, Calm Down card pushes the Summary screen.
+//
+//  NOTE: Overview must be hosted inside a NavigationStack by its parent
+//  (the Calm Down NavigationLink and the Insights push need one).
 //
 
 import SwiftUI
@@ -43,7 +47,15 @@ struct Overview: View {
     private let titleDark = MokoTheme.titleBrown // #5C4330
     private let subtextGray = MokoTheme.textSecondary // #6F6762
 
+    /// Overview owns its NavigationStack, like the other two Overview screens.
+    /// Without one, the Calm Down NavigationLink and the Insights push do nothing.
     var body: some View {
+        NavigationStack {
+            content
+        }
+    }
+
+    private var content: some View {
         ZStack {
             AppBackground()
 
@@ -67,8 +79,24 @@ struct Overview: View {
                         .padding(.bottom, 24)
                 }
             }
+            // Profile sheet lives on a different view than the radar sheet
+            .sheet(isPresented: $showProfile) {
+                ProfileOverView()
+            }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $showInsights) {
+            InsightsView()
+        }
+        .sheet(isPresented: $showRadarInfo, onDismiss: {
+            // Push Insights only after the sheet has fully closed
+            if openInsights {
+                openInsights = false
+                showInsights = true
+            }
+        }) {
+            RadarInfoSheet(onViewInsights: { openInsights = true })
+        }
     }
 
     // MARK: - Header Section
@@ -235,6 +263,7 @@ struct Overview: View {
                         .foregroundColor(.white)
                 }
             }
+            .accessibilityLabel("Start debrief by voice")
         }
     }
 
@@ -312,6 +341,8 @@ struct Overview: View {
                 .onTapGesture {
                     showRadarInfo = true
                 }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel("Insights")
 
             // Calm Down Card (pushes the Summary screen)
             NavigationLink {
@@ -438,11 +469,22 @@ struct Overview: View {
 
                 // Bar Chart Visual
                 if data.calmDownMinutes == 0 {
-                    HStack(spacing: 5) { ForEach(0..<7, id: \.self) { _ in Capsule().fill(primaryGreen.opacity(0.30)).frame(width: 8, height: 2).overlay(Capsule().strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [2, 2])).foregroundStyle(primaryGreen.opacity(0.38))) } }
-                        .frame(width: 106, height: 42)
+                    HStack(spacing: 5) {
+                        ForEach(0..<7, id: \.self) { _ in
+                            Capsule()
+                                .fill(primaryGreen.opacity(0.30))
+                                .frame(width: 8, height: 2)
+                                .overlay(
+                                    Capsule()
+                                        .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [2, 2]))
+                                        .foregroundStyle(primaryGreen.opacity(0.38))
+                                )
+                        }
+                    }
+                    .frame(width: 106, height: 42)
                 } else {
                     CalmDownBarChartView(minutes: data.calmDownBars)
-                        .frame(height: 72)
+                        .frame(width: 106, height: 72)
                 }
             }
             .padding(.horizontal, 20)
@@ -587,7 +629,7 @@ struct CalmDownBarChartView: View {
                         )
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
     }
 
@@ -599,8 +641,8 @@ struct CalmDownBarChartView: View {
 
 #Preview {
     Overview(selectedTab: .constant(.overview), mission: nil)
-        .modelContainer(
-            for: [Profile.self, Quest.self, InsightsModel.self, CalmDownModel.self],
-            inMemory: true
-        )
+    .modelContainer(
+        for: [Profile.self, Quest.self, InsightsModel.self, CalmDownModel.self],
+        inMemory: true
+    )
 }

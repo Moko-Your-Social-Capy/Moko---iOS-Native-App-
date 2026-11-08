@@ -25,7 +25,7 @@ struct DailyQuestCopy {
     @Guide(description: "Try this, short opener the user could say, max 14 words")
     var tryThis: String
 }
-#endif
+#endif // canImport(FoundationModels)
 
 enum DailyQuestTemplateGenerator {
     static func generate(
@@ -57,17 +57,16 @@ enum DailyQuestTemplateGenerator {
             let response = try await session.respond(
                 to: prompt,
                 generating: DailyQuestCopy.self,
-                options: GenerationOptions(temperature: 0.2, maximumResponseTokens: 100)
+                options: GenerationOptions(temperature: 0.2, maximumResponseTokens: 220)
             )
             let content = response.content
-            
-            // Validate lengths in code
-            let titleWords = content.title.split(whereSeparator: { $0.isWhitespace }).count
-            let sitWords = content.situation.split(whereSeparator: { $0.isWhitespace }).count
-            let stepWords = content.step.split(whereSeparator: { $0.isWhitespace }).count
-            let tryWords = content.tryThis.split(whereSeparator: { $0.isWhitespace }).count
 
-            guard titleWords <= 6, sitWords <= 20, stepWords <= 18, tryWords <= 14 else {
+            // Same guardrails as the rest of the app: length, banned wording, no invented numbers
+            let source = "\(title) \(situation) \(step) \(tryThis)"
+            guard MokoAFMPolicy.passesChecks(content.title, maxWords: 6, source: source),
+                  MokoAFMPolicy.passesChecks(content.situation, maxWords: 20, source: source),
+                  MokoAFMPolicy.passesChecks(content.step, maxWords: 18, source: source),
+                  MokoAFMPolicy.passesChecks(content.tryThis, maxWords: 14, source: source) else {
                 return fallback
             }
 

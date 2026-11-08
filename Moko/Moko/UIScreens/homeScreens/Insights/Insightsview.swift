@@ -2,7 +2,7 @@
 //  InsightsView.swift
 //  Moko
 //
-//  Insights screen: Day / Week / Month picker, radar chart of the four
+//  Insights screen: Day / Week / Month / Year picker, radar chart of the four
 //  parameters, overall score and a card per parameter.
 //  Scores are averaged from the InsightsModel records saved in SwiftData.
 //
@@ -67,11 +67,13 @@ struct InsightsScores {
 }
 
 struct InsightsParameter: Identifiable {
-    let id = UUID()
     let name: String
     let score: Double
     let detail: String
     let supportedBy: String
+
+    /// Stable id, so the cards keep their identity (and animate) when the range changes
+    var id: String { name }
 }
 
 // MARK: - Screen
@@ -91,9 +93,17 @@ struct InsightsView: View {
     /// Axis marks from the center outwards (the outer diamond is 100).
     private let ticks = [25, 50, 75, 100]
 
-    /// Records that fall in today / this week / this month
+    /// Monday-first weeks, same as the Calm Down summary
+    private var calendar: Calendar {
+        var calendar = Calendar.current
+        calendar.firstWeekday = 2
+        calendar.minimumDaysInFirstWeek = 4
+        return calendar
+    }
+
+    /// Records that fall in today / this week / this month / this year
     private var rangeRecords: [InsightsModel] {
-        guard let interval = Calendar.current.dateInterval(of: range.component, for: Date()) else {
+        guard let interval = calendar.dateInterval(of: range.component, for: Date()) else {
             return []
         }
         return records.filter { interval.contains($0.date) }
@@ -168,11 +178,14 @@ struct InsightsView: View {
                     let points = radarPoints(center: center, radius: radius)
 
                     ZStack {
+                        // Rings at 100, 75, 50 and 25
                         DiamondShape()
                             .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                        DiamondShape()
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                            .scaleEffect(0.5)
+                        ForEach([0.75, 0.5, 0.25], id: \.self) { scale in
+                            DiamondShape()
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                .scaleEffect(scale)
+                        }
 
                         // X and Y axes
                         Path { path in
@@ -316,7 +329,6 @@ struct InsightsView: View {
             Text(parameter.detail)
                 .font(.subheadline)
                 .foregroundStyle(gray)
-
         }
         .padding(20)
         .background(Color.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))

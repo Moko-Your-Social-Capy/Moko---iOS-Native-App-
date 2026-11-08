@@ -23,7 +23,7 @@ enum DailyQuestPlannerConstants {
 }
 
 enum DailyQuestPlanner {
-    
+
     /// Compute and store tomorrow's DailyPlan immediately after a debrief is saved (idempotent).
     @MainActor
     static func generateTomorrowPlan(modelContext: ModelContext, availableQuests: [LibraryQuestItem]) async {
@@ -31,7 +31,7 @@ enum DailyQuestPlanner {
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date()
         let startOfTomorrow = calendar.startOfDay(for: tomorrow)
 
-        // Check idempotency: if plan already exists for tomorrow, don't recreate
+        // Idempotent: if a plan already exists for tomorrow, don't recreate it
         let descriptor = FetchDescriptor<DailyPlan>(predicate: #Predicate { $0.date == startOfTomorrow })
         if let existing = try? modelContext.fetch(descriptor), !existing.isEmpty {
             return
@@ -50,14 +50,15 @@ enum DailyQuestPlanner {
         let descriptor = FetchDescriptor<DailyPlan>(sortBy: [SortDescriptor(\.date)])
         guard let plans = try? modelContext.fetch(descriptor) else { return }
 
-        // Find active or planned plan for today or past
-        for plan in plans {
-            if plan.date <= today && plan.status == "planned" {
-                plan.status = "active"
-            }
+        // Plans for today or earlier that were only "planned" become active
+        var changed = false
+        for plan in plans where plan.date <= today && plan.status == "planned" {
+            plan.status = "active"
+            changed = true
         }
-        
-        // If no active or planned plan for today, create one on demand
+        if changed { try? modelContext.save() }
+
+        // No plan for today yet: create one on demand
         let todayDescriptor = FetchDescriptor<DailyPlan>(predicate: #Predicate { $0.date == today })
         let todaysPlans = (try? modelContext.fetch(todayDescriptor)) ?? []
         if todaysPlans.isEmpty {
@@ -76,10 +77,9 @@ enum DailyQuestPlanner {
         let reason: String
         let chosenQuest: LibraryQuestItem
 
-        let stages = ["closeCircle", "newGroups", "withinGroup", "family"]
         let userStage = onboardingTheme.isEmpty ? "closeCircle" : onboardingTheme
 
-        // Mix rule: 60% weak skill, 40% onboarding path
+        // Alternate which rule goes first day by day (roughly the 60/40 mix)
         let dayNumber = Calendar.current.ordinality(of: .day, in: .year, for: targetDate) ?? 1
         let useWeakSkillFirst = (dayNumber % 2 != 0)
 
@@ -91,7 +91,7 @@ enum DailyQuestPlanner {
         }
 
         if let matchedQuest {
-            reason = weakSkill != nil ? "mix" : "onboardingPath"
+            reason = "mix"
             chosenQuest = matchedQuest
         } else if useWeakSkillFirst, let weakSkill, let q = availableQuests.first(where: { $0.skills.contains(weakSkill) }) {
             reason = "weakSkill"
@@ -142,12 +142,25 @@ enum DailyQuestPlanner {
         )
     }
 
+    /// Lowest of the four skills averaged over the last 7 days of saved insights.
+    /// Returns nil until there are at least `minSessionsFor7Day` records.
     private static func determineWeakSkill(modelContext: ModelContext) -> String? {
-        // Placeholder / logic for 7-day average skill scoring
-        // In real usage, queries Insight/Debrief records. Returns weakest skill name if >= 3 sessions.
-        return "Warmth"
+        let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? .distantPast
+        let descriptor = FetchDescriptor<InsightsModel>(predicate: #Predicate { $0.date >= cutoff })
+        guard let rows = try? modelContext.fetch(descriptor),
+              rows.count >= DailyQuestPlannerConstants.minSessionsFor7Day else { return nil }
+
+        let n = Double(rows.count)
+        let averages: [(name: String, value: Double)] = [
+            ("Courage", rows.reduce(0.0) { $0 + Double($1.courage) } / n),
+            ("Clarity", rows.reduce(0.0) { $0 + Double($1.clarity) } / n),
+            ("Presence", rows.reduce(0.0) { $0 + Double($1.presence) } / n),
+            ("Warmth", rows.reduce(0.0) { $0 + Double($1.warmth) } / n)
+        ]
+        return averages.min { $0.value < $1.value }?.name
     }
 
+    // TODO: read the real onboarding stage from OnboardingState once its fields are known.
     private static func determineOnboardingPath(modelContext: ModelContext) -> String {
         return "closeCircle"
     }

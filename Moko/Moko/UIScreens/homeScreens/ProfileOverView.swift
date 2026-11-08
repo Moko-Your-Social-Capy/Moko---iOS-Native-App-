@@ -47,7 +47,7 @@ struct ProfileOverView: View {
         let score: Double
         var id: Date { week }
     }
-//dd
+
     private var weeklyAverages: [WeeklyAverage] {
         let calendar = Calendar.current
         let cutoff = calendar.date(byAdding: .day, value: -56, to: .now) ?? .distantPast
@@ -75,22 +75,22 @@ struct ProfileOverView: View {
 
                 if selectedProfilePage == .profile {
                     ScrollView {
-                VStack(alignment: .leading, spacing: 28) {
-                VStack(alignment: .leading, spacing: 18) {
-                        identityHeader
-                        if earnedBadges.isEmpty { profileEmptyScene }
+                        VStack(alignment: .leading, spacing: 28) {
+                            VStack(alignment: .leading, spacing: 18) {
+                                identityHeader
+                                if earnedBadges.isEmpty { profileEmptyScene }
+                            }
+                            .profileEntrance(order: 0, reduceMotion: reduceMotion)
+                            streakRow.profileEntrance(order: 1, reduceMotion: reduceMotion)
+                            badgesSection.profileEntrance(order: 2, reduceMotion: reduceMotion)
+                            growthSection.profileEntrance(order: 3, reduceMotion: reduceMotion)
+                            wardrobeLink.profileEntrance(order: 4, reduceMotion: reduceMotion)
+                            settingsSection.profileEntrance(order: 5, reduceMotion: reduceMotion)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 12)
+                        .padding(.bottom, 28)
                     }
-                    .profileEntrance(order: 0, reduceMotion: reduceMotion)
-                    streakRow.profileEntrance(order: 1, reduceMotion: reduceMotion)
-                    badgesSection.profileEntrance(order: 2, reduceMotion: reduceMotion)
-                    growthSection.profileEntrance(order: 3, reduceMotion: reduceMotion)
-                    wardrobeLink.profileEntrance(order: 4, reduceMotion: reduceMotion)
-                    settingsSection.profileEntrance(order: 5, reduceMotion: reduceMotion)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 28)
-            }
                 } else {
                     mokoShowcase
                 }
@@ -118,6 +118,7 @@ struct ProfileOverView: View {
             }
             .tint(ProfilePalette.accent)
             .task { animateNumbersOnce() }
+            .onChange(of: xpRange) { _, _ in selectedXPDay = nil }
             .sheet(item: $activeSheet) { sheet in
                 switch sheet {
                 case .editProfile:
@@ -126,7 +127,11 @@ struct ProfileOverView: View {
                         .presentationDragIndicator(.visible)
                 case .badge(let achievement):
                     NavigationStack {
-                        ProfileOverViewAchievementDetailUnlocked(achievement: achievement)
+                        if achievement.unlocked {
+                            ProfileOverViewAchievementDetailUnlocked(achievement: achievement)
+                        } else {
+                            ProfileLockedBadgeDetail(achievement: achievement)
+                        }
                     }
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
@@ -219,30 +224,30 @@ struct ProfileOverView: View {
 
     private var streakRow: some View {
         VStack(alignment: .leading, spacing: 8) {
-          HStack(spacing: 14) {
-            Image(systemName: "flame.fill")
-                .font(.system(size: 21, weight: .semibold))
-                .foregroundStyle(ProfilePalette.accent)
-                .frame(width: 44, height: 44)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 3) {
-                if streak > 0 {
-                    Text("\(animated(streak)) day streak")
-                        .font(.system(.headline, design: .rounded, weight: .semibold))
-                        .foregroundStyle(ProfilePalette.text)
-                        .contentTransition(.numericText())
+            HStack(spacing: 14) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundStyle(ProfilePalette.accent)
+                    .frame(width: 44, height: 44)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 3) {
+                    if streak > 0 {
+                        Text("\(animated(streak)) day streak")
+                            .font(.system(.headline, design: .rounded, weight: .semibold))
+                            .foregroundStyle(ProfilePalette.text)
+                            .contentTransition(.numericText())
                         Text("One rest day can keep your streak after seven practice days.")
-                        .font(.subheadline)
-                        .foregroundStyle(ProfilePalette.secondary)
-                } else {
-                    Text("Your first quest starts it")
-                        .font(.system(.headline, design: .rounded, weight: .semibold))
-                        .foregroundStyle(ProfilePalette.text)
+                            .font(.subheadline)
+                            .foregroundStyle(ProfilePalette.secondary)
+                    } else {
+                        Text("Your first quest starts it")
+                            .font(.system(.headline, design: .rounded, weight: .semibold))
+                            .foregroundStyle(ProfilePalette.text)
+                    }
                 }
+                Spacer(minLength: 0)
             }
-            Spacer(minLength: 0)
-          }
-          weeklyStreakDots
+            weeklyStreakDots
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
@@ -284,7 +289,7 @@ struct ProfileOverView: View {
         .padding(.leading, 58)
         .overlay(alignment: .bottom) {
             HStack(spacing: 12) {
-            Label("Done", systemImage: "leaf.fill").foregroundStyle(ProfilePalette.success)
+                Label("Done", systemImage: "leaf.fill").foregroundStyle(ProfilePalette.success)
                 Label("Rest", systemImage: "moon.fill").foregroundStyle(ProfilePalette.accent.opacity(0.75))
                 Label("No practice yet", systemImage: "leaf").foregroundStyle(ProfilePalette.text.opacity(0.55))
             }
@@ -463,8 +468,10 @@ struct ProfileOverView: View {
 
     private var xpChart: some View {
         let values = dailyXP
-        let domainStart = values.first?.day ?? .now
-        let domainEnd = values.last?.day ?? .now
+        let calendar = Calendar.current
+        // Pad the domain by half a day so the first and last bars aren't clipped
+        let domainStart = calendar.date(byAdding: .hour, value: -12, to: values.first?.day ?? .now) ?? .now
+        let domainEnd = calendar.date(byAdding: .hour, value: 12, to: values.last?.day ?? .now) ?? .now
         return Chart {
             ForEach(values) { item in
                 BarMark(x: .value("Day", item.day, unit: .day), y: .value("XP", item.xp), width: .ratio(0.56))
@@ -481,7 +488,7 @@ struct ProfileOverView: View {
                 RuleMark(x: .value("Selected day", value.day, unit: .day))
                     .foregroundStyle(ProfilePalette.secondary.opacity(0.5))
                     .annotation(position: .top, alignment: .center) {
-                        Text("\(value.xp) XP · \(value.day.formatted(.dateTime.weekday(.abbreviated)))")
+                        Text("\(Int(value.xp)) XP · \(value.day.formatted(.dateTime.weekday(.abbreviated)))")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(ProfilePalette.text)
                             .padding(.horizontal, 8).padding(.vertical, 5)
@@ -502,8 +509,8 @@ struct ProfileOverView: View {
             AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
                 AxisGridLine().foregroundStyle(ProfilePalette.text.opacity(0.10))
                 AxisValueLabel {
-                    if let xp = value.as(Int.self) {
-                        Text("\(xp)")
+                    if let xp = value.as(Double.self) {
+                        Text("\(Int(xp))")
                             .font(.caption2)
                             .foregroundStyle(ProfilePalette.secondary)
                     }
@@ -707,21 +714,36 @@ private extension View {
     }
 }
 
-private struct ProfileSettingInfoScreen: View {
-    let title: String
-    let detail: String
+/// Shown when a locked badge is tapped, instead of the "unlocked" detail screen.
+private struct ProfileLockedBadgeDetail: View {
+    let achievement: Achievement
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        List {
-            Text(detail)
+        VStack(spacing: 16) {
+            AchievementBadgeView(achievement: achievement, size: 120)
+                .accessibilityHidden(true)
+            Text(achievement.title)
+                .font(.system(.title2, design: .rounded, weight: .bold))
+                .foregroundStyle(ProfilePalette.text)
+            Text(achievement.detail)
                 .font(.body)
-                .foregroundStyle(.secondary)
-                .listRowBackground(ProfilePalette.grouped)
+                .foregroundStyle(ProfilePalette.secondary)
+                .multilineTextAlignment(.center)
+            Label("Locked", systemImage: "lock.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(ProfilePalette.secondary)
+            Spacer(minLength: 0)
         }
-        .scrollContentBackground(.hidden)
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(ProfilePalette.background)
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Done") { dismiss() }
+            }
+        }
     }
 }
 

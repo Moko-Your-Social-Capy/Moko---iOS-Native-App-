@@ -53,7 +53,7 @@ struct RadarInfoSheet: View {
                         .font(.headline)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 25)
+                        .frame(height: 44)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(green)
@@ -64,6 +64,7 @@ struct RadarInfoSheet: View {
             .padding(.top, 28)
             .padding(.bottom, 24)
         }
+        .background(MokoTheme.limeBackground.ignoresSafeArea())
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }
@@ -88,11 +89,14 @@ struct RadarInfoSheet: View {
                     ]
 
                     ZStack {
+                        // Outer ring (100) dashed, then 75, 50 and 25
                         DiamondShape()
                             .stroke(green.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                        DiamondShape()
-                            .stroke(green.opacity(0.25), lineWidth: 1)
-                            .scaleEffect(0.5)
+                        ForEach([0.75, 0.5, 0.25], id: \.self) { scale in
+                            DiamondShape()
+                                .stroke(green.opacity(0.2), lineWidth: 1)
+                                .scaleEffect(scale)
+                        }
 
                         Path { path in
                             path.addLines(points)
@@ -124,6 +128,8 @@ struct RadarInfoSheet: View {
         .font(.footnote)
         .foregroundStyle(gray)
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Example radar chart with Courage at the top, Presence on the right, Warmth at the bottom and Clarity on the left.")
     }
 
     // MARK: Row
