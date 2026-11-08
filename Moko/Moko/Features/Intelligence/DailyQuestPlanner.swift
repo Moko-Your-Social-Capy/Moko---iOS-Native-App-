@@ -26,15 +26,20 @@ enum DailyQuestPlanner {
 
     /// Compute and store tomorrow's DailyPlan immediately after a debrief is saved (idempotent).
     @MainActor
-    static func generateTomorrowPlan(modelContext: ModelContext, availableQuests: [LibraryQuestItem]) async {
+    static func generateTomorrowPlan(modelContext: ModelContext, availableQuests: [LibraryQuestItem], replaceExisting: Bool = true) async {
         let calendar = Calendar.current
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date()
         let startOfTomorrow = calendar.startOfDay(for: tomorrow)
 
-        // Idempotent: if a plan already exists for tomorrow, don't recreate it
+        // Safe to call repeatedly: an existing plan is only replaced when today's
+        // lowest-scoring skill has changed and tomorrow's plan hasn't been started.
+        let newWeakSkill = determineWeakSkill(modelContext: modelContext)
         let descriptor = FetchDescriptor<DailyPlan>(predicate: #Predicate { $0.date == startOfTomorrow })
         if let existing = try? modelContext.fetch(descriptor), !existing.isEmpty {
-            return
+            let started = existing.contains { $0.status != "planned" }
+            let upToDate = existing.allSatisfy { $0.weakSkill == newWeakSkill }
+            guard replaceExisting, !started, !upToDate else { return }
+            existing.forEach { modelContext.delete($0) }
         }
 
         let plan = await computePlan(for: startOfTomorrow, modelContext: modelContext, availableQuests: availableQuests)
@@ -79,23 +84,10 @@ enum DailyQuestPlanner {
 
         let userStage = onboardingTheme.isEmpty ? "closeCircle" : onboardingTheme
 
-        // Alternate which rule goes first day by day (roughly the 60/40 mix)
-        let dayNumber = Calendar.current.ordinality(of: .day, in: .year, for: targetDate) ?? 1
-        let useWeakSkillFirst = (dayNumber % 2 != 0)
-
-        var matchedQuest: LibraryQuestItem?
         if let weakSkill {
-            matchedQuest = availableQuests.first { q in
-                q.skills.contains(weakSkill) && q.stage == userStage
-            }
-        }
-
-        if let matchedQuest {
-            reason = "mix"
-            chosenQuest = matchedQuest
-        } else if useWeakSkillFirst, let weakSkill, let q = availableQuests.first(where: { $0.skills.contains(weakSkill) }) {
+            // Auto-generate a quest for the lowest-scoring skill in today's insights
+            chosenQuest = await DailyQuestTemplateGenerator.generateQuest(forSkill: weakSkill, stage: userStage)
             reason = "weakSkill"
-            chosenQuest = q
         } else if let q = availableQuests.first(where: { $0.stage == userStage }) {
             reason = "onboardingPath"
             chosenQuest = q
@@ -142,13 +134,17 @@ enum DailyQuestPlanner {
         )
     }
 
-    /// Lowest of the four skills averaged over the last 7 days of saved insights.
-    /// Returns nil until there are at least `minSessionsFor7Day` records.
+    /// Lowest of the four skills in today's saved insights. If nothing was saved today it uses
+    /// the most recent day with insights in the last 7 days. Returns nil when there are none.
     private static func determineWeakSkill(modelContext: ModelContext) -> String? {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? .distantPast
-        let descriptor = FetchDescriptor<InsightsModel>(predicate: #Predicate { $0.date >= cutoff })
-        guard let rows = try? modelContext.fetch(descriptor),
-              rows.count >= DailyQuestPlannerConstants.minSessionsFor7Day else { return nil }
+        let calendar = Calendar.current
+        let cutoff = calendar.date(byAdding: .day, value: -7, to: Date()) ?? .distantPast
+        let descriptor = FetchDescriptor<InsightsModel>(
+            predicate: #Predicate { $0.date >= cutoff },
+            sortBy: [SortDescriptor(\.date, order: .reverse)]
+        )
+        guard let recent = try? modelContext.fetch(descriptor), let latest = recent.first else { return nil }
+        let rows = recent.filter { calendar.isDate($0.date, inSameDayAs: latest.date) }
 
         let n = Double(rows.count)
         let averages: [(name: String, value: Double)] = [

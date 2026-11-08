@@ -63,7 +63,7 @@ struct MissionAccordionCard: View {
                     accordionRow(1, title: "Why this quest") {
                         VStack(alignment: .leading, spacing: 8) {
                             if let weakSkill = plan?.weakSkill {
-                                chip("Your lowest skill this week: \(weakSkill)")
+                                chip("Your lowest score recently: \(weakSkill)")
                             }
                             if let theme = plan?.onboardingTheme, !theme.isEmpty {
                                 chip("From your onboarding: \(Self.stageName(theme))")

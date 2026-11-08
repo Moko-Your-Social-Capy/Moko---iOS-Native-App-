@@ -18,12 +18,72 @@ struct OverviewDebriefDone: View {
     // Profile is presented as a sheet (it has its own NavigationStack)
     @State private var showProfile: Bool = false
 
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.scenePhase) private var scenePhase
+    @Query(sort: \DailyPlan.date) private var plans: [DailyPlan]
+
+    /// Library quests the planner can fall back on when there are no insights yet.
+    var availableQuests: [LibraryQuestItem] = []
+    /// Called once when the clock passes midnight, so the parent can load the new day's quest.
+    var onNewDay: (() -> Void)? = nil
+    /// The day this screen is showing. When it stops matching today, a new day has started.
+    @State private var shownDay = Calendar.current.startOfDay(for: .now)
+
     @Query private var profiles: [Profile]
     @Query private var insights: [InsightsModel]
     @Query private var calmDowns: [CalmDownModel]
 
     private var data: OverviewData {
         OverviewData(insights: insights, calmDowns: calmDowns)
+    }
+
+    // MARK: - Next day
+
+    private var tomorrowPlan: DailyPlan? {
+        plans.first { Calendar.current.isDateInTomorrow($0.date) }
+    }
+
+    private var tomorrowTemplate: QuestCardTemplate? {
+        guard let plan = tomorrowPlan, let data = plan.copyJSON.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(QuestCardTemplate.self, from: data)
+    }
+
+    private func secondsUntilNextDay(from now: Date = .now) -> Int {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: now)
+        guard let next = calendar.date(byAdding: .day, value: 1, to: start) else { return 0 }
+        return max(0, Int(next.timeIntervalSince(now)))
+    }
+
+    private func countdownText(_ total: Int) -> String {
+        let hours = total / 3600
+        let minutes = (total % 3600) / 60
+        let seconds = total % 60
+        if hours > 0 {
+            return "\(hours) \(hours == 1 ? "hr" : "hrs") \(minutes) \(minutes == 1 ? "min" : "mins")"
+        }
+        return "\(minutes) \(minutes == 1 ? "min" : "mins") \(seconds) sec"
+    }
+
+    /// Builds (or refreshes) tomorrow's quest from today's lowest-scoring skill.
+    @MainActor
+    private func planTomorrow() async {
+        await DailyQuestPlanner.generateTomorrowPlan(modelContext: modelContext, availableQuests: availableQuests)
+    }
+
+    /// Sleeps until midnight, then starts the new day.
+    @MainActor
+    private func waitForNextDay() async {
+        try? await Task.sleep(for: .seconds(secondsUntilNextDay() + 1))
+        guard !Task.isCancelled else { return }
+        await startNewDay()
+    }
+
+    @MainActor
+    private func startNewDay() async {
+        shownDay = Calendar.current.startOfDay(for: .now)
+        await DailyQuestPlanner.promotePlanIfNeeded(modelContext: modelContext, availableQuests: availableQuests)
+        onNewDay?()
     }
 
     // Palette matching design specifications
@@ -66,6 +126,17 @@ struct OverviewDebriefDone: View {
             }
             // This screen keeps its own header; pushed screens get the default bar and back button
             .toolbar(.hidden, for: .navigationBar)
+            .task { await planTomorrow() }
+            // New insights saved (e.g. after a debrief) can change the lowest skill
+            .onChange(of: insights.count) { _, _ in
+                Task { await planTomorrow() }
+            }
+            // Coming back to the app after midnight
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active, !Calendar.current.isDate(shownDay, inSameDayAs: .now) {
+                    Task { await startNewDay() }
+                }
+            }
             .navigationDestination(isPresented: $showInsights) {
                 InsightsView()
             }
@@ -165,6 +236,32 @@ struct OverviewDebriefDone: View {
                     .padding(.top, 10)
                     .padding(.horizontal, 24)
 
+                // Tomorrow's quest, made from today's lowest-scoring skill
+                if let template = tomorrowTemplate {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label("Tomorrow's quest", systemImage: "sparkles")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(subtextGray)
+                        Text(template.title)
+                            .font(.system(size: 17, weight: .bold))
+                            .foregroundColor(primaryGreen)
+                        if let skill = tomorrowPlan?.weakSkill {
+                            Text("Focus: \(skill), your lowest score today")
+                                .font(.system(size: 13, weight: .regular))
+                                .foregroundColor(subtextGray)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                    .background(
+                        Color(red: 0.886, green: 0.945, blue: 0.863),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.top, 22)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+
                 // Countdown Footer
                 HStack(spacing: 7) {
                     Image(systemName: "clock")
@@ -173,11 +270,17 @@ struct OverviewDebriefDone: View {
                     Text("New quests in")
                         .font(.system(size: 14, weight: .regular))
 
-                    Text("12 hrs 48 mins")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(timerBlue)
+                    // Live countdown to midnight, when tomorrow's quest unlocks
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        Text(countdownText(secondsUntilNextDay(from: context.date)))
+                            .font(.system(size: 14, weight: .semibold))
+                            .monospacedDigit()
+                            .foregroundColor(timerBlue)
+                            .contentTransition(.numericText())
+                    }
                 }
                 .foregroundColor(subtextGray)
+                .task(id: shownDay) { await waitForNextDay() }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 13)
                 .background(
