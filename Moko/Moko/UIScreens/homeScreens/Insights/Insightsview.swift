@@ -70,7 +70,12 @@ struct InsightsParameter: Identifiable {
     let id = UUID()
     let name: String
     let score: Double
+    let bandTitle: String
+    let badgeColor: Color
+    let badgeBg: Color
     let detail: String
+    let analysis: String
+    let microAction: String
     let supportedBy: String
 }
 
@@ -99,23 +104,118 @@ struct InsightsView: View {
         return records.filter { interval.contains($0.date) }
     }
 
-    private var scores: InsightsScores { InsightsScores(records: rangeRecords) }
+    private var scores: InsightsScores {
+        if !rangeRecords.isEmpty {
+            return InsightsScores(records: rangeRecords)
+        }
+        if !records.isEmpty {
+            return InsightsScores(records: records)
+        }
+        return .zero
+    }
 
     private var parameters: [InsightsParameter] {
         [
-            InsightsParameter(name: "Clarity", score: scores.clarity,
-                              detail: "Understanding what's happening in your mind and recognising your feelings.",
-                              supportedBy: "Grounding"),
-            InsightsParameter(name: "Courage", score: scores.courage,
-                              detail: "Stepping outside your comfort zone when it matters.",
-                              supportedBy: "Reflection"),
-            InsightsParameter(name: "Presence", score: scores.presence,
-                              detail: "Giving your full attention to the moment.",
-                              supportedBy: "Breathing"),
-            InsightsParameter(name: "Warmth", score: scores.warmth,
-                              detail: "Showing kindness, care and understanding to yourself and others.",
-                              supportedBy: "Body awareness")
+            parameterData(for: .courage, score: scores.courage),
+            parameterData(for: .clarity, score: scores.clarity),
+            parameterData(for: .presence, score: scores.presence),
+            parameterData(for: .warmth, score: scores.warmth)
         ]
+    }
+
+    private func parameterData(for stat: Stat, score: Double) -> InsightsParameter {
+        let rounded = Int(score.rounded())
+        let band = Band(score: rounded)
+
+        let bandTitle: String
+        let badgeColor: Color
+        let badgeBg: Color
+
+        switch band {
+        case .strength:
+            bandTitle = "Core Strength"
+            badgeColor = Color(red: 27/255, green: 66/255, blue: 47/255)
+            badgeBg = Color(red: 203/255, green: 230/255, blue: 211/255)
+        case .steady:
+            bandTitle = "Grounded & Steady"
+            badgeColor = Color(red: 45/255, green: 75/255, blue: 55/255)
+            badgeBg = Color(red: 228/255, green: 238/255, blue: 228/255)
+        case .growth:
+            bandTitle = "Growth Focus"
+            badgeColor = Color(red: 176/255, green: 78/255, blue: 58/255)
+            badgeBg = Color(red: 252/255, green: 238/255, blue: 234/255)
+        }
+
+        let detail: String
+        let analysis: String
+        let microAction: String
+        let supportedBy: String
+
+        switch stat {
+        case .courage:
+            detail = "Moving toward social moments instead of stepping back."
+            supportedBy = "Reflection & Debrief"
+            microAction = "Be the first to speak or ask something today — even just a small hello."
+            switch band {
+            case .strength:
+                analysis = "You consistently step in rather than sit back. That willingness is a real social asset."
+            case .steady:
+                analysis = "You engage well when it feels right — taking initiative just a touch earlier can open even more doors."
+            case .growth:
+                analysis = "Starting the interaction is the hardest part, and that's completely normal. One small move — a question, a hello — builds the habit."
+            }
+
+        case .clarity:
+            detail = "Saying what you mean, directly, without hedging or over-explaining."
+            supportedBy = "Grounding Exercise"
+            microAction = "Lead with your main point in one sentence before explaining why."
+            switch band {
+            case .strength:
+                analysis = "You communicate with real directness and that makes you easy to trust and understand."
+            case .steady:
+                analysis = "You land your message well — trusting your first sentence a bit more will make it even cleaner."
+            case .growth:
+                analysis = "Saying it plainly can feel awkward at first. One short, honest sentence is all it takes to get started."
+            }
+
+        case .presence:
+            detail = "Being fully with the other person, not rehearsing or replaying in your head."
+            supportedBy = "Box Breathing"
+            microAction = "Notice one specific thing about the other person — their tone, expression, or what they just said."
+            switch band {
+            case .strength:
+                analysis = "You stay genuinely tuned in to the moment and the person in front of you — that's rare and valuable."
+            case .steady:
+                analysis = "You hold strong presence in most conversations — catching yourself when your mind wanders keeps it consistent."
+            case .growth:
+                analysis = "Replaying conversations afterward is very common. Anchoring on one concrete thing the other person says brings you right back."
+            }
+
+        case .warmth:
+            detail = "Genuine engagement — taking in the other person's world and sharing your own."
+            supportedBy = "Mirror Reflection"
+            microAction = "Ask one follow-up question today about something the other person mentioned."
+            switch band {
+            case .strength:
+                analysis = "You make people feel genuinely seen and heard — that quality builds lasting connection."
+            case .steady:
+                analysis = "You're welcoming and kind — one curious follow-up question can deepen even a quick conversation."
+            case .growth:
+                analysis = "Opening up takes trust, and that's okay. Sharing one small detail with someone you feel comfortable with is a great first step."
+            }
+        }
+
+        return InsightsParameter(
+            name: stat.title,
+            score: score,
+            bandTitle: bandTitle,
+            badgeColor: badgeColor,
+            badgeBg: badgeBg,
+            detail: detail,
+            analysis: analysis,
+            microAction: microAction,
+            supportedBy: supportedBy
+        )
     }
 
     var body: some View {
@@ -291,32 +391,91 @@ struct InsightsView: View {
     private var overallNote: String {
         let count = rangeRecords.count
         if count == 0 {
-            return "No data yet. Your scores appear after sessions."
+            if !records.isEmpty {
+                return "Showing your all-time average across \(records.count) \(records.count == 1 ? "session" : "sessions"). Complete more quests to populate \(range.rawValue.lowercased()) data."
+            }
+            return "Complete your first quest and debrief to see your scores here."
         }
-        return "Average of \(count) \(count == 1 ? "entry" : "entries") for \(range == .day ? "today" : "this \(range.rawValue.lowercased())")."
+        let overall = Int(scores.overall.rounded())
+        let rangeLabel = range == .day ? "today" : "this \(range.rawValue.lowercased())"
+        let summaryLine: String
+        switch overall {
+        case 80...100: summaryLine = "Excellent across the board."
+        case 65...79:  summaryLine = "Consistently strong performance."
+        case 50...64:  summaryLine = "Solid foundation with clear growth areas."
+        default:       summaryLine = "Early stages — every session builds momentum."
+        }
+        return "\(summaryLine) Average of \(count) \(count == 1 ? "entry" : "entries") for \(rangeLabel)."
     }
 
     // MARK: Parameter card
 
     private func parameterCard(_ parameter: InsightsParameter) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(parameter.name)
-                    .font(.title3.bold())
-                    .foregroundStyle(titleDark)
+        VStack(alignment: .leading, spacing: 14) {
+            // Header: name + score + band badge
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(parameter.name)
+                        .font(.title3.bold())
+                        .foregroundStyle(titleDark)
+                    Text(parameter.bandTitle)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(parameter.badgeColor)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(parameter.badgeBg, in: Capsule())
+                }
                 Spacer()
                 Text("\(Int(parameter.score.rounded()))")
-                    .font(.title.bold())
-                    .foregroundStyle(titleDark)
+                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .foregroundStyle(green)
             }
 
+            // Progress bar
             ProgressView(value: parameter.score, total: 100)
                 .tint(green)
 
+            Divider()
+
+            // What this parameter means
             Text(parameter.detail)
                 .font(.subheadline)
                 .foregroundStyle(gray)
+                .fixedSize(horizontal: false, vertical: true)
 
+            // Personalised analysis
+            VStack(alignment: .leading, spacing: 6) {
+                Label("Analysis", systemImage: "brain.head.profile")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(green)
+                Text(parameter.analysis)
+                    .font(.subheadline)
+                    .foregroundStyle(gray)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Divider()
+
+            // Daily micro-action
+            VStack(alignment: .leading, spacing: 6) {
+                Label("Today's Practice", systemImage: "figure.walk")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(green)
+                Text(parameter.microAction)
+                    .font(.subheadline)
+                    .foregroundStyle(titleDark)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            // Supported-by tag
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(green)
+                    .font(.caption)
+                Text("Supported by \(parameter.supportedBy)")
+                    .font(.caption)
+                    .foregroundStyle(gray)
+            }
         }
         .padding(20)
         .background(Color.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))

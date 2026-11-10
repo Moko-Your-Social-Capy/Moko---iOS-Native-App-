@@ -32,44 +32,41 @@ protocol QuestBriefGenerating {
     func brief(for request: QuestBriefRequest) async -> QuestBrief
 }
 
-/// Placeholder content. To use Apple Foundation Models, write another type that
-/// conforms to QuestBriefGenerating and pass it to QuestDetailScreen(generator:).
+// MARK: - AFM Quest Brief Generator
+@MainActor
+final class AFMQuestBriefGenerator: QuestBriefGenerating {
+    func brief(for request: QuestBriefRequest) async -> QuestBrief {
+        let input = CustomQuestInput(
+            title: request.title,
+            notes: request.notes,
+            category: request.category,
+            difficulty: Difficulty(intensity: request.intensity),
+            date: .now
+        )
+        let (card, _) = await QuestCardService.customCard(input)
+        return QuestBrief(scene: card.scene, who: card.who, goal: card.goal)
+    }
+}
+
+/// Fallback generator pulling vetted context from the Mission Bank.
 struct DummyQuestBriefGenerator: QuestBriefGenerating {
     func brief(for request: QuestBriefRequest) async -> QuestBrief {
-        // Pretend it takes a moment, like a real model would
-        try? await Task.sleep(for: .milliseconds(1100))
+        let templates = MissionBank.templates(in: request.category)
+        let template = templates.first ?? MissionBank.all[0]
 
-        let scene: String
-        let who: String
-        switch request.category {
-        case .work:
-            scene = "A professional moment where this comes up. Keep the tone calm, clear and kind to yourself."
-            who = "You and the people involved at work."
-        case .dating:
-            scene = "A relaxed, low-pressure moment together. No agenda, just time to talk and get to know each other."
-            who = "Your date and you."
-        case .friends:
-            scene = "A casual hangout with someone you trust. No pressure, just time to catch up."
-            who = "Your friend and you."
-        case .family:
-            scene = "A familiar, comfortable setting. Slow down and really talk."
-            who = "Your family member and you."
-        case .others:
-            scene = "A new or unfamiliar situation. Take your time and settle in before you begin."
-            who = "You and the people involved."
+        var scene = template.scene
+        let trimmedNotes = request.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedNotes.isEmpty {
+            scene = "\(trimmedNotes). \(template.scene)"
         }
 
-        let goal: String
-        switch request.intensity {
-        case .easy:
-            goal = "Take one small step: start the conversation and listen for one thing worth following up on."
-        case .medium:
-            goal = "Open with one question, then ask a follow-up on something they said and let the conversation flow naturally."
-        case .hard:
-            goal = "Share something real about yourself, then ask a deeper question and stay with the answer."
+        var who = template.who
+        let trimmedTitle = request.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedTitle.isEmpty {
+            who = "\(trimmedTitle): \(template.who)"
         }
 
-        return QuestBrief(scene: scene, who: who, goal: goal)
+        return QuestBrief(scene: scene, who: who, goal: template.goal)
     }
 }
 
@@ -132,7 +129,7 @@ private struct QuestCategoryArt {
 // MARK: - Detail screen
 struct QuestDetailScreen: View {
     let quest: Quest
-    var generator: any QuestBriefGenerating = DummyQuestBriefGenerator()
+    var generator: any QuestBriefGenerating = AFMQuestBriefGenerator()
 
     /// When this quest was opened from the Quest Library, the artwork URL from
     /// the library card, so the detail shows the same image instead of the

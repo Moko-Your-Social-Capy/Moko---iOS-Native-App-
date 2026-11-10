@@ -50,6 +50,7 @@ extension DebriefParameter {
 final class AFMDebriefCoach: DebriefCoaching {
     private let fallbackCoach = DummyDebriefCoach()
     private var recordedObservations: [String] = []
+    private var recordedScores: [Stat: [Int]] = [:]
 
     func greeting(for context: DebriefContext) async -> String {
         guard AFM.isAvailable else {
@@ -69,7 +70,7 @@ final class AFMDebriefCoach: DebriefCoaching {
             }
         }
 
-        return "Welcome back! How did \(context.questTitle) go? Tell me what happened, in your own words."
+        return "Hey\(context.userName.isEmpty ? "!" : " \(context.userName)!") How did it go — did you manage to do it?"
     }
 
     func question(number: Int, context: DebriefContext, previousAnswers: [String]) async -> DebriefQuestion {
@@ -83,13 +84,17 @@ final class AFMDebriefCoach: DebriefCoaching {
         case 1:
             stat = .presence
         case 2:
-            stat = .warmth
+            stat = .clarity
         default:
-            stat = .courage
+            stat = .warmth
         }
 
         let base = afmContext.template.followUps[stat] ?? "What is one specific thing you did or noticed?"
-        let userSaid = previousAnswers.last ?? ""
+        let rawUserSaid = previousAnswers.last ?? ""
+        let userWordCount = rawUserSaid.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: " ").count
+        // If the user answer was a short fragment or under 6 words, don't pass it as context
+        // to avoid awkward splicing like "When you asked him about, were you..."
+        let userSaid = userWordCount >= 6 ? rawUserSaid : ""
 
         if let gen = try? await AFM.generate(
             FollowUpQuestionText.self,
@@ -112,6 +117,8 @@ final class AFMDebriefCoach: DebriefCoaching {
         }
 
         let afmContext = context.afmContext
+        let words = answer.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: " ")
+        let wordCount = words.count
 
         if let focus {
             // Follow-up answer analysis
@@ -124,16 +131,22 @@ final class AFMDebriefCoach: DebriefCoaching {
                 temperature: 0.2
             ) {
                 recordedObservations.append(a.whatUserDid)
-                let note = a.confidenceNote.trimmingCharacters(in: .whitespacesAndNewlines)
+                let note = sanitizeNote(a.confidenceNote, wordCount: wordCount)
+                let boundedScore = max(45, min(a.score, 100))
+                let calibratedConf = calibrateConfidence(rawConfidence: a.confidence, wordCount: wordCount)
+
+                recordedScores[targetStat, default: []].append(boundedScore)
+
                 return DebriefGrade(
-                    confidence: min(max(a.confidence, 0), 100),
-                    score: min(max(a.score, 0), 100),
-                    note: note.isEmpty ? "Honest and specific response." : note,
-                    focus: focus
+                    confidence: calibratedConf,
+                    score: boundedScore,
+                    note: note,
+                    focus: focus,
+                    parameterScores: [focus: boundedScore]
                 )
             }
         } else {
-            // Main opening story analysis
+            // Main opening story analysis (grades courage & clarity together)
             if let a = try? await AFM.generate(
                 MainAnswerAnalysis.self,
                 instructions: DebriefPrompts.analysisInstructions,
@@ -141,17 +154,65 @@ final class AFMDebriefCoach: DebriefCoaching {
                 temperature: 0.2
             ) {
                 recordedObservations.append(a.whatUserDid)
-                let note = a.confidenceNote.trimmingCharacters(in: .whitespacesAndNewlines)
-                let combinedScore = max(a.courage, a.clarity)
+                let note = sanitizeNote(a.confidenceNote, wordCount: wordCount, defaultNote: "You showed up and spoke honestly. That takes courage.")
+                let boundedCourage = max(45, min(a.courage, 100))
+                let boundedClarity = max(45, min(a.clarity, 100))
+                let calibratedConf = calibrateConfidence(rawConfidence: a.confidence, wordCount: wordCount)
+
+                recordedScores[.courage, default: []].append(boundedCourage)
+                recordedScores[.clarity, default: []].append(boundedClarity)
+
                 return DebriefGrade(
-                    confidence: min(max(a.confidence, 0), 100),
-                    score: min(max(combinedScore, 0), 100),
-                    note: note.isEmpty ? "You showed up and spoke honestly. That takes courage." : note,
-                    focus: nil
+                    confidence: calibratedConf,
+                    score: boundedCourage,
+                    note: note,
+                    focus: nil,
+                    parameterScores: [.courage: boundedCourage, .clarity: boundedClarity]
                 )
             }
         }
 
         return await fallbackCoach.grade(answer: answer, focus: focus, context: context)
+    }
+
+    private func calibrateConfidence(rawConfidence: Int, wordCount: Int) -> Int {
+        if wordCount < 6 {
+            // Incomplete or extremely brief answer (e.g. "I asked him about")
+            return min(rawConfidence, max(42, 42 + wordCount))
+        } else if wordCount < 12 {
+            return min(rawConfidence, 58)
+        } else if wordCount < 22 {
+            return min(rawConfidence, 72)
+        } else {
+            return max(50, min(rawConfidence, 96))
+        }
+    }
+
+    private func sanitizeNote(_ rawNote: String, wordCount: Int, defaultNote: String = "Honest and specific response.") -> String {
+        let trimmed = rawNote.trimmingCharacters(in: .whitespacesAndNewlines)
+        if wordCount < 6 {
+            return "A brief start — sharing a little more detail about what happened will help capture your progress."
+        }
+        return trimmed.isEmpty ? defaultNote : trimmed
+    }
+
+    func finalScores(from grades: [DebriefGrade], context: DebriefContext) -> [DebriefParameter: Int] {
+        var result: [DebriefParameter: Int] = [:]
+
+        let confidences = grades.map { $0.confidence }
+        let avgConf = confidences.isEmpty ? 70 : confidences.reduce(0, +) / confidences.count
+
+        for stat in Stat.allCases {
+            let param = stat.parameter
+            if let list = recordedScores[stat], !list.isEmpty {
+                let avg = list.reduce(0, +) / list.count
+                result[param] = max(45, min(avg, 98))
+            } else {
+                // For stats not explicitly recorded, use calibrated baseline from session confidence (never 0!)
+                result[param] = max(50, min(avgConf - 4, 88))
+            }
+        }
+
+        return result
     }
 }

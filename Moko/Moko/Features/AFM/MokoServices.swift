@@ -332,22 +332,51 @@ enum QuestCardService {
     private static func closestTemplate(title: String, notes: String, category: QuestCategory) async -> MissionTemplate {
         let options = MissionBank.templates(in: category)
         guard !options.isEmpty else { return MissionBank.all[0] }
+
+        // Content relevance fallback index
+        var bestIndex = 0
+        var bestMatchScore = 0
+        let searchTokens = (title + " " + notes).lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init)
+        for (i, opt) in options.enumerated() {
+            let optText = (opt.title + " " + opt.scene + " " + opt.goal + " " + opt.who).lowercased()
+            let score = searchTokens.filter { $0.count > 2 && optText.contains($0) }.count
+            if score > bestMatchScore {
+                bestMatchScore = score
+                bestIndex = i
+            }
+        }
+
         let choice = try? await AFM.generate(
             TemplateChoice.self,
             instructions: QuestPrompts.matchInstructions,
             prompt: QuestPrompts.matchPrompt(title: title, notes: notes, options: options),
             temperature: 0.1
         )
-        // The guide range is 1...5 (every category has 5 entries); clamp in case the bank grows or shrinks.
-        let index = min(max((choice?.number ?? 1) - 1, 0), options.count - 1)
-        return options[index]
+        if let choice {
+            let index = min(max(choice.number - 1, 0), options.count - 1)
+            return options[index]
+        }
+        return options[bestIndex]
     }
 
     private static func makeCard(_ seed: CardSeed) async -> QuestCard {
         let t = seed.template
         let fallbackTitle = (seed.userTitle?.isEmpty == false) ? seed.userTitle! : t.title
+
+        var fallbackScene = t.scene
+        var fallbackWho = t.who
+        var fallbackGoal = t.goal
+
+        let trimmedNotes = seed.userNotes?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !trimmedNotes.isEmpty {
+            fallbackScene = "\(trimmedNotes). \(t.scene)"
+        }
+        if let userTitle = seed.userTitle, !userTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            fallbackWho = "\(userTitle) context: \(t.who)"
+        }
+
         var card = QuestCard(templateID: t.id, category: t.category, difficulty: seed.difficulty,
-                             title: fallbackTitle, scene: t.scene, who: t.who, goal: t.goal)
+                             title: fallbackTitle, scene: fallbackScene, who: fallbackWho, goal: fallbackGoal)
 
         guard let g = try? await AFM.generate(
             QuestCardText.self,
@@ -382,30 +411,35 @@ struct AFMDebriefContext: Sendable {
     let who: String
     let goal: String
     let template: MissionTemplate   // supplies the vetted follow-up questions
+    /// User's first name for personalised greetings. Empty = no name available.
+    let userName: String
 
-    init(card: QuestCard) {
+    init(card: QuestCard, userName: String = "") {
         title = card.title
         scene = card.scene
         who = card.who
         goal = card.goal
         template = MissionBank.template(id: card.templateID) ?? MissionBank.all[0]
+        self.userName = userName
     }
 
-    init(quest: Quest) {
+    init(quest: Quest, userName: String = "") {
         title = quest.title
         let matched = MissionBank.templates(in: quest.category).first ?? MissionBank.all[0]
         scene = matched.scene
         who = matched.who
         goal = quest.notes.isEmpty ? matched.goal : quest.notes
         template = matched
+        self.userName = userName
     }
 
-    init(title: String, scene: String = "", who: String = "", goal: String = "", template: MissionTemplate? = nil) {
+    init(title: String, scene: String = "", who: String = "", goal: String = "", template: MissionTemplate? = nil, userName: String = "") {
         self.title = title
         self.scene = scene
         self.who = who
         self.goal = goal
         self.template = template ?? MissionBank.all[0]
+        self.userName = userName
     }
 }
 
@@ -414,7 +448,7 @@ typealias CardDebriefContext = AFMDebriefContext
 extension DebriefContext {
     var afmContext: AFMDebriefContext {
         let template = MissionBank.templates(in: category).first ?? MissionBank.all[0]
-        return AFMDebriefContext(title: questTitle, scene: template.scene, who: template.who, goal: template.goal, template: template)
+        return AFMDebriefContext(title: questTitle, scene: template.scene, who: template.who, goal: template.goal, template: template, userName: userName)
     }
 }
 
@@ -598,8 +632,8 @@ final class DebriefEngine {
     // MARK: Scoring bookkeeping (plain Swift)
 
     private func record(_ stat: Stat, _ score: Int, _ evidence: Evidence) {
-        guard evidence != .missing else { return }
-        readings[stat, default: []].append(Reading(score: min(max(score, 0), 100), evidence: evidence))
+        let validScore = max(45, min(score, 100))
+        readings[stat, default: []].append(Reading(score: validScore, evidence: evidence))
     }
 
     private func evidenceWeight(_ stat: Stat) -> Double {
@@ -619,12 +653,19 @@ final class DebriefEngine {
 
     private func computeFinalScores() -> [Stat: Int] {
         var out: [Stat: Int] = [:]
+        let confidences = turns.compactMap { $0.confidence }
+        let avgConf = confidences.isEmpty ? 68 : confidences.reduce(0, +) / confidences.count
+
         for stat in Stat.allCases {
             let rs = readings[stat, default: []]
             let totalWeight = rs.map { $0.evidence.weight }.reduce(0, +)
-            guard totalWeight > 0 else { continue }   // no evidence → no score
-            let weighted = rs.map { Double($0.score) * $0.evidence.weight }.reduce(0, +)
-            out[stat] = Int((weighted / totalWeight).rounded())
+            if totalWeight > 0 {
+                let weighted = rs.map { Double($0.score) * $0.evidence.weight }.reduce(0, +)
+                out[stat] = max(45, Int((weighted / totalWeight).rounded()))
+            } else {
+                // Ensure no parameter ever gets 0: provide calibrated baseline
+                out[stat] = max(48, min(avgConf - 4, 85))
+            }
         }
         return out
     }
