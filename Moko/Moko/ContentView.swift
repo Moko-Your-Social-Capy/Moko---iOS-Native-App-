@@ -289,6 +289,11 @@ struct ContentView: View {
             modelContext.insert(respModel)
         }
 
+        // Initialize baseline insights scores from onboarding responses
+        let baselineScores = OnboardingScoring.scores(from: results)
+        let initialInsights = baselineScores.makeInsightsModel(date: .now)
+        modelContext.insert(initialInsights)
+
         // Update OnboardingState to completed
         if let state = onboardingStates.first {
             state.isCompleted = true

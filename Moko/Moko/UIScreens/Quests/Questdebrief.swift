@@ -411,16 +411,18 @@ struct QuestDebriefScreen: View {
     @FocusState private var isTyping: Bool
 
     init(context: DebriefContext,
-         coach: any DebriefCoaching = DummyDebriefCoach(),
+         coach: (any DebriefCoaching)? = nil,
          onExit: @escaping (DebriefOutcome) -> Void) {
+        let activeCoach = coach ?? (AFM.isAvailable ? AFMDebriefCoach() : DummyDebriefCoach())
         self.quest = nil
-        _session = State(initialValue: DebriefSession(context: context, coach: coach))
+        _session = State(initialValue: DebriefSession(context: context, coach: activeCoach))
         self.onExit = onExit
     }
 
     init(quest: Quest,
-         coach: any DebriefCoaching = DummyDebriefCoach(),
+         coach: (any DebriefCoaching)? = nil,
          onExit: @escaping (DebriefOutcome) -> Void) {
+        let activeCoach = coach ?? (AFM.isAvailable ? AFMDebriefCoach() : DummyDebriefCoach())
         self.quest = quest
         _session = State(
             initialValue: DebriefSession(
@@ -429,7 +431,7 @@ struct QuestDebriefScreen: View {
                     category: quest.category,
                     intensity: quest.intensity
                 ),
-                coach: coach
+                coach: activeCoach
             )
         )
         self.onExit = onExit
