@@ -72,30 +72,6 @@ enum RelaxSession: String, CaseIterable, Identifiable {
             return (Color(red: 240/255, green: 234/255, blue: 252/255), Color(red: 222/255, green: 212/255, blue: 244/255)) // lavender
         }
     }
-
-    // Placeholder copy (no longer used by the session sheet)
-    var steps: [String] {
-        switch self {
-        case .boxBreathing:
-            return ["Breathe in for 4 seconds",
-                    "Hold for 4 seconds",
-                    "Breathe out for 4 seconds",
-                    "Hold for 4 seconds, then repeat"]
-        case .grounding:
-            return ["Notice 5 things you can see",
-                    "Notice 4 things you can feel",
-                    "Notice 3 things you can hear",
-                    "Notice 2 things you can smell, and 1 you can taste"]
-        case .imagery:
-            return ["Get comfortable and close your eyes",
-                    "Picture a calm, safe place in detail",
-                    "Breathe slowly as you explore it"]
-        case .mirror:
-            return ["Look at yourself and relax your face",
-                    "Breathe slowly and steadily",
-                    "Say something kind to yourself"]
-        }
-    }
 }
 
 private enum ActiveRelaxSheet: Identifiable {
@@ -208,7 +184,7 @@ struct RelaxScreen: View {
                         )
                     }
                 }
-                .presentationDetents([.fraction(0.75)])
+                .presentationDetents([.fraction(0.80)])
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(28)
             }
@@ -706,50 +682,6 @@ struct RelaxSessionSheet: View {
             .clipped()
     }
 }
-
-// Stand-in for the sessions whose screens aren't built yet
-struct RelaxSessionPlaceholderScreen: View {
-    let session: RelaxSession
-
-    private let screenBg = Color(red: 246/255, green: 250/255, blue: 232/255)
-    private let cardGreen = Color(red: 54/255, green: 89/255, blue: 72/255)
-    private let titleDark = Color(red: 92/255, green: 67/255, blue: 48/255)
-    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)
-    private let mint = Color(red: 226/255, green: 245/255, blue: 177/255)
-
-    var body: some View {
-        ZStack {
-            screenBg.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                Spacer()
-
-                ZStack {
-                    Circle()
-                        .fill(mint.opacity(0.7))
-                        .frame(width: 140, height: 140)
-                    RelaxSessionIcon(session: session, color: cardGreen, size: 56)
-                }
-
-                Text(session.title)
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(titleDark)
-                    .padding(.top, 28)
-
-                Text("This practice is coming soon.")
-                    .font(.system(size: 16))
-                    .foregroundColor(subtextGray)
-                    .padding(.top, 8)
-
-                Spacer()
-                Spacer()
-            }
-        }
-        .navigationTitle(session.title)
-        .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
 // MARK: - Icon for each session (used by the card and the sheet banner)
 struct RelaxSessionIcon: View {
     let session: RelaxSession

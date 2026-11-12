@@ -179,25 +179,11 @@ struct MirrorHero: View {
                 }
 
             // Content inside the glass
-            if showCaption {
-                VStack(spacing: 8) {
+
+            VStack(spacing: 8) {
                     MirrorFaceIcon()
                         .frame(width: 72, height: 72)
-
-                    Text("Meet Your Eyes")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(MokoTheme.titleBrown)
-                        .padding(.top, 4)
-
-                    Text("Quiet presence")
-                        .font(.system(size: 12))
-                        .foregroundColor(subtextGray)
                 }
-            } else {
-                MirrorFaceIcon()
-                    .frame(width: 72, height: 72)
-                    .scaleEffect(1.7)
-            }
 
             // Twinkles around the mirror
             Image(systemName: "sparkle")
