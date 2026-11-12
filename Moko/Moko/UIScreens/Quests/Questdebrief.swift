@@ -299,10 +299,27 @@ final class DebriefSession {
         guard !started else { return }
         started = true
 
-        isCoachTyping = true
+        // Show the opening question straight away so the composer is usable
+        // immediately. The coach's personalised greeting is generated in the
+        // background and swapped in only if the user has not answered yet.
+        append(.ai(Self.openingGreeting(for: context)))
+
         let text = await coach.greeting(for: context)
-        isCoachTyping = false
-        append(.ai(text))
+        guard !Task.isCancelled,
+              answers.isEmpty,
+              let first = messages.first,
+              case .ai = first.kind
+        else { return }
+
+        withAnimation(.easeOut(duration: 0.3)) {
+            messages[0].kind = .ai(text)
+        }
+    }
+
+    private static func openingGreeting(for context: DebriefContext) -> String {
+        context.userName.isEmpty
+            ? "Hey! How did it go — did you manage to do it?"
+            : "Hey \(context.userName)! How did it go — did you manage to do it?"
     }
 
     // MARK: Voice (simulated)
@@ -820,6 +837,7 @@ struct DebriefCoachBubble: View {
     let text: String
 
     @State private var shownCount = 0
+    @State private var hasTyped = false
 
     var body: some View {
         HStack(spacing: 0) {
@@ -840,7 +858,14 @@ struct DebriefCoachBubble: View {
 
             Spacer(minLength: 44)
         }
-        .task {
+        .task(id: text) {
+            // The coach's personalised opening replaces the instant fallback.
+            // Show the replacement in full instead of typing it out again.
+            if hasTyped {
+                shownCount = text.count
+                return
+            }
+            hasTyped = true
             shownCount = 0
             while shownCount < text.count {
                 try? await Task.sleep(for: .milliseconds(14))

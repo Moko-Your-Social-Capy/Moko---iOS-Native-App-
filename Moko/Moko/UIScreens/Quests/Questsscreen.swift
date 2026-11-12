@@ -91,7 +91,9 @@ struct QuestsScreen: View {
                     .padding(.bottom, 20)
             }
             .toolbar(.hidden, for: .navigationBar)
-            .toolbar(.visible, for: .tabBar)
+            // Do not force the tab bar visible here: on iOS 26+ that overrides
+            // the hidden state declared by QuestDetailScreen, so the tab bar
+            // would stay on screen during the quest briefing and debrief.
             .navigationDestination(item: $detailQuest) { quest in
                 QuestDetailScreen(quest: quest)
             }
