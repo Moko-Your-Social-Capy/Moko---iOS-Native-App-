@@ -141,7 +141,7 @@ struct MokoRootView: View {
         if let todayQuest = quests.first(where: { Calendar.current.isDateInToday($0.date) && !$0.isFromLibrary }) {
             return todayQuest
         }
-        return DailyMissionService.todayFallbackQuest()
+        return DailyMissionService.todayFallbackQuest(existingQuests: quests)
     }
 
     /// The quest whose debrief was saved for later.

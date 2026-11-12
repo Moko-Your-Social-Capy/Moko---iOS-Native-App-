@@ -163,6 +163,7 @@ enum InventionPrompts {
 
     static func prompt(anchor: MissionTemplate, difficulty: Difficulty, formats: [String], tone: String,
                        dayNumber: Int, totalDays: Int, practiceFor: String?,
+                       focusStat: Stat? = nil,
                        recentTitles: [String], feedback: String?) -> String {
         var parts = [
             "CATEGORY: \(anchor.category.rawValue)",
@@ -178,7 +179,10 @@ enum InventionPrompts {
             "TONE: \(tone)",
         ]
         if let target = practiceFor {
-            parts.append("This is practice day \(dayNumber) of \(totalDays) before the user's upcoming \"\(target.sanitizedForPrompt(limit: 80))\". Make it a stepping stone toward that skill.")
+            parts.append("This is practice day \(dayNumber) of \(totalDays) before the user's upcoming \"\(target.sanitizedForPrompt(limit: 80))\". Make it a stepping stone toward that event, preparing them for the interaction without spoon-feeding the exact same situation.")
+        }
+        if let stat = focusStat {
+            parts.append("GROWTH FOCUS: Emphasize \(stat.title.uppercased()) (\(stat.definition)). Shape the goal so it specifically offers a concrete moment to practice \(stat.title).")
         }
         let avoid = recentTitles.suffix(8)
         if !avoid.isEmpty {
@@ -223,6 +227,7 @@ enum MissionInventor {
                        dayNumber: Int,
                        totalDays: Int,
                        practiceFor: String?,
+                       focusStat: Stat? = nil,
                        seed: String,
                        recentTitles: [String]) async -> QuestCard? {
         guard AFM.isAvailable else { return nil }
@@ -237,6 +242,7 @@ enum MissionInventor {
                                                 formats: variety.formats, tone: variety.tone,
                                                 dayNumber: dayNumber, totalDays: totalDays,
                                                 practiceFor: practiceFor,
+                                                focusStat: focusStat,
                                                 recentTitles: recentTitles, feedback: feedback),
                 temperature: attempt == 0 ? 0.8 : 0.5,
                 retries: 0
@@ -275,17 +281,21 @@ enum MissionInventor {
 }
 
 extension QuestCardService {
-    /// Today's mission for users with NO custom quest: invent a fresh one from a bank template,
+    /// Today's mission: invent a fresh one from a bank template (optionally targeting a custom quest or lowest stat),
     /// or fall back to the bank text as written.
     static func freshDailyCard(from template: MissionTemplate,
                                recentTitles: [String],
                                seed: String = "daily",
-                               dayNumber: Int = 1) async -> QuestCard {
+                               dayNumber: Int = 1,
+                               totalDays: Int = 1,
+                               practiceFor: String? = nil,
+                               focusStat: Stat? = nil) async -> QuestCard {
         if let invented = await MissionInventor.invent(anchor: template,
                                                        difficulty: template.difficulty,
                                                        dayNumber: dayNumber,
-                                                       totalDays: 1,
-                                                       practiceFor: nil,
+                                                       totalDays: totalDays,
+                                                       practiceFor: practiceFor,
+                                                       focusStat: focusStat,
                                                        seed: seed,
                                                        recentTitles: recentTitles) {
             return invented

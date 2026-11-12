@@ -155,53 +155,53 @@ struct InsightsView: View {
         case .courage:
             detail = "Moving toward social moments instead of stepping back."
             supportedBy = "Reflection & Debrief"
-            microAction = "Be the first to speak or ask something today — even just a small hello."
+            microAction = ""
             switch band {
             case .strength:
-                analysis = "You consistently step in rather than sit back. That willingness is a real social asset."
+                analysis = "You consistently step in rather than sit back. Keep building this momentum by continuing to speak first in unfamiliar settings."
             case .steady:
-                analysis = "You engage well when it feels right — taking initiative just a touch earlier can open even more doors."
+                analysis = "You engage well when the moment feels right. Taking initiative just a few seconds earlier can help carry this confidence into higher-pressure situations."
             case .growth:
-                analysis = "Starting the interaction is the hardest part, and that's completely normal. One small move — a question, a hello — builds the habit."
+                analysis = "Starting an interaction can feel daunting, which is completely natural. Try making one small first move—like a quick greeting or simple question—to build ease."
             }
 
         case .clarity:
             detail = "Saying what you mean, directly, without hedging or over-explaining."
             supportedBy = "Grounding Exercise"
-            microAction = "Lead with your main point in one sentence before explaining why."
+            microAction = ""
             switch band {
             case .strength:
-                analysis = "You communicate with real directness and that makes you easy to trust and understand."
+                analysis = "You speak with clear directness, which makes you easy to understand and trust. Keep trusting your first sentence without over-explaining."
             case .steady:
-                analysis = "You land your message well — trusting your first sentence a bit more will make it even cleaner."
+                analysis = "You convey your core message well. Leading with your main point before offering background details will make your delivery even crisper."
             case .growth:
-                analysis = "Saying it plainly can feel awkward at first. One short, honest sentence is all it takes to get started."
+                analysis = "Saying what you genuinely mean can feel vulnerable at first. Practicing a single, short sentence without over-qualifying is a gentle way to grow."
             }
 
         case .presence:
             detail = "Being fully with the other person, not rehearsing or replaying in your head."
             supportedBy = "Box Breathing"
-            microAction = "Notice one specific thing about the other person — their tone, expression, or what they just said."
+            microAction = ""
             switch band {
             case .strength:
-                analysis = "You stay genuinely tuned in to the moment and the person in front of you — that's rare and valuable."
+                analysis = "You stay deeply grounded and tuned in to the person in front of you. Noticing concrete details about others keeps your conversations effortless."
             case .steady:
-                analysis = "You hold strong presence in most conversations — catching yourself when your mind wanders keeps it consistent."
+                analysis = "You hold strong presence in relaxed conversations. When your mind begins rehearsing what to say next, gently anchoring on the other person's voice brings you back."
             case .growth:
-                analysis = "Replaying conversations afterward is very common. Anchoring on one concrete thing the other person says brings you right back."
+                analysis = "Replaying what was said or worrying about what to say is very common. Focusing on one concrete thing the other person is saying helps anchor you in the moment."
             }
 
         case .warmth:
             detail = "Genuine engagement — taking in the other person's world and sharing your own."
             supportedBy = "Mirror Reflection"
-            microAction = "Ask one follow-up question today about something the other person mentioned."
+            microAction = ""
             switch band {
             case .strength:
-                analysis = "You make people feel genuinely seen and heard — that quality builds lasting connection."
+                analysis = "You bring natural openness and care that makes others feel valued. Continue asking curious follow-up questions to deepen your connections."
             case .steady:
-                analysis = "You're welcoming and kind — one curious follow-up question can deepen even a quick conversation."
+                analysis = "You are welcoming and considerate. Adding a personal follow-up question or sharing a small detail from your day will turn friendly chat into real warmth."
             case .growth:
-                analysis = "Opening up takes trust, and that's okay. Sharing one small detail with someone you feel comfortable with is a great first step."
+                analysis = "Opening up takes time and self-trust, and that is okay. Sharing one small, genuine detail with someone you feel comfortable with is a wonderful start."
             }
         }
 
@@ -451,19 +451,6 @@ struct InsightsView: View {
                 Text(parameter.analysis)
                     .font(.subheadline)
                     .foregroundStyle(gray)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Divider()
-
-            // Daily micro-action
-            VStack(alignment: .leading, spacing: 6) {
-                Label("Today's Practice", systemImage: "figure.walk")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(green)
-                Text(parameter.microAction)
-                    .font(.subheadline)
-                    .foregroundStyle(titleDark)
                     .fixedSize(horizontal: false, vertical: true)
             }
 

@@ -55,7 +55,7 @@ struct Overview: View {
         if let todayQuest = allQuests.first(where: { Calendar.current.isDateInToday($0.date) && !$0.isFromLibrary }) {
             return todayQuest
         }
-        return DailyMissionService.todayFallbackQuest()
+        return DailyMissionService.todayFallbackQuest(existingQuests: allQuests)
     }
 
     /// The slide switches to the debrief action as soon as the quest is completed,

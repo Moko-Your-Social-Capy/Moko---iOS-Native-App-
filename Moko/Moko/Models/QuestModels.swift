@@ -104,8 +104,9 @@ extension Quest {
     var isFromLibrary: Bool { xp != nil }
 
     /// The quest the Overview shows: the earliest completed quest that still needs
-    /// a debrief, otherwise the soonest incomplete quest. Only this device's user.
+    /// a debrief, otherwise the soonest incomplete quest for today (or overdue). Only this device's user.
     /// Library scenarios are started from Explore and never become the daily mission.
+    /// Future scheduled custom quests trigger daily preparation missions instead.
     static func overviewMission(
         from quests: [Quest],
         ownerID: String = CurrentUser.localID
@@ -118,8 +119,9 @@ extension Quest {
             return awaitingDebrief
         }
 
+        let calendar = Calendar.current
         return mine
-            .filter { !$0.isCompleted }
+            .filter { !$0.isCompleted && (calendar.isDateInToday($0.date) || $0.date < .now) }
             .min(by: { $0.date < $1.date })
     }
 }

@@ -8,9 +8,7 @@
 import Foundation
 import Observation
 
-// ═══════════════════════════════════════════════════════════════
 // MARK: 1) ONBOARDING
-// ═══════════════════════════════════════════════════════════════
 
 struct OnboardingScoredAnswer: Codable, Equatable, Sendable {
     let questionID: Int   // 1...8
