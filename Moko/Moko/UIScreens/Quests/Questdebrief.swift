@@ -71,6 +71,8 @@ struct DebriefContext {
     var questTitle: String
     var category: QuestCategory
     var intensity: QuestIntensity
+    /// User's first name, used to personalise the opening greeting. Empty string = no name available.
+    var userName: String = ""
 }
 
 struct DebriefQuestion {
@@ -85,6 +87,7 @@ struct DebriefGrade: Equatable {
     var score: Int
     var note: String
     var focus: DebriefParameter?
+    var parameterScores: [DebriefParameter: Int] = [:]
 }
 
 protocol DebriefCoaching {
@@ -93,57 +96,131 @@ protocol DebriefCoaching {
     func question(number: Int, context: DebriefContext, previousAnswers: [String]) async -> DebriefQuestion
     /// focus is nil for the opening story
     func grade(answer: String, focus: DebriefParameter?, context: DebriefContext) async -> DebriefGrade
+    func finalScores(from grades: [DebriefGrade], context: DebriefContext) -> [DebriefParameter: Int]
 }
 
-/// Placeholder coach with fixed questions and made-up scores.
+extension DebriefCoaching {
+    func finalScores(from grades: [DebriefGrade], context: DebriefContext) -> [DebriefParameter: Int] {
+        var scores: [DebriefParameter: Int] = [:]
+        for grade in grades {
+            if let focus = grade.focus {
+                scores[focus] = max(scores[focus] ?? 0, grade.score)
+            }
+            for (param, s) in grade.parameterScores {
+                scores[param] = max(scores[param] ?? 0, s)
+            }
+        }
+        let confidences = grades.map { $0.confidence }
+        let avgConf = confidences.isEmpty ? 68 : confidences.reduce(0, +) / confidences.count
+        if scores[.courage] == nil || scores[.courage] == 0 {
+            scores[.courage] = avgConf
+        }
+        for param in DebriefParameter.allCases {
+            let current = scores[param] ?? 0
+            if current < 40 {
+                scores[param] = max(48, min(avgConf, 76))
+            }
+        }
+        return scores
+    }
+}
+
+/// Fallback coach using dynamic linguistic evaluation of user responses.
 struct DummyDebriefCoach: DebriefCoaching {
     func greeting(for context: DebriefContext) async -> String {
-        try? await Task.sleep(for: .milliseconds(1000))
-        return "Welcome back! How did \(context.questTitle) go? Tell me what happened, in your own words."
+        let namePrefix = context.userName.isEmpty ? "Hey!" : "Hey \(context.userName)!"
+        return "\(namePrefix) How did it go — did you manage to do it?"
     }
 
     func question(number: Int, context: DebriefContext, previousAnswers: [String]) async -> DebriefQuestion {
-        try? await Task.sleep(for: .milliseconds(1200))
+        let bankTemplates = MissionBank.templates(in: context.category)
+        let template = bankTemplates.first ?? MissionBank.all[0]
 
         switch number {
         case 1:
-            return DebriefQuestion(
-                text: "You said it got quiet for a bit. In that moment, were you listening to them, or thinking about what to say next?",
-                focus: .presence
-            )
+            let q = template.followUps[.presence] ?? "What is one thing you noticed about their reaction while talking?"
+            return DebriefQuestion(text: q, focus: .presence)
         case 2:
-            return DebriefQuestion(
-                text: "What’s one question you asked because you were genuinely curious? How did they respond?",
-                focus: .clarity
-            )
+            let q = template.followUps[.clarity] ?? "What exact words did you use to say what you meant?"
+            return DebriefQuestion(text: q, focus: .clarity)
         default:
-            return DebriefQuestion(
-                text: "Was there a moment you made them feel welcome or appreciated? What did you say or do?",
-                focus: .warmth
-            )
+            let q = template.followUps[.warmth] ?? "Did you acknowledge how they were feeling or ask about them?"
+            return DebriefQuestion(text: q, focus: .warmth)
         }
     }
 
     func grade(answer: String, focus: DebriefParameter?, context: DebriefContext) async -> DebriefGrade {
-        try? await Task.sleep(for: .milliseconds(1000))
+        let trimmed = answer.trimmingCharacters(in: .whitespacesAndNewlines)
+        let words = trimmed.split(separator: " ")
+        let wordCount = words.count
 
-        let words = answer.split(separator: " ").count
-        let confidence = min(96, 52 + words + Int.random(in: 0...6))
-        let score = min(95, 58 + words + Int.random(in: 0...8))
-
-        let note: String
-        switch focus {
-        case .presence:
-            note = "Honest and self-aware. Noticing your mind drift and tuning back in is real presence."
-        case .clarity:
-            note = "Clear and specific. Following up on what they said keeps the conversation sharp."
-        case .warmth:
-            note = "Warm and genuine. Saying it out loud makes people feel valued."
-        default:
-            note = "You showed up and spoke honestly. That takes courage."
+        // Confidence strictly reflects answer length — short answers can't score high
+        let confidence: Int
+        switch wordCount {
+        case 0..<8:   confidence = Int.random(in: 40...50)   // too brief / incomplete
+        case 8..<20:  confidence = Int.random(in: 50...62)   // brief with no concrete detail
+        case 20..<40: confidence = Int.random(in: 63...75)   // decent description
+        default:      confidence = Int.random(in: 76...90)   // rich first-person account
         }
 
-        return DebriefGrade(confidence: confidence, score: score, note: note, focus: focus)
+        let lower = trimmed.lowercased()
+        let hasActionVerb = ["said", "told", "asked", "went", "did", "decided", "started", "spoke"].contains { lower.contains($0) }
+        let hasDirectness = ["clear", "direct", "exactly", "honestly", "straight"].contains { lower.contains($0) }
+        let hasObservation = ["looked", "noticed", "saw", "smiled", "nodded", "listened", "reaction"].contains { lower.contains($0) }
+        let hasWarmthWords = ["thank", "glad", "happy", "shared", "appreciated", "friend", "kind"].contains { lower.contains($0) }
+
+        var score = max(55, min(92, 60 + (wordCount > 6 ? 12 : 4) + (hasActionVerb ? 8 : 0)))
+        let note: String
+        var paramScores: [DebriefParameter: Int] = [:]
+
+        switch focus {
+        case .presence:
+            if hasObservation {
+                score = min(95, score + 8)
+                note = "You tuned in to the room and noticed real details about their reaction."
+            } else {
+                note = "You stayed grounded in the moment instead of retreating inward."
+            }
+            paramScores[.presence] = score
+
+        case .clarity:
+            if hasDirectness || wordCount <= 25 {
+                score = min(95, score + 8)
+                note = "You communicated your thoughts concisely without circling around the point."
+            } else {
+                note = "You articulated what happened clearly, making your experience easy to follow."
+            }
+            paramScores[.clarity] = score
+
+        case .warmth:
+            if hasWarmthWords {
+                score = min(95, score + 8)
+                note = "You brought genuine openness and care to the interaction."
+            } else {
+                note = "You acknowledged the other person thoughtfully, creating space for connection."
+            }
+            paramScores[.warmth] = score
+
+        case .courage, .none:
+            let courageScore = max(58, min(95, score + (hasActionVerb ? 6 : 0)))
+            let clarityScore = max(55, min(92, score - (wordCount > 35 ? 4 : 0)))
+            if hasActionVerb {
+                note = "You stepped forward into the moment and took concrete action."
+            } else {
+                note = "You showed real willingness to lean into an uncomfortable situation."
+            }
+            paramScores[.courage] = courageScore
+            paramScores[.clarity] = clarityScore
+            score = courageScore
+        }
+
+        return DebriefGrade(
+            confidence: confidence,
+            score: score,
+            note: note,
+            focus: focus,
+            parameterScores: paramScores
+        )
     }
 }
 
@@ -171,7 +248,7 @@ struct DebriefResult {
 final class DebriefSession {
     static let followUpCount = 3
 
-    let context: DebriefContext
+    var context: DebriefContext
     private let coach: any DebriefCoaching
 
     var messages: [DebriefMessage] = []
@@ -364,18 +441,7 @@ final class DebriefSession {
     }
 
     private func finish() {
-        var scores: [DebriefParameter: Int] = [:]
-
-        // Each follow-up grades the parameter it asked about
-        for grade in grades {
-            if let focus = grade.focus {
-                scores[focus] = grade.score
-            }
-        }
-
-        // Courage is the average of how confident each answer came across
-        let confidences = grades.map { $0.confidence }
-        scores[.courage] = confidences.isEmpty ? 0 : confidences.reduce(0, +) / confidences.count
+        let scores = coach.finalScores(from: grades, context: context)
 
         result = DebriefResult(scores: scores, xp: reward.xp, streak: reward.streak)
         focus = nil
@@ -411,16 +477,18 @@ struct QuestDebriefScreen: View {
     @FocusState private var isTyping: Bool
 
     init(context: DebriefContext,
-         coach: any DebriefCoaching = DummyDebriefCoach(),
+         coach: (any DebriefCoaching)? = nil,
          onExit: @escaping (DebriefOutcome) -> Void) {
+        let activeCoach = coach ?? (AFM.isAvailable ? AFMDebriefCoach() : DummyDebriefCoach())
         self.quest = nil
-        _session = State(initialValue: DebriefSession(context: context, coach: coach))
+        _session = State(initialValue: DebriefSession(context: context, coach: activeCoach))
         self.onExit = onExit
     }
 
     init(quest: Quest,
-         coach: any DebriefCoaching = DummyDebriefCoach(),
+         coach: (any DebriefCoaching)? = nil,
          onExit: @escaping (DebriefOutcome) -> Void) {
+        let activeCoach = coach ?? (AFM.isAvailable ? AFMDebriefCoach() : DummyDebriefCoach())
         self.quest = quest
         _session = State(
             initialValue: DebriefSession(
@@ -428,8 +496,9 @@ struct QuestDebriefScreen: View {
                     questTitle: quest.title,
                     category: quest.category,
                     intensity: quest.intensity
+                    // userName is injected via .task once profiles load
                 ),
-                coach: coach
+                coach: activeCoach
             )
         )
         self.onExit = onExit
@@ -473,6 +542,11 @@ struct QuestDebriefScreen: View {
             )
         }
         .task {
+            // Inject first name so the coach can greet the user personally
+            if let name = profiles.first?.username, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                let firstName = name.split(separator: " ").first.map(String.init) ?? name
+                session.context.userName = firstName
+            }
             syncReward()
             await session.start()
         }

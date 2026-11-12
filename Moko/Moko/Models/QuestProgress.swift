@@ -55,6 +55,9 @@ enum QuestProgress {
         at date: Date = .now,
         calendar: Calendar = .current
     ) -> QuestReward {
+        if quest.modelContext == nil {
+            context.insert(quest)
+        }
         let profile = profile(in: context)
         quest.isCompleted = true
         if quest.completedAt == nil { quest.completedAt = date }
@@ -94,12 +97,18 @@ enum QuestProgress {
 
         guard !quest.debriefRecorded else { return reward }
 
+        // Guarantee all parameters have a meaningful measurement (no zero scores)
+        let courageScore = max(45, result.scores[.courage] ?? 55)
+        let clarityScore = max(45, result.scores[.clarity] ?? 55)
+        let presenceScore = max(45, result.scores[.presence] ?? 55)
+        let warmthScore = max(45, result.scores[.warmth] ?? 55)
+
         context.insert(
             InsightsModel(
-                courage: result.scores[.courage] ?? 0,
-                clarity: result.scores[.clarity] ?? 0,
-                presence: result.scores[.presence] ?? 0,
-                warmth: result.scores[.warmth] ?? 0,
+                courage: courageScore,
+                clarity: clarityScore,
+                presence: presenceScore,
+                warmth: warmthScore,
                 date: date
             )
         )

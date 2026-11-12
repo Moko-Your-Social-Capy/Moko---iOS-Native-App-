@@ -4,6 +4,7 @@ import SwiftData
 
 struct MokoRootView: View {
 
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Quest.date, order: .reverse) private var quests: [Quest]
 
     @State private var selectedTab: MokoTab = .overview
@@ -92,6 +93,10 @@ struct MokoRootView: View {
                 PendingDebriefStore.clear()
             }
         }
+        .task {
+            // Pre-populate today's daily mission via AFM or Mission Bank
+            await DailyMissionService.ensureDailyMission(in: modelContext, existingQuests: quests)
+        }
     }
 
     // MARK: - Overview versions
@@ -104,6 +109,10 @@ struct MokoRootView: View {
                 selectedTab: $selectedTab,
                 mission: todaysMission,
                 onStartDebrief: { quest in
+                    if quest.modelContext == nil {
+                        modelContext.insert(quest)
+                        try? modelContext.save()
+                    }
                     debriefQuest = quest
                 }
             )
@@ -124,9 +133,15 @@ struct MokoRootView: View {
         quests.filter { !$0.isFromLibrary }.count
     }
 
-    /// The quest Overview shows as today's mission.
+    /// The quest Overview shows as today's mission. Always guarantees a fresh daily mission.
     private var todaysMission: Quest? {
-        Quest.overviewMission(from: quests)
+        if let mission = Quest.overviewMission(from: quests) {
+            return mission
+        }
+        if let todayQuest = quests.first(where: { Calendar.current.isDateInToday($0.date) && !$0.isFromLibrary }) {
+            return todayQuest
+        }
+        return DailyMissionService.todayFallbackQuest(existingQuests: quests)
     }
 
     /// The quest whose debrief was saved for later.

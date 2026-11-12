@@ -31,6 +31,7 @@ struct Overview: View {
     @Query private var profiles: [Profile]
     @Query private var insights: [InsightsModel]
     @Query private var calmDowns: [CalmDownModel]
+    @Query(sort: \Quest.date, order: .reverse) private var allQuests: [Quest]
 
     @State private var slideOffset: CGFloat = 0
     @State private var showRadarInfo: Bool = false      // "How your radar chart works" sheet
@@ -42,10 +43,25 @@ struct Overview: View {
         OverviewData(insights: insights, calmDowns: calmDowns)
     }
 
+    /// The active quest to display. If no custom quest was explicitly passed in,
+    /// checks database or falls back to today's daily mission from Mission Bank / AFM.
+    private var activeMission: Quest {
+        if let mission {
+            return mission
+        }
+        if let existing = Quest.overviewMission(from: allQuests) {
+            return existing
+        }
+        if let todayQuest = allQuests.first(where: { Calendar.current.isDateInToday($0.date) && !$0.isFromLibrary }) {
+            return todayQuest
+        }
+        return DailyMissionService.todayFallbackQuest(existingQuests: allQuests)
+    }
+
     /// The slide switches to the debrief action as soon as the quest is completed,
     /// including when it was already completed in the Quests tab.
     private var isMissionCompleted: Bool {
-        mission?.isCompleted ?? false
+        activeMission.isCompleted
     }
 
     // Custom Palette based on design specs
@@ -102,6 +118,9 @@ struct Overview: View {
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
             }
+            .task {
+                await DailyMissionService.ensureDailyMission(in: modelContext, existingQuests: allQuests)
+            }
         }
     }
 
@@ -140,44 +159,42 @@ struct Overview: View {
 
     // MARK: - Today's Mission Section
     private var todaysMissionSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        let currentMission = activeMission
+
+        return VStack(alignment: .leading, spacing: 14) {
             Text("Mission")
                 .font(.system(size: 22, weight: .bold))
                 .foregroundColor(titleDark)
 
             VStack(alignment: .leading, spacing: 0) {
-                if let mission {
-                    // Mission Title
-                    Text(mission.title)
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(primaryGreen)
-                        .padding(.top, 24)
-                        .padding(.horizontal, 20)
+                // Mission Title
+                Text(currentMission.title)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(primaryGreen)
+                    .padding(.top, 24)
+                    .padding(.horizontal, 20)
 
-                    // Mission Subtitle / Description
-                    Text(missionDescription(for: mission))
-                        .font(.system(size: 15, weight: .regular))
-                        .foregroundColor(subtextGray)
-                        .lineSpacing(3)
-                        .padding(.top, 12)
-                        .padding(.horizontal, 20)
+                // Mission Subtitle / Description
+                Text(missionDescription(for: currentMission))
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(subtextGray)
+                    .lineSpacing(3)
+                    .padding(.top, 12)
+                    .padding(.horizontal, 20)
 
-                    // Action: Slides to complete OR reveals Start Debrief + Mic
-                    if !isMissionCompleted {
-                        slideToCompleteWidget(for: mission)
-                            .padding(.horizontal, 20)
-                            .padding(.top, 32)
-                            .padding(.bottom, 24)
-                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
-                    } else {
-                        startDebriefWidget(for: mission)
-                            .padding(.horizontal, 24)
-                            .padding(.top, 36)
-                            .padding(.bottom, 24)
-                            .transition(.opacity.combined(with: .scale(scale: 0.98)))
-                    }
+                // Action: Slides to complete OR reveals Start Debrief + Mic
+                if !isMissionCompleted {
+                    slideToCompleteWidget(for: currentMission)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 32)
+                        .padding(.bottom, 24)
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 } else {
-                    emptyMissionContent
+                    startDebriefWidget(for: currentMission)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 36)
+                        .padding(.bottom, 24)
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -185,16 +202,19 @@ struct Overview: View {
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
             .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isMissionCompleted)
-            .onChange(of: mission?.id) { _, _ in
+            .onChange(of: currentMission.id) { _, _ in
                 // A different mission starts with the knob back at the left
                 slideOffset = 0
             }
         }
     }
 
-    /// A short line built from the quest's category and intensity. Private quest
-    /// notes are not shown on the Overview card.
+    /// A description built from the quest's notes or category and intensity.
     private func missionDescription(for quest: Quest) -> String {
+        let trimmed = quest.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            return trimmed
+        }
         return "A \(quest.intensity.rawValue.lowercased()) \(quest.category.rawValue.lowercased()) quest. Take your time and go at your pace."
     }
 
@@ -235,6 +255,10 @@ struct Overview: View {
             Spacer()
 
             Button(action: {
+                if mission.modelContext == nil {
+                    modelContext.insert(mission)
+                    try? modelContext.save()
+                }
                 onStartDebrief?(mission)
             }) {
                 Text("Start Debrief")
@@ -245,6 +269,10 @@ struct Overview: View {
             Spacer()
 
             Button(action: {
+                if mission.modelContext == nil {
+                    modelContext.insert(mission)
+                    try? modelContext.save()
+                }
                 onStartDebrief?(mission)
             }) {
                 ZStack {
@@ -258,6 +286,7 @@ struct Overview: View {
                         .foregroundColor(.white)
                 }
             }
+            .buttonStyle(.plain)
         }
     }
 
@@ -308,6 +337,7 @@ struct Overview: View {
                             if slideOffset > maxDrag * 0.7 {
                                 // Completing the real quest awards XP and the streak
                                 QuestProgress.complete(mission, in: modelContext)
+
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                                     slideOffset = maxDrag
                                 }
