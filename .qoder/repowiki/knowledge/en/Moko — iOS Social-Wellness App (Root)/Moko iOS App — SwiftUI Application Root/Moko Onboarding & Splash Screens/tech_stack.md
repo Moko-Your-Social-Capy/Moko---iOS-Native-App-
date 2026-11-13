@@ -1,0 +1,1 @@
+SwiftUI views; Rive runtime (`RiveRuntime` + `AsyncRiveUIViewRepresentable`) for the mascot animation; Supabase SDK and an internal `Auth` module for email/password and Google sign-in; Apple Sign-In via injected callback.

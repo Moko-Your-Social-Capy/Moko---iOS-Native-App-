@@ -1,0 +1,5 @@
+- LLM output shapes are declared as `@Generable` structs with `@Guide(description:..., .range(...))` annotations so the compiler generates validation against the prompt contract.
+- User-supplied text is wrapped in `<user_input>` / `<user_said>` tags and passed through `sanitizedForPrompt()` before embedding in prompts, keeping user data out of instruction context.
+- Each prompt family lives in its own static enum (`OnboardingPrompts`, `QuestPrompts`, `DebriefPrompts`) separating instructions from dynamic prompt construction.
+- Singleton services use a private initializer plus a `static let shared` accessor (e.g. `MokoAnimationController`, `DebriefSoundPlayer`).
+- Async UI state is exposed via `@MainActor @Observable` stores that guard against concurrent loads using a `hasLoaded` flag and surface `isLoading`/`errorMessage` properties.

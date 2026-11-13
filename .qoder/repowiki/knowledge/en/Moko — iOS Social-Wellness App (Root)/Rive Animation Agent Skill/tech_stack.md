@@ -1,0 +1,1 @@
+Rive CLI 1.3.0 (referenced via `~/.rive/bin/rive`), Python 3 with Pillow (for `frame_diff.py`), and a custom `skills-lock.json` manifest used by the `.agents` skill resolver to pin and hash the remote GitHub skill.

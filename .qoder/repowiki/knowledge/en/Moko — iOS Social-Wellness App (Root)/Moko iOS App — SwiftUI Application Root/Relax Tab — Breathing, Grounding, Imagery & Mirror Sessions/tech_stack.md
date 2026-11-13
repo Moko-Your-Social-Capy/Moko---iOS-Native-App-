@@ -1,0 +1,1 @@
+SwiftUI NavigationStack with typed destinations (`RelaxRoute`, `RelaxStep`), SwiftData for logging calm-down sessions, Combine `Timer.publish` for the generic breathing ticker, and RiveRuntime (`AsyncRiveUIViewRepresentable`) for the animated mascot in `BreathingSessionScreen`.

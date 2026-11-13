@@ -1,0 +1,3 @@
+- Top-level app flow is modeled as an AppScreen enum with a switch in ContentView.body, transitioning between screens via State-driven navigation rather than separate root views.
+- All domain entities are registered together in MokoApp's WindowGroup.modelContainer(for:) so every child view accesses them through @Environment(\.modelContext).
+- User-facing colors and typography are centralized in ColorTokens/Color extensions and applied via MokoTheme throughout the app instead of hard-coded UIColors.

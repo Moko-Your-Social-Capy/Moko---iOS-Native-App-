@@ -272,9 +272,23 @@ final class DebriefSession {
     /// XP and streak to show when the debrief finishes
     var reward = QuestReward(xp: 0, streak: 0)
 
+    /// The quest this debrief belongs to. When set, every change is also written to
+    /// `DebriefDraftStore` so an interrupted debrief can be picked up later.
+    var questID: UUID?
+
     private var answers: [String] = []
     private var grades: [DebriefGrade] = []
     private var started = false
+    private var isRestored = false
+    private var resumeStep: ResumeStep = .none
+
+    /// What a restored debrief does before it accepts an answer again
+    private enum ResumeStep: Equatable {
+        case none
+        /// Ask follow-up `number`; `divider` adds the "Question n of 3" header when the
+        /// saved conversation stopped before it.
+        case ask(number: Int, divider: Bool)
+    }
     private var recordingTask: Task<Void, Never>?
     private var flowTask: Task<Void, Never>?
 
@@ -299,6 +313,22 @@ final class DebriefSession {
         guard !started else { return }
         started = true
 
+        // A saved debrief continues mid-conversation: no greeting and no replay
+        if isRestored {
+            switch resumeStep {
+            case .none:
+                break
+            case .ask(let number, let divider):
+                resumeStep = .none
+                if divider {
+                    questionNumber = number
+                    append(.divider(question: number))
+                }
+                await askQuestion(number: number)
+            }
+            return
+        }
+
         // Show the opening question straight away so the composer is usable
         // immediately. The coach's personalised greeting is generated in the
         // background and swapped in only if the user has not answered yet.
@@ -314,6 +344,7 @@ final class DebriefSession {
         withAnimation(.easeOut(duration: 0.3)) {
             messages[0].kind = .ai(text)
         }
+        persist()
     }
 
     private static func openingGreeting(for context: DebriefContext) -> String {
@@ -427,17 +458,7 @@ final class DebriefSession {
             if self.questionNumber < DebriefSession.followUpCount {
                 self.questionNumber += 1
                 self.append(.divider(question: self.questionNumber))
-
-                self.isCoachTyping = true
-                let next = await self.coach.question(
-                    number: self.questionNumber,
-                    context: self.context,
-                    previousAnswers: self.answers
-                )
-                guard !Task.isCancelled else { return }
-                self.isCoachTyping = false
-                self.focus = next.focus
-                self.append(.ai(next.text))
+                await self.askQuestion(number: self.questionNumber)
             } else {
                 try? await Task.sleep(for: .milliseconds(800))
                 guard !Task.isCancelled else { return }
@@ -446,8 +467,23 @@ final class DebriefSession {
         }
     }
 
+    /// Asks the coach for the follow-up `number` and remembers what it is about.
+    private func askQuestion(number: Int) async {
+        isCoachTyping = true
+        let next = await coach.question(
+            number: number,
+            context: context,
+            previousAnswers: answers
+        )
+        guard !Task.isCancelled else { return }
+        isCoachTyping = false
+        focus = next.focus
+        append(.ai(next.text))
+    }
+
     private func apply(_ grade: DebriefGrade, to id: UUID?) {
         grades.append(grade)
+        persist()
 
         guard let id, let index = messages.firstIndex(where: { $0.id == id }) else { return }
         if case .user(let text, _) = messages[index].kind {
@@ -466,6 +502,7 @@ final class DebriefSession {
         withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
             isComplete = true
         }
+        persist()
     }
 
     func cancelAll() {
@@ -477,6 +514,79 @@ final class DebriefSession {
         withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
             messages.append(DebriefMessage(kind: kind))
         }
+        persist()
+    }
+
+    // MARK: Leaving and coming back
+
+    /// Writes the conversation out immediately — used when the user taps "Finish Later".
+    func persistNow() {
+        persist()
+    }
+
+    /// Rebuilds the conversation from a saved draft so the debrief continues mid-way
+    /// instead of starting again at the greeting.
+    func restore(from draft: DebriefDraft) {
+        messages = draft.messages.map { stored in
+            switch stored.role {
+            case .coach:
+                return DebriefMessage(kind: .ai(stored.text))
+            case .user:
+                return DebriefMessage(kind: .user(text: stored.text, grade: stored.grade?.restored))
+            case .divider:
+                return DebriefMessage(kind: .divider(question: stored.question))
+            }
+        }
+        answers = draft.answers
+        grades = draft.grades.map { $0.restored }
+        questionNumber = draft.questionNumber
+        focus = draft.focus.flatMap(DebriefParameter.init(rawValue:))
+
+        isRestored = true
+
+        if answers.count > DebriefSession.followUpCount {
+            // Every answer was in before the debrief was left: show the scores
+            finish()
+        } else if let last = messages.last {
+            switch last.kind {
+            case .divider:
+                // The coach was still thinking about this follow-up
+                resumeStep = .ask(number: questionNumber, divider: false)
+            case .user:
+                // The answer landed but its follow-up never started
+                resumeStep = .ask(number: questionNumber + 1, divider: true)
+            case .ai:
+                resumeStep = .none
+            }
+        }
+    }
+
+    private func persist() {
+        guard let questID else { return }
+        DebriefDraftStore.save(snapshot(), for: questID)
+    }
+
+    private func snapshot() -> DebriefDraft {
+        DebriefDraft(
+            messages: messages.map { message in
+                switch message.kind {
+                case .ai(let text):
+                    return DebriefDraft.Message(role: .coach, text: text)
+                case .user(let text, let grade):
+                    return DebriefDraft.Message(
+                        role: .user,
+                        text: text,
+                        grade: grade.map { DebriefDraft.Grade($0) }
+                    )
+                case .divider(let question):
+                    return DebriefDraft.Message(role: .divider, question: question)
+                }
+            },
+            answers: answers,
+            grades: grades.map { DebriefDraft.Grade($0) },
+            questionNumber: questionNumber,
+            focus: focus?.rawValue
+        )
     }
 }
 
@@ -507,17 +617,23 @@ struct QuestDebriefScreen: View {
          onExit: @escaping (DebriefOutcome) -> Void) {
         let activeCoach = coach ?? (AFM.isAvailable ? AFMDebriefCoach() : DummyDebriefCoach())
         self.quest = quest
-        _session = State(
-            initialValue: DebriefSession(
-                context: DebriefContext(
-                    questTitle: quest.title,
-                    category: quest.category,
-                    intensity: quest.intensity
-                    // userName is injected via .task once profiles load
-                ),
-                coach: activeCoach
-            )
+
+        let session = DebriefSession(
+            context: DebriefContext(
+                questTitle: quest.title,
+                category: quest.category,
+                intensity: quest.intensity
+                // userName is injected via .task once profiles load
+            ),
+            coach: activeCoach
         )
+        // Pick up an unfinished debrief where the user left it
+        session.questID = quest.id
+        if let draft = DebriefDraftStore.load(for: quest.id) {
+            session.restore(from: draft)
+        }
+
+        _session = State(initialValue: session)
         self.onExit = onExit
     }
 
@@ -554,8 +670,8 @@ struct QuestDebriefScreen: View {
             DebriefLeaveSheet(
                 unsentText: unsentText,
                 onKeepGoing: { showLeave = false },
-                onFinishLater: { onExit(.finishLater) },
-                onLeave: { onExit(.leave) }
+                onFinishLater: { exit(.finishLater) },
+                onLeave: { exit(.leave) }
             )
         }
         .task {
@@ -566,6 +682,11 @@ struct QuestDebriefScreen: View {
             }
             syncReward()
             await session.start()
+
+            // A debrief that was already finished when it was saved still needs its scores stored
+            if session.isComplete {
+                recordDebrief()
+            }
         }
         .onChange(of: session.isComplete) { _, isComplete in
             if isComplete {
@@ -609,12 +730,28 @@ struct QuestDebriefScreen: View {
 
         let reward = QuestProgress.saveDebrief(result, for: quest, in: modelContext)
         session.reward = reward
+        // The debrief is behind us: the saved draft has done its job
+        DebriefDraftStore.clear(for: quest.id)
 
         if var updated = session.result {
             updated.xp = reward.xp
             updated.streak = reward.streak
             session.result = updated
         }
+    }
+
+    /// Leaves the debrief, keeping the conversation for "Finish Later" and dropping it when
+    /// the debrief is completed or its progress is given up.
+    private func exit(_ outcome: DebriefOutcome) {
+        if let quest {
+            switch outcome {
+            case .finishLater:
+                session.persistNow()
+            case .completed, .leave:
+                DebriefDraftStore.clear(for: quest.id)
+            }
+        }
+        onExit(outcome)
     }
 
     // MARK: Header
@@ -700,7 +837,7 @@ struct QuestDebriefScreen: View {
         VStack(spacing: 10) {
             if session.isComplete, let result = session.result {
                 DebriefCompletionPanel(result: result) {
-                    onExit(.completed)
+                    exit(.completed)
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             } else {

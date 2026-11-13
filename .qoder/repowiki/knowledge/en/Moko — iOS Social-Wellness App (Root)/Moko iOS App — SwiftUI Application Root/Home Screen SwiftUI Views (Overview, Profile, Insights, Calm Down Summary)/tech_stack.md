@@ -1,0 +1,1 @@
+SwiftUI + SwiftData for declarative UI and persistent model queries; Apple `Charts` for XP and calm-down bar charts; MokoTheme and ProfilePalette provide the design-system color tokens used across all views.

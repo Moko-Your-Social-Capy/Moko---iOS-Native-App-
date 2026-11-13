@@ -1,0 +1,1 @@
+SwiftUI with iOS 17+ APIs: `NavigationStack`, `scrollTargetLayout` / `scrollTargetBehavior(.paging)` for carousels, `scrollPosition(id:anchor:)` for scroll-driven state, `sensoryFeedback(.selection)`, `FocusState`, and `#Preview` per file.

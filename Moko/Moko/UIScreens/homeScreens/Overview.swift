@@ -39,6 +39,9 @@ struct Overview: View {
     @State private var openInsights: Bool = false       // set by the sheet's button
     @State private var showInsights: Bool = false       // pushes InsightsView
     @State private var showProfile: Bool = false
+    /// Set from the slide until the debrief cover has taken over, so the pill cannot flip
+    /// to "Slide to Debrief" in the frames between completing and the cover appearing.
+    @State private var isHandingOffToDebrief: Bool = false
 
     private var data: OverviewData {
         OverviewData(insights: insights, calmDowns: calmDowns)
@@ -59,10 +62,16 @@ struct Overview: View {
         return DailyMissionService.todayFallbackQuest(existingQuests: allQuests)
     }
 
-    /// The slide switches to the debrief action as soon as the quest is completed,
-    /// including when it was already completed in the Quests tab.
+    /// True once the quest is complete — reachable only by leaving a debrief behind, because
+    /// completing the mission opens the debrief in the same slide.
     private var isMissionCompleted: Bool {
         activeMission.isCompleted
+    }
+
+    /// Held at "Slide to Complete" during the handoff so the label never flashes the next
+    /// action before the debrief is on screen.
+    private var slideTitle: String {
+        isMissionCompleted && !isHandingOffToDebrief ? "Slide to Debrief" : "Slide to Complete"
     }
 
     var body: some View {
@@ -196,55 +205,25 @@ struct Overview: View {
         .animation(Theme.Motion.crossfade, value: isMissionCompleted)
     }
 
-    /// State/Active → Control/Slide. Once the quest is complete the app needs its
-    /// debrief affordance, which v1.0 does not draw: it is built from registered
-    /// tokens only (accent.blue, radius.inner, 54pt touch target).
-    @ViewBuilder
+    /// One slide does the whole thing: the quest is completed (XP and streak awarded) and the
+    /// debrief opens in the same gesture. Afterwards the same pill reads "Slide to Debrief".
     private func missionAction(for quest: Quest) -> some View {
-        if isMissionCompleted {
-            debriefRow(for: quest)
-                .transition(.opacity)
-        } else {
-            MocoSlideControl(label: "Slide to Complete") {
+        MocoSlideControl(label: slideTitle) {
+            isHandingOffToDebrief = true
+            if !isMissionCompleted {
                 QuestProgress.complete(quest, in: modelContext)
             }
-            .id(quest.id)
-            .transition(.opacity)
-        }
-    }
+            openDebrief(for: quest)
 
-    private func debriefRow(for quest: Quest) -> some View {
-        HStack(spacing: Theme.Space.s3) {
-            Button {
-                openDebrief(for: quest)
-            } label: {
-                Text("Start Debrief")
-                    .mocoText(Theme.Typeface.cardTitle)
-                    .foregroundStyle(Theme.Colors.accentBlue)
-                    .frame(maxWidth: .infinity, minHeight: Theme.Control.mic)
-                    .background {
-                        RoundedRectangle(cornerRadius: Theme.Radius.inner, style: .continuous)
-                            .fill(Theme.Card.wash)
-                    }
+            // The cover needs a beat to cover the card; only then may the pill reflect
+            // the new state (it is behind the debrief by that point).
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                isHandingOffToDebrief = false
             }
-            .buttonStyle(.plain)
-
-            Button {
-                openDebrief(for: quest)
-            } label: {
-                ZStack {
-                    Circle()
-                        .fill(Theme.Colors.accentBlue)
-                        .frame(width: Theme.Control.mic, height: Theme.Control.mic)
-
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: Theme.Glyph.mic, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Start debrief with voice")
         }
+        // `MocoSlideControl` stays completed once slid, so a new label gets a fresh control:
+        // "Slide to Debrief" must still be draggable after the cover closes.
+        .id("\(quest.id)-\(slideTitle)")
     }
 
     private func openDebrief(for quest: Quest) {

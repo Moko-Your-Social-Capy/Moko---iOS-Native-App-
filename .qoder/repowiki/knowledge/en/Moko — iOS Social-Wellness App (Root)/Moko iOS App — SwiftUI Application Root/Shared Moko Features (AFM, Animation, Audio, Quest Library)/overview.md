@@ -1,0 +1,1 @@
+Cross-feature Swift modules powering Apple Intelligence-driven debriefs and quest generation, animation playback, debrief sound effects, and the remote Quest Library.

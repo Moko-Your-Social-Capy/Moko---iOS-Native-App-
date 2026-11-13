@@ -7,6 +7,10 @@
 //  • AFM only writes language and reads language: analysis text, card text, questions, evidence extraction.
 //  • Every call uses a FRESH session with a compact prompt (the on-device context window is small, ~4k tokens)
 //    and a static Swift fallback, so the app never blocks on the model.
+//  • Every call is queued through AFMGenerationGate (the model serves one request at a time) and is never
+//    retried after a model-side rejection; both mistakes make FoundationModels trip its own assertions.
+//  • AFM is off in SwiftUI Previews (AFM.isPreviewRuntime). Previews are not a supported host for the
+//    on-device model — the Mac-side preview process reports it as available and then asserts.
 //  • User text is wrapped in tags and declared to be data, never instructions.
 //  • In @Generable structs, properties are generated in declaration order: evidence/reasoning comes
 //    BEFORE the score it justifies.
@@ -30,13 +34,61 @@ enum AFMError: Error, LocalizedError {
     }
 }
 
+// MARK: - Generation gate
+
+/// FoundationModels serves **one generation at a time per process**. Overlapping requests — a
+/// fire-and-forget daily-mission seed racing a debrief turn, or a preview scene re-running its
+/// `.task` — leave the framework's session bookkeeping inconsistent and it trips its own assertion
+/// in `LanguageModelFeedback.swift` ("observe `isResponding` … before submitting another prompt").
+/// `AFM.generate` therefore queues here, process-wide, before touching the model.
+private actor AFMGenerationGate {
+    static let shared = AFMGenerationGate()
+
+    private var isBusy = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    /// Takes the single slot, suspending until it is free.
+    func acquire() async {
+        guard isBusy else {
+            isBusy = true
+            return
+        }
+        await withCheckedContinuation { continuation in
+            waiters.append(continuation)
+        }
+        // Ownership was handed over by `release()`; `isBusy` stays true.
+    }
+
+    /// Frees the slot, or passes it straight to the oldest waiter.
+    func release() {
+        if waiters.isEmpty {
+            isBusy = false
+        } else {
+            waiters.removeFirst().resume()
+        }
+    }
+}
+
 @MainActor
 enum AFM {
+    /// SwiftUI Previews are a design surface, not a supported FoundationModels host. The Mac-side
+    /// preview process still reports the model as available and does generate, but its re-entrant
+    /// scene updates are exactly what the framework asserts on. Always take the static fallback.
+    static let isPreviewRuntime: Bool = {
+        let env = ProcessInfo.processInfo.environment
+        if env["XCODE_RUNNING_FOR_PREVIEWS"] != nil { return true }
+        if env["XCODE_RUNNING_FOR_PLAYGROUNDS"] != nil { return true }
+        // Preview builds live under `…/Xcode/UserData/Previews/Simulator Devices/<id>/…`.
+        return Bundle.main.bundlePath.contains("/Previews/")
+    }()
+
     static var isAvailable: Bool {
-        SystemLanguageModel.default.isAvailable
+        guard !isPreviewRuntime else { return false }
+        return SystemLanguageModel.default.isAvailable
     }
 
     static var availabilityDescription: String {
+        guard !isPreviewRuntime else { return "Apple Intelligence is disabled in SwiftUI Previews" }
         switch SystemLanguageModel.default.availability {
         case .available:
             return "Available"
@@ -46,6 +98,8 @@ enum AFM {
                 return "Device is not eligible for Apple Intelligence"
             case .appleIntelligenceNotEnabled:
                 return "Apple Intelligence is not enabled in Settings"
+            case .modelNotReady:
+                return "Apple Intelligence is still preparing on this device"
             @unknown default:
                 return "Apple Intelligence is unavailable"
             }
@@ -53,14 +107,44 @@ enum AFM {
     }
 
     /// One stateless generation. Low temperature for scoring, higher for creative copy.
+    ///
+    /// Serialized process-wide, and retried **only** on transient faults: re-submitting a prompt the
+    /// guardrails, the context window or another in-flight request already rejected is what drives
+    /// FoundationModels into the `LanguageModelFeedback.swift` assertion. Every caller has a static
+    /// Swift fallback, so a thrown error is a normal outcome, not a failure.
     static func generate<T: Generable>(_ type: T.Type,
                                        instructions: String,
                                        prompt: String,
                                        temperature: Double = 0.3,
                                        retries: Int = 1) async throws -> T {
         guard isAvailable else { throw AFMError.unavailable(reason: availabilityDescription) }
-        var lastError: Error = AFMError.unavailable(reason: availabilityDescription)
-        for _ in 0...retries {
+
+        await AFMGenerationGate.shared.acquire()
+        do {
+            let content = try await runAttempts(
+                type,
+                instructions: instructions,
+                prompt: prompt,
+                temperature: temperature,
+                retries: max(retries, 0)
+            )
+            await AFMGenerationGate.shared.release()
+            return content
+        } catch {
+            await AFMGenerationGate.shared.release()
+            throw error
+        }
+    }
+
+    /// Runs the attempts. Only reachable while this task holds `AFMGenerationGate`.
+    private static func runAttempts<T: Generable>(_ type: T.Type,
+                                                  instructions: String,
+                                                  prompt: String,
+                                                  temperature: Double,
+                                                  retries: Int) async throws -> T {
+        let attempts = retries + 1
+        for attempt in 0..<attempts {
+            try Task.checkCancellation()
             do {
                 let session = LanguageModelSession(instructions: instructions)
                 let response = try await session.respond(
@@ -70,10 +154,55 @@ enum AFM {
                 )
                 return response.content
             } catch {
-                lastError = error
+                if error is CancellationError { throw CancellationError() }
+                guard isTransient(error), attempt + 1 < attempts else { throw error }
+                // Let the previous request finish tearing down before reusing the model.
+                try await Task.sleep(for: .milliseconds(400))
             }
         }
-        throw lastError
+        throw AFMError.generationFailed("Generation did not run.")
+    }
+
+    /// A model-side rejection is deterministic; only a parse hiccup or a transport timeout is worth
+    /// another try. Handles the iOS 26 `GenerationError` and the iOS 27 error enums.
+    private static func isTransient(_ error: Error) -> Bool {
+        if let generationError = error as? LanguageModelSession.GenerationError {
+            switch generationError {
+            case .decodingFailure:
+                return true   // malformed output: a fresh sample usually parses
+            case .exceededContextWindowSize, .assetsUnavailable, .guardrailViolation,
+                 .unsupportedGuide, .unsupportedLanguageOrLocale, .rateLimited,
+                 .concurrentRequests, .refusal:
+                return false
+            @unknown default:
+                return false  // unknown model state: never re-submit blindly
+            }
+        }
+
+        if #available(iOS 27.0, *) {
+            if let modelError = error as? LanguageModelError {
+                switch modelError {
+                case .timeout:
+                    return true
+                case .contextSizeExceeded, .rateLimited, .guardrailViolation, .refusal,
+                     .unsupportedCapability, .unsupportedTranscriptContent,
+                     .unsupportedGenerationGuide, .unsupportedLanguageOrLocale:
+                    return false
+                @unknown default:
+                    return false
+                }
+            }
+            if let sessionError = error as? LanguageModelSession.Error {
+                switch sessionError {
+                case .concurrentRequests, .transcriptMutationWhileResponding:
+                    return false
+                @unknown default:
+                    return false
+                }
+            }
+        }
+
+        return true
     }
 
     /// Call when a screen appears (e.g. the Debrief screen) to cut first-token latency.

@@ -1,0 +1,6 @@
+The module is a flat collection of domain types split by feature area:
+- Persistent entities (SwiftData `@Model`): `Quest`, `Profile`, `OnboardingQuestion`, `OnboardingState`, plus `InsightsModel`/`CalmDownModel` referenced from `OverviewData`.
+- Read-only DTOs for Supabase-backed library content: `LibraryQuest` and `QuestSection` in `QuestLibraryModels.swift`, with `CodingKeys` mapping snake_case columns to camelCase properties.
+- Shared enums/types: `QuestIntensity`, `QuestCategory`, `CurrentUser` (local ID persisted via `UserDefaults`), `MokoDatabase` (provides both persistent and in-memory `ModelContainer` instances for previews).
+- Value objects / view helpers: `OverviewData` aggregates today's insights and calm-down minutes; `ColorTokens` exposes the forest-green palette plus SwiftUI View extensions; `QuestFormat` and `QuestStyle` provide date formatting and quest-screen colors.
+Dependency direction is inward-only: models depend on SwiftUI/SwiftData/Foundation but are not depended on by them; persistence wiring (`MokoDatabase.shared` / `.preview`) lives inside this module so views only reference model types.

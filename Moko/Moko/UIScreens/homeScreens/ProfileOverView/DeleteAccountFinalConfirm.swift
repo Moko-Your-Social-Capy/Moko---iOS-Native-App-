@@ -67,6 +67,7 @@ struct ProfileOverViewDeleteFinalConfirmation: View {
             try modelContext.delete(model: OnboardingState.self)
             try modelContext.save()
             PendingDebriefStore.clear()
+            DebriefDraftStore.clearAll()
             CurrentUser.reset()
             ["userName", "userAge", "moko.selectedCostumeLevel", "notifyDaily", "notifyStreak", "notifyQuests", "notifyCooldown"]
                 .forEach(UserDefaults.standard.removeObject(forKey:))

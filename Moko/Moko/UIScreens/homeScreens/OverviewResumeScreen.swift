@@ -18,30 +18,34 @@ struct OverviewResumeScreen: View {
     @State private var openInsights: Bool = false
     @State private var showInsights: Bool = false
 
-    // Optional callbacks
+    // Optional callback: opens the debrief that was left unfinished
     var onSlideResume: (() -> Void)? = nil
-    var onStartDebrief: (() -> Void)? = nil
 
     // MARK: - State Properties
     @Query private var profiles: [Profile]
     @Query private var insights: [InsightsModel]
     @Query private var calmDowns: [CalmDownModel]
 
-    @State private var slideOffset: CGFloat = 0
-    @State private var isResumeCompleted: Bool = false
-
     private var data: OverviewData {
         OverviewData(insights: insights, calmDowns: calmDowns)
     }
 
+    /// Where the saved conversation stopped, so the user knows nothing was lost.
     private var resumeDescription: String {
-        "Pick up where you left off and share how it went."
+        guard let quest, let draft = DebriefDraftStore.load(for: quest.id) else {
+            return "Pick up where you left off and share how it went."
+        }
+
+        let total = DebriefSession.followUpCount + 1
+        let answered = min(draft.answers.count, total)
+        if answered == 0 {
+            return "Your debrief is saved. Slide to answer the first question."
+        }
+        return "\(answered) of \(total) answers saved. Slide to pick up where you left off."
     }
 
     // Palette matching design specifications
-    private let screenBg = MocoScreenTheme.Colors.canvasTop // #F6FAE8
     private let primaryGreen = MocoScreenTheme.Colors.dataVioletDeep // #1B422F
-    private let micGreen = MocoScreenTheme.Colors.accentBlue
     private let titleDark = MocoScreenTheme.Colors.textTitle // #5C4330
     private let subtextGray = MocoScreenTheme.Colors.textBody // #6F6762
 
@@ -144,119 +148,17 @@ struct OverviewResumeScreen: View {
                     .padding(.top, 12)
                     .padding(.horizontal, 20)
 
-                // Action: Slides to resume OR reveals Start Debrief + Mic
-                if !isResumeCompleted {
-                    slideToResumeWidget
-                        .padding(.horizontal, 20)
-                        .padding(.top, 32)
-                        .padding(.bottom, 24)
-                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
-                } else {
-                    startDebriefWidget
-                        .padding(.horizontal, MocoScreenTheme.Space.page)
-                        .padding(.top, 36)
-                        .padding(.bottom, 24)
-                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+                // The pill opens the unfinished debrief straight away — no second button
+                MocoSlideControl(label: "Slide to Resume") {
+                    onSlideResume?()
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 32)
+                .padding(.bottom, 24)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .mocoCard()
-            .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isResumeCompleted)
         }
-    }
-
-    // MARK: - Start Debrief Widget (Shown after sliding to resume)
-    private var startDebriefWidget: some View {
-        HStack(alignment: .center) {
-            Spacer()
-
-            Button(action: {
-                onStartDebrief?()
-            }) {
-                Text("Resume Debrief")
-                    .mocoText(MocoScreenTheme.Typeface.slider)
-                    .foregroundColor(titleDark)
-            }
-
-            Spacer()
-
-            Button(action: {
-                onStartDebrief?()
-            }) {
-                ZStack {
-                    Circle()
-                        .fill(micGreen)
-                        .frame(width: 46, height: 46)
-                        .shadow(color: Color.black.opacity(0.12), radius: 6, x: 0, y: 3)
-
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.white)
-                }
-            }
-        }
-    }
-
-    // MARK: - Slide to Resume Widget
-    private var slideToResumeWidget: some View {
-        GeometryReader { geo in
-            let sliderWidth = geo.size.width
-            let knobSize = MocoScreenTheme.Control.knob
-            let maxDrag = max(0, sliderWidth - knobSize - MocoScreenTheme.Control.knobInset * 2)
-
-            ZStack(alignment: .leading) {
-                // Pill Track
-                Capsule()
-                    .fill(MocoScreenTheme.Colors.accentBlue)
-                    .frame(height: MocoScreenTheme.Control.trackHeight)
-
-                // Centered Label
-                HStack {
-                    Spacer()
-                    Text("Slide to resume")
-                        .mocoText(MocoScreenTheme.Typeface.body)
-                        .foregroundColor(.white)
-                    Spacer()
-                }
-                .frame(height: MocoScreenTheme.Control.trackHeight)
-
-                // Draggable Knob with Arrow
-                ZStack {
-                    Circle()
-                        .fill(MocoScreenTheme.Colors.surfaceWhite)
-                        .frame(width: knobSize, height: knobSize)
-                        .shadow(color: Color.black.opacity(0.12), radius: 3, x: 0, y: 1)
-
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(MocoScreenTheme.Colors.textTitle)
-                }
-                .offset(x: MocoScreenTheme.Control.knobInset + slideOffset)
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            guard !isResumeCompleted else { return }
-                            let drag = max(0, min(value.translation.width, maxDrag))
-                            slideOffset = drag
-                        }
-                        .onEnded { value in
-                            guard !isResumeCompleted else { return }
-                            if slideOffset > maxDrag * 0.7 {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                    slideOffset = maxDrag
-                                    isResumeCompleted = true
-                                }
-                                onSlideResume?()
-                            } else {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                    slideOffset = 0
-                                }
-                            }
-                        }
-                )
-            }
-        }
-        .frame(height: MocoScreenTheme.Control.trackHeight)
     }
 
     // MARK: - Statistics Section

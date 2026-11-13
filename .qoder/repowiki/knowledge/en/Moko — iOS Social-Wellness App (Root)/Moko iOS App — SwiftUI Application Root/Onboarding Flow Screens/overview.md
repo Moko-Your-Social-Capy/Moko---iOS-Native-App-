@@ -1,0 +1,1 @@
+SwiftUI onboarding screens that collect a user's name, age, and familiarity context before launching the app, driven by a single NavigationStack flow.

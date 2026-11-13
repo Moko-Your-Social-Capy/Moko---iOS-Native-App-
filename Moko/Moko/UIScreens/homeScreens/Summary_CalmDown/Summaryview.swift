@@ -155,13 +155,26 @@ struct SummaryData {
     // MARK: Chart Axis Text
 
     func axisText(_ minutes: Double) -> String {
-        if maxMinutes > 60 {
-            return minutes == 0
-                ? "0 hr"
-                : "\(Int((minutes / 60).rounded())) hr"
+
+        if minutes == 0 {
+            return "0"
         }
 
-        return "\(Int(minutes)) min"
+        // Minutes stay readable up to two hours of logged time, then the axis switches to hours.
+        guard maxMinutes >= 120 else {
+            return "\(Int(minutes.rounded())) min"
+        }
+
+        let hours = minutes / 60
+
+        if hours == hours.rounded() {
+            return "\(Int(hours)) hr"
+        }
+
+        // One decimal, rounded away from the half-way ties (1.25 hr reads better as 1.3).
+        let tenths = (hours * 10).rounded() / 10
+
+        return String(format: "%.1f hr", tenths)
     }
 
     // MARK: Helpers
@@ -483,24 +496,54 @@ struct SummaryData {
 
     // MARK: Maximum Chart Value
 
+    /// The chart's top value, derived from the tallest bar so the graph grows and shrinks with the
+    /// time actually logged instead of sitting on a fixed 30/60 minute ceiling.
     private static func niceMax(_ peak: Double) -> Double {
 
-        if peak <= 30 {
-            return 30
+        guard peak > 0 else {
+            return 10
         }
 
-        if peak <= 60 {
-            return 60
+        // A little headroom keeps the tallest bar off the top gridline.
+        let raw = peak * 1.2
+
+        let magnitude = pow(10, floor(log10(raw)))
+        let fraction = raw / magnitude
+
+        let step: Double
+
+        switch fraction {
+
+        case ..<1.5:
+            step = 1.5
+
+        case ..<2:
+            step = 2
+
+        case ..<2.5:
+            step = 2.5
+
+        case ..<3:
+            step = 3
+
+        case ..<4:
+            step = 4
+
+        case ..<5:
+            step = 5
+
+        case ..<6:
+            step = 6
+
+        case ..<8:
+            step = 8
+
+        default:
+            step = 10
         }
 
-        let hours = ceil(peak / 60)
-
-        let evenHours =
-            hours.truncatingRemainder(dividingBy: 2) == 0
-            ? hours
-            : hours + 1
-
-        return evenHours * 60
+        // Never below two minutes, so the three gridline labels stay distinct.
+        return max(2, step * magnitude)
     }
 
     // MARK: Duration Formatting
@@ -737,35 +780,10 @@ struct SummaryView: View {
             }
             .frame(height: 150)
             .padding(.top, 12)
-
-            Text(chartHint)
-                .mocoText(MocoScreenTheme.Typeface.caption)
-                .foregroundStyle(subtextGray)
-                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(MocoScreenTheme.Space.cardHorizontal)
         .frame(maxWidth: .infinity, alignment: .leading)
         .mocoCard()
-    }
-
-    // MARK: Chart Hint
-
-    private var chartHint: String {
-
-        switch range {
-
-        case .day:
-            return "Swipe horizontally to explore the hours"
-
-        case .week:
-            return "Swipe horizontally to explore the week"
-
-        case .month:
-            return "Swipe horizontally to explore the weeks"
-
-        case .year:
-            return "Swipe horizontally to explore the months"
-        }
     }
 
     // MARK: Activities

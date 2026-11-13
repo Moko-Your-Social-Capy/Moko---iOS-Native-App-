@@ -1,0 +1,1 @@
+Defines the app's SwiftData entities, DTOs, and value types for quests, profiles, onboarding, insights, calm-down sessions, and shared color tokens.

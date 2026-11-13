@@ -1,0 +1,9 @@
+schema_version: 1
+module_path: rive_projects
+title: Rive Animation Projects
+scope:
+    - Moko/RiveProjects/
+source_files: []
+depends_on: []
+related_to:
+    - path: app_skills

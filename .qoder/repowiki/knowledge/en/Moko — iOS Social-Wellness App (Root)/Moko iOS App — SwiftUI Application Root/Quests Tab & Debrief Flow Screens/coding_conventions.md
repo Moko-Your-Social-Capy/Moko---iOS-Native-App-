@@ -1,0 +1,5 @@
+- Cross-view navigation out of deep full-screen covers is done by injecting function-typed `EnvironmentValues` (`openOverview`, `endSession`) defined via private `EnvironmentKey` structs, rather than passing callbacks or using a router singleton.
+- Pluggable AI behavior is expressed as protocols (`DebriefCoaching`, `QuestBriefGenerating`) with a dummy implementation and a real one selected at runtime based on feature availability flags like `AFM.isAvailable`.
+- Each screen file begins with a top-of-file comment block describing its role, data source, and key user interactions before any code.
+- User-facing text strings are written directly as Swift string literals inside the view body rather than being pulled from a localization bundle.
+- Color and style constants are grouped in dedicated static enums per screen area (`QuestStyle`, `DebriefStyle`) instead of being scattered as inline hex values.

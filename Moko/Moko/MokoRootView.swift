@@ -119,8 +119,7 @@ struct MokoRootView: View {
         case .resume:
             OverviewResumeScreen(
                 quest: pendingDebriefQuest,
-                onSlideResume: presentPendingDebrief,
-                onStartDebrief: presentPendingDebrief
+                onSlideResume: presentPendingDebrief
             )
         case .debriefDone:
             OverviewDebriefDone()

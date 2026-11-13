@@ -1,0 +1,1 @@
+SwiftUI with `DragGesture`, `GeometryReader`, `@Environment(.dismiss)`, `@AppStorage`, and `sensoryFeedback` for haptics; assets referenced by string names from the Xcode asset catalog (e.g. `onboarding_q1..q8`, `capybara_peek`).

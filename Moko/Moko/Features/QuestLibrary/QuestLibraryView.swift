@@ -19,6 +19,8 @@ struct QuestLibraryView: View {
     @State private var openedQuest: Quest?
     @ScaledMetric(relativeTo: .body) private var cardWidth: CGFloat = 164
     @ScaledMetric(relativeTo: .body) private var cardHeight: CGFloat = 224
+    /// How far the library has scrolled (0 at rest), used to swap the large header for a compact title.
+    @State private var scrollOffset: CGFloat = 0
     /// Artwork URL of the library quest currently being opened. Passed to the
     /// detail screen so it shows the card's image instead of the category
     /// placeholder. Only set for quest library quests, never custom quests.
@@ -66,6 +68,14 @@ struct QuestLibraryView: View {
                         }
                         .padding(.bottom, 16)
                     }
+                    .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.contentOffset.y + geometry.contentInsets.top
+                    } action: { _, offset in
+                        scrollOffset = offset
+                    }
+                    .overlay(alignment: .top) {
+                        compactTitleBar
+                    }
                 }
             }
             .task {
@@ -86,6 +96,38 @@ struct QuestLibraryView: View {
     }
 
     // MARK: - Header
+
+    /// Small title pinned under the status bar. It fades in as the large in-content title scrolls
+    /// away, so the screen stays labelled without a navigation bar.
+    private var compactTitleBar: some View {
+        Text("Quest Library")
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(MokoTheme.titleBrown)
+            .lineLimit(1)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
+            // The lime backing runs up through the status bar so scrolled cards cannot show there.
+            .background {
+                MokoTheme.limeBackground
+                    .ignoresSafeArea(edges: .top)
+            }
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(QuestStyle.title.opacity(0.12))
+                    .frame(height: 0.5)
+            }
+            .opacity(compactTitleOpacity)
+            .allowsHitTesting(false)
+            .accessibilityHidden(compactTitleOpacity < 0.5)
+    }
+
+    /// Cross-fades between 0 and 1 while the large title slides out of view (~55 pt tall).
+    private var compactTitleOpacity: Double {
+        let fadeStart: CGFloat = 24
+        let fadeEnd: CGFloat = 56
+        return Double(min(max((scrollOffset - fadeStart) / (fadeEnd - fadeStart), 0), 1))
+    }
+
     private var headerSection: some View {
         HStack(alignment: .firstTextBaseline) {
             Text("Quest Library")

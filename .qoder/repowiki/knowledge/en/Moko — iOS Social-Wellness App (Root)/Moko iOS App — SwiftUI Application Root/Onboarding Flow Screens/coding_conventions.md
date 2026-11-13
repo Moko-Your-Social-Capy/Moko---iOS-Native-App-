@@ -1,0 +1,6 @@
+- Each screen is a standalone `struct ... : View` file with its own `#Preview` block at the bottom.
+- Child views communicate upward via callback closures (e.g. `onContinue`) rather than shared state, keeping them stateless except for local UI state.
+- Progress bars are built as a `GeometryReader`-based `ZStack` of two `Capsule`s — one track color and one filled width proportional to a `progress` CGFloat.
+- Backgrounds consistently use `MokoTheme.limeBackground.ignoresSafeArea()` so the lime background fills behind the system navigation bar.
+- Themed colors are exposed as static extensions on `Color` (ink, forest, cardFill, etc.) defined in `Colors.swift` and consumed throughout the screens.
+- The flow uses an `enum OnboardingStep: Hashable` combined with `NavigationStack(path:)` and `navigationDestination(for:)` instead of manual `@State` page flags.
