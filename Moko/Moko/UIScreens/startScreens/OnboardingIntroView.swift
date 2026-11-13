@@ -12,15 +12,13 @@ struct OnboardingIntroView: View {
     
     // Animation States
     @State private var hasAppeared = false
-    @State private var mokoBobOffset: CGFloat = 0.0
-    @State private var sparkleScale: CGFloat = 0.9
-    @State private var waveAngle: Double = 0.0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 // Warm Ivory Background
-                MokoTheme.background
+                MocoScreenTheme.Colors.tileLilac
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
@@ -28,29 +26,27 @@ struct OnboardingIntroView: View {
                     
                     // Playful Animated Mascot (Jump + Wave)
                     MokoAnimatedMascotView(size: min(geometry.size.width * 0.62, 250))
-                        .scaleEffect(hasAppeared ? 1.0 : 0.88)
-                        .opacity(hasAppeared ? 1.0 : 0.0)
                         .padding(.bottom, 16)
                     
                     // Title
-                    Text("Hello, I’m Moko.")
+                    Text("Hello, I’m Moco.")
                         .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundColor(MokoTheme.textPrimary)
+                        .foregroundColor(MocoScreenTheme.Colors.dataVioletDeep)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 24)
                         .opacity(hasAppeared ? 1.0 : 0.0)
-                        .offset(y: hasAppeared ? 0 : 12)
+                        .offset(y: hasAppeared || reduceMotion ? 0 : 12)
                     
                     // Subtitle
                     Text("Small daily nudges, an honest chat\nafter, that's it!")
                         .font(.system(size: 17, weight: .regular, design: .rounded))
-                        .foregroundColor(MokoTheme.textSecondary)
+                        .foregroundColor(MocoScreenTheme.Colors.textBody)
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
                         .padding(.top, 12)
                         .padding(.horizontal, 32)
                         .opacity(hasAppeared ? 1.0 : 0.0)
-                        .offset(y: hasAppeared ? 0 : 16)
+                        .offset(y: hasAppeared || reduceMotion ? 0 : 16)
                     
                     Spacer(minLength: 40)
                     
@@ -66,31 +62,21 @@ struct OnboardingIntroView: View {
                             .frame(height: 56)
                             .background(
                                 Capsule()
-                                    .fill(MokoTheme.forestGreen)
-                                    .shadow(color: MokoTheme.forestGreen.opacity(0.25), radius: 12, x: 0, y: 6)
+                                    .fill(MocoScreenTheme.Colors.dataVioletDeep)
                             )
                     }
                     .buttonStyle(MokoPrimaryButtonStyle())
                     .padding(.horizontal, 24)
                     .padding(.bottom, 20)
                     .opacity(hasAppeared ? 1.0 : 0.0)
-                    .offset(y: hasAppeared ? 0 : 20)
+                    .offset(y: hasAppeared || reduceMotion ? 0 : 20)
                 }
                 .padding(.top, geometry.safeAreaInsets.top > 0 ? 0 : 16)
                 .padding(.bottom, geometry.safeAreaInsets.bottom > 0 ? 0 : 16)
             }
             .onAppear {
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.72)) {
+                withAnimation(MocoScreenTheme.Motion.crossfade) {
                     hasAppeared = true
-                }
-                
-                // Gentle ambient breathing & waving animation
-                withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
-                    mokoBobOffset = -4
-                }
-                
-                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true).delay(0.2)) {
-                    waveAngle = 1.5
                 }
             }
         }

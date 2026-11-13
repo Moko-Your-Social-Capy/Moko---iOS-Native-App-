@@ -15,7 +15,7 @@ struct ProfileOverViewAchievementDetailUnlocked: View {
             Spacer(minLength: 24)
 
             if achievement.unlocked {
-                BadgeUnlockRiveView(achievement: achievement)
+                BadgeUnlockAnimation(achievement: achievement)
                     .padding(.bottom, 12)
                     .frame(maxWidth: .infinity)
             } else {
@@ -50,6 +50,37 @@ struct ProfileOverViewAchievementDetailUnlocked: View {
         .padding(.horizontal, 24)
         .background(ProfilePalette.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct BadgeUnlockAnimation: View {
+    let achievement: Achievement
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var appeared = false
+    @State private var tilt = 0.0
+
+    var body: some View {
+        AchievementBadgeView(achievement: achievement, size: 244)
+            .scaleEffect(appeared || reduceMotion ? 1 : 0.94)
+            .opacity(appeared ? 1 : 0)
+            .rotation3DEffect(.degrees(reduceMotion ? 0 : tilt), axis: (x: 0, y: 1, z: 0))
+            .gesture(
+                DragGesture(minimumDistance: 8)
+                    .onChanged { value in
+                        guard !reduceMotion else { return }
+                        tilt = min(25, max(-25, value.translation.width / 4))
+                    }
+                    .onEnded { _ in
+                        withAnimation(Theme.Motion.snapBack) { tilt = 0 }
+                    }
+            )
+            .sensoryFeedback(.success, trigger: appeared)
+            .onAppear {
+                withAnimation(reduceMotion ? Theme.Motion.crossfade : Theme.Motion.mascotEntrance) {
+                    appeared = true
+                }
+            }
     }
 }
 

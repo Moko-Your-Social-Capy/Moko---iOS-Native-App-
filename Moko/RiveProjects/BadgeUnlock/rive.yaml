@@ -1,7 +1,0 @@
-name: BadgeUnlock
-main: BadgeUnlock
-output:
-  dir: ../../Moko/Resources/Animations
-logs:
-  file: build/rive.log
-  problems: build/problems.log

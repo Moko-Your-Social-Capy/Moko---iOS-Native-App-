@@ -284,6 +284,8 @@ enum MocoScreenTheme {
     // MARK: - §7 Motion
 
     enum Motion {
+        /// One-shot mascot and achievement entrances.
+        static let mascotEntrance = Animation.spring(duration: 0.5, bounce: 0.2)
         /// Selection and value changes.
         static let tap = Animation.spring(response: 0.28, dampingFraction: 0.86)
         /// Release under threshold.

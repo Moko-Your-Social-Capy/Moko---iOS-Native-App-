@@ -11,7 +11,6 @@
 import SwiftUI
 import SwiftData
 import Combine
-import RiveRuntime
 
 struct BreathingSessionScreen: View {
     let minutes: Int
@@ -20,6 +19,7 @@ struct BreathingSessionScreen: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     fileprivate enum RunState {
         case idle, running, paused, completed
@@ -28,8 +28,6 @@ struct BreathingSessionScreen: View {
     @State private var runState: RunState
     @State private var elapsed: TimeInterval = 0
     @State private var lastTick: Date?
-    /// Bumped on reset so the Rive state machine starts again from frame 0.
-    @State private var riveResetID = UUID()
 
     private let ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
 
@@ -60,6 +58,14 @@ struct BreathingSessionScreen: View {
 
     private var isInhaling: Bool {
         elapsed.truncatingRemainder(dividingBy: cycle) < inhaleDuration
+    }
+
+    /// Driven by session time, so pause, resume, and reset cannot drift visually.
+    private var breathScale: CGFloat {
+        guard !reduceMotion else { return 1 }
+        let phase = elapsed.truncatingRemainder(dividingBy: cycle)
+        let fraction = isInhaling ? phase / inhaleDuration : 1 - (phase - inhaleDuration) / exhaleDuration
+        return 0.94 + 0.06 * CGFloat((1 - cos(.pi * fraction)) / 2)
     }
 
     private var phaseTitle: String {
@@ -133,17 +139,13 @@ struct BreathingSessionScreen: View {
                         .animation(.linear(duration: 1.0 / 30.0), value: progress)
                         .accessibilityLabel("Session progress, \(Int(progress * 100)) percent")
 
-                    AsyncRiveUIViewRepresentable {
-                        let worker = try await Worker()
-                        let file = try await File(
-                            source: .local("MokoMeditationRive", Bundle.main),
-                            worker: worker
-                        )
-                        return try await Rive(file: file)
-                    }
-                    .paused(runState != .running)
-                    .id(riveResetID)
-                    .frame(width: 250, height: 250)
+                    Image("MocoMascot")
+                        .resizable()
+                        .scaledToFit()
+                        .padding(18)
+                        .frame(width: 250, height: 250)
+                        .scaleEffect(breathScale, anchor: .bottom)
+                        .accessibilityHidden(true)
                     // The mascot is the direct start / pause / resume control.
                     .overlay {
                         Button(action: toggleMascotPlayback) {
@@ -320,7 +322,6 @@ struct BreathingSessionScreen: View {
         elapsed = 0
         lastTick = nil
         runState = .idle
-        riveResetID = UUID()
     }
 }
 

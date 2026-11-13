@@ -11,6 +11,7 @@ import Auth
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query private var onboardingStates: [OnboardingState]
     @Query private var profiles: [Profile]
     @Query private var onboardingResponses: [OnboardingResponse]
@@ -80,20 +81,8 @@ struct ContentView: View {
             // MARK: Splash
 
             case .splash:
-                SplashScreenView(
-                    autoAdvance: true,
-                    onFinished: {
-                        withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
-                            checkInitialRegistrationAndNavigate()
-                        }
-                    }
-                )
-                .transition(
-                    .asymmetric(
-                        insertion: .opacity,
-                        removal: .opacity.combined(with: .scale(scale: 1.04))
-                    )
-                )
+                SplashScreenView(onFinished: checkInitialRegistrationAndNavigate)
+                    .transition(.opacity)
 
             // MARK: Intro + Authentication
 
@@ -133,12 +122,10 @@ struct ContentView: View {
                     }
                 }
                 .tint(MokoTheme.forestGreen)
-                .transition(
-                    .asymmetric(
-                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                        removal: .move(edge: .leading).combined(with: .opacity)
-                    )
-                )
+                .transition(reduceMotion ? .opacity : .asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal: .move(edge: .leading).combined(with: .opacity)
+                ))
 
             // MARK: Onboarding Info Screens (Carousel -> Name -> Age -> Welcome)
 
@@ -215,7 +202,7 @@ struct ContentView: View {
     // MARK: - Navigation & Registration Logic
 
     private func checkInitialRegistrationAndNavigate() {
-        withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+        withAnimation(MocoScreenTheme.Motion.crossfade) {
             if !isSignedOut && isUserFullyRegistered {
                 currentScreen = .home
             } else {
