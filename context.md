@@ -4,7 +4,7 @@
 > change session (sections that changed + a new entry in [Change log](#change-log)).
 > Keep it factual: if the code and this file disagree, the code wins — then fix this file.
 
-Last updated: 2026-11-13 · Branch: `fix/bugs` · HEAD: `9e3718b`
+Last updated: 2026-11-13 · Branch: `fix/bugs` · HEAD: `207711c`
 
 ---
 
