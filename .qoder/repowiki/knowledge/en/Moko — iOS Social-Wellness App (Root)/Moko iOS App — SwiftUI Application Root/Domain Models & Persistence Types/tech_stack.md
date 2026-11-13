@@ -1,1 +1,0 @@
-SwiftUI + SwiftData (`@Model`, `ModelContainer`, `ModelConfiguration`) for on-device persistence; Combine is imported but unused here; Supabase JSON shapes are decoded into plain structs via `Decodable`/`CodingKeys`.

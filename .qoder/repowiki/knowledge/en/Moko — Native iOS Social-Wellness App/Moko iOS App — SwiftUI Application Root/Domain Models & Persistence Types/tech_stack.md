@@ -1,0 +1,1 @@
+SwiftUI + SwiftData (`@Model`, `ModelContainer`, `ModelConfiguration`) for on-device persistence; `Decodable`/`CodingKeys` for mapping Supabase JSON to local structs; `UserDefaults` for the ephemeral `CurrentUser.localID`.

@@ -301,9 +301,6 @@ final class DebriefSession {
         !messages.isEmpty && !isCoachTyping && !isGrading && !isComplete
     }
 
-    /// How many of the four answers have been graded (drives the progress bar)
-    var gradedCount: Int { grades.count }
-
     var timeText: String {
         String(format: "%d:%02d", elapsed / 60, elapsed % 60)
     }
@@ -650,7 +647,6 @@ struct QuestDebriefScreen: View {
             ScrollViewReader { proxy in
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-                        header
                         conversation
                         Color.clear.frame(height: 1).id("bottom")
                     }
@@ -754,42 +750,6 @@ struct QuestDebriefScreen: View {
         onExit(outcome)
     }
 
-    // MARK: Header
-    private var focusLabel: String {
-        if session.isComplete { return "Complete" }
-        return session.focus?.rawValue ?? "Your story"
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Debrief")
-                .mocoText(MocoScreenTheme.Typeface.title1)
-                .foregroundColor(DebriefStyle.title)
-
-            (Text("\(session.context.questTitle) · ")
-                .foregroundColor(DebriefStyle.subtext)
-             + Text(focusLabel)
-                .foregroundColor(DebriefStyle.green)
-                .fontWeight(.semibold))
-                .mocoText(MocoScreenTheme.Typeface.body)
-                .contentTransition(.opacity)
-                .animation(.easeInOut(duration: 0.3), value: focusLabel)
-
-            // Four segments: the story, then three follow-ups
-            HStack(spacing: 6) {
-                ForEach(0..<(DebriefSession.followUpCount + 1), id: \.self) { index in
-                    Capsule()
-                        .fill(index < session.gradedCount ? DebriefStyle.green : Color.black.opacity(0.08))
-                        .frame(height: 5)
-                }
-            }
-            .padding(.top, 8)
-            .animation(.easeOut(duration: 0.5), value: session.gradedCount)
-        }
-        .padding(.horizontal, MocoScreenTheme.Space.page)
-        .padding(.top, 20)
-    }
-
     // MARK: Conversation
     private var conversation: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -814,7 +774,7 @@ struct QuestDebriefScreen: View {
             }
         }
         .padding(.horizontal, MocoScreenTheme.Space.page)
-        .padding(.top, 24)
+        .padding(.top, 16)
         .padding(.bottom, 20)
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: session.isCoachTyping)
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: session.isRecording)

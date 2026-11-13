@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: ios_app/onboarding_questions
-title: Onboarding Questions & Reflection Screens
-scope:
-    - Moko/Moko/UIScreens/Onboarding_Questions/
-source_files: []
-depends_on: []
-related_to: []

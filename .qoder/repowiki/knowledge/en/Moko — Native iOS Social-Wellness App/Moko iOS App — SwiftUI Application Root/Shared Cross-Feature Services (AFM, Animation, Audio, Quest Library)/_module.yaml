@@ -1,0 +1,10 @@
+schema_version: 1
+module_path: ios_app/shared_features
+title: Shared Cross-Feature Services (AFM, Animation, Audio, Quest Library)
+scope:
+    - Moko/Moko/Features/
+    - Moko/Moko/Resources/
+source_files: []
+depends_on: []
+related_to:
+    - path: supabase_backend

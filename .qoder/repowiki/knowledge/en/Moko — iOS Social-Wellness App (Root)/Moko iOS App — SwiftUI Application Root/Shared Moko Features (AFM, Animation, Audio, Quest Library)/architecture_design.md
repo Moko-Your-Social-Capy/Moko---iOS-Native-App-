@@ -1,7 +1,0 @@
-Four independent feature sub-packages under `Features/`, each self-contained with no cross-imports:
-- `AFM/` — Apple Foundation Models layer. `MokoAFM.swift` exposes a `@MainActor enum AFM` entry point that wraps `LanguageModelSession` calls; all model output is typed via `@Generable` structs (`OnboardingInsights`, `QuestCardText`, `DebriefOpening`, `MainAnswerAnalysis`, `FollowUpAnalysis`, `DebriefClosing`) annotated with `@Guide` constraints. Prompt templates live in `OnboardingPrompts`, `QuestPrompts`, `DebriefPrompts` enums. Supporting files split concerns: `DailyMissionService` / `MokoServices` for mission orchestration, `MokoMissionBank` / `MokoMissionInvention` for template data, `AFMDebriefCoach` for debrief flow.
-- `Animation/` — animation orchestration. `MokoAnimationController` is a singleton managing current animation state; `MokoLottieView` / `MokoCompletionAnimation` / `MokoFlossLoadingView` are SwiftUI views wrapping Lottie/Rive assets from `Resources/Animations/`.
-- `Audio/` — thin `AVFoundation` wrapper (`DebriefSoundPlayer`) playing the bundled `google-pay-success.mp3`.
-- `QuestLibrary/` — service/store pair: `QuestLibraryService` queries Supabase's `quest_library` table; `QuestLibraryStore` is an `@Observable @MainActor` store exposing grouped sections to `QuestLibraryView`. Dependency direction is one-way: view → store → service → Supabase.
-
-All features depend only on `Foundation`, `FoundationModels`, `Supabase`, `AVFoundation`, and SwiftUI/UIKit primitives — no shared domain types outside this module.

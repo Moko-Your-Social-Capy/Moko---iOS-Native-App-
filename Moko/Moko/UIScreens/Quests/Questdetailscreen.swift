@@ -169,9 +169,10 @@ struct QuestDetailScreen: View {
             }
         }
         .background(MocoBackdrop())
-        // The NavigationStack supplies the default back button.
+        // The NavigationStack supplies the default back button on the detail; the debrief is
+        // chat-only, so no bar (and no back button) sits above its conversation.
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.visible, for: .navigationBar)
+        .toolbar(showingDebrief ? .hidden : .visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .toolbarBackground(.hidden, for: .navigationBar)
         .task {

@@ -1,0 +1,5 @@
+Flat feature-oriented collection of Swift files with no internal sub-packages. Three layers coexist in one directory:
+- Persistent `@Model` classes (`Quest`, `Profile`, `OnboardingState`, `OnboardingQuestion`, `InsightsModel`, `CalmDownModel`) backed by a SQLite store via `MokoDatabase.shared`.
+- Read-only DTOs for Supabase-backed library content (`LibraryQuest`, `QuestSection` in `QuestLibraryModels.swift`) that are plain `struct`s decoded from snake_case JSON via explicit `CodingKeys`.
+- Shared value objects and view helpers: enums `QuestIntensity`, `QuestCategory`, `CurrentUser` (local ID persisted through `UserDefaults`), `MokoDatabase` (factory exposing `shared` and `preview` `ModelContainer` instances), `OverviewData` (aggregates today's insights + calm-down minutes), `ColorTokens` (forest-green palette plus `View` extensions), `QuestStyle`/`QuestFormat` (colors and date formatting).
+Dependency direction is inward-only: models import SwiftUI/SwiftData/Foundation but are not imported by persistence or networking code; views reference these types directly.

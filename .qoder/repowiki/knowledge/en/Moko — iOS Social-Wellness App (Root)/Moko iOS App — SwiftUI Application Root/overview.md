@@ -1,1 +1,0 @@
-SwiftUI application root that wires SwiftData persistence, authentication, and the top-level app-state machine driving onboarding, home, quests, and relax flows.

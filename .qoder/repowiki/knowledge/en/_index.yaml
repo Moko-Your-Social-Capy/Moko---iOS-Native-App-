@@ -3,11 +3,11 @@ schema_version: 1
 locale: en-US
 branch: fix/bugs
 nodes_managed: true
-exported_at: "2026-11-13T04:17:38Z"
+exported_at: "2026-11-13T06:53:50Z"
 modules:
     "":
-        dir_name: Moko — iOS Social-Wellness App (Root)
-        title: Moko — iOS Social-Wellness App (Root)
+        dir_name: Moko — Native iOS Social-Wellness App
+        title: Moko — Native iOS Social-Wellness App
         scope:
             - README.md
             - MOKO_AFM_README.md
@@ -76,7 +76,9 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: ios_app/onboarding_questions
+            - path: ios_app/start_screens
     ios_app/onboarding_questions:
         dir_name: Onboarding Questions & Reflection Screens
         title: Onboarding Questions & Reflection Screens
@@ -85,7 +87,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: ios_app/onboarding_info
     ios_app/quests:
         dir_name: Quests Tab & Debrief Flow Screens
         title: Quests Tab & Debrief Flow Screens
@@ -103,11 +106,10 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to:
-            - path: supabase_backend
+        related_to: []
     ios_app/shared_features:
-        dir_name: Shared Moko Features (AFM, Animation, Audio, Quest Library)
-        title: Shared Moko Features (AFM, Animation, Audio, Quest Library)
+        dir_name: Shared Cross-Feature Services (AFM, Animation, Audio, Quest Library)
+        title: Shared Cross-Feature Services (AFM, Animation, Audio, Quest Library)
         scope:
             - Moko/Moko/Features/
             - Moko/Moko/Resources/
@@ -124,7 +126,8 @@ modules:
         source_files: []
         children: []
         depends_on: []
-        related_to: []
+        related_to:
+            - path: ios_app/onboarding_info
     rive_projects:
         dir_name: Rive Animation Projects
         title: Rive Animation Projects
@@ -144,5 +147,4 @@ modules:
         children: []
         depends_on: []
         related_to:
-            - path: ios_app/relax_screens
             - path: ios_app/shared_features

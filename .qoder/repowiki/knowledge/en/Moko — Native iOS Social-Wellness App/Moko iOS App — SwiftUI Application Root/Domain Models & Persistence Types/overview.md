@@ -1,0 +1,1 @@
+SwiftData entities, DTOs, and value types for quests, profiles, onboarding state, insights, calm-down sessions, and shared color/formatting tokens consumed by the SwiftUI views.

@@ -1,1 +1,0 @@
-SwiftUI + SwiftData (local store), Supabase (auth + read-only Postgres/Storage), GoogleSignIn, Lottie (legacy mascot JSON), RiveRuntime 6.29 (current mascot/badge animations), Apple FoundationModels (iOS 26+ AFM layer).

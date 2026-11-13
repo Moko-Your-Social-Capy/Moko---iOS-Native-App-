@@ -1,0 +1,1 @@
+Single Xcode app that wires a SwiftUI shell, SwiftData store, Supabase-backed content and auth, Apple Foundation Models coaching, and Lottie/Rive mascot animations into one target.

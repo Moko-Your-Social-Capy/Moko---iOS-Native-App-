@@ -1,1 +1,0 @@
-Root of the Moko native iOS app that wires a SwiftUI UI, Supabase-backed content, Apple Foundation Models coaching, and Rive/Lottie mascot animations into one Xcode project.

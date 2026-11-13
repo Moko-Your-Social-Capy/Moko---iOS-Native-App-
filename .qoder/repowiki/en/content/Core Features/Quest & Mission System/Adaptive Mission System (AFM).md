@@ -14,6 +14,14 @@
 - [MOKO_AFM_README.md](file://MOKO_AFM_README.md)
 </cite>
 
+## Update Summary
+**Changes Made**   
+- Enhanced AFM reliability with new AFMGenerationGate actor for process-wide request serialization
+- Improved error handling with refined transient vs permanent error classification
+- Added SwiftUI Preview support through isPreviewRuntime property
+- Updated architecture diagrams to reflect new generation gate component
+- Enhanced troubleshooting section with preview-specific guidance
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Project Structure](#project-structure)
@@ -26,7 +34,7 @@
 9. [Conclusion](#conclusion)
 
 ## Introduction
-The Adaptive Mission System (AFM) is the intelligence layer behind Moko’s quest generation, personalization, and debrief coaching. It combines a curated Mission Bank with Apple Foundation Models to:
+The Adaptive Mission System (AFM) is the intelligence layer behind Moko's quest generation, personalization, and debrief coaching. It combines a curated Mission Bank with Apple Foundation Models to:
 
 - Generate contextual daily missions that practice real social behaviors.
 - Prepare stepping-stone missions leading up to a user-defined event.
@@ -35,6 +43,8 @@ The Adaptive Mission System (AFM) is the intelligence layer behind Moko’s ques
 - Keep behavior safe, doable, and grounded through deterministic Swift rules and model-generated language.
 
 The system follows a clear design rule: Swift owns logic, scheduling, scoring, and safety; AFM owns language generation, analysis, and evidence extraction. Every AFM call has a static fallback so the app never blocks when Apple Intelligence is unavailable.
+
+**Updated** Enhanced reliability with process-wide request serialization and improved error handling ensures stable operation across concurrent scenarios.
 
 ## Project Structure
 The AFM feature lives under `Moko/Moko/Features/AFM/` and integrates with shared models and UI screens:
@@ -71,7 +81,7 @@ C --> H
 - [MokoMissionInvention.swift:1-307](file://Moko/Moko/Features/AFM/MokoMissionInvention.swift#L1-L307)
 - [AFMDebriefCoach.swift:1-219](file://Moko/Moko/Features/AFM/AFMDebriefCoach.swift#L1-L219)
 - [MokoServices.swift:1-695](file://Moko/Moko/Features/AFM/MokoServices.swift#L1-L695)
-- [MokoAFM.swift:1-617](file://Moko/Moko/Features/AFM/MokoAFM.swift#L1-L617)
+- [MokoAFM.swift:1-619](file://Moko/Moko/Features/AFM/MokoAFM.swift#L1-L619)
 - [DailyMissionService.swift:1-307](file://Moko/Moko/Features/AFM/DailyMissionService.swift#L1-L307)
 - [MokoMissionBank.swift:1-302](file://Moko/Moko/Features/AFM/MokoMissionBank.swift#L1-L302)
 - [QuestModels.swift:1-235](file://Moko/Moko/Models/QuestModels.swift#L1-L235)
@@ -85,20 +95,22 @@ C --> H
 - **MokoMissionInvention**: AI-powered mission invention pipeline that creates fresh, safe, and relevant quests anchored to vetted bank templates.
 - **AFMDebriefCoach**: Personalized debrief coach bridging Apple Foundation Models to the existing debrief UI.
 - **MokoServices**: Integration layer coordinating onboarding insights, quest card creation, daily mission planning, and debrief state management.
-- **MokoAFM**: Runtime helper for Apple Foundation Models, including availability checks, generation gating, prompt construction, and structured output types.
-- **DailyMissionService**: Adaptive planner that selects today’s featured mission, targets growth areas, and prepares stepping stones before custom events.
+- **MokoAFM**: Runtime helper for Apple Foundation Models, including availability checks, process-wide generation gating, prompt construction, and structured output types.
+- **DailyMissionService**: Adaptive planner that selects today's featured mission, targets growth areas, and prepares stepping stones before custom events.
 - **MokoMissionBank**: Shared domain types and the curated 20-situation Mission Bank used as anchors for all generated content.
+
+**Updated** MokoAFM now includes enhanced reliability features with process-wide request serialization and improved error classification.
 
 **Section sources**
 - [MokoMissionInvention.swift:1-307](file://Moko/Moko/Features/AFM/MokoMissionInvention.swift#L1-L307)
 - [AFMDebriefCoach.swift:1-219](file://Moko/Moko/Features/AFM/AFMDebriefCoach.swift#L1-L219)
 - [MokoServices.swift:1-695](file://Moko/Moko/Features/AFM/MokoServices.swift#L1-L695)
-- [MokoAFM.swift:1-617](file://Moko/Moko/Features/AFM/MokoAFM.swift#L1-L617)
+- [MokoAFM.swift:1-619](file://Moko/Moko/Features/AFM/MokoAFM.swift#L1-L619)
 - [DailyMissionService.swift:1-307](file://Moko/Moko/Features/AFM/DailyMissionService.swift#L1-L307)
 - [MokoMissionBank.swift:1-302](file://Moko/Moko/Features/AFM/MokoMissionBank.swift#L1-L302)
 
 ## Architecture Overview
-The AFM architecture separates concerns across four layers:
+The AFM architecture separates concerns across four layers with enhanced reliability mechanisms:
 
 1. **Domain and Data Layer**: Mission Bank, Quest models, Insights records.
 2. **Adaptive Planning Layer**: DailyMissionService and MissionPlanner select templates and schedule preparation ramps.
@@ -112,6 +124,7 @@ participant Daily as "DailyMissionService"
 participant Planner as "MissionPlanner"
 participant Cards as "QuestCardService"
 participant Inventor as "MissionInventor"
+participant Gate as "AFMGenerationGate"
 participant AFM as "AFM.generate"
 participant UI as "QuestDebriefScreen"
 participant Coach as "AFMDebriefCoach"
@@ -120,19 +133,27 @@ Daily->>Planner : plan(for upcoming or standard)
 Planner-->>Daily : PlannedMission[]
 Daily->>Cards : freshDailyCard(template, context)
 Cards->>Inventor : invent(anchor, difficulty, dayNumber, totalDays, practiceFor, focusStat)
-Inventor->>AFM : generate(InventedMission)
+Inventor->>Gate : acquire()
+Gate->>AFM : generate(InventedMission)
 AFM-->>Inventor : InventedMission
+Inventor->>Gate : release()
+Inventor->>Gate : acquire()
 Inventor->>AFM : generate(MissionCheck)
 AFM-->>Inventor : MissionCheck
+Inventor->>Gate : release()
 Inventor-->>Cards : QuestCard?
 Cards-->>Daily : QuestCard
 Daily-->>User : Today's mission
 User->>UI : Complete mission
 UI->>Coach : greeting / question / grade
+Coach->>Gate : acquire()
 Coach->>AFM : generate(analysis, questions, closing)
 AFM-->>Coach : grades, notes, follow-ups
+Coach->>Gate : release()
 Coach-->>UI : personalized debrief
 ```
+
+**Updated** Added AFMGenerationGate coordination to show process-wide request serialization.
 
 **Diagram sources**
 - [DailyMissionService.swift:125-225](file://Moko/Moko/Features/AFM/DailyMissionService.swift#L125-L225)
@@ -191,7 +212,7 @@ Key responsibilities:
 ### AFMDebriefCoach: Personalized Feedback and Coaching
 AFMDebriefCoach bridges Apple Foundation Models to the existing `QuestDebriefScreen`. It provides:
 
-- Personalized greetings using the user’s name and mission context.
+- Personalized greetings using the user's name and mission context.
 - Follow-up questions tailored to Presence, Clarity, Warmth, or Courage.
 - Grading of user answers with confidence, score, and warm notes.
 - Final score computation that blends per-answer grades and session confidence.
@@ -274,13 +295,15 @@ State management details:
 - [MokoServices.swift:467-693](file://Moko/Moko/Features/AFM/MokoServices.swift#L467-L693)
 
 ### MokoAFM: Apple Foundation Models Integration
-MokoAFM provides the runtime helper for Apple Foundation Models:
+MokoAFM provides the runtime helper for Apple Foundation Models with enhanced reliability:
 
 - Availability detection and preview/runtime guards.
-- Process-wide generation gate to serialize requests.
+- Process-wide generation gate to serialize requests and prevent concurrent access issues.
 - Fresh session per call with compact prompts.
-- Transient error retry logic and fallback handling.
+- Refined transient error retry logic and comprehensive fallback handling.
 - Structured output types for onboarding insights, quest cards, and debrief analysis.
+
+**Updated** Enhanced with AFMGenerationGate for process-wide request serialization and improved error classification.
 
 ```mermaid
 classDiagram
@@ -302,6 +325,8 @@ class AFMGenerationGate {
 AFM --> AFMGenerationGate : "uses"
 ```
 
+**Updated** Added AFMGenerationGate class showing the new serialization mechanism.
+
 **Diagram sources**
 - [MokoAFM.swift:37-210](file://Moko/Moko/Features/AFM/MokoAFM.swift#L37-L210)
 
@@ -310,13 +335,14 @@ Design principles:
 - Every call uses a fresh session and static fallback.
 - User text is wrapped in tags and declared as data.
 - Previews disable AFM to avoid framework assertions.
+- Process-wide serialization prevents concurrent request conflicts.
 
 **Section sources**
 - [MokoAFM.swift:1-17](file://Moko/Moko/Features/AFM/MokoAFM.swift#L1-L17)
 - [MokoAFM.swift:23-35](file://Moko/Moko/Features/AFM/MokoAFM.swift#L23-L35)
 - [MokoAFM.swift:37-210](file://Moko/Moko/Features/AFM/MokoAFM.swift#L37-L210)
 - [MokoAFM.swift:221-356](file://Moko/Moko/Features/AFM/MokoAFM.swift#L221-L356)
-- [MokoAFM.swift:358-617](file://Moko/Moko/Features/AFM/MokoAFM.swift#L358-L617)
+- [MokoAFM.swift:358-619](file://Moko/Moko/Features/AFM/MokoAFM.swift#L358-L619)
 
 ### DailyMissionService: Adaptive Mission Selection
 DailyMissionService ensures a fresh, tailored daily mission is always available:
@@ -383,7 +409,7 @@ Quest models define the persistent quest entity, intensity, category, and overvi
 - [InsightsModel.swift:11-26](file://Moko/Moko/Models/InsightsModel.swift#L11-L26)
 
 ## Dependency Analysis
-The AFM components have clear dependencies:
+The AFM components have clear dependencies with enhanced reliability:
 
 - `MokoMissionInvention` depends on `AFM.generate`, `MissionTemplate`, and `QuestCardService`.
 - `AFMDebriefCoach` depends on `AFM.generate`, `DebriefContext`, and `MissionBank`.
@@ -405,7 +431,10 @@ DMS["DailyMissionService"] --> MS
 DMS --> QM
 DMS --> MB
 QD --> ADC
+AFM --> AG["AFMGenerationGate"]
 ```
+
+**Updated** Added AFMGenerationGate dependency to show the new serialization layer.
 
 **Diagram sources**
 - [MokoMissionInvention.swift:222-304](file://Moko/Moko/Features/AFM/MokoMissionInvention.swift#L222-L304)
@@ -413,11 +442,13 @@ QD --> ADC
 - [MokoServices.swift:252-693](file://Moko/Moko/Features/AFM/MokoServices.swift#L252-L693)
 - [DailyMissionService.swift:125-303](file://Moko/Moko/Features/AFM/DailyMissionService.swift#L125-L303)
 - [Questdebrief.swift:484-800](file://Moko/Moko/UIScreens/Quests/Questdebrief.swift#L484-L800)
+- [MokoAFM.swift:44-70](file://Moko/Moko/Features/AFM/MokoAFM.swift#L44-L70)
 
 Coupling and cohesion:
 - High cohesion within each component (invention, coaching, services, AFM runtime).
 - Low coupling through well-defined interfaces (`DebriefCoaching`, `QuestCardService`, `MissionTemplate`).
 - No circular dependencies observed; AFM is a leaf dependency.
+- Enhanced reliability through process-wide request serialization.
 
 External integration points:
 - Apple Foundation Models via `LanguageModelSession`.
@@ -430,13 +461,15 @@ External integration points:
 
 ## Performance Considerations
 - **Fresh sessions per call**: Prevents context window overflow and keeps prompts compact.
-- **Generation gate**: Serializes AFM calls to avoid concurrent request errors.
+- **Process-wide generation gate**: Serializes AFM calls to avoid concurrent request errors and framework assertion failures.
+- **Enhanced error classification**: Distinguishes between transient errors (decoding, timeouts) that can be retried and permanent errors (guardrail violations, rate limits) that should fail fast.
 - **Fallback strategy**: Static Swift fallbacks ensure UI responsiveness when AFM is unavailable.
 - **Lazy generation**: Daily cards are generated when opened, not eagerly for all days.
 - **Asynchronous seeding**: Remaining categories are seeded in background tasks to avoid blocking the main thread.
 - **Confidence calibration**: Short answers receive lower confidence caps to avoid misleading scores.
+- **Preview environment detection**: Automatically disables AFM in SwiftUI Previews to prevent framework assertion issues.
 
-[No sources needed since this section provides general guidance]
+**Updated** Added performance considerations for the new generation gate and enhanced error handling.
 
 ## Troubleshooting Guide
 Common issues and resolutions:
@@ -447,9 +480,19 @@ Common issues and resolutions:
   - Fallback coaches and static text are used automatically.
 
 - **AFM generation failures**:
-  - Transient errors (decoding, timeouts) are retried.
-  - Guardrail violations, rate limits, and refusals are not retried.
+  - Transient errors (decoding, timeouts) are retried automatically.
+  - Permanent errors (guardrail violations, rate limits, refusals) are not retried to prevent assertion failures.
   - Inspect prompt structure and user input sanitization.
+
+- **Concurrent request errors**:
+  - The AFMGenerationGate serializes all requests process-wide to prevent overlapping sessions.
+  - If you encounter assertion failures, ensure all AFM calls go through `AFM.generate`.
+  - Avoid direct `LanguageModelSession` construction outside of AFM.
+
+- **SwiftUI Preview issues**:
+  - AFM is disabled in previews via `isPreviewRuntime` detection.
+  - Previews use static fallbacks instead of actual model calls.
+  - If you see assertion failures in previews, verify you're not bypassing the AFM layer.
 
 - **Empty or invalid debrief questions**:
   - Validate question length, punctuation, and emotional phrasing.
@@ -460,6 +503,8 @@ Common issues and resolutions:
   - Check `upcomingCustomQuest` and `templateForStat` logic.
   - Use `todayFallbackQuest` for immediate UI guarantees.
 
+**Updated** Added troubleshooting guidance for the new generation gate and preview environment handling.
+
 **Section sources**
 - [MokoAFM.swift:72-105](file://Moko/Moko/Features/AFM/MokoAFM.swift#L72-L105)
 - [MokoAFM.swift:164-204](file://Moko/Moko/Features/AFM/MokoAFM.swift#L164-L204)
@@ -467,14 +512,14 @@ Common issues and resolutions:
 - [Questdebrief.swift:128-225](file://Moko/Moko/UIScreens/Quests/Questdebrief.swift#L128-L225)
 
 ## Conclusion
-The Adaptive Mission System (AFM) delivers intelligent, personalized quest generation and debrief coaching by combining a curated Mission Bank with Apple Foundation Models. Its architecture ensures safety, relevance, and adaptability:
+The Adaptive Mission System (AFM) delivers intelligent, personalized quest generation and debrief coaching by combining a curated Mission Bank with Apple Foundation Models. Its architecture ensures safety, relevance, adaptability, and enhanced reliability:
 
 - **MokoMissionInvention** creates fresh, validated missions anchored to vetted templates.
 - **AFMDebriefCoach** provides personalized feedback based on user performance patterns.
 - **MokoServices** coordinates state, planning, and generation across components.
-- **MokoAFM** manages runtime integration with Apple Foundation Models.
+- **MokoAFM** manages runtime integration with Apple Foundation Models, including process-wide request serialization and enhanced error handling.
 - **DailyMissionService** adapts mission selection based on user history, preferences, and upcoming events.
 
-Over time, the system learns from user interactions by blending debrief scores into Insights records, adjusting future missions to target growth areas, and maintaining a balance between challenge and achievability. This makes AFM a robust foundation for evolving social-confidence training in Moko.
+The recent enhancements significantly improve system reliability through process-wide request serialization via AFMGenerationGate, refined error classification distinguishing transient from permanent failures, and robust SwiftUI Preview support. Over time, the system learns from user interactions by blending debrief scores into Insights records, adjusting future missions to target growth areas, and maintaining a balance between challenge and achievability. This makes AFM a robust foundation for evolving social-confidence training in Moko.
 
-[No sources needed since this section summarizes without analyzing specific files]
+**Updated** Enhanced reliability features ensure stable operation across concurrent scenarios and provide better developer experience through improved error handling and preview support.

@@ -1,0 +1,5 @@
+- Persistent entities are declared as `final class` annotated with `@Model` and conform to `Identifiable`, with UUID-based primary keys initialized in the initializer.
+- Read-only remote payloads such as `LibraryQuest` are plain `struct`s implementing `Identifiable`, `Hashable`, and `Decodable` with explicit `CodingKeys` mapping server snake_case columns to Swift camelCase properties.
+- Shared enumerations like `QuestIntensity` and `QuestCategory` use `nonisolated enum ... : String, CaseIterable, Identifiable, Codable, Hashable` with a computed `id` derived from `rawValue`.
+- Color resources are centralized in `ColorTokens` using named static constants with hex comments, and exposed to SwiftUI through extension methods on `View` (e.g. `background()`, `textPrimary()`).
+- Database accessors live in an `enum MokoDatabase` exposing a `shared` container for production and a `preview` in-memory container for Xcode previews, both built via a private `make(inMemory:)` helper.
