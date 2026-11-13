@@ -63,6 +63,7 @@ struct NewQuestScreen: View {
                         }
                     }
                 }
+                .listRowBackground(MocoScreenTheme.Colors.surfaceWhite)
 
                 Section("Schedule") {
                     DatePicker("Date",
@@ -74,11 +75,16 @@ struct NewQuestScreen: View {
                                selection: $scheduled,
                                displayedComponents: .hourAndMinute)
                 }
+                .listRowBackground(MocoScreenTheme.Colors.surfaceWhite)
             }
+            .mocoText(MocoScreenTheme.Typeface.body)
+            .foregroundStyle(MocoScreenTheme.Colors.textTitle)
+            .textCase(nil)
             .scrollContentBackground(.hidden)
-            .background(QuestStyle.screenBg)
+            .background { MocoBackdrop() }
             .navigationTitle(isEditing ? "Edit Quest" : "New Quest")
             .navigationBarTitleDisplayMode(.large)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -87,13 +93,15 @@ struct NewQuestScreen: View {
             .safeAreaInset(edge: .bottom) {
                 Button(action: save) {
                     Text(isEditing ? "Save Changes" : "Create Quest")
+                        .mocoText(MocoScreenTheme.Typeface.slider)
                         .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(QuestStyle.deepGreen)
                 .controlSize(.large)
                 .disabled(trimmedTitle.isEmpty)
-                .padding(.horizontal, 28)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
                 .padding(.bottom, 12)
             }
         }

@@ -26,38 +26,18 @@ struct GroundingExerciseScreen: View {
 
     // MARK: - Colors
 
-    private let screenBg = Color(
-        red: 246 / 255,
-        green: 250 / 255,
-        blue: 232 / 255
-    )
+    private let screenBg = MocoScreenTheme.Colors.canvasTop
 
-    private let cardGreen = Color(
-        red: 54 / 255,
-        green: 89 / 255,
-        blue: 72 / 255
-    )
+    private let cardGreen = MocoScreenTheme.Colors.dataVioletDeep
 
-    private let trackGreen = Color(
-        red: 226 / 255,
-        green: 245 / 255,
-        blue: 177 / 255
-    )
+    private let trackGreen = MocoScreenTheme.Colors.surfaceLavender
 
-    private let subtextGray = Color(
-        red: 111 / 255,
-        green: 103 / 255,
-        blue: 98 / 255
-    )
+    private let subtextGray = MocoScreenTheme.Colors.textBody
 
-    private let cream = Color(
-        red: 252 / 255,
-        green: 248 / 255,
-        blue: 240 / 255
-    )
+    private let cream = MocoScreenTheme.Colors.surfaceWhite
 
-    private let titleBrown = Color(red: 92 / 255, green: 67 / 255, blue: 48 / 255)
-    private let lime = Color(red: 226 / 255, green: 245 / 255, blue: 177 / 255)
+    private let titleBrown = MocoScreenTheme.Colors.textTitle
+    private let lime = MocoScreenTheme.Colors.surfaceLavender
 
     // MARK: - Grounding Steps
 
@@ -121,8 +101,7 @@ struct GroundingExerciseScreen: View {
 
     var body: some View {
         ZStack {
-            screenBg
-                .ignoresSafeArea()
+            MocoBackdrop()
 
             if isCompleted {
                 completionScreen
@@ -148,41 +127,44 @@ struct GroundingExerciseScreen: View {
     // MARK: - Exercise Screen
 
     private var exerciseScreen: some View {
-        VStack(spacing: 0) {
-            topBar
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
+        ScrollView {
+            VStack(spacing: 0) {
+                topBar
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.top, 8)
 
-            header
-                .padding(.horizontal, 24)
-                .padding(.top, 18)
+                header
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.top, 18)
 
-            progressBars
-                .padding(.horizontal, 24)
-                .padding(.top, 24)
+                progressBars
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.top, 24)
 
-            // Keep the main sensory content in a fixed layout area.
-            // This prevents the final step from shifting vertically.
-            Spacer(minLength: 4)
+                // Keep the main sensory content in a fixed layout area.
+                // This prevents the final step from shifting vertically.
+                Spacer(minLength: 4)
 
-            sensoryContent
-                .padding(.horizontal, 24)
-                .offset(y: -16)
+                sensoryContent
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .offset(y: -16)
 
-            everydayAnchorsCard
-                .padding(.horizontal, 24)
-                .padding(.top, 1)
+                everydayAnchorsCard
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.top, 1)
 
-            numberButtons
-                .padding(.horizontal, 24)
-                .padding(.top, 24)
+                numberButtons
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.top, 24)
 
-            Spacer(minLength: 20)
+                Spacer(minLength: 20)
 
-            continueButton
-                .padding(.horizontal, 28)
-                .padding(.bottom, 28)
+                continueButton
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.bottom, 28)
+            }
         }
+        .scrollBounceBehavior(.basedOnSize)
     }
 
     // MARK: - Sensory Content
@@ -193,19 +175,18 @@ struct GroundingExerciseScreen: View {
 
             // Reserve the same title height for every step.
             Text(currentStep.title)
-                .font(.system(size: 28, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.title1)
                 .foregroundColor(titleBrown)
                 .frame(maxWidth: .infinity)
-                .frame(height: 34)
+                .frame(minHeight: 34)
 
             // Reserve a consistent instruction area even when text wraps.
             Text(currentStep.instruction)
-                .font(.system(size: 16))
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .foregroundColor(subtextGray)
                 .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44, alignment: .top)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .top)
         }
         .frame(maxWidth: .infinity)
         .contentTransition(.opacity)
@@ -218,8 +199,8 @@ struct GroundingExerciseScreen: View {
         HStack {
             Spacer()
 
-            Text("STEP \(currentStepIndex + 1) OF \(steps.count)")
-                .font(.system(size: 12, weight: .semibold))
+            Text("Step \(currentStepIndex + 1) of \(steps.count)")
+                .mocoText(MocoScreenTheme.Typeface.caption)
                 .foregroundColor(cardGreen)
                 .padding(.horizontal, 14)
                 .frame(height: 30)
@@ -235,12 +216,11 @@ struct GroundingExerciseScreen: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Grounding Exercise")
-                .font(.system(size: 30, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.title1)
                 .foregroundColor(titleBrown)
 
-            Text("5-4-3-2-1 SENSORY RESET")
-                .font(.system(size: 13, weight: .semibold))
-                .tracking(1)
+            Text("5-4-3-2-1 sensory reset")
+                .mocoText(MocoScreenTheme.Typeface.caption)
                 .foregroundColor(subtextGray)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -276,7 +256,7 @@ struct GroundingExerciseScreen: View {
                 .frame(width: 100, height: 100)
 
             Text("\(currentStep.number)")
-                .font(.system(size: 42, weight: .bold, design: .rounded))
+                .mocoText(MocoScreenTheme.Typeface.numeral)
                 .foregroundColor(cream)
                 .contentTransition(.numericText())
         }
@@ -295,28 +275,20 @@ struct GroundingExerciseScreen: View {
                     .foregroundColor(cardGreen)
 
                 Text("Everyday anchors")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(MokoTheme.titleBrown)
+                    .mocoText(MocoScreenTheme.Typeface.slider)
+                    .foregroundColor(MocoScreenTheme.Colors.textTitle)
             }
 
             Text(currentStep.examples)
-                .font(.system(size: 14))
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .foregroundColor(subtextGray)
                 .multilineTextAlignment(.leading)
-                .lineLimit(3)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(height: 54, alignment: .top)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, minHeight: 54, alignment: .topLeading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.white)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(trackGreen.opacity(0.7), lineWidth: 1)
-        )
+        .padding(MocoScreenTheme.Space.cardHorizontal)
+        .mocoCard()
         .animation(stepAnimation, value: currentStepIndex)
     }
 
@@ -325,9 +297,10 @@ struct GroundingExerciseScreen: View {
     private var numberButtons: some View {
         VStack(alignment: .center, spacing: 12) {
             Text("Choose each one as you notice it")
-                .font(.system(size: 14, weight: .medium))
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .foregroundColor(subtextGray)
-                .frame(height: 20)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: 10) {
                 ForEach(1...requiredCount, id: \.self) { number in
@@ -335,7 +308,7 @@ struct GroundingExerciseScreen: View {
                         toggleSelection(number)
                     } label: {
                         Text("\(number)")
-                            .font(.system(size: 17, weight: .semibold))
+                            .mocoText(MocoScreenTheme.Typeface.cardTitle)
                             .foregroundColor(
                                 selectedNumbers.contains(number)
                                 ? .white
@@ -382,7 +355,7 @@ struct GroundingExerciseScreen: View {
                 ? "Finish"
                 : "Continue"
             )
-            .font(.system(size: 18, weight: .semibold))
+            .mocoText(MocoScreenTheme.Typeface.cardTitle)
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
@@ -421,7 +394,7 @@ struct GroundingExerciseScreen: View {
                 .padding(.top, 8)
 
             header
-                .padding(.horizontal, 24)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
                 .padding(.top, 18)
 
             Spacer(minLength: 16)
@@ -431,11 +404,11 @@ struct GroundingExerciseScreen: View {
 
             VStack(spacing: 8) {
                 Text("Well done")
-                    .font(.system(size: 26, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.title2)
                     .foregroundColor(titleBrown)
 
                 Text("You completed the 5-4-3-2-1 sensory reset")
-                    .font(.system(size: 15))
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .foregroundColor(subtextGray)
                     .multilineTextAlignment(.center)
                     .frame(height: 40, alignment: .top)
@@ -450,14 +423,14 @@ struct GroundingExerciseScreen: View {
                 onContinue()
             } label: {
                 Text("Complete")
-                    .font(.system(size: 18, weight: .semibold))
+                    .mocoText(MocoScreenTheme.Typeface.cardTitle)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(Capsule().fill(cardGreen))
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 28)
+            .padding(.horizontal, MocoScreenTheme.Space.page)
             .padding(.bottom, 28)
         }
     }
@@ -466,8 +439,8 @@ struct GroundingExerciseScreen: View {
         HStack {
             Spacer()
 
-            Text("COMPLETE")
-                .font(.system(size: 12, weight: .semibold))
+            Text("Complete")
+                .mocoText(MocoScreenTheme.Typeface.caption)
                 .foregroundColor(cardGreen)
                 .padding(.horizontal, 14)
                 .frame(height: 30)

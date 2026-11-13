@@ -4,6 +4,8 @@ supabase/.temp/
 # Xcode Derived Data
 DerivedData/
 **/DerivedData/
+Moko/.build/ThemeValidation/
+Moko/.build/theme-build.log
 
 # Xcode user-specific files
 *.xcuserstate

@@ -87,14 +87,10 @@ struct InsightsView: View {
 
     @State private var range: InsightsRange = .day
 
-    private let screenBg  = MokoTheme.limeBackground // #F6FAE8
-    private let green     = Color(red: 27/255, green: 66/255, blue: 47/255)    // #1B422F
-    private let mint      = Color(red: 203/255, green: 230/255, blue: 211/255)
-    private let titleDark = MokoTheme.titleBrown    // #5C4330
-    private let gray      = Color(red: 111/255, green: 103/255, blue: 98/255)  // #6F6762
-
-    /// Axis marks from the center outwards (the outer diamond is 100).
-    private let ticks = [25, 50, 75, 100]
+    private let green     = MocoScreenTheme.Colors.dataVioletDeep    // #1B422F
+    private let mint      = MocoScreenTheme.Colors.surfaceLavender
+    private let titleDark = MocoScreenTheme.Colors.textTitle    // #5C4330
+    private let gray      = MocoScreenTheme.Colors.textBody  // #6F6762
 
     /// Records that fall in today / this week / this month
     private var rangeRecords: [InsightsModel] {
@@ -134,16 +130,16 @@ struct InsightsView: View {
         switch band {
         case .strength:
             bandTitle = "Core Strength"
-            badgeColor = Color(red: 27/255, green: 66/255, blue: 47/255)
-            badgeBg = Color(red: 203/255, green: 230/255, blue: 211/255)
+            badgeColor = MocoScreenTheme.Colors.dataVioletDeep
+            badgeBg = MocoScreenTheme.Colors.surfaceLavender
         case .steady:
             bandTitle = "Grounded & Steady"
-            badgeColor = Color(red: 45/255, green: 75/255, blue: 55/255)
-            badgeBg = Color(red: 228/255, green: 238/255, blue: 228/255)
+            badgeColor = MocoScreenTheme.Colors.dataVioletDeep
+            badgeBg = MocoScreenTheme.Colors.surfaceLavender
         case .growth:
             bandTitle = "Growth Focus"
-            badgeColor = Color(red: 176/255, green: 78/255, blue: 58/255)
-            badgeBg = Color(red: 252/255, green: 238/255, blue: 234/255)
+            badgeColor = MocoScreenTheme.Colors.textBody
+            badgeBg = MocoScreenTheme.Colors.surfaceLavender
         }
 
         let detail: String
@@ -220,7 +216,7 @@ struct InsightsView: View {
 
     var body: some View {
         ZStack {
-            screenBg.ignoresSafeArea()
+            MocoBackdrop()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -236,7 +232,7 @@ struct InsightsView: View {
                     overallCard
 
                     Text("Social Pulse")
-                        .font(.title3.bold())
+                        .mocoText(MocoScreenTheme.Typeface.section)
                         .foregroundStyle(titleDark)
                         .padding(.top, 8)
 
@@ -244,12 +240,14 @@ struct InsightsView: View {
                         parameterCard(parameter)
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
                 .padding(.bottom, 24)
             }
         }
         .navigationTitle("Insights")
         .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .tint(MocoScreenTheme.Colors.dataVioletDeep)
         .animation(.easeInOut, value: range)
     }
 
@@ -262,108 +260,29 @@ struct InsightsView: View {
             HStack {
                 label("Clarity", scores.clarity)
 
-                GeometryReader { geo in
-                    let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
-                    let radius = min(geo.size.width, geo.size.height) / 2
-                    let points = radarPoints(center: center, radius: radius)
-
-                    ZStack {
-                        DiamondShape()
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                        DiamondShape()
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                            .scaleEffect(0.5)
-
-                        // X and Y axes
-                        Path { path in
-                            path.move(to: CGPoint(x: 0, y: center.y))
-                            path.addLine(to: CGPoint(x: geo.size.width, y: center.y))
-                            path.move(to: CGPoint(x: center.x, y: 0))
-                            path.addLine(to: CGPoint(x: center.x, y: geo.size.height))
-                        }
-                        .stroke(Color.gray.opacity(0.5), lineWidth: 1)
-
-                        // Tick marks: right of center (x) and above center (y)
-                        Path { path in
-                            for tick in ticks {
-                                let offset = radius * CGFloat(tick) / 100
-                                path.move(to: CGPoint(x: center.x + offset, y: center.y - 3))
-                                path.addLine(to: CGPoint(x: center.x + offset, y: center.y + 3))
-                                path.move(to: CGPoint(x: center.x - 3, y: center.y - offset))
-                                path.addLine(to: CGPoint(x: center.x + 3, y: center.y - offset))
-                            }
-                        }
-                        .stroke(Color.gray.opacity(0.5), lineWidth: 1)
-
-                        Path { path in
-                            path.addLines(points)
-                            path.closeSubpath()
-                        }
-                        .fill(green.opacity(0.25))
-
-                        Path { path in
-                            path.addLines(points)
-                            path.closeSubpath()
-                        }
-                        .stroke(green, lineWidth: 2)
-
-                        ForEach(points.indices, id: \.self) { index in
-                            Circle()
-                                .fill(green)
-                                .frame(width: 8, height: 8)
-                                .position(points[index])
-                        }
-
-                        // Axis numbers
-                        ForEach(ticks, id: \.self) { tick in
-                            let offset = radius * CGFloat(tick) / 100
-
-                            Text("\(tick)")
-                                .font(.system(size: 7))
-                                .foregroundStyle(gray)
-                                .position(x: center.x + offset, y: center.y + 9)
-
-                            Text("\(tick)")
-                                .font(.system(size: 7))
-                                .foregroundStyle(gray)
-                                .position(x: center.x + 12, y: center.y - offset)
-                        }
-                    }
-                }
-                .aspectRatio(1, contentMode: .fit)
+                MocoRadarChart(scores: scores)
+                    .aspectRatio(1, contentMode: .fit)
+                    .accessibilityHidden(true)
 
                 label("Presence", scores.presence)
             }
 
             label("Warmth", scores.warmth)
         }
-        .padding(.top, 8)
+        .padding(MocoScreenTheme.Space.cardHorizontal)
+        .mocoCard()
     }
 
     private func label(_ name: String, _ score: Double) -> some View {
         VStack(spacing: 2) {
             Text(name)
-                .font(.subheadline.bold())
+                .mocoText(MocoScreenTheme.Typeface.caption)
                 .foregroundStyle(titleDark)
             Text("\(Int(score.rounded()))")
-                .font(.subheadline)
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .foregroundStyle(gray)
         }
-    }
-
-    /// Top = Courage, right = Presence, bottom = Warmth, left = Clarity.
-    private func radarPoints(center: CGPoint, radius: CGFloat) -> [CGPoint] {
-        let courage  = radius * CGFloat(scores.courage) / 100
-        let presence = radius * CGFloat(scores.presence) / 100
-        let warmth   = radius * CGFloat(scores.warmth) / 100
-        let clarity  = radius * CGFloat(scores.clarity) / 100
-
-        return [
-            CGPoint(x: center.x, y: center.y - courage),
-            CGPoint(x: center.x + presence, y: center.y),
-            CGPoint(x: center.x, y: center.y + warmth),
-            CGPoint(x: center.x - clarity, y: center.y)
-        ]
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: Overall
@@ -372,20 +291,20 @@ struct InsightsView: View {
         HStack(spacing: 20) {
             VStack(alignment: .leading) {
                 Text("Overall")
-                    .font(.footnote.bold())
+                    .mocoText(MocoScreenTheme.Typeface.caption)
                     .foregroundStyle(gray)
                 Text("\(Int(scores.overall.rounded()))")
-                    .font(.system(size: 44, weight: .bold, design: .rounded))
+                    .mocoText(MocoScreenTheme.Typeface.numeral)
                     .foregroundStyle(green)
             }
 
             Text(overallNote)
-                .font(.footnote)
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .foregroundStyle(gray)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(mint, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .mocoCard(fill: mint)
     }
 
     private var overallNote: String {
@@ -416,10 +335,10 @@ struct InsightsView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(parameter.name)
-                        .font(.title3.bold())
+                        .mocoText(MocoScreenTheme.Typeface.section)
                         .foregroundStyle(titleDark)
                     Text(parameter.bandTitle)
-                        .font(.caption.weight(.semibold))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .foregroundStyle(parameter.badgeColor)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -427,7 +346,7 @@ struct InsightsView: View {
                 }
                 Spacer()
                 Text("\(Int(parameter.score.rounded()))")
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
+                    .mocoText(MocoScreenTheme.Typeface.numeral)
                     .foregroundStyle(green)
             }
 
@@ -439,17 +358,17 @@ struct InsightsView: View {
 
             // What this parameter means
             Text(parameter.detail)
-                .font(.subheadline)
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .foregroundStyle(gray)
                 .fixedSize(horizontal: false, vertical: true)
 
             // Personalised analysis
             VStack(alignment: .leading, spacing: 6) {
                 Label("Analysis", systemImage: "brain.head.profile")
-                    .font(.caption.weight(.semibold))
+                    .mocoText(MocoScreenTheme.Typeface.caption)
                     .foregroundStyle(green)
                 Text(parameter.analysis)
-                    .font(.subheadline)
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .foregroundStyle(gray)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -458,14 +377,14 @@ struct InsightsView: View {
             HStack(spacing: 4) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundStyle(green)
-                    .font(.caption)
+                    .mocoText(MocoScreenTheme.Typeface.caption)
                 Text("Supported by \(parameter.supportedBy)")
-                    .font(.caption)
+                    .mocoText(MocoScreenTheme.Typeface.caption)
                     .foregroundStyle(gray)
             }
         }
         .padding(20)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .mocoCard()
     }
 }
 

@@ -25,16 +25,16 @@ enum DebriefOutcome {
 
 // MARK: - Style
 enum DebriefStyle {
-    static let screenBg = MokoTheme.limeBackground  // #F6FAE8
-    static let green = Color(red: 54/255, green: 89/255, blue: 72/255)        // #365948
-    static let deepGreen = Color(red: 27/255, green: 66/255, blue: 47/255)    // #1B422F
-    static let title = MokoTheme.titleBrown        // #5C4330
-    static let subtext = Color(red: 111/255, green: 103/255, blue: 98/255)    // #6F6762
-    static let cream = Color(red: 251/255, green: 247/255, blue: 238/255)
-    static let border = Color(red: 234/255, green: 224/255, blue: 204/255)
-    static let sand = Color(red: 233/255, green: 226/255, blue: 210/255)
-    static let rust = Color(red: 176/255, green: 78/255, blue: 58/255)
-    static let mint = Color(red: 203/255, green: 230/255, blue: 211/255)
+    static let screenBg = MocoScreenTheme.Colors.canvasTop  // #F6FAE8
+    static let green = MocoScreenTheme.Colors.dataVioletDeep        // #365948
+    static let deepGreen = MocoScreenTheme.Colors.dataVioletDeep    // #1B422F
+    static let title = MocoScreenTheme.Colors.textTitle        // #5C4330
+    static let subtext = MocoScreenTheme.Colors.textBody    // #6F6762
+    static let cream = MocoScreenTheme.Colors.surfaceLavender
+    static let border = MocoScreenTheme.Colors.dataGrid
+    static let sand = MocoScreenTheme.Colors.surfaceLavender
+    static let rust = MocoScreenTheme.Colors.error
+    static let mint = MocoScreenTheme.Colors.surfaceLavender
 }
 
 // MARK: - The four parameters
@@ -529,7 +529,7 @@ struct QuestDebriefScreen: View {
 
     var body: some View {
         ZStack {
-            DebriefStyle.screenBg.ignoresSafeArea()
+            MocoBackdrop()
 
             ScrollViewReader { proxy in
                 ScrollView(.vertical, showsIndicators: false) {
@@ -626,7 +626,7 @@ struct QuestDebriefScreen: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Debrief")
-                .font(.system(size: 32, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.title1)
                 .foregroundColor(DebriefStyle.title)
 
             (Text("\(session.context.questTitle) · ")
@@ -634,7 +634,7 @@ struct QuestDebriefScreen: View {
              + Text(focusLabel)
                 .foregroundColor(DebriefStyle.green)
                 .fontWeight(.semibold))
-                .font(.system(size: 14))
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .contentTransition(.opacity)
                 .animation(.easeInOut(duration: 0.3), value: focusLabel)
 
@@ -649,7 +649,7 @@ struct QuestDebriefScreen: View {
             .padding(.top, 8)
             .animation(.easeOut(duration: 0.5), value: session.gradedCount)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, MocoScreenTheme.Space.page)
         .padding(.top, 20)
     }
 
@@ -676,7 +676,7 @@ struct QuestDebriefScreen: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, MocoScreenTheme.Space.page)
         .padding(.top, 24)
         .padding(.bottom, 20)
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: session.isCoachTyping)
@@ -713,7 +713,7 @@ struct QuestDebriefScreen: View {
                 composer
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, MocoScreenTheme.Space.page)
         .padding(.top, 10)
         .padding(.bottom, 8)
         .background(
@@ -736,7 +736,7 @@ struct QuestDebriefScreen: View {
     private var composer: some View {
         HStack(spacing: 8) {
             TextField(placeholder, text: $draft, axis: .vertical)
-                .font(.system(size: 16))
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .lineLimit(1...4)
                 .focused($isTyping)
                 .disabled(!session.canAnswer || session.isRecording)
@@ -751,7 +751,7 @@ struct QuestDebriefScreen: View {
                 Image(systemName: "xmark")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.white)
-                    .frame(width: 42, height: 42)
+                    .frame(width: 44, height: 44)
                     .background(Circle().fill(DebriefStyle.deepGreen))
                     .contentShape(Circle())
             }
@@ -762,9 +762,7 @@ struct QuestDebriefScreen: View {
         .padding(.trailing, 7)
         .padding(.vertical, 7)
         .frame(minHeight: 58)
-        .background(Capsule().fill(Color.white))
-        .overlay(Capsule().stroke(DebriefStyle.border, lineWidth: 1))
-        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
+        .mocoCard()
     }
 
     /// Send (when there's text), cancel (while recording) or start the mic
@@ -782,7 +780,7 @@ struct QuestDebriefScreen: View {
                 Image(systemName: "arrow.up")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.white)
-                    .frame(width: 42, height: 42)
+                    .frame(width: 44, height: 44)
                     .background(Circle().fill(DebriefStyle.green))
                     .contentShape(Circle())
             }
@@ -796,7 +794,7 @@ struct QuestDebriefScreen: View {
                 Image(systemName: "mic.slash.fill")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(DebriefStyle.rust)
-                    .frame(width: 42, height: 42)
+                    .frame(width: 44, height: 44)
                     .background(Circle().fill(DebriefStyle.rust.opacity(0.12)))
                     .contentShape(Circle())
             }
@@ -810,7 +808,7 @@ struct QuestDebriefScreen: View {
                 Image(systemName: "mic.fill")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(DebriefStyle.green)
-                    .frame(width: 42, height: 42)
+                    .frame(width: 44, height: 44)
                     .background(Circle().fill(DebriefStyle.mint.opacity(0.7)))
                     .contentShape(Circle())
             }
@@ -845,14 +843,12 @@ struct DebriefCoachBubble: View {
                 Text(text).opacity(0) // reserves the final size so the bubble doesn't jump
                 Text(String(text.prefix(shownCount)))
             }
-            .font(.system(size: 16, weight: .medium))
+            .mocoText(MocoScreenTheme.Typeface.body)
             .foregroundColor(DebriefStyle.title)
             .lineSpacing(3)
             .padding(.horizontal, 18)
             .padding(.vertical, 15)
-            .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Color.white))
-            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(DebriefStyle.border, lineWidth: 1))
-            .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
+            .mocoCard()
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(text)
 
@@ -891,7 +887,7 @@ struct DebriefUserBubble: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(text)
-                    .font(.system(size: 15, weight: .medium))
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .foregroundColor(DebriefStyle.title)
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
@@ -909,10 +905,7 @@ struct DebriefUserBubble: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
-            .background(DebriefStyle.cream)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(DebriefStyle.border, lineWidth: 1))
-            .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
+            .mocoCard(fill: MocoScreenTheme.Colors.surfaceLavender)
         }
         .onAppear { syncMeter() }
         .onChange(of: grade) { _, _ in syncMeter() }
@@ -938,14 +931,14 @@ struct DebriefUserBubble: View {
         } label: {
             HStack(spacing: 12) {
                 Text("Confidence")
-                    .font(.system(size: 12, weight: .semibold))
+                    .mocoText(MocoScreenTheme.Typeface.caption)
                     .foregroundColor(DebriefStyle.subtext)
 
                 meterBar
 
                 if let grade {
                     Text("\(grade.confidence)")
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .mocoText(MocoScreenTheme.Typeface.slider)
                         .foregroundColor(DebriefStyle.green)
                         .monospacedDigit()
                 } else {
@@ -990,7 +983,7 @@ struct DebriefUserBubble: View {
     private func details(_ grade: DebriefGrade) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(grade.note)
-                .font(.system(size: 13))
+                .mocoText(MocoScreenTheme.Typeface.caption)
                 .foregroundColor(DebriefStyle.subtext)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1001,7 +994,7 @@ struct DebriefUserBubble: View {
                         Image(systemName: focus.symbol)
                             .font(.system(size: 11, weight: .semibold))
                         Text("\(focus.rawValue) \(grade.score)")
-                            .font(.system(size: 12, weight: .semibold))
+                            .mocoText(MocoScreenTheme.Typeface.caption)
                     }
                     .foregroundColor(focus.accent)
                     .padding(.horizontal, 10)
@@ -1009,7 +1002,7 @@ struct DebriefUserBubble: View {
                     .background(Capsule().fill(focus.tint))
                 } else {
                     Text("Your story")
-                        .font(.system(size: 12, weight: .semibold))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .foregroundColor(DebriefStyle.green)
                         .padding(.horizontal, 10)
                         .frame(height: 26)
@@ -1030,15 +1023,14 @@ struct DebriefQuestionHeader: View {
 
     var body: some View {
         HStack {
-            Text("FOLLOW-UP QUESTIONS")
-                .font(.system(size: 12, weight: .bold))
-                .tracking(1.1)
-                .foregroundColor(DebriefStyle.rust)
+            Text("Follow-up questions")
+                .mocoText(MocoScreenTheme.Typeface.caption)
+                .foregroundColor(MocoScreenTheme.Colors.textBody)
 
             Spacer()
 
             Text("Question \(number) of \(total)")
-                .font(.system(size: 12, weight: .semibold))
+                .mocoText(MocoScreenTheme.Typeface.caption)
                 .foregroundColor(DebriefStyle.title)
                 .padding(.horizontal, 12)
                 .frame(height: 28)
@@ -1070,8 +1062,7 @@ struct DebriefTypingIndicator: View {
             }
             .padding(.horizontal, 18)
             .frame(height: 44)
-            .background(Capsule().fill(Color.white))
-            .overlay(Capsule().stroke(DebriefStyle.border, lineWidth: 1))
+            .mocoCard(radius: MocoScreenTheme.Radius.pill)
 
             Spacer()
         }
@@ -1097,7 +1088,7 @@ struct DebriefRecordingCard: View {
                             .fill(Color.white)
                             .frame(width: 10, height: 10)
                     }
-                    .frame(width: 42, height: 42)
+                    .frame(width: 44, height: 44)
                     .contentShape(Circle())
                 }
                 .buttonStyle(DebriefPressStyle())
@@ -1106,7 +1097,7 @@ struct DebriefRecordingCard: View {
                 waveform
 
                 Text(elapsed)
-                    .font(.system(size: 13, weight: .medium))
+                    .mocoText(MocoScreenTheme.Typeface.caption)
                     .monospacedDigit()
                     .foregroundColor(DebriefStyle.subtext)
             }
@@ -1118,16 +1109,13 @@ struct DebriefRecordingCard: View {
                 (Text(transcript.isEmpty ? "Listening…" : transcript)
                     .foregroundColor(transcript.isEmpty ? DebriefStyle.subtext : DebriefStyle.title)
                  + Text(" ▏").foregroundColor(caretOn ? DebriefStyle.green : Color.clear))
-                    .font(.system(size: 15, weight: .medium))
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .lineSpacing(3)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(16)
-        .background(DebriefStyle.cream)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(DebriefStyle.border, lineWidth: 1))
-        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
+        .mocoCard(fill: MocoScreenTheme.Colors.surfaceLavender)
     }
 
     /// Newest sound on the right, older sound fading to sand on the left
@@ -1137,7 +1125,7 @@ struct DebriefRecordingCard: View {
                 let age = Double(index) / Double(max(levels.count - 1, 1))
 
                 Capsule()
-                    .fill(age > 0.6 ? DebriefStyle.green : Color(red: 196/255, green: 176/255, blue: 140/255))
+                    .fill(age > 0.6 ? DebriefStyle.green : MocoScreenTheme.Colors.dataViolet)
                     .opacity(0.35 + 0.65 * age)
                     .frame(width: 3, height: 5 + CGFloat(levels[index]) * 26)
             }
@@ -1160,7 +1148,7 @@ struct DebriefOrb: View {
             DebriefDottedRing(count: 30, radius: 60, color: DebriefStyle.green)
                 .rotationEffect(.degrees(spin ? 360 : 0))
 
-            DebriefDottedRing(count: 18, radius: 47, color: Color(red: 120/255, green: 165/255, blue: 140/255))
+            DebriefDottedRing(count: 18, radius: 47, color: MocoScreenTheme.Colors.dataViolet)
                 .rotationEffect(.degrees(spin ? -360 : 0))
 
             // Glow that follows the voice
@@ -1187,7 +1175,7 @@ struct DebriefOrb: View {
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [Color(red: 96/255, green: 162/255, blue: 140/255), DebriefStyle.deepGreen],
+                        colors: [MocoScreenTheme.Colors.dataViolet, DebriefStyle.deepGreen],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -1250,17 +1238,17 @@ struct DebriefLeaveSheet: View {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 17, weight: .medium))
                     .foregroundColor(DebriefStyle.rust)
-                    .frame(width: 42, height: 42)
+                    .frame(width: 44, height: 44)
                     .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(DebriefStyle.cream))
                     .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(DebriefStyle.border, lineWidth: 1))
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Leave debrief early?")
-                        .font(.system(size: 20, weight: .semibold))
+                        .mocoText(MocoScreenTheme.Typeface.section)
                         .foregroundColor(DebriefStyle.title)
 
                     Text("Take a breath. No penalty for stepping away.")
-                        .font(.system(size: 13))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .foregroundColor(DebriefStyle.subtext)
                 }
             }
@@ -1272,7 +1260,7 @@ struct DebriefLeaveSheet: View {
                         .frame(width: 6, height: 6)
 
                     Text(unsentText)
-                        .font(.system(size: 12, weight: .medium))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .foregroundColor(Color(red: 170/255, green: 90/255, blue: 40/255))
                 }
                 .frame(maxWidth: .infinity)
@@ -1320,7 +1308,7 @@ struct DebriefLeaveSheet: View {
         .presentationDetents([.height(contentHeight)])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
-        .presentationBackground(Color.white)
+        .presentationBackground { MocoBackdrop() }
     }
 }
 
@@ -1374,11 +1362,11 @@ struct DebriefLeaveOption: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .font(.system(size: 16, weight: .semibold))
+                        .mocoText(MocoScreenTheme.Typeface.slider)
                         .foregroundColor(titleColor)
 
                     Text(subtitle)
-                        .font(.system(size: 12))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .foregroundColor(subtitleColor)
                 }
 
@@ -1386,15 +1374,7 @@ struct DebriefLeaveOption: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(background)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(style == .primary ? Color.clear : DebriefStyle.border, lineWidth: 1)
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .mocoCard(fill: background)
         }
         .buttonStyle(DebriefPressStyle())
     }
@@ -1424,11 +1404,11 @@ struct DebriefCompletionPanel: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
                         Text("Debrief Complete")
-                            .font(.system(size: 18, weight: .semibold))
+                            .mocoText(MocoScreenTheme.Typeface.cardTitle)
                             .foregroundColor(DebriefStyle.title)
 
                         Text("+\(result.xp) XP")
-                            .font(.system(size: 12, weight: .bold))
+                            .mocoText(MocoScreenTheme.Typeface.caption)
                             .foregroundColor(DebriefStyle.green)
                             .padding(.horizontal, 9)
                             .frame(height: 24)
@@ -1437,7 +1417,7 @@ struct DebriefCompletionPanel: View {
 
                     if result.streak > 0 {
                         Text("\(result.streak)-day streak")
-                            .font(.system(size: 12, weight: .medium))
+                            .mocoText(MocoScreenTheme.Typeface.caption)
                             .foregroundColor(DebriefStyle.subtext)
                     }
                 }
@@ -1457,7 +1437,7 @@ struct DebriefCompletionPanel: View {
 
             Button(action: onContinue) {
                 Text("Continue")
-                    .font(.system(size: 18, weight: .semibold))
+                    .mocoText(MocoScreenTheme.Typeface.cardTitle)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 58)
@@ -1467,10 +1447,7 @@ struct DebriefCompletionPanel: View {
             .buttonStyle(DebriefPressStyle())
         }
         .padding(18)
-        .background(DebriefStyle.cream)
-        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 30, style: .continuous).stroke(DebriefStyle.border, lineWidth: 1))
-        .shadow(color: Color.black.opacity(0.08), radius: 18, x: 0, y: 8)
+        .mocoCard(fill: MocoScreenTheme.Colors.surfaceLavender)
         .animation(.spring(response: 0.55, dampingFraction: 0.7), value: animate)
         .onAppear {
             animate = true
@@ -1488,7 +1465,7 @@ struct DebriefCompletionPanel: View {
                 .background(Circle().fill(parameter.tint))
 
             Text(parameter.rawValue)
-                .font(.system(size: 13, weight: .semibold))
+                .mocoText(MocoScreenTheme.Typeface.caption)
                 .foregroundColor(DebriefStyle.title)
                 .frame(width: 80, alignment: .leading)
 
@@ -1511,7 +1488,7 @@ struct DebriefCompletionPanel: View {
             .frame(height: 7)
 
             Text("\(value)")
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .mocoText(MocoScreenTheme.Typeface.slider)
                 .monospacedDigit()
                 .foregroundColor(DebriefStyle.green)
                 .frame(width: 30, alignment: .trailing)
@@ -1539,7 +1516,7 @@ struct DebriefCompletionPanel: View {
 
 #Preview("Complete") {
     ZStack(alignment: .bottom) {
-        DebriefStyle.screenBg.ignoresSafeArea()
+        MocoBackdrop()
 
         DebriefCompletionPanel(
             result: DebriefResult(

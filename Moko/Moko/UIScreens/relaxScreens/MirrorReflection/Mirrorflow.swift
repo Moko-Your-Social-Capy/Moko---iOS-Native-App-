@@ -15,16 +15,16 @@ import Combine
 
 // MARK: - Shared palette
 enum MirrorPalette {
-    static let screenBg = Color(red: 246/255, green: 250/255, blue: 232/255) // pale lime
-    static let green = Color(red: 54/255, green: 89/255, blue: 72/255)        // #365948
-    static let deepGreen = Color(red: 27/255, green: 66/255, blue: 47/255)    // #1B422F
-    static let softGreen = Color(red: 120/255, green: 165/255, blue: 140/255)
-    static let mint = Color(red: 226/255, green: 245/255, blue: 177/255)
-    static let doneGreen = Color(red: 112/255, green: 142/255, blue: 125/255)
-    static let title = Color(red: 92/255, green: 67/255, blue: 48/255)       // warm brown
-    static let subtext = Color(red: 111/255, green: 103/255, blue: 98/255)    // #6F6762
-    static let chip = Color(red: 237/255, green: 237/255, blue: 237/255)      // #EDEDED
-    static let cream = Color(red: 252/255, green: 248/255, blue: 240/255)
+    static let screenBg = MocoScreenTheme.Colors.canvasTop // pale lime
+    static let green = MocoScreenTheme.Colors.dataVioletDeep        // #365948
+    static let deepGreen = MocoScreenTheme.Colors.dataVioletDeep    // #1B422F
+    static let softGreen = MocoScreenTheme.Colors.dataViolet
+    static let mint = MocoScreenTheme.Colors.surfaceLavender
+    static let doneGreen = MocoScreenTheme.Colors.dataViolet
+    static let title = MocoScreenTheme.Colors.textTitle       // warm brown
+    static let subtext = MocoScreenTheme.Colors.textBody    // #6F6762
+    static let chip = MocoScreenTheme.Colors.surfaceLavender      // #EDEDED
+    static let cream = MocoScreenTheme.Colors.surfaceWhite
 }
 
 // MARK: - Flow container
@@ -49,7 +49,7 @@ struct MirrorFlowView: View {
 
     var body: some View {
         ZStack {
-            MirrorPalette.screenBg.ignoresSafeArea()
+            MocoBackdrop()
 
             switch step {
             case .landing:
@@ -139,11 +139,11 @@ struct MirrorHeader: View {
     var body: some View {
         VStack(alignment: centered ? .center : .leading, spacing: 4) {
             Text("Mirror Reflection")
-                .font(.system(size: 30, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.title1)
                 .foregroundColor(MirrorPalette.title)
 
             Text("A self-reflective confidence practice")
-                .font(.system(size: 15))
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .foregroundColor(MirrorPalette.subtext)
         }
         .frame(maxWidth: .infinity, alignment: centered ? .center : .leading)
@@ -157,7 +157,7 @@ struct MirrorPrimaryButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 18, weight: .semibold))
+                .mocoText(MocoScreenTheme.Typeface.cardTitle)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
@@ -212,12 +212,12 @@ struct MirrorPrepScreen<Hero: View>: View {
 
     var body: some View {
         ZStack {
-            MirrorPalette.screenBg.ignoresSafeArea()
+            MocoBackdrop()
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
                     MirrorHeader()
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
                         .padding(.top, 18)
 
                     // The illustration glows a little brighter as each point appears
@@ -225,25 +225,25 @@ struct MirrorPrepScreen<Hero: View>: View {
                         .padding(.top, 8)
 
                     Text(title)
-                        .font(.system(size: 22, weight: .bold))
+                        .mocoText(MocoScreenTheme.Typeface.title2)
                         .foregroundColor(MirrorPalette.title)
                         .multilineTextAlignment(.center)
                         .padding(.top, 10)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
 
                     Text(listTitle)
-                        .font(.system(size: 15, weight: .medium))
+                        .mocoText(MocoScreenTheme.Typeface.body)
                         .foregroundColor(MirrorPalette.subtext)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 28)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
                         .padding(.top, 24)
 
                     bulletCard
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
                         .padding(.top, 10)
 
                     Text("Take your time. Continue when you’re ready.")
-                        .font(.system(size: 14))
+                        .mocoText(MocoScreenTheme.Typeface.body)
                         .foregroundColor(MirrorPalette.subtext)
                         .multilineTextAlignment(.center)
                         .padding(.top, 16)
@@ -254,7 +254,7 @@ struct MirrorPrepScreen<Hero: View>: View {
         }
         .safeAreaInset(edge: .bottom) {
             MirrorPrimaryButton(title: "Continue", action: onContinue)
-                .padding(.horizontal, 28)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
                 .padding(.bottom, 12)
         }
         .onAppear {
@@ -278,9 +278,8 @@ struct MirrorPrepScreen<Hero: View>: View {
             }
         }
         .padding(.vertical, 4)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .shadow(color: Color.black.opacity(0.04), radius: 10, x: 0, y: 3)
+        .clipShape(RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.card, style: .continuous))
+        .mocoCard()
     }
 
     private func bulletRow(_ text: String, index: Int) -> some View {
@@ -298,7 +297,7 @@ struct MirrorPrepScreen<Hero: View>: View {
             }
 
             Text(text)
-                .font(.system(size: 16, weight: .medium))
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .foregroundColor(MirrorPalette.title)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -371,20 +370,20 @@ struct MirrorTimerScreen: View {
 
     var body: some View {
         ZStack {
-            MirrorPalette.screenBg.ignoresSafeArea()
+            MocoBackdrop()
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
                     MirrorHeader()
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
                         .padding(.top, 18)
 
                     affirmationsView
                         .padding(.top, 26)
-                        .padding(.horizontal, 28)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
 
                     Text(titleText)
-                        .font(.system(size: 24, weight: .bold))
+                        .mocoText(MocoScreenTheme.Typeface.title2)
                         .foregroundColor(MirrorPalette.title)
                         .padding(.top, 28)
 
@@ -397,7 +396,7 @@ struct MirrorTimerScreen: View {
                     .padding(.top, 14)
 
                     Text(timeText)
-                        .font(.system(size: 56, weight: .light, design: .rounded))
+                        .mocoText(MocoScreenTheme.Typeface.numeral)
                         .monospacedDigit()
                         .foregroundColor(MirrorPalette.green)
                         .padding(.top, 6)
@@ -429,7 +428,7 @@ struct MirrorTimerScreen: View {
                 let highlighted = isActive && index == activeIndex
 
                 Text(affirmations[index])
-                    .font(.system(size: 15, weight: highlighted ? .semibold : .regular))
+                    .mocoText(highlighted ? MocoScreenTheme.Typeface.slider : MocoScreenTheme.Typeface.body)
                     .foregroundColor(highlighted ? MirrorPalette.title : MirrorPalette.subtext)
                     .multilineTextAlignment(.center)
                     .opacity(isActive ? (highlighted ? 1 : 0.35) : 0.9)
@@ -466,7 +465,7 @@ struct MirrorTimerScreen: View {
                 }
             }
         }
-        .padding(.horizontal, 28)
+        .padding(.horizontal, MocoScreenTheme.Space.page)
         .padding(.bottom, 12)
         .animation(.easeInOut(duration: 0.2), value: runState)
     }
@@ -600,11 +599,11 @@ struct MirrorCompletionScreen: View {
 
     var body: some View {
         ZStack {
-            MirrorPalette.screenBg.ignoresSafeArea()
+            MocoBackdrop()
 
             VStack(spacing: 0) {
                 MirrorHeader(centered: true)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
                     .padding(.top, 26)
 
                 Spacer(minLength: 12)
@@ -612,12 +611,12 @@ struct MirrorCompletionScreen: View {
                 MokoCompletionAnimation(ringDiameter: 190)
 
                 Text("You did it!")
-                    .font(.system(size: 32, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.title1)
                     .foregroundColor(MirrorPalette.title)
                     .padding(.top, 8)
 
                 Text("You took a moment to look at yourself with kindness and appreciate the person you are.")
-                    .font(.system(size: 16))
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .foregroundColor(MirrorPalette.subtext)
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
@@ -627,7 +626,7 @@ struct MirrorCompletionScreen: View {
                 Spacer(minLength: 12)
 
                 MirrorPrimaryButton(title: "Done", action: onDone)
-                    .padding(.horizontal, 28)
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
                     .padding(.bottom, 12)
             }
         }

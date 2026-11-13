@@ -24,36 +24,35 @@ struct OverviewDebriefDone: View {
     }
 
     // Palette matching design specifications
-    private let screenBg = MokoTheme.limeBackground // #F6FAE8
-    private let primaryGreen = Color(red: 27/255, green: 66/255, blue: 47/255) // #1B422F
-    private let titleDark = MokoTheme.titleBrown // #5C4330
-    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
-    private let timerBlue = Color(red: 10/255, green: 132/255, blue: 255/255) // #0A84FF
+    private let screenBg = MocoScreenTheme.Colors.canvasTop // #F6FAE8
+    private let primaryGreen = MocoScreenTheme.Colors.dataVioletDeep // #1B422F
+    private let titleDark = MocoScreenTheme.Colors.textTitle // #5C4330
+    private let subtextGray = MocoScreenTheme.Colors.textBody // #6F6762
+    private let timerBlue = MocoScreenTheme.Colors.countdownValue // #0A84FF
 
     var body: some View {
         NavigationStack {
             ZStack {
                 // Background
-                screenBg
-                    .ignoresSafeArea()
+                MocoBackdrop()
 
                 // Scrollable Content Area
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
                         // MARK: - Header
                         headerSection
-                            .padding(.horizontal, 20)
+                            .padding(.horizontal, MocoScreenTheme.Space.page)
                             .padding(.top, 14)
 
                         // MARK: - Today's Mission Section
                         todaysMissionSection
                             .padding(.top, 28)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, MocoScreenTheme.Space.page)
 
                         // MARK: - Statistics Section
                         statisticsSection
                             .padding(.top, 28)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, MocoScreenTheme.Space.page)
                             .padding(.bottom, 24)
                     }
                 }
@@ -79,8 +78,8 @@ struct OverviewDebriefDone: View {
     private var headerSection: some View {
         HStack(alignment: .center) {
             Text("Overview")
-                .font(.system(size: 34, weight: .bold))
-                .foregroundColor(MokoTheme.titleBrown)
+                .mocoText(MocoScreenTheme.Typeface.title1)
+                .foregroundColor(MocoScreenTheme.Colors.textTitle)
 
             Spacer()
 
@@ -90,16 +89,16 @@ struct OverviewDebriefDone: View {
             } label: {
                 ZStack {
                     Circle()
-                        .fill(Color(red: 68/255, green: 68/255, blue: 68/255).opacity(0.6))
-                        .frame(width: 47, height: 47)
+                        .fill(MocoScreenTheme.Colors.avatarFill)
+                        .frame(width: MocoScreenTheme.Size.avatar, height: MocoScreenTheme.Size.avatar)
 
                     if let name = profiles.first?.username, !name.isEmpty {
                         Text(String(name.prefix(2)).uppercased())
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
+                            .mocoText(MocoScreenTheme.Typeface.slider)
+                            .foregroundColor(MocoScreenTheme.Colors.avatarText)
                     } else {
                         Image(systemName: "person.fill")
-                            .foregroundColor(.white)
+                            .foregroundColor(MocoScreenTheme.Colors.avatarText)
                     }
                 }
             }
@@ -111,14 +110,14 @@ struct OverviewDebriefDone: View {
     private var todaysMissionSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Mission")
-                .font(.system(size: 22, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.title2)
                 .foregroundColor(titleDark)
 
             VStack(alignment: .leading, spacing: 0) {
 
                 // Card Header
                 Text("No Active Quest")
-                    .font(.system(size: 22, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.title2)
                     .foregroundColor(primaryGreen)
                     .padding(.top, 24)
                     .padding(.horizontal, 20)
@@ -127,11 +126,11 @@ struct OverviewDebriefDone: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 42, weight: .regular))
                     .foregroundColor(
-                        Color(red: 0.20, green: 0.55, blue: 0.38)
+                        MocoScreenTheme.Colors.dataVioletDeep
                     )
                     .padding(12)
                     .background(
-                        Color(red: 0.20, green: 0.55, blue: 0.38)
+                        MocoScreenTheme.Colors.dataVioletDeep
                             .opacity(0.10),
                         in: Circle()
                     )
@@ -140,7 +139,7 @@ struct OverviewDebriefDone: View {
 
                 // Main Message
                 Text("All quests completed!")
-                    .font(.system(size: 21, weight: .semibold))
+                    .mocoText(MocoScreenTheme.Typeface.section)
                     .foregroundColor(titleDark)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: .infinity)
@@ -149,14 +148,14 @@ struct OverviewDebriefDone: View {
 
                 // Description
                 Text("You've finished today's quests. Discover more interesting challenges in the quest library.")
-                    .font(.system(size: 16, weight: .regular))
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .foregroundColor(subtextGray)
                     .lineSpacing(4)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity)
                     .padding(.top, 10)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
 
                 // Countdown Footer
                 HStack(spacing: 7) {
@@ -164,17 +163,17 @@ struct OverviewDebriefDone: View {
                         .font(.system(size: 14, weight: .medium))
 
                     Text("New quests in")
-                        .font(.system(size: 14, weight: .regular))
+                        .mocoText(MocoScreenTheme.Typeface.body)
 
                     Text("12 hrs 48 mins")
-                        .font(.system(size: 14, weight: .semibold))
+                        .mocoText(MocoScreenTheme.Typeface.slider)
                         .foregroundColor(timerBlue)
                 }
                 .foregroundColor(subtextGray)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 13)
                 .background(
-                    Color(red: 0.96, green: 0.96, blue: 0.97),
+                    MocoScreenTheme.Colors.surfaceLavender,
                     in: RoundedRectangle(
                         cornerRadius: 12,
                         style: .continuous
@@ -185,20 +184,7 @@ struct OverviewDebriefDone: View {
                 .padding(.bottom, 20)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white)
-            .clipShape(
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-            )
-            .overlay {
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Color.black.opacity(0.035), lineWidth: 1)
-            }
-            .shadow(
-                color: Color.black.opacity(0.045),
-                radius: 12,
-                x: 0,
-                y: 4
-            )
+            .mocoCard()
         }
     }
 
@@ -206,7 +192,7 @@ struct OverviewDebriefDone: View {
     private var statisticsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Growth")
-                .font(.system(size: 22, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.title2)
                 .foregroundColor(titleDark)
 
             // Insights Card (opens the radar chart info sheet)
@@ -231,7 +217,7 @@ struct OverviewDebriefDone: View {
             // Card Top Row
             HStack(alignment: .center) {
                 Text("Insights")
-                    .font(.system(size: 20, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.section)
                     .foregroundColor(primaryGreen)
 
                 Spacer()
@@ -243,7 +229,7 @@ struct OverviewDebriefDone: View {
                             .month(.abbreviated)
                             .day()
                     ))
-                        .font(.system(size: 13, weight: .medium))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .foregroundColor(titleDark)
 
                     Image(systemName: "chevron.right")
@@ -258,11 +244,11 @@ struct OverviewDebriefDone: View {
             HStack(alignment: .bottom) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text("\(Int(data.insights.warmth.rounded()))")
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                        .mocoText(MocoScreenTheme.Typeface.numeral)
                         .foregroundColor(primaryGreen)
 
                     Text("warmth")
-                        .font(.system(size: 18, weight: .medium))
+                        .mocoText(MocoScreenTheme.Typeface.unit)
                         .foregroundColor(primaryGreen)
                 }
                 .padding(.bottom, 6)
@@ -270,18 +256,16 @@ struct OverviewDebriefDone: View {
                 Spacer()
 
                 // Radar / Diamond Shape Chart
-                InsightsRadarChartView(scores: data.insights)
-                    .frame(width: 106, height: 106)
+                MocoRadarChart(scores: data.insights)
+                    .frame(width: MocoScreenTheme.Size.radar, height: MocoScreenTheme.Size.radar)
             }
             .padding(.horizontal, 20)
             .padding(.top, 10)
             .padding(.bottom, 16)
         }
         .frame(maxWidth: .infinity)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.card, style: .continuous))
+        .mocoCard()
     }
 
     // MARK: - Calm Down Card
@@ -290,7 +274,7 @@ struct OverviewDebriefDone: View {
             // Card Top Row
             HStack(alignment: .center) {
                 Text("Calm Down")
-                    .font(.system(size: 20, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.section)
                     .foregroundColor(primaryGreen)
 
                 Spacer()
@@ -302,7 +286,7 @@ struct OverviewDebriefDone: View {
                             .month(.abbreviated)
                             .day()
                     ))
-                        .font(.system(size: 13, weight: .medium))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .foregroundColor(titleDark)
 
                     Image(systemName: "chevron.right")
@@ -317,11 +301,11 @@ struct OverviewDebriefDone: View {
             HStack(alignment: .bottom) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text("\(data.calmDownMinutes)")
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                        .mocoText(MocoScreenTheme.Typeface.numeral)
                         .foregroundColor(primaryGreen)
 
                     Text("min")
-                        .font(.system(size: 18, weight: .medium))
+                        .mocoText(MocoScreenTheme.Typeface.unit)
                         .foregroundColor(primaryGreen)
                 }
                 .padding(.bottom, 6)
@@ -329,18 +313,16 @@ struct OverviewDebriefDone: View {
                 Spacer()
 
                 // Bar Chart Visual
-                CalmDownBarChartView(minutes: data.calmDownBars)
-                    .frame(height: 72)
+                MocoBarChart(values: data.calmDownBars)
+                    .frame(width: MocoScreenTheme.Size.barChart.width, height: MocoScreenTheme.Size.barChart.height)
             }
             .padding(.horizontal, 20)
             .padding(.top, 14)
             .padding(.bottom, 18)
         }
         .frame(maxWidth: .infinity)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.card, style: .continuous))
+        .mocoCard()
     }
 }
 

@@ -39,36 +39,35 @@ struct OverviewResumeScreen: View {
     }
 
     // Palette matching design specifications
-    private let screenBg = MokoTheme.limeBackground // #F6FAE8
-    private let primaryGreen = Color(red: 27/255, green: 66/255, blue: 47/255) // #1B422F
-    private let micGreen = Color(red: 47/255, green: 79/255, blue: 64/255)
-    private let titleDark = MokoTheme.titleBrown // #5C4330
-    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
+    private let screenBg = MocoScreenTheme.Colors.canvasTop // #F6FAE8
+    private let primaryGreen = MocoScreenTheme.Colors.dataVioletDeep // #1B422F
+    private let micGreen = MocoScreenTheme.Colors.accentBlue
+    private let titleDark = MocoScreenTheme.Colors.textTitle // #5C4330
+    private let subtextGray = MocoScreenTheme.Colors.textBody // #6F6762
 
     var body: some View {
         NavigationStack {
             ZStack {
                 // Background
-                screenBg
-                    .ignoresSafeArea()
+                MocoBackdrop()
 
                 // Scrollable Content Area
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
                         // MARK: - Header
                         headerSection
-                            .padding(.horizontal, 20)
+                            .padding(.horizontal, MocoScreenTheme.Space.page)
                             .padding(.top, 14)
 
                         // MARK: - Today's Mission Section
                         todaysMissionSection
                             .padding(.top, 28)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, MocoScreenTheme.Space.page)
 
                         // MARK: - Statistics Section
                         statisticsSection
                             .padding(.top, 28)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, MocoScreenTheme.Space.page)
                             .padding(.bottom, 24)
                     }
                 }
@@ -94,8 +93,8 @@ struct OverviewResumeScreen: View {
     private var headerSection: some View {
         HStack(alignment: .center) {
             Text("Overview")
-                .font(.system(size: 34, weight: .bold))
-                .foregroundColor(MokoTheme.titleBrown)
+                .mocoText(MocoScreenTheme.Typeface.title1)
+                .foregroundColor(MocoScreenTheme.Colors.textTitle)
 
             Spacer()
 
@@ -105,16 +104,16 @@ struct OverviewResumeScreen: View {
             } label: {
                 ZStack {
                     Circle()
-                        .fill(Color(red: 68/255, green: 68/255, blue: 68/255).opacity(0.6))
-                        .frame(width: 47, height: 47)
+                        .fill(MocoScreenTheme.Colors.avatarFill)
+                        .frame(width: MocoScreenTheme.Size.avatar, height: MocoScreenTheme.Size.avatar)
 
                     if let name = profiles.first?.username, !name.isEmpty {
                         Text(String(name.prefix(2)).uppercased())
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
+                            .mocoText(MocoScreenTheme.Typeface.slider)
+                            .foregroundColor(MocoScreenTheme.Colors.avatarText)
                     } else {
                         Image(systemName: "person.fill")
-                            .foregroundColor(.white)
+                            .foregroundColor(MocoScreenTheme.Colors.avatarText)
                     }
                 }
             }
@@ -126,20 +125,20 @@ struct OverviewResumeScreen: View {
     private var todaysMissionSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Mission")
-                .font(.system(size: 22, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.title2)
                 .foregroundColor(titleDark)
 
             VStack(alignment: .leading, spacing: 0) {
                 // Mission Title
                 Text(quest?.title ?? "Unfinished Debrief")
-                    .font(.system(size: 20, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.section)
                     .foregroundColor(primaryGreen)
                     .padding(.top, 24)
                     .padding(.horizontal, 20)
 
                 // Mission Subtitle / Description
                 Text(resumeDescription)
-                    .font(.system(size: 15, weight: .regular))
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .foregroundColor(subtextGray)
                     .lineSpacing(3)
                     .padding(.top, 12)
@@ -154,16 +153,14 @@ struct OverviewResumeScreen: View {
                         .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 } else {
                     startDebriefWidget
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
                         .padding(.top, 36)
                         .padding(.bottom, 24)
                         .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
+            .mocoCard()
             .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isResumeCompleted)
         }
     }
@@ -177,7 +174,7 @@ struct OverviewResumeScreen: View {
                 onStartDebrief?()
             }) {
                 Text("Resume Debrief")
-                    .font(.system(size: 16, weight: .semibold))
+                    .mocoText(MocoScreenTheme.Typeface.slider)
                     .foregroundColor(titleDark)
             }
 
@@ -204,37 +201,37 @@ struct OverviewResumeScreen: View {
     private var slideToResumeWidget: some View {
         GeometryReader { geo in
             let sliderWidth = geo.size.width
-            let knobSize: CGFloat = 43
-            let maxDrag = sliderWidth - knobSize - 5
+            let knobSize = MocoScreenTheme.Control.knob
+            let maxDrag = max(0, sliderWidth - knobSize - MocoScreenTheme.Control.knobInset * 2)
 
             ZStack(alignment: .leading) {
                 // Pill Track
                 Capsule()
-                    .fill(primaryGreen.opacity(0.88))
-                    .frame(height: 48)
+                    .fill(MocoScreenTheme.Colors.accentBlue)
+                    .frame(height: MocoScreenTheme.Control.trackHeight)
 
                 // Centered Label
                 HStack {
                     Spacer()
                     Text("Slide to resume")
-                        .font(.system(size: 15, weight: .medium))
+                        .mocoText(MocoScreenTheme.Typeface.body)
                         .foregroundColor(.white)
                     Spacer()
                 }
-                .frame(height: 48)
+                .frame(height: MocoScreenTheme.Control.trackHeight)
 
                 // Draggable Knob with Arrow
                 ZStack {
                     Circle()
-                        .fill(Color(red: 252/255, green: 248/255, blue: 240/255))
+                        .fill(MocoScreenTheme.Colors.surfaceWhite)
                         .frame(width: knobSize, height: knobSize)
                         .shadow(color: Color.black.opacity(0.12), radius: 3, x: 0, y: 1)
 
                     Image(systemName: "arrow.right")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(MokoTheme.titleBrown)
+                        .foregroundColor(MocoScreenTheme.Colors.textTitle)
                 }
-                .offset(x: 2.5 + slideOffset)
+                .offset(x: MocoScreenTheme.Control.knobInset + slideOffset)
                 .gesture(
                     DragGesture()
                         .onChanged { value in
@@ -259,14 +256,14 @@ struct OverviewResumeScreen: View {
                 )
             }
         }
-        .frame(height: 48)
+        .frame(height: MocoScreenTheme.Control.trackHeight)
     }
 
     // MARK: - Statistics Section
     private var statisticsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Growth")
-                .font(.system(size: 22, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.title2)
                 .foregroundColor(titleDark)
 
             // Insights Card (opens the radar chart info sheet)
@@ -291,7 +288,7 @@ struct OverviewResumeScreen: View {
             // Card Top Row
             HStack(alignment: .center) {
                 Text("Insights")
-                    .font(.system(size: 20, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.section)
                     .foregroundColor(primaryGreen)
 
                 Spacer()
@@ -303,7 +300,7 @@ struct OverviewResumeScreen: View {
                             .month(.abbreviated)
                             .day()
                     ))
-                        .font(.system(size: 13, weight: .medium))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .foregroundColor(titleDark)
 
                     Image(systemName: "chevron.right")
@@ -318,11 +315,11 @@ struct OverviewResumeScreen: View {
             HStack(alignment: .bottom) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text("\(Int(data.insights.warmth.rounded()))")
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                        .mocoText(MocoScreenTheme.Typeface.numeral)
                         .foregroundColor(primaryGreen)
 
                     Text("warmth")
-                        .font(.system(size: 18, weight: .medium))
+                        .mocoText(MocoScreenTheme.Typeface.unit)
                         .foregroundColor(primaryGreen)
                 }
                 .padding(.bottom, 6)
@@ -330,18 +327,16 @@ struct OverviewResumeScreen: View {
                 Spacer()
 
                 // Radar / Diamond Shape Chart
-                InsightsRadarChartView(scores: data.insights)
-                    .frame(width: 106, height: 106)
+                MocoRadarChart(scores: data.insights)
+                    .frame(width: MocoScreenTheme.Size.radar, height: MocoScreenTheme.Size.radar)
             }
             .padding(.horizontal, 20)
             .padding(.top, 10)
             .padding(.bottom, 16)
         }
         .frame(maxWidth: .infinity)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.card, style: .continuous))
+        .mocoCard()
     }
 
     // MARK: - Calm Down Card
@@ -350,7 +345,7 @@ struct OverviewResumeScreen: View {
             // Card Top Row
             HStack(alignment: .center) {
                 Text("Calm Down")
-                    .font(.system(size: 20, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.section)
                     .foregroundColor(primaryGreen)
 
                 Spacer()
@@ -362,7 +357,7 @@ struct OverviewResumeScreen: View {
                             .month(.abbreviated)
                             .day()
                     ))
-                        .font(.system(size: 13, weight: .medium))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .foregroundColor(titleDark)
 
                     Image(systemName: "chevron.right")
@@ -377,11 +372,11 @@ struct OverviewResumeScreen: View {
             HStack(alignment: .bottom) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text("\(data.calmDownMinutes)")
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                        .mocoText(MocoScreenTheme.Typeface.numeral)
                         .foregroundColor(primaryGreen)
 
                     Text("min")
-                        .font(.system(size: 18, weight: .medium))
+                        .mocoText(MocoScreenTheme.Typeface.unit)
                         .foregroundColor(primaryGreen)
                 }
                 .padding(.bottom, 6)
@@ -389,18 +384,16 @@ struct OverviewResumeScreen: View {
                 Spacer()
 
                 // Bar Chart Visual
-                CalmDownBarChartView(minutes: data.calmDownBars)
-                    .frame(height: 72)
+                MocoBarChart(values: data.calmDownBars)
+                    .frame(width: MocoScreenTheme.Size.barChart.width, height: MocoScreenTheme.Size.barChart.height)
             }
             .padding(.horizontal, 20)
             .padding(.top, 14)
             .padding(.bottom, 18)
         }
         .frame(maxWidth: .infinity)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.card, style: .continuous))
+        .mocoCard()
     }
 }
 

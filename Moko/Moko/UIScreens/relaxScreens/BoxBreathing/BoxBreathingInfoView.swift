@@ -22,16 +22,16 @@ struct BoxBreathingInfoView: View {
                     .accessibilityHidden(true)
 
                 Text("Box Breathing")
-                    .font(.system(size: 24, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.title2)
                     .foregroundStyle(BBColor.titleBrown)
                     .padding(.top, 20)
 
                 Text("Breathe in for 4 seconds, hold for 4 seconds.\nBreathe out for 4 seconds, hold for 4 seconds.\nRepeat this cycle at your own pace.")
-                    .font(.system(size: 15))
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .lineSpacing(3)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(BBColor.muted)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
                     .padding(.top, 10)
 
                 // Cycle Counter with Plus and Minus Buttons
@@ -40,18 +40,19 @@ struct BoxBreathingInfoView: View {
                         Image(systemName: "minus")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(cycles > 1 ? BBColor.button : .gray)
-                            .frame(width: 40, height: 40)
-                            .background(Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255)))
+                            .frame(width: 44, height: 44)
+                            .background(Circle().fill(MocoScreenTheme.Colors.surfaceLavender))
                     }
                     .buttonStyle(.plain)
                     .disabled(cycles <= 1)
+                    .accessibilityLabel("Decrease cycles")
 
                     VStack(spacing: 2) {
                         Text("\(cycles)")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .mocoText(MocoScreenTheme.Typeface.title2)
                             .foregroundStyle(BBColor.title)
-                        Text(cycles == 1 ? "CYCLE" : "CYCLES")
-                            .font(.system(size: 10, weight: .semibold))
+                        Text(cycles == 1 ? "Cycle" : "Cycles")
+                            .mocoText(MocoScreenTheme.Typeface.caption)
                             .foregroundStyle(BBColor.subtitle)
                     }
                     .frame(minWidth: 70)
@@ -60,31 +61,32 @@ struct BoxBreathingInfoView: View {
                         Image(systemName: "plus")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(cycles < 20 ? BBColor.button : .gray)
-                            .frame(width: 40, height: 40)
-                            .background(Circle().fill(Color(red: 237/255, green: 237/255, blue: 237/255)))
+                            .frame(width: 44, height: 44)
+                            .background(Circle().fill(MocoScreenTheme.Colors.surfaceLavender))
                     }
                     .buttonStyle(.plain)
                     .disabled(cycles >= 20)
+                    .accessibilityLabel("Increase cycles")
                 }
                 .padding(.top, 16)
 
                 Button(action: onContinue) {
                     Text("Continue")
-                        .font(.system(size: 17, weight: .bold))
+                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
                         .background(Capsule().fill(BBColor.button))
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, 32)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
                 .padding(.top, 20)
 
                 Button(action: onNotNow) {
                     Text("Not now")
-                        .font(.system(size: 17, weight: .bold))
+                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
                         .foregroundStyle(BBColor.button)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
                         .padding(.vertical, 8)
                         .contentShape(Rectangle())
                 }
@@ -95,7 +97,7 @@ struct BoxBreathingInfoView: View {
             .frame(maxWidth: .infinity)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .background(Color.white)
+        .background { MocoBackdrop() }
         .ignoresSafeArea(edges: .top)
     }
 }

@@ -184,7 +184,7 @@ struct CameraTimerScreen: View {
     @State private var lastTick: Date?
 
     private let total: TimeInterval = 120 // fixed, not customisable
-    private let cardRadius: CGFloat = 32
+    private let cardRadius = MocoScreenTheme.Radius.card
     private let ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
 
     private let affirmations = [
@@ -217,19 +217,19 @@ struct CameraTimerScreen: View {
 
     var body: some View {
         ZStack {
-            MirrorPalette.screenBg.ignoresSafeArea()
+            MocoBackdrop()
 
             VStack(spacing: 0) {
                 MirrorHeader()
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
                     .padding(.top, 18)
 
                 cameraCard
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
                     .padding(.top, 18)
 
                 Text(timeText)
-                    .font(.system(size: 56, weight: .light, design: .rounded))
+                    .mocoText(MocoScreenTheme.Typeface.numeral)
                     .monospacedDigit()
                     .foregroundColor(MirrorPalette.green)
                     .padding(.top, 12)
@@ -292,16 +292,16 @@ struct CameraTimerScreen: View {
         }
         .overlay(alignment: .topLeading) {
             Text(chipText)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(hasFeed && runState != .completed ? Color.white : MirrorPalette.green)
+                .mocoText(MocoScreenTheme.Typeface.caption)
+                .foregroundColor(MocoScreenTheme.Colors.dataVioletDeep)
                 .padding(.horizontal, 14)
-                .frame(height: 30)
-                .background(.ultraThinMaterial, in: Capsule())
+                .padding(.vertical, 8)
+                .background(MocoScreenTheme.Colors.surfaceLavender, in: Capsule())
                 .padding(14)
         }
         .clipShape(RoundedRectangle(cornerRadius: cardRadius, style: .continuous))
         .overlay { progressOutline }
-        .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 4)
+        .mocoCard()
         .frame(maxHeight: .infinity)
     }
 
@@ -334,16 +334,16 @@ struct CameraTimerScreen: View {
                     .foregroundColor(MirrorPalette.green)
 
                 Text(camera.status == .denied ? "Camera access is off" : "Camera isn’t available here")
-                    .font(.system(size: 17, weight: .semibold))
+                    .mocoText(MocoScreenTheme.Typeface.cardTitle)
                     .foregroundColor(MirrorPalette.title)
 
                 Text(camera.status == .denied
                      ? "Turn it on in Settings to see yourself during the practice. You can still continue without it."
                      : "Try this on an iPhone to see yourself here. You can still continue without it.")
-                    .font(.system(size: 14))
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .foregroundColor(MirrorPalette.subtext)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
 
                 if camera.status == .denied {
                     Button {
@@ -352,7 +352,7 @@ struct CameraTimerScreen: View {
                         }
                     } label: {
                         Text("Open Settings")
-                            .font(.system(size: 14, weight: .semibold))
+                            .mocoText(MocoScreenTheme.Typeface.slider)
                             .foregroundColor(.white)
                             .padding(.horizontal, 18)
                             .frame(height: 36)
@@ -372,7 +372,7 @@ struct CameraTimerScreen: View {
                 let highlighted = isActive && index == activeIndex
 
                 Text(affirmations[index])
-                    .font(.system(size: 14, weight: highlighted ? .semibold : .regular))
+                    .mocoText(highlighted ? MocoScreenTheme.Typeface.slider : MocoScreenTheme.Typeface.body)
                     .foregroundColor(
                         hasFeed
                             ? Color.white
@@ -466,5 +466,5 @@ struct CameraTimerScreen: View {
 #Preview("Phone hero") {
     CameraPhoneHero(level: 0.5)
         .padding()
-        .background(MirrorPalette.screenBg)
+        .background { MocoBackdrop() }
 }

@@ -2,16 +2,16 @@ import SwiftUI
 import SwiftData
 
 enum BBColor {
-    static let background = Color(red: 246/255, green: 250/255, blue: 232/255)   // pale lime
-    static let button     = Color(red: 54/255, green: 89/255, blue: 72/255)   // buttons, check circle, "Not now"
-    static let dark       = Color(red: 27/255, green: 66/255, blue: 47/255)    // corner dots + filled box edges
-    static let track      = Color(red: 226/255, green: 245/255, blue: 177/255)   // lime track
-    static let title      = Color(red: 92/255, green: 67/255, blue: 48/255)
-    static let subtitle   = Color(red: 138/255, green: 123/255, blue: 104/255)
-    static let muted      = Color(red: 111/255, green: 103/255, blue: 98/255)
-    static let card       = Color(red: 252/255, green: 248/255, blue: 240/255)   // cream icon circle
-    static let lime       = Color(red: 226/255, green: 245/255, blue: 177/255)
-    static let titleBrown = Color(red: 92/255, green: 67/255, blue: 48/255)
+    static let background = MocoScreenTheme.Colors.canvasTop   // pale lime
+    static let button     = MocoScreenTheme.Colors.dataVioletDeep   // buttons, check circle, "Not now"
+    static let dark       = MocoScreenTheme.Colors.dataVioletDeep    // corner dots + filled box edges
+    static let track      = MocoScreenTheme.Colors.surfaceLavender   // lime track
+    static let title      = MocoScreenTheme.Colors.textTitle
+    static let subtitle   = MocoScreenTheme.Colors.textMuted
+    static let muted      = MocoScreenTheme.Colors.textBody
+    static let card       = MocoScreenTheme.Colors.surfaceWhite   // cream icon circle
+    static let lime       = MocoScreenTheme.Colors.surfaceLavender
+    static let titleBrown = MocoScreenTheme.Colors.textTitle
 }
 
 private enum SessionState: Equatable {
@@ -113,14 +113,14 @@ struct BoxBreathingView: View {
     }
 
     private var cyclesText: String {
-        initialCycles == 1 ? "1 CYCLE" : "\(initialCycles) CYCLES"
+        initialCycles == 1 ? "1 cycle" : "\(initialCycles) cycles"
     }
 
     // MARK: Body
 
     var body: some View {
         ZStack {
-            BBColor.background.ignoresSafeArea()
+            MocoBackdrop()
 
             VStack(spacing: 0) {
                 if state == .complete {
@@ -172,13 +172,13 @@ struct BoxBreathingView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Box Breathing")
-                .font(.system(size: 30, weight: .semibold))
+                .mocoText(MocoScreenTheme.Typeface.title1)
                 .foregroundStyle(BBColor.titleBrown)
-                .padding(.horizontal, 16)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
 
             HStack {
                 Text(cyclesText)
-                    .font(.system(size: 12, weight: .semibold))
+                    .mocoText(MocoScreenTheme.Typeface.caption)
                     .foregroundStyle(BBColor.muted)
 
                 Spacer()
@@ -186,13 +186,13 @@ struct BoxBreathingView: View {
                 // Cycle counter — only visible once the session has started
                 if state == .running || state == .paused || state == .finishing {
                     Text("Cycle \(currentCycle) of \(initialCycles)")
-                        .font(.system(size: 12, weight: .semibold))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .foregroundStyle(BBColor.muted)
                         .monospacedDigit()
                         .transition(.opacity)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, MocoScreenTheme.Space.page)
             .animation(.easeInOut(duration: 0.25), value: state)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -237,12 +237,12 @@ struct BoxBreathingView: View {
     private var phaseLabel: some View {
         VStack(spacing: 0) {
             Text(phase.title)
-                .font(.system(size: 40, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.title1)
                 .tracking(-0.5)
                 .foregroundStyle(BBColor.titleBrown)
 
             Text("For \(Int(phaseLength)) Seconds")
-                .font(.system(size: 11))
+                .mocoText(MocoScreenTheme.Typeface.caption)
                 .foregroundStyle(BBColor.subtitle)
                 .opacity(state == .idle ? 0 : 1)
         }
@@ -257,9 +257,9 @@ struct BoxBreathingView: View {
             .frame(width: 200, height: 100, alignment: .top)
             .overlay(alignment: .bottom) {
                 Text(timeString)
-                    .font(.system(size: 40, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.numeral)
                     .monospacedDigit()
-                    .foregroundStyle(MokoTheme.titleBrown)
+                    .foregroundStyle(MocoScreenTheme.Colors.dataNumeral)
             }
     }
 
@@ -268,7 +268,7 @@ struct BoxBreathingView: View {
         switch state {
         case .idle:
             BreathingPillButton(title: "Start", action: start)
-                .padding(.horizontal, 36)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
 
         case .running, .paused, .finishing:
             HStack {
@@ -293,7 +293,7 @@ struct BoxBreathingView: View {
             HStack {
                 Spacer()
                 Text(cyclesText)
-                    .font(.system(size: 12, weight: .semibold))
+                    .mocoText(MocoScreenTheme.Typeface.caption)
                     .foregroundStyle(BBColor.muted)
             }
             .padding(.trailing, 39)
@@ -302,12 +302,12 @@ struct BoxBreathingView: View {
             MokoCompletionAnimation(ringDiameter: 190)
 
             Text("You did it!")
-                .font(.system(size: 22, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.title2)
                 .foregroundStyle(BBColor.titleBrown)
                 .padding(.top, 8)
 
             Text("You took a moment to pause, breathe, and find your calm. Be proud of yourself for showing up!")
-                .font(.system(size: 16))
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(BBColor.titleBrown)
                 .padding(.horizontal, 34)
@@ -393,7 +393,7 @@ private struct BreathingPillButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 20, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.section)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 63)
@@ -442,9 +442,9 @@ private struct BBCompletionBadge: View {
     @State private var drawn: CGFloat = 0
     @State private var ripple = false
 
-    private let softGreen  = Color(red: 120/255, green: 165/255, blue: 140/255)
-    private let mint       = Color(red: 226/255, green: 245/255, blue: 177/255)
-    private let cream      = Color(red: 252/255, green: 248/255, blue: 240/255)
+    private let softGreen  = MocoScreenTheme.Colors.dataViolet
+    private let mint       = MocoScreenTheme.Colors.surfaceLavender
+    private let cream      = MocoScreenTheme.Colors.surfaceWhite
 
     var body: some View {
         ZStack {
@@ -510,12 +510,12 @@ private struct BBCompletionBadge: View {
 
 private let bbConfettiColors: [Color] = [
     BBColor.button,
-    Color(red: 120/255, green: 165/255, blue: 140/255),   // soft green
+    MocoScreenTheme.Colors.dataViolet,   // soft green
     Color(red: 244/255, green: 190/255, blue: 70/255),     // yellow
     Color(red: 230/255, green: 130/255, blue: 100/255),    // coral
     Color(red: 130/255, green: 185/255, blue: 175/255),    // teal
     Color(red: 160/255, green: 195/255, blue: 215/255),    // sky blue
-    Color(red: 203/255, green: 230/255, blue: 211/255),    // mint
+    MocoScreenTheme.Colors.surfaceLavender,    // mint
 ]
 
 /// Confetti pieces that burst outward once on appear — same mechanic as MirrorConfettiBurst

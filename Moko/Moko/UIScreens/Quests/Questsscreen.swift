@@ -69,14 +69,13 @@ struct QuestsScreen: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottomTrailing) {
-                QuestStyle.screenBg
-                    .ignoresSafeArea()
+                MocoBackdrop()
 
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Quest")
-                        .font(.system(size: 34, weight: .bold))
-                        .foregroundColor(MokoTheme.titleBrown)
-                        .padding(.horizontal, 20)
+                        .mocoText(MocoScreenTheme.Typeface.title1)
+                        .foregroundColor(MocoScreenTheme.Colors.textTitle)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
                         .padding(.top, 14)
 
                     filterBar
@@ -121,7 +120,7 @@ struct QuestsScreen: View {
                     chip(for: option)
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, MocoScreenTheme.Space.page)
         }
     }
 
@@ -139,11 +138,11 @@ struct QuestsScreen: View {
                         .font(.system(size: 11, weight: .semibold))
                 }
                 Text(option?.rawValue ?? "All")
-                    .font(.system(size: 12, weight: .medium))
+                    .mocoText(MocoScreenTheme.Typeface.caption)
             }
-            .foregroundColor(isSelected ? MokoTheme.titleBrown : QuestStyle.subtext)
+            .foregroundColor(isSelected ? MocoScreenTheme.Colors.textTitle : QuestStyle.subtext)
             .padding(.horizontal, 12)
-            .frame(height: 32)
+            .frame(minHeight: 44)
             .background(Capsule().fill(isSelected ? QuestStyle.chipSelectedFill : Color.white))
             .overlay(Capsule().stroke(isSelected ? QuestStyle.chipSelectedBorder : Color.clear, lineWidth: 1))
             .contentShape(Capsule())
@@ -172,21 +171,19 @@ struct QuestsScreen: View {
     private func emptyCard(title: String, message: String) -> some View {
         VStack(spacing: 14) {
             Text(title)
-                .font(.system(size: 20, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.section)
                 .foregroundColor(QuestStyle.title)
 
             Text(message)
-                .font(.system(size: 15))
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .foregroundColor(QuestStyle.subtext)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
         }
-        .padding(.horizontal, 26)
-        .frame(maxWidth: .infinity)
-        .frame(height: 250)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .padding(.horizontal, 34)
+        .padding(MocoScreenTheme.Space.cardHorizontal)
+        .frame(maxWidth: .infinity, minHeight: 250)
+        .mocoCard()
+        .padding(.horizontal, MocoScreenTheme.Space.page)
         .padding(.top, 70)
     }
 
@@ -195,15 +192,15 @@ struct QuestsScreen: View {
         List {
             ForEach(groups) { group in
                 Text(QuestFormat.groupTitle(group.day))
-                    .font(.system(size: 14, weight: .medium))
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .foregroundColor(QuestStyle.subtext)
-                    .listRowInsets(EdgeInsets(top: 18, leading: 28, bottom: 4, trailing: 16))
+                    .listRowInsets(EdgeInsets(top: 18, leading: MocoScreenTheme.Space.page, bottom: 4, trailing: MocoScreenTheme.Space.page))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
 
                 ForEach(group.quests, id: \.id) { quest in
                     questCard(quest)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                        .listRowInsets(EdgeInsets(top: 8, leading: MocoScreenTheme.Space.page, bottom: 8, trailing: MocoScreenTheme.Space.page))
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -234,22 +231,22 @@ struct QuestsScreen: View {
         return HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(quest.title)
-                    .font(.system(size: 15, weight: .medium))
+                    .mocoText(MocoScreenTheme.Typeface.cardTitle)
                     .foregroundColor(isDebriefed ? QuestStyle.subtext : QuestStyle.title)
                     .lineLimit(2)
 
                 HStack(spacing: 6) {
                     Text("\(quest.awardedXP) XP")
-                        .font(.system(size: 13, weight: .semibold))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .foregroundColor(isDebriefed ? QuestStyle.subtext : QuestStyle.green)
 
                     if quest.debriefRecorded {
                         Text("· Debrief done")
-                            .font(.system(size: 13, weight: .medium))
+                            .mocoText(MocoScreenTheme.Typeface.caption)
                             .foregroundColor(QuestStyle.subtext)
                     } else if quest.isCompleted {
                         Text("· Completed")
-                            .font(.system(size: 13, weight: .medium))
+                            .mocoText(MocoScreenTheme.Typeface.caption)
                             .foregroundColor(QuestStyle.subtext)
                     }
                 }
@@ -279,10 +276,10 @@ struct QuestsScreen: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isDebriefed ? Color(red: 235/255, green: 235/255, blue: 240/255) : Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: Color.black.opacity(isDebriefed ? 0 : 0.03), radius: 8, x: 0, y: 2)
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .mocoCard(
+            fill: isDebriefed ? MocoScreenTheme.Colors.surfaceLavender : MocoScreenTheme.Colors.surfaceWhite,
+            lift: !isDebriefed
+        )
         // Tapping the card itself still opens the quest briefing; the two buttons take priority
         .onTapGesture {
             guard !isDebriefed else { return }
@@ -307,12 +304,12 @@ struct QuestsScreen: View {
                         ? (filled ? Color.white : QuestStyle.title)
                         : (filled ? Color.white.opacity(0.65) : QuestStyle.subtext)
                 )
-                .frame(width: 38, height: 38)
+                .frame(width: 44, height: 44)
                 .background(
                     Circle().fill(
                         isEnabled
                             ? (filled ? QuestStyle.green : QuestStyle.screenBg)
-                            : Color(red: 210/255, green: 210/255, blue: 216/255)
+                            : MocoScreenTheme.Colors.dataGrid
                     )
                 )
                 .contentShape(Circle())
@@ -340,10 +337,11 @@ struct QuestsScreen: View {
                 .foregroundColor(.white)
                 .frame(width: 62, height: 62)
                 .background(Circle().fill(QuestStyle.green))
-                .shadow(color: QuestStyle.green.opacity(0.35), radius: 10, x: 0, y: 5)
+                .shadow(color: MocoScreenTheme.Elevation.ambientColor, radius: MocoScreenTheme.Elevation.ambientRadius, x: 0, y: MocoScreenTheme.Elevation.ambientOffset)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Add quest")
     }
 }
 

@@ -13,21 +13,21 @@ struct RadarInfoSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    private let green     = Color(red: 27/255, green: 66/255, blue: 47/255)    // #1B422F
-    private let mint      = Color(red: 203/255, green: 230/255, blue: 211/255)
-    private let titleDark = MokoTheme.titleBrown    // #5C4330
-    private let gray      = Color(red: 111/255, green: 103/255, blue: 98/255)  // #6F6762
+    private let green     = MocoScreenTheme.Colors.dataVioletDeep    // #1B422F
+    private let mint      = MocoScreenTheme.Colors.surfaceLavender
+    private let titleDark = MocoScreenTheme.Colors.textTitle    // #5C4330
+    private let gray      = MocoScreenTheme.Colors.textBody  // #6F6762
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("How your radar chart works")
-                        .font(.title.bold())
+                        .mocoText(MocoScreenTheme.Typeface.title1)
                         .foregroundStyle(titleDark)
 
                     Text("Four scores, one shape. Here’s how to read it.")
-                        .font(.subheadline)
+                        .mocoText(MocoScreenTheme.Typeface.body)
                         .foregroundStyle(gray)
                 }
 
@@ -39,7 +39,7 @@ struct RadarInfoSheet: View {
 
                 row(icon: "diamond.inset.filled",
                     title: "Score Pattern",
-                    text: "The further a point sits from the center, the higher that score. Rings mark 25, 50, 75 and 100.")
+                    text: "The further a point sits from the center, the higher that score. The outer ring represents 100.")
 
                 row(icon: "text.alignleft",
                     title: "Closer Look",
@@ -50,7 +50,7 @@ struct RadarInfoSheet: View {
                     dismiss()
                 } label: {
                     Text("Continue")
-                        .font(.headline)
+                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 25)
@@ -60,10 +60,11 @@ struct RadarInfoSheet: View {
                 .controlSize(.large)
                 .padding(.top, 4)
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, MocoScreenTheme.Space.page)
             .padding(.top, 28)
             .padding(.bottom, 24)
         }
+        .background { MocoBackdrop() }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }
@@ -77,53 +78,20 @@ struct RadarInfoSheet: View {
             HStack {
                 Text("Clarity")
 
-                GeometryReader { geo in
-                    let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
-                    let radius = min(geo.size.width, geo.size.height) / 2 * 0.7
-                    let points = [
-                        CGPoint(x: center.x, y: center.y - radius),
-                        CGPoint(x: center.x + radius, y: center.y),
-                        CGPoint(x: center.x, y: center.y + radius),
-                        CGPoint(x: center.x - radius, y: center.y)
-                    ]
-
-                    ZStack {
-                        DiamondShape()
-                            .stroke(green.opacity(0.4), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
-                        DiamondShape()
-                            .stroke(green.opacity(0.25), lineWidth: 1)
-                            .scaleEffect(0.5)
-
-                        Path { path in
-                            path.addLines(points)
-                            path.closeSubpath()
-                        }
-                        .fill(green.opacity(0.25))
-
-                        Path { path in
-                            path.addLines(points)
-                            path.closeSubpath()
-                        }
-                        .stroke(green, lineWidth: 2)
-
-                        ForEach(points.indices, id: \.self) { index in
-                            Circle()
-                                .fill(green)
-                                .frame(width: 8, height: 8)
-                                .position(points[index])
-                        }
-                    }
-                }
-                .frame(width: 170, height: 170)
+                MocoRadarChart(scores: InsightsScores(clarity: 65, courage: 85, presence: 72, warmth: 90))
+                    .aspectRatio(1, contentMode: .fit)
+                    .accessibilityHidden(true)
 
                 Text("Presence")
             }
 
             Text("Warmth")
         }
-        .font(.footnote)
+        .mocoText(MocoScreenTheme.Typeface.caption)
         .foregroundStyle(gray)
         .frame(maxWidth: .infinity)
+        .padding(MocoScreenTheme.Space.cardHorizontal)
+        .mocoCard()
     }
 
     // MARK: Row
@@ -133,15 +101,15 @@ struct RadarInfoSheet: View {
             Image(systemName: icon)
                 .font(.title2)
                 .foregroundStyle(green)
-                .frame(width: 64, height: 64)
-                .background(mint.opacity(0.6), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .frame(width: 44, height: 44)
+                .background(mint, in: RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.inner, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.headline)
+                    .mocoText(MocoScreenTheme.Typeface.cardTitle)
                     .foregroundStyle(titleDark)
                 Text(text)
-                    .font(.subheadline)
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .foregroundStyle(gray)
             }
         }

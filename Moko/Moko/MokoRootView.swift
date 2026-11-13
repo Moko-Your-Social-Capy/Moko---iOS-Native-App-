@@ -62,10 +62,10 @@ struct MokoRootView: View {
         // iOS 27 otherwise keeps the .search tab glued to the other tabs.
         // This restores the default 3-tabs + detached search button.
         .tabViewSearchActivation(.searchTabSelection)
-        .foregroundStyle(MokoTheme.titleBrown)
+        .foregroundStyle(MocoScreenTheme.Colors.textTitle)
 
         // MOKO Forest Green
-        .tint(MokoTheme.forestGreen)
+        .tint(MocoScreenTheme.Colors.tabActiveGlyph)
 
         // Lets the quest debrief send the user back to a specific Overview state
         .environment(\.openOverview) { mode in

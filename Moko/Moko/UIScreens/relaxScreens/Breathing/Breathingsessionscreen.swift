@@ -38,11 +38,9 @@ struct BreathingSessionScreen: View {
     private let exhaleDuration: TimeInterval = 6
 
     // A soft lime palette with a deep green accent.
-    private let screenBg = Color(red: 0.96, green: 0.98, blue: 0.91)
-    private let cardGreen = Color(red: 0.24, green: 0.38, blue: 0.20)
-    private let subtextGray = Color(red: 0.36, green: 0.39, blue: 0.31)
-    private let cream = Color(red: 0.99, green: 1.00, blue: 0.95)
-    private let mist = Color(red: 0.90, green: 0.96, blue: 0.72)
+    private let cardGreen = MocoScreenTheme.Colors.dataVioletDeep
+    private let subtextGray = MocoScreenTheme.Colors.textBody
+    private let mist = MocoScreenTheme.Colors.surfaceLavender
 
     init(minutes: Int, onFinish: (() -> Void)? = nil, previewCompleted: Bool = false) {
         self.minutes = max(1, minutes)
@@ -90,14 +88,15 @@ struct BreathingSessionScreen: View {
             breathingFocus
             Spacer(minLength: 12)
         }
-        .padding(.horizontal, 22)
+        .padding(.horizontal, MocoScreenTheme.Space.page)
         .padding(.top, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(screenBg.ignoresSafeArea())
+        .background(MocoBackdrop())
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomPanel
         }
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .onReceive(ticker) { now in
             tick(now)
@@ -161,12 +160,12 @@ struct BreathingSessionScreen: View {
             .accessibilityLabel(runState == .completed ? "Breathing session complete" : "Moko breathing animation")
 
             Text(phaseTitle)
-                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .mocoText(MocoScreenTheme.Typeface.title1)
                 .foregroundStyle(cardGreen)
                 .contentTransition(.opacity)
 
             Text(phaseHint)
-                .font(.system(size: 15))
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .foregroundStyle(subtextGray)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -182,7 +181,7 @@ struct BreathingSessionScreen: View {
         VStack(spacing: 14) {
             if runState != .completed {
                 Text(timeText)
-                    .font(.system(size: 56, weight: .light, design: .rounded))
+                    .mocoText(MocoScreenTheme.Typeface.numeral)
                     .monospacedDigit()
                     .foregroundColor(cardGreen)
             }
@@ -191,11 +190,8 @@ struct BreathingSessionScreen: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 18)
         .frame(maxWidth: .infinity)
-        .background {
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(cream.opacity(0.96))
-        }
-        .padding(.horizontal, 16)
+        .mocoCard()
+        .padding(.horizontal, MocoScreenTheme.Space.page)
         .padding(.bottom, 8)
     }
 
@@ -203,11 +199,11 @@ struct BreathingSessionScreen: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Gentle Breathing")
-                .font(.system(size: 30, weight: .bold))
-                .foregroundColor(MokoTheme.titleBrown)
+                .mocoText(MocoScreenTheme.Typeface.title1)
+                .foregroundColor(MocoScreenTheme.Colors.textTitle)
 
             Text("Set your own meditation timer for a calmer mind")
-                .font(.system(size: 15))
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .foregroundColor(subtextGray)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -248,7 +244,7 @@ struct BreathingSessionScreen: View {
     private func primaryButton(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 18, weight: .semibold))
+                .mocoText(MocoScreenTheme.Typeface.cardTitle)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)

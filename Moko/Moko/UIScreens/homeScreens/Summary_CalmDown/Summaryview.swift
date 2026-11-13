@@ -565,27 +565,13 @@ struct SummaryView: View {
 
     @State private var range: SummaryRange = .day
 
-    private let screenBg = MokoTheme.limeBackground
+    private let darkGreen = MocoScreenTheme.Colors.dataVioletDeep
 
-    private let darkGreen = Color(
-        red: 27.0 / 255.0,
-        green: 66.0 / 255.0,
-        blue: 47.0 / 255.0
-    )
+    private let lightGreen = MocoScreenTheme.Colors.surfaceLavender
 
-    private let lightGreen = Color(
-        red: 201.0 / 255.0,
-        green: 232.0 / 255.0,
-        blue: 207.0 / 255.0
-    )
+    private let titleDark = MocoScreenTheme.Colors.textTitle
 
-    private let titleDark = MokoTheme.titleBrown
-
-    private let subtextGray = Color(
-        red: 111.0 / 255.0,
-        green: 103.0 / 255.0,
-        blue: 98.0 / 255.0
-    )
+    private let subtextGray = MocoScreenTheme.Colors.textBody
 
     // MARK: Body
 
@@ -598,8 +584,7 @@ struct SummaryView: View {
 
         ZStack {
 
-            screenBg
-                .ignoresSafeArea()
+            MocoBackdrop()
 
             ScrollView {
 
@@ -622,13 +607,15 @@ struct SummaryView: View {
                         activitiesCard(data)
                     }
                 }
-                .padding(.horizontal, 16)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
             }
         }
-        .navigationTitle("Summary")
+        .navigationTitle("Calm Down")
         .navigationBarTitleDisplayMode(.large)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .tint(MocoScreenTheme.Colors.dataVioletDeep)
         .animation(.easeInOut, value: range)
     }
 
@@ -645,25 +632,19 @@ struct SummaryView: View {
                 .background(lightGreen, in: Circle())
 
             Text("No exercise logged yet")
-                .font(.system(size: 20, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.section)
                 .foregroundStyle(titleDark)
 
             Text(
                 "Try some calm down exercises. The time you spend on each one shows up here."
             )
-            .font(.system(size: 15))
+            .mocoText(MocoScreenTheme.Typeface.body)
             .foregroundStyle(subtextGray)
             .multilineTextAlignment(.center)
         }
         .padding(28)
         .frame(maxWidth: .infinity)
-        .background(
-            Color.white,
-            in: RoundedRectangle(
-                cornerRadius: 16,
-                style: .continuous
-            )
-        )
+        .mocoCard()
     }
 
     // MARK: Total Time + Chart
@@ -674,13 +655,13 @@ struct SummaryView: View {
 
         VStack(alignment: .leading, spacing: 4) {
 
-            Text("TOTAL TIME")
-                .font(.system(size: 10, weight: .semibold))
+            Text("Total time")
+                .mocoText(MocoScreenTheme.Typeface.caption)
                 .foregroundStyle(subtextGray)
 
             Text(data.totalText)
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(titleDark)
+                .mocoText(MocoScreenTheme.Typeface.title1)
+                .foregroundStyle(MocoScreenTheme.Colors.dataNumeral)
 
             Chart(data.bars) { bar in
 
@@ -689,7 +670,7 @@ struct SummaryView: View {
                     y: .value("Minutes", bar.minutes)
                 )
                 .foregroundStyle(
-                    bar.isSelected ? darkGreen : lightGreen
+                    bar.isSelected ? darkGreen : MocoScreenTheme.Colors.dataViolet
                 )
                 .cornerRadius(4)
             }
@@ -718,11 +699,12 @@ struct SummaryView: View {
                 ) { value in
 
                     AxisGridLine()
+                        .foregroundStyle(MocoScreenTheme.Colors.dataGrid)
 
                     AxisValueLabel {
                         if let minutes = value.as(Double.self) {
                             Text(data.axisText(minutes))
-                                .font(.system(size: 8))
+                                .mocoText(MocoScreenTheme.Typeface.caption)
                         }
                     }
                 }
@@ -745,7 +727,9 @@ struct SummaryView: View {
                            ) {
 
                             Text(bar.label)
-                                .font(.system(size: 9))
+                                .mocoText(MocoScreenTheme.Typeface.caption)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
                                 .foregroundStyle(subtextGray)
                         }
                     }
@@ -755,19 +739,13 @@ struct SummaryView: View {
             .padding(.top, 12)
 
             Text(chartHint)
-                .font(.system(size: 10))
+                .mocoText(MocoScreenTheme.Typeface.caption)
                 .foregroundStyle(subtextGray)
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .padding(16)
+        .padding(MocoScreenTheme.Space.cardHorizontal)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            Color.white,
-            in: RoundedRectangle(
-                cornerRadius: 16,
-                style: .continuous
-            )
-        )
+        .mocoCard()
     }
 
     // MARK: Chart Hint
@@ -803,11 +781,11 @@ struct SummaryView: View {
                 VStack(alignment: .leading, spacing: 2) {
 
                     Text("All Activities")
-                        .font(.system(size: 13, weight: .semibold))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .foregroundStyle(subtextGray)
 
                     Text(data.listTitle)
-                        .font(.system(size: 15, weight: .bold))
+                        .mocoText(MocoScreenTheme.Typeface.slider)
                         .foregroundStyle(titleDark)
                 }
 
@@ -816,7 +794,7 @@ struct SummaryView: View {
                 Text(
                     "\(data.sessionCount) \(data.sessionCount == 1 ? "Session" : "Sessions")"
                 )
-                .font(.system(size: 11, weight: .medium))
+                .mocoText(MocoScreenTheme.Typeface.caption)
                 .foregroundStyle(subtextGray)
             }
             .padding(.bottom, 12)
@@ -840,27 +818,21 @@ struct SummaryView: View {
                         )
 
                     Text(activity.name)
-                        .font(.system(size: 14, weight: .semibold))
+                        .mocoText(MocoScreenTheme.Typeface.slider)
                         .foregroundStyle(titleDark)
 
                     Spacer()
 
                     Text(activity.duration)
-                        .font(.system(size: 13))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .foregroundStyle(titleDark)
                 }
                 .padding(.vertical, 12)
             }
         }
-        .padding(16)
+        .padding(MocoScreenTheme.Space.cardHorizontal)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            Color.white,
-            in: RoundedRectangle(
-                cornerRadius: 16,
-                style: .continuous
-            )
-        )
+        .mocoCard()
     }
 }
 

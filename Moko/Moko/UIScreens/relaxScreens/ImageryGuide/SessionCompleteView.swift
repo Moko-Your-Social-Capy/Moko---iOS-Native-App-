@@ -13,13 +13,15 @@ struct SessionCompleteView: View {
 
     @Environment(ImageryGuideStore.self) private var store
 
-    private let accent = Color(hex: 0x365948)
-    private let titleBrown = Color(hex: 0x5C4330)
+    private let accent = MocoScreenTheme.Colors.dataVioletDeep
+    private let titleBrown = MocoScreenTheme.Colors.textTitle
 
     var body: some View {
         Group {
             if let screen = store.screen {
-                content(screen)
+                ScrollView {
+                    content(screen)
+                }
             } else if store.isLoading {
                 ProgressView()
                     .tint(accent)
@@ -38,7 +40,7 @@ struct SessionCompleteView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(hex: 0xF6FAE8).ignoresSafeArea())
+        .background(MocoBackdrop())
         // Stays immersive until Done returns to the guide list.
         .toolbar(.hidden, for: .tabBar)
         .task { await store.loadIfNeeded() }
@@ -47,44 +49,45 @@ struct SessionCompleteView: View {
     private func content(_ screen: ImageryGuideScreenContent) -> some View {
         VStack(spacing: 0) {
             Text(screen.completeTitle)
-                .font(.system(size: 24, weight: .semibold))
+                .mocoText(MocoScreenTheme.Typeface.title2)
                 .tracking(-0.4)
                 .foregroundStyle(titleBrown)
                 .padding(.top, 10)
 
             Text(screen.completeSubtitle)
-                .font(.system(size: 12))
-                .foregroundStyle(Color(hex: 0x8A7B68))
+                .mocoText(MocoScreenTheme.Typeface.caption)
+                .foregroundStyle(MocoScreenTheme.Colors.textMuted)
                 .padding(.top, 4)
 
             MokoCompletionAnimation(ringDiameter: 190)
                 .padding(.top, 18)
 
             Text(screen.completeHeadline)
-                .font(.system(size: 28, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.title1)
                 .tracking(-0.4)
                 .foregroundStyle(titleBrown)
                 .padding(.top, 54)
 
             Text(resolvedMessage(screen))
-                .font(.system(size: 18, weight: .light))
-                .lineSpacing(12)
-                .foregroundStyle(MokoTheme.titleBrown)
+                .mocoText(MocoScreenTheme.Typeface.body)
+                .foregroundStyle(MocoScreenTheme.Colors.textBody)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 52)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
                 .padding(.top, 24)
 
             Spacer(minLength: 24)
 
             Button(action: onDone) {
                 Text(screen.completeDoneButton)
-                    .font(.system(size: 18, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.cardTitle)
                     .foregroundStyle(.white)
-                    .frame(width: 244, height: 61)
+                    .frame(maxWidth: .infinity, minHeight: MocoScreenTheme.Control.trackHeight)
                     .background(accent, in: Capsule())
             }
+            .padding(.horizontal, MocoScreenTheme.Space.page)
             .padding(.bottom, 12)
         }
+        .multilineTextAlignment(.center)
     }
 
     private func resolvedMessage(_ screen: ImageryGuideScreenContent) -> String {

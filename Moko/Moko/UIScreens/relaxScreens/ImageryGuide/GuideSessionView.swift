@@ -25,11 +25,11 @@ struct GuideSessionView: View {
 
     private let ticker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
-    private let accent   = Color(hex: 0x365948)
-    private let tileFill = Color(hex: 0xE2F5B1)
-    private let ink      = Color(hex: 0x5C4330)
-    private let caption  = Color(hex: 0x6F6762)
-    private let track    = Color(hex: 0xEDEDED)
+    private let accent   = MocoScreenTheme.Colors.dataVioletDeep
+    private let tileFill = MocoScreenTheme.Colors.surfaceLavender
+    private let ink      = MocoScreenTheme.Colors.textTitle
+    private let caption  = MocoScreenTheme.Colors.textBody
+    private let track    = MocoScreenTheme.Colors.surfaceLavender
 
     // MARK: Derived state
 
@@ -75,7 +75,7 @@ struct GuideSessionView: View {
             background
 
             panel
-                .padding(.horizontal, 16)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
                 .padding(.bottom, 22)
         }
         .navigationTitle(guide.title)
@@ -155,18 +155,18 @@ struct GuideSessionView: View {
             // Step label + subtle controls
             HStack {
                 Text(headerText)
-                    .font(.system(size: 12, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.caption)
                     .tracking(0.3)
                     .foregroundStyle(caption)
                 Spacer()
                 if !isComplete { controls }
             }
-            .frame(height: 32)
+            .frame(minHeight: 44)
 
             // Instruction (cross-fades when it changes)
             ZStack(alignment: .topLeading) {
                 Text(instruction)
-                    .font(.system(size: 20))
+                    .mocoText(MocoScreenTheme.Typeface.section)
                     .lineSpacing(3)
                     .foregroundStyle(ink)
                     .fixedSize(horizontal: false, vertical: true)
@@ -194,7 +194,7 @@ struct GuideSessionView: View {
                 Spacer()
                 Text(remainingLabel)
             }
-            .font(.system(size: 14))
+            .mocoText(MocoScreenTheme.Typeface.body)
             .monospacedDigit()
             .foregroundStyle(caption)
             .padding(.top, 10)
@@ -203,7 +203,7 @@ struct GuideSessionView: View {
             if isComplete {
                 Button(action: onContinue) {
                     Text(screen?.sessionContinueButton ?? "")
-                        .font(.system(size: 18, weight: .bold))
+                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
@@ -216,11 +216,7 @@ struct GuideSessionView: View {
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 20)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.white.opacity(0.94))
-                .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
-        )
+        .mocoCard()
         .animation(.spring(duration: 0.4), value: isComplete)
     }
 
@@ -264,7 +260,7 @@ struct GuideSessionView: View {
             Image(systemName: icon)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(caption)
-                .frame(width: 32, height: 32)
+                .frame(width: 44, height: 44)
                 .background(Circle().fill(track))
         }
         .buttonStyle(.plain)

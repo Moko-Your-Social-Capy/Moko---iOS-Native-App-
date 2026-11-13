@@ -167,13 +167,13 @@ enum MokoDatabase {
 
 // MARK: - Shared style
 enum QuestStyle {
-    static let screenBg = MokoTheme.limeBackground  // #F6FAE8
-    static let green = Color(red: 54/255, green: 89/255, blue: 72/255)        // #365948
-    static let deepGreen = Color(red: 27/255, green: 66/255, blue: 47/255)    // #1B422F
-    static let title = MokoTheme.titleBrown        // #5C4330
-    static let subtext = Color(red: 111/255, green: 103/255, blue: 98/255)    // #6F6762
-    static let chipSelectedFill = MokoTheme.limeSelected
-    static let chipSelectedBorder = Color(red: 193.0 / 255.0, green: 220.0 / 255.0, blue: 133.0 / 255.0)
+    static let screenBg = MocoScreenTheme.Colors.canvasTop  // #F6FAE8
+    static let green = MocoScreenTheme.Colors.dataVioletDeep        // #365948
+    static let deepGreen = MocoScreenTheme.Colors.dataVioletDeep    // #1B422F
+    static let title = MocoScreenTheme.Colors.textTitle        // #5C4330
+    static let subtext = MocoScreenTheme.Colors.textBody    // #6F6762
+    static let chipSelectedFill = MocoScreenTheme.Colors.surfaceLavender
+    static let chipSelectedBorder = MocoScreenTheme.Colors.dataGrid
     static let divider = Color.black.opacity(0.08)
 }
 

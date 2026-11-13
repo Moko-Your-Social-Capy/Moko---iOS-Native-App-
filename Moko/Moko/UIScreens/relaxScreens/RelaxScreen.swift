@@ -63,13 +63,13 @@ enum RelaxSession: String, CaseIterable, Identifiable {
     var bannerColors: (top: Color, bottom: Color) {
         switch self {
         case .boxBreathing:
-            return (Color(red: 232/255, green: 242/255, blue: 255/255), Color(red: 208/255, green: 226/255, blue: 248/255)) // blue
+            return (MocoScreenTheme.Colors.accentBlueTint, MocoScreenTheme.Colors.surfaceLavender) // blue
         case .grounding:
-            return (Color(red: 232/255, green: 246/255, blue: 236/255), Color(red: 203/255, green: 230/255, blue: 211/255)) // green
+            return (MocoScreenTheme.Colors.canvasTop, MocoScreenTheme.Colors.canvasBottom) // green
         case .imagery:
-            return (Color(red: 255/255, green: 240/255, blue: 228/255), Color(red: 250/255, green: 222/255, blue: 200/255)) // peach
+            return (MocoScreenTheme.Colors.surfaceWhite, MocoScreenTheme.Colors.canvasBottom) // peach
         case .mirror:
-            return (Color(red: 240/255, green: 234/255, blue: 252/255), Color(red: 222/255, green: 212/255, blue: 244/255)) // lavender
+            return (MocoScreenTheme.Colors.surfaceLavender, MocoScreenTheme.Colors.avatarFill) // lavender
         }
     }
 }
@@ -119,16 +119,20 @@ struct RelaxScreen: View {
     @State private var imageryStore = ImageryGuideStore()
 
     // Palette matching design specifications
-    private let screenBg = Color(red: 246/255, green: 250/255, blue: 232/255) // pale lime
-    private let cardGreen = Color(red: 54/255, green: 89/255, blue: 72/255)   // #365948
-    private let titleBrown = Color(red: 92/255, green: 67/255, blue: 48/255)
-    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
-    private let stepperBg = Color(red: 237/255, green: 237/255, blue: 237/255)  // #EDEDED
+    private let screenBg = MocoScreenTheme.Colors.canvasTop // pale lime
+    private let cardGreen = MocoScreenTheme.Colors.dataVioletDeep   // #365948
+    private let titleBrown = MocoScreenTheme.Colors.textTitle
+    private let subtextGray = MocoScreenTheme.Colors.textBody // #6F6762
+    private let stepperBg = MocoScreenTheme.Colors.surfaceLavender  // #EDEDED
 
-    private let gridColumns = [
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12)
-    ]
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var gridColumns: [GridItem] {
+        Array(
+            repeating: GridItem(.flexible(), spacing: MocoScreenTheme.Space.gapCard),
+            count: dynamicTypeSize.isAccessibilitySize ? 1 : 2
+        )
+    }
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
@@ -138,24 +142,24 @@ struct RelaxScreen: View {
                     headerSection
 
                     breathingCard
-                        .padding(.horizontal, 16)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
 
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Guided Sessions")
-                            .font(.system(size: 22, weight: .bold))
+                            .mocoText(MocoScreenTheme.Typeface.title2)
                             .foregroundColor(titleBrown)
 
-                        LazyVGrid(columns: gridColumns, spacing: 12) {
+                        LazyVGrid(columns: gridColumns, spacing: MocoScreenTheme.Space.gapCard) {
                             ForEach(RelaxSession.allCases) { session in
                                 sessionCard(session)
                             }
                         }
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
                 }
                 .padding(.bottom, 24)
             }
-            .background(screenBg)
+            .background { MocoBackdrop() }
             // Matches the other tab headers (Overview, Quests and Quest Library).
             .navigationTitle("Relax")
             .toolbar(.hidden, for: .navigationBar)
@@ -322,9 +326,9 @@ struct RelaxScreen: View {
     // MARK: - Header
     private var headerSection: some View {
         Text("Relax")
-            .font(.system(size: 34, weight: .bold))
-            .foregroundColor(MokoTheme.titleBrown)
-            .padding(.horizontal, 20)
+            .mocoText(MocoScreenTheme.Typeface.title1)
+            .foregroundColor(MocoScreenTheme.Colors.textTitle)
+            .padding(.horizontal, MocoScreenTheme.Space.page)
             .padding(.top, 14)
     }
 
@@ -339,18 +343,18 @@ struct RelaxScreen: View {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .top) {
                         Text("Breathing")
-                            .font(.system(size: 20, weight: .semibold))
+                            .mocoText(MocoScreenTheme.Typeface.section)
                             .foregroundColor(cardGreen)
 
                         Spacer()
 
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(MokoTheme.titleBrown)
+                            .foregroundColor(MocoScreenTheme.Colors.textTitle)
                     }
 
                     Text("Set your own meditation timer for a calmer mind")
-                        .font(.system(size: 15, weight: .regular))
+                        .mocoText(MocoScreenTheme.Typeface.body)
                         .foregroundColor(subtextGray)
                         .lineSpacing(3)
                         .multilineTextAlignment(.leading)
@@ -368,8 +372,8 @@ struct RelaxScreen: View {
                 }
 
                 Text("\(minutes) min")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(MokoTheme.titleBrown)
+                    .mocoText(MocoScreenTheme.Typeface.slider)
+                    .foregroundColor(MocoScreenTheme.Colors.textTitle)
                     .monospacedDigit()
                     .frame(minWidth: 44)
 
@@ -381,28 +385,27 @@ struct RelaxScreen: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
         .overlay(alignment: .bottomTrailing) {
             BreathingDotsIcon(color: cardGreen)
-                .frame(width: 80, height: 80)
+                .frame(width: 56, height: 56)
                 .padding(20)
                 .allowsHitTesting(false)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
+        .mocoCard()
     }
 
     private func stepperButton(systemName: String, enabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 15, weight: .bold))
-                .foregroundColor(enabled ? .black : .black.opacity(0.3))
-                .frame(width: 38, height: 38)
+                .foregroundColor(enabled ? MocoScreenTheme.Colors.textTitle : MocoScreenTheme.Colors.textMuted)
+                .frame(width: 44, height: 44)
                 .background(Circle().fill(stepperBg))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .disabled(!enabled)
+        .accessibilityLabel(systemName == "minus" ? "Decrease minutes" : "Increase minutes")
     }
 
     // MARK: - Session Card
@@ -413,16 +416,15 @@ struct RelaxScreen: View {
             VStack(spacing: 0) {
                 HStack {
                     Text(session.title)
-                        .font(.system(size: 18, weight: .medium))
+                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
                         .foregroundColor(cardGreen)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Spacer(minLength: 4)
 
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(MokoTheme.titleBrown)
+                        .foregroundColor(MocoScreenTheme.Colors.textTitle)
                 }
 
                 Spacer(minLength: 8)
@@ -433,7 +435,7 @@ struct RelaxScreen: View {
                 Spacer(minLength: 8)
 
                 Text(session.cardDescription)
-                    .font(.system(size: 14, weight: .regular))
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .foregroundColor(subtextGray)
                     .multilineTextAlignment(.center)
                     .lineSpacing(2)
@@ -443,10 +445,7 @@ struct RelaxScreen: View {
             .padding(.top, 18)
             .padding(.bottom, 16)
             .frame(maxWidth: .infinity, minHeight: 190)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
-            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .mocoCard()
         }
         .buttonStyle(.plain)
     }
@@ -476,7 +475,7 @@ struct RelaxScreen: View {
                         minutes = max(1, minutes - 1)
                     }
                     Text("\(minutes) min")
-                        .font(.system(size: 17, weight: .semibold))
+                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
                         .monospacedDigit()
                         .frame(minWidth: 60)
                     stepperButton(systemName: "plus", enabled: minutes < 60) {
@@ -500,10 +499,10 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    private let cardGreen = Color(red: 54/255, green: 89/255, blue: 72/255)
-    private let primaryGreen = Color(red: 27/255, green: 66/255, blue: 47/255)
-    private let titleBrown = Color(red: 92/255, green: 67/255, blue: 48/255)
-    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)
+    private let cardGreen = MocoScreenTheme.Colors.dataVioletDeep
+    private let primaryGreen = MocoScreenTheme.Colors.dataVioletDeep
+    private let titleBrown = MocoScreenTheme.Colors.textTitle
+    private let subtextGray = MocoScreenTheme.Colors.textBody
 
     init(title: String,
          subtitle: String,
@@ -522,62 +521,65 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            icon
-                .frame(height: 64)
-                .padding(.top, 28)
+        ScrollView {
+            VStack(spacing: 0) {
+                icon
+                    .frame(height: 64)
+                    .padding(.top, 28)
 
-            Text(title)
-                .font(.system(size: 24, weight: .bold))
-                .foregroundColor(titleBrown)
-                .padding(.top, 14)
+                Text(title)
+                    .mocoText(MocoScreenTheme.Typeface.title2)
+                    .foregroundColor(titleBrown)
+                    .padding(.top, 14)
 
-            Text(subtitle)
-                .font(.system(size: 15))
-                .foregroundColor(subtextGray)
-                .multilineTextAlignment(.center)
-                .padding(.top, 6)
-                .padding(.horizontal, 24)
+                Text(subtitle)
+                    .mocoText(MocoScreenTheme.Typeface.body)
+                    .foregroundColor(subtextGray)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 6)
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
 
-            extra
-                .padding(.top, 16)
+                extra
+                    .padding(.top, 16)
 
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
-                    HStack(alignment: .top, spacing: 12) {
-                        Text("\(index + 1)")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 22, height: 22)
-                            .background(Circle().fill(cardGreen))
-                        Text(step)
-                            .font(.system(size: 15))
-                            .foregroundColor(MokoTheme.titleBrown)
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
+                        HStack(alignment: .top, spacing: 12) {
+                            Text("\(index + 1)")
+                                .mocoText(MocoScreenTheme.Typeface.caption)
+                                .foregroundColor(.white)
+                                .frame(width: 22, height: 22)
+                                .background(Circle().fill(cardGreen))
+                            Text(step)
+                                .mocoText(MocoScreenTheme.Typeface.body)
+                                .foregroundColor(MocoScreenTheme.Colors.textTitle)
+                        }
                     }
                 }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 20)
-            .padding(.horizontal, 28)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 20)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
 
-            Spacer(minLength: 12)
+                Spacer(minLength: 12)
 
-            Button {
-                onStart()
-                dismiss()
-            } label: {
-                Text(buttonTitle)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(Capsule().fill(primaryGreen))
+                Button {
+                    onStart()
+                    dismiss()
+                } label: {
+                    Text(buttonTitle)
+                        .mocoText(MocoScreenTheme.Typeface.slider)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(minHeight: MocoScreenTheme.Control.trackHeight)
+                        .background(Capsule().fill(primaryGreen))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.bottom, 20)
             }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 20)
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
+        .background { MocoBackdrop() }
     }
 }
 
@@ -590,8 +592,8 @@ struct RelaxSessionSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    private let primaryGreen = Color(red: 54/255, green: 89/255, blue: 72/255)
-    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)
+    private let primaryGreen = MocoScreenTheme.Colors.dataVioletDeep
+    private let subtextGray = MocoScreenTheme.Colors.textBody
 
     var body: some View {
         Group {
@@ -614,12 +616,12 @@ struct RelaxSessionSheet: View {
                 banner
 
                 Text(session.title)
-                    .font(.system(size: 26, weight: .bold))
-                    .foregroundColor(Color(red: 92/255, green: 67/255, blue: 48/255))
+                    .mocoText(MocoScreenTheme.Typeface.title2)
+                    .foregroundColor(MocoScreenTheme.Colors.textTitle)
                     .padding(.top, 24)
 
                 Text(session.detailText)
-                    .font(.system(size: 17, weight: .regular))
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .foregroundColor(subtextGray)
                     .multilineTextAlignment(.center)
                     .lineSpacing(5)
@@ -630,7 +632,7 @@ struct RelaxSessionSheet: View {
                     onContinue()
                 } label: {
                     Text("Continue")
-                        .font(.system(size: 18, weight: .semibold))
+                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
@@ -644,7 +646,7 @@ struct RelaxSessionSheet: View {
                     dismiss()
                 } label: {
                     Text("Not now")
-                        .font(.system(size: 17, weight: .semibold))
+                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
                         .foregroundColor(primaryGreen)
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
@@ -656,7 +658,7 @@ struct RelaxSessionSheet: View {
             }
         }
         .scrollBounceBehavior(.basedOnSize)
-        .background(Color.white)
+        .background { MocoBackdrop() }
         .ignoresSafeArea(edges: .top)      // banner runs under the transparent back-button bar
     }
 

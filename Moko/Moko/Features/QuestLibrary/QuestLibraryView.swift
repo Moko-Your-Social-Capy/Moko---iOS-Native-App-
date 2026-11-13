@@ -17,6 +17,8 @@ struct QuestLibraryView: View {
     @State private var store = QuestLibraryStore()
     @State private var searchText: String = ""
     @State private var openedQuest: Quest?
+    @ScaledMetric(relativeTo: .body) private var cardWidth: CGFloat = 164
+    @ScaledMetric(relativeTo: .body) private var cardHeight: CGFloat = 224
     /// Artwork URL of the library quest currently being opened. Passed to the
     /// detail screen so it shows the card's image instead of the category
     /// placeholder. Only set for quest library quests, never custom quests.
@@ -43,8 +45,7 @@ struct QuestLibraryView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                MokoTheme.limeBackground
-                    .ignoresSafeArea()
+                MocoBackdrop()
 
                 if store.isLoading || !store.hasAttemptedLoad {
                     VStack(spacing: 14) {
@@ -52,7 +53,7 @@ struct QuestLibraryView: View {
                             .frame(width: 176, height: 176)
 
                         Text("Loading quests…")
-                            .font(.system(size: 16, weight: .medium))
+                            .mocoText(MocoScreenTheme.Typeface.body)
                             .foregroundStyle(QuestStyle.title)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -72,6 +73,7 @@ struct QuestLibraryView: View {
             }
             // Matches the Overview, Quests and Relax tab headers.
             .navigationTitle("Quest Library")
+            .tint(MocoScreenTheme.Colors.dataVioletDeep)
             .toolbar(.hidden, for: .navigationBar)
             .searchable(
                 text: $searchText,
@@ -87,8 +89,8 @@ struct QuestLibraryView: View {
     private var headerSection: some View {
         HStack(alignment: .firstTextBaseline) {
             Text("Quest Library")
-                .font(.system(size: 34, weight: .bold))
-                .foregroundColor(MokoTheme.titleBrown)
+                .mocoText(MocoScreenTheme.Typeface.title1)
+                .foregroundColor(MocoScreenTheme.Colors.textTitle)
 
             Spacer(minLength: 12)
 
@@ -105,7 +107,7 @@ struct QuestLibraryView: View {
             .disabled(store.isLoading)
             .accessibilityLabel("Refresh quests")
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, MocoScreenTheme.Space.page)
         .padding(.top, 14)
     }
 
@@ -155,7 +157,7 @@ struct QuestLibraryView: View {
                 .font(.system(size: 13, weight: .semibold))
 
             Text(message)
-                .font(.system(size: 13, weight: .medium))
+                .mocoText(MocoScreenTheme.Typeface.caption)
                 .fixedSize(horizontal: false, vertical: true)
 
             Spacer(minLength: 6)
@@ -163,16 +165,13 @@ struct QuestLibraryView: View {
             Button("Retry") {
                 Task { await store.load() }
             }
-            .font(.system(size: 13, weight: .semibold))
+            .mocoText(MocoScreenTheme.Typeface.caption)
             .foregroundStyle(QuestStyle.green)
         }
         .foregroundStyle(QuestStyle.title)
         .padding(14)
-        .background(
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color.white.opacity(0.72))
-        )
-        .padding(.horizontal, 20)
+        .mocoCard(fill: MocoScreenTheme.Colors.surfaceLavender, radius: MocoScreenTheme.Radius.inner, lift: false)
+        .padding(.horizontal, MocoScreenTheme.Space.page)
     }
 
     // MARK: - Section View
@@ -181,9 +180,9 @@ struct QuestLibraryView: View {
         VStack(alignment: .leading, spacing: 14) {
             // Heading: size 22, weight medium, colour #111827, 20pt left padding
             Text(section.title)
-                .font(.system(size: 22, weight: .medium))
-                .foregroundStyle(MokoTheme.titleBrown)
-                .padding(.leading, 20)
+                .mocoText(MocoScreenTheme.Typeface.title2)
+                .foregroundStyle(MocoScreenTheme.Colors.textTitle)
+                .padding(.leading, MocoScreenTheme.Space.page)
 
             // Horizontal scroll with snapping
             ScrollView(.horizontal) {
@@ -198,7 +197,7 @@ struct QuestLibraryView: View {
             }
             .scrollIndicators(.hidden)
             .scrollTargetBehavior(.viewAligned)
-            .contentMargins(.horizontal, 20, for: .scrollContent)
+            .contentMargins(.horizontal, MocoScreenTheme.Space.page, for: .scrollContent)
             .scrollClipDisabled()
         }
     }
@@ -218,18 +217,18 @@ struct QuestLibraryView: View {
     private func cardContent(for quest: LibraryQuest, in section: QuestSection) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             // 1. Picture area: 128 x 98, corner radius 15 (continuous), filled with pastel tint
-            RoundedRectangle(cornerRadius: 15, style: .continuous)
+            RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.inner, style: .continuous)
                 .fill(quest.tint)
-                .frame(width: 128, height: 98)
+                .frame(width: cardWidth - 24, height: 106)
                 .overlay {
                     artwork(for: quest, in: section)
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.inner, style: .continuous))
 
             // 2. Title: size 16, weight medium, colour #111827, max 2 lines, left aligned, min height 39, 5pt above it
             Text(quest.title)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(MokoTheme.titleBrown)
+                .mocoText(MocoScreenTheme.Typeface.cardTitle)
+                .foregroundStyle(MocoScreenTheme.Colors.textTitle)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, minHeight: 39, alignment: .topLeading)
@@ -240,27 +239,18 @@ struct QuestLibraryView: View {
 
             // 4. 1pt divider, colour #F3F4F6, full inner width
             Rectangle()
-                .fill(Color(hex: 0xF3F4F6))
+                .fill(MocoScreenTheme.Colors.dataGrid)
                 .frame(height: 1)
 
             // 5. XP label: size 12, regular, colour #9CA3AF, left aligned, min height 21.5
             Text("\(quest.xp) XP")
-                .font(.system(size: 12, weight: .regular))
-                .foregroundStyle(Color(hex: 0x9CA3AF))
+                .mocoText(MocoScreenTheme.Typeface.caption)
+                .foregroundStyle(MocoScreenTheme.Colors.textMuted)
                 .frame(maxWidth: .infinity, minHeight: 21.5, alignment: .leading)
         }
-        .padding(11)
-        .frame(width: 150, height: 202)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.white)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.03), lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 3)
-        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(12)
+        .frame(width: cardWidth, height: cardHeight)
+        .mocoCard()
     }
 
     /// Card artwork from Supabase Storage. Until a file is uploaded, or while it

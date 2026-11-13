@@ -18,33 +18,33 @@ struct MirrorReflectionScreen: View {
     var onSelectOption: ((Option) -> Void)? = nil
 
     // Palette matching the rest of the app
-    private let screenBg = Color(red: 246/255, green: 250/255, blue: 232/255) // pale lime
-    private let cardGreen = Color(red: 54/255, green: 89/255, blue: 72/255)     // #365948
-    private let titleDark = Color(red: 92/255, green: 67/255, blue: 48/255)    // warm brown
-    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
+    private let screenBg = MocoScreenTheme.Colors.canvasTop // pale lime
+    private let cardGreen = MocoScreenTheme.Colors.dataVioletDeep     // #365948
+    private let titleDark = MocoScreenTheme.Colors.textTitle    // warm brown
+    private let subtextGray = MocoScreenTheme.Colors.textBody // #6F6762
 
     var body: some View {
         ZStack {
-            screenBg.ignoresSafeArea()
+            MocoBackdrop()
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
                     header
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
                         .padding(.top, 18)
 
                     MirrorHero()
                         .padding(.top, 28)
 
                     Text("Meet yourself with kindness")
-                        .font(.system(size: 26, weight: .bold))
+                        .mocoText(MocoScreenTheme.Typeface.title2)
                         .foregroundColor(titleDark)
                         .multilineTextAlignment(.center)
                         .padding(.top, 28)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
 
                     Text("Take a moment to look at yourself without judging. You don’t need to be perfect to be proud of who you are. Find one thing you appreciate about yourself and give yourself some credit.")
-                        .font(.system(size: 15))
+                        .mocoText(MocoScreenTheme.Typeface.body)
                         .foregroundColor(subtextGray)
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
@@ -53,7 +53,7 @@ struct MirrorReflectionScreen: View {
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Options")
-                            .font(.system(size: 15, weight: .medium))
+                            .mocoText(MocoScreenTheme.Typeface.body)
                             .foregroundColor(subtextGray)
                             .padding(.leading, 8)
 
@@ -66,7 +66,7 @@ struct MirrorReflectionScreen: View {
                         }
                     }
                     .padding(.top, 30)
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
                     .padding(.bottom, 32)
                 }
             }
@@ -77,11 +77,11 @@ struct MirrorReflectionScreen: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Mirror Reflection")
-                .font(.system(size: 30, weight: .bold))
+                .mocoText(MocoScreenTheme.Typeface.title1)
                 .foregroundColor(titleDark)
 
             Text("A self-reflective confidence practice")
-                .font(.system(size: 15))
+                .mocoText(MocoScreenTheme.Typeface.body)
                 .foregroundColor(subtextGray)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -92,7 +92,7 @@ struct MirrorReflectionScreen: View {
         Button(action: action) {
             HStack {
                 Text(title)
-                    .font(.system(size: 16, weight: .medium))
+                    .mocoText(MocoScreenTheme.Typeface.body)
                     .foregroundColor(titleDark)
 
                 Spacer()
@@ -101,14 +101,10 @@ struct MirrorReflectionScreen: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(cardGreen)
             }
-            .padding(.horizontal, 24)
-            .frame(height: 58)
-            .background(
-                Capsule()
-                    .fill(Color.white)
-                    .shadow(color: Color.black.opacity(0.04), radius: 8, x: 0, y: 2)
-            )
-            .contentShape(Capsule())
+            .padding(.horizontal, MocoScreenTheme.Space.page)
+            .padding(.vertical, MocoScreenTheme.Space.cardVertical)
+            .frame(minHeight: 58)
+            .mocoCard()
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.selection, trigger: title)
@@ -129,8 +125,8 @@ struct MirrorHero: View {
     private let frameBottom = Color(red: 200/255, green: 222/255, blue: 208/255)
     private let glassTop = Color(red: 253/255, green: 254/255, blue: 253/255)
     private let glassBottom = Color(red: 232/255, green: 243/255, blue: 236/255)
-    private let green = Color(red: 54/255, green: 89/255, blue: 72/255)
-    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255)
+    private let green = MocoScreenTheme.Colors.dataVioletDeep
+    private let subtextGray = MocoScreenTheme.Colors.textBody
 
     var body: some View {
         ZStack {

@@ -144,17 +144,17 @@ struct QuestDetailScreen: View {
     @State private var showingDebrief = false
 
     // Timeline colours: warm sand for the scene, sky blue for who, green for the goal
-    private let sceneTop = Color(red: 250/255, green: 240/255, blue: 218/255)
-    private let sceneBottom = Color(red: 238/255, green: 214/255, blue: 170/255)
-    private let sceneIcon = Color(red: 160/255, green: 104/255, blue: 34/255)
+    private let sceneTop = MocoScreenTheme.Colors.surfaceLavender
+    private let sceneBottom = MocoScreenTheme.Colors.surfaceLavender
+    private let sceneIcon = MocoScreenTheme.Colors.dataVioletDeep
 
-    private let whoTop = Color(red: 226/255, green: 238/255, blue: 252/255)
-    private let whoBottom = Color(red: 186/255, green: 210/255, blue: 240/255)
-    private let whoIcon = Color(red: 52/255, green: 96/255, blue: 150/255)
+    private let whoTop = MocoScreenTheme.Colors.accentBlueTint
+    private let whoBottom = MocoScreenTheme.Colors.accentBlueTint
+    private let whoIcon = MocoScreenTheme.Colors.countdownValue
 
-    private let goalTop = Color(red: 214/255, green: 238/255, blue: 222/255)
-    private let goalBottom = Color(red: 156/255, green: 205/255, blue: 176/255)
-    private let goalIcon = Color(red: 27/255, green: 66/255, blue: 47/255)
+    private let goalTop = MocoScreenTheme.Colors.surfaceLavender
+    private let goalBottom = MocoScreenTheme.Colors.surfaceLavender
+    private let goalIcon = MocoScreenTheme.Colors.dataVioletDeep
 
     var body: some View {
         ZStack {
@@ -168,7 +168,7 @@ struct QuestDetailScreen: View {
                     .transition(.move(edge: .leading))
             }
         }
-        .background(QuestStyle.screenBg.ignoresSafeArea())
+        .background(MocoBackdrop())
         // The NavigationStack supplies the default back button.
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
@@ -193,18 +193,18 @@ struct QuestDetailScreen: View {
     // MARK: Detail content
     private var detail: some View {
         ZStack {
-            QuestStyle.screenBg.ignoresSafeArea()
+            MocoBackdrop()
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Quest")
-                        .font(.system(size: 30, weight: .bold))
-                        .foregroundColor(MokoTheme.titleBrown)
-                        .padding(.horizontal, 24)
+                        .mocoText(MocoScreenTheme.Typeface.title1)
+                        .foregroundColor(MocoScreenTheme.Colors.textTitle)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
                         .padding(.top, 8)
 
                     card
-                        .padding(.horizontal, 20)
+                        .padding(.horizontal, MocoScreenTheme.Space.page)
                         .padding(.top, 20)
                         .padding(.bottom, 24)
                 }
@@ -217,7 +217,7 @@ struct QuestDetailScreen: View {
                     showingDebrief = true
                 }
             }
-            .padding(.horizontal, 28)
+            .padding(.horizontal, MocoScreenTheme.Space.page)
             .padding(.bottom, 12)
         }
     }
@@ -255,7 +255,7 @@ struct QuestDetailScreen: View {
                 // Title + XP
                 HStack(alignment: .top, spacing: 12) {
                     Text(quest.title)
-                        .font(.system(size: 26, weight: .bold))
+                        .mocoText(MocoScreenTheme.Typeface.title2)
                         .foregroundColor(QuestStyle.title)
                         .fixedSize(horizontal: false, vertical: true)
 
@@ -265,7 +265,7 @@ struct QuestDetailScreen: View {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 11, weight: .bold))
                         Text("\(quest.awardedXP) XP")
-                            .font(.system(size: 14, weight: .bold))
+                            .mocoText(MocoScreenTheme.Typeface.slider)
                     }
                     .foregroundColor(QuestStyle.green)
                     .padding(.horizontal, 12)
@@ -291,7 +291,7 @@ struct QuestDetailScreen: View {
                     Image(systemName: "sparkles")
                         .font(.system(size: 12, weight: .semibold))
                     Text("Briefing")
-                        .font(.system(size: 13, weight: .semibold))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                 }
                 .foregroundColor(QuestStyle.green)
                 .padding(.bottom, 18)
@@ -299,7 +299,7 @@ struct QuestDetailScreen: View {
                 timelineRow(
                     icon: "mappin.and.ellipse",
                     top: sceneTop, bottom: sceneBottom, iconColor: sceneIcon,
-                    label: "THE SCENE",
+                    label: "The scene",
                     lineTo: whoTop,
                     text: brief?.scene, showLine: true
                 )
@@ -307,7 +307,7 @@ struct QuestDetailScreen: View {
                 timelineRow(
                     icon: "person.2.fill",
                     top: whoTop, bottom: whoBottom, iconColor: whoIcon,
-                    label: "WHO",
+                    label: "Who",
                     lineTo: goalTop,
                     text: brief?.who, showLine: true
                 )
@@ -315,7 +315,7 @@ struct QuestDetailScreen: View {
                 timelineRow(
                     icon: "target",
                     top: goalTop, bottom: goalBottom, iconColor: goalIcon,
-                    label: "YOUR GOAL",
+                    label: "Your goal",
                     lineTo: goalTop,
                     text: brief?.goal, showLine: false
                 )
@@ -323,9 +323,8 @@ struct QuestDetailScreen: View {
             .padding(22)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .shadow(color: Color.black.opacity(0.04), radius: 12, x: 0, y: 4)
+        .clipShape(RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.card, style: .continuous))
+        .mocoCard()
     }
 
     // MARK: Card artwork
@@ -413,7 +412,7 @@ struct QuestDetailScreen: View {
 
     private var intensityColor: Color {
         switch quest.intensity {
-        case .easy:   return Color(red: 120/255, green: 165/255, blue: 140/255)
+        case .easy:   return MocoScreenTheme.Colors.dataViolet
         case .medium: return Color(red: 232/255, green: 176/255, blue: 76/255)
         case .hard:   return Color(red: 222/255, green: 108/255, blue: 92/255)
         }
@@ -429,7 +428,7 @@ struct QuestDetailScreen: View {
                 Circle().fill(dot).frame(width: 8, height: 8)
             }
             Text(text)
-                .font(.system(size: 13, weight: .medium))
+                .mocoText(MocoScreenTheme.Typeface.caption)
         }
         .foregroundColor(QuestStyle.title)
         .padding(.horizontal, 12)
@@ -476,13 +475,12 @@ struct QuestDetailScreen: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(label)
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(0.8)
+                    .mocoText(MocoScreenTheme.Typeface.caption)
                     .foregroundColor(iconColor)
 
                 if let text {
                     Text(text)
-                        .font(.system(size: 15))
+                        .mocoText(MocoScreenTheme.Typeface.body)
                         .foregroundColor(QuestStyle.title)
                         .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
@@ -526,9 +524,9 @@ struct QuestSlideButton: View {
     @State private var drag: CGFloat = 0
     @State private var completed = false
 
-    private let height: CGFloat = 60
-    private let knob: CGFloat = 50
-    private let inset: CGFloat = 5
+    private let height = MocoScreenTheme.Control.trackHeight
+    private let knob = MocoScreenTheme.Control.knob
+    private let inset = MocoScreenTheme.Control.knobInset
 
     var body: some View {
         GeometryReader { geo in
@@ -537,7 +535,7 @@ struct QuestSlideButton: View {
 
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(QuestStyle.deepGreen)
+                    .fill(MocoScreenTheme.Colors.accentBlue)
 
                 // Lighter trail behind the knob
                 Capsule()
@@ -545,19 +543,19 @@ struct QuestSlideButton: View {
                     .frame(width: inset * 2 + knob + drag)
 
                 Text(title)
-                    .font(.system(size: 16, weight: .medium))
+                    .mocoText(MocoScreenTheme.Typeface.slider)
                     .foregroundColor(Color.white.opacity(1 - 0.7 * Double(fraction)))
                     .frame(maxWidth: .infinity)
                     .padding(.leading, knob * 0.5)
 
                 ZStack {
                     Circle()
-                        .fill(Color(red: 252/255, green: 248/255, blue: 240/255))
-                        .shadow(color: Color.black.opacity(0.15), radius: 3, x: 0, y: 1)
+                        .fill(MocoScreenTheme.Colors.surfaceWhite)
+                        .shadow(color: MocoScreenTheme.Elevation.knobColor, radius: MocoScreenTheme.Elevation.knobRadius, x: 0, y: MocoScreenTheme.Elevation.knobOffset)
 
                     Image(systemName: completed ? "checkmark" : "arrow.right")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(MokoTheme.titleBrown)
+                        .foregroundColor(MocoScreenTheme.Colors.textTitle)
                 }
                 .frame(width: knob, height: knob)
                 .offset(x: inset + drag)

@@ -5,14 +5,14 @@ struct ImageryGuideListView: View {
 
     @Environment(ImageryGuideStore.self) private var store
     @State private var selectedTag: String? = nil      // nil = "All"
+    @ScaledMetric(relativeTo: .title2) private var cardHeight: CGFloat = 240
 
-    private let sage      = Color(hex: 0x365948)
-    private let deepGreen = Color(hex: 0x1B422F)
-    private let ink       = Color(hex: 0x5C4330)
-    private let bodyText  = Color(hex: 0x51443E)
-    private let muted     = Color(hex: 0x6F6762)
-    private let mint      = Color(hex: 0xE2F5B1)
-    private let screenBg  = Color(hex: 0xF6FAE8)
+    private let sage      = MocoScreenTheme.Colors.dataVioletDeep
+    private let deepGreen = MocoScreenTheme.Colors.dataVioletDeep
+    private let ink       = MocoScreenTheme.Colors.textTitle
+    private let bodyText  = MocoScreenTheme.Colors.textBody
+    private let muted     = MocoScreenTheme.Colors.textBody
+    private let mint      = MocoScreenTheme.Colors.surfaceLavender
 
     private var screen: ImageryGuideScreenContent? { store.screen }
 
@@ -24,7 +24,7 @@ struct ImageryGuideListView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-                .padding(.horizontal, 20)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
                 .padding(.top, 18)
 
             chips
@@ -33,13 +33,14 @@ struct ImageryGuideListView: View {
             guideContent
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(background.ignoresSafeArea())
+        .background { MocoBackdrop() }
+        .toolbarBackground(.hidden, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if let screen {
                     Text(screen.format(screen.guidesCountFormat, ["count": "\(store.guides.count)"]))
-                        .font(.system(size: 11, weight: .bold))
+                        .mocoText(MocoScreenTheme.Typeface.caption)
                         .tracking(0.7)
                         .foregroundStyle(sage)
                         .padding(.horizontal, 12)
@@ -60,12 +61,12 @@ struct ImageryGuideListView: View {
         if let screen {
             VStack(alignment: .leading, spacing: 7) {
                 Text(screen.eyebrow)
-                    .font(.system(size: 11, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.caption)
                     .tracking(1.6)
                     .foregroundStyle(sage)
 
                 Text(screen.title)
-                    .font(.system(size: 34, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.title1)
                     .tracking(-0.7)
                     .foregroundStyle(ink)
             }
@@ -91,7 +92,7 @@ struct ImageryGuideListView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
             }
             .scrollClipDisabled()
         }
@@ -104,16 +105,16 @@ struct ImageryGuideListView: View {
                     .font(.system(size: 11, weight: .semibold))
 
                 Text(title)
-                    .font(.system(size: 13, weight: .semibold))
+                    .mocoText(MocoScreenTheme.Typeface.caption)
             }
-            .foregroundStyle(Color(hex: 0x5C4330))
+            .foregroundStyle(MocoScreenTheme.Colors.textTitle)
             .padding(.horizontal, 14)
-            .frame(height: 36)
+            .frame(minHeight: 44)
             .background {
                 Capsule()
                     .fill(
                         LinearGradient(
-                            colors: isSelected ? [Color(hex: 0xE4F4AC), Color(hex: 0xCFEA83)] : [Color.white, Color.white],
+                            colors: isSelected ? [MocoScreenTheme.Colors.surfaceLavender, MocoScreenTheme.Colors.surfaceLavender] : [Color.white, Color.white],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -176,7 +177,7 @@ struct ImageryGuideListView: View {
                         .accessibilityHint(screen?.listAccessibilityHint ?? "")
                     }
                 }
-                .padding(.horizontal, 20)
+                .padding(.horizontal, MocoScreenTheme.Space.page)
                 .padding(.top, 18)
                 .padding(.bottom, 28)
             }
@@ -201,7 +202,7 @@ struct ImageryGuideListView: View {
     private func card(for guide: ImageryGuide) -> some View {
         Color.clear
             .frame(maxWidth: .infinity)
-            .frame(height: 212)
+            .frame(height: cardHeight)
             .background {
                 cardImage(for: guide)
             }
@@ -211,7 +212,7 @@ struct ImageryGuideListView: View {
                         .init(color: Color.black.opacity(0.12), location: 0),
                         .init(color: Color.clear, location: 0.28),
                         .init(color: deepGreen.opacity(0.18), location: 0.58),
-                        .init(color: deepGreen.opacity(0.9), location: 1)
+                        .init(color: MocoScreenTheme.Colors.dataNode.opacity(0.95), location: 1)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
@@ -228,12 +229,8 @@ struct ImageryGuideListView: View {
                 durationPill(for: guide)
                     .padding(14)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.16), lineWidth: 1)
-            }
-            .shadow(color: Color.black.opacity(0.12), radius: 16, x: 0, y: 8)
+            .clipShape(RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.card, style: .continuous))
+            .mocoCard()
     }
 
     @ViewBuilder
@@ -285,14 +282,14 @@ struct ImageryGuideListView: View {
         HStack(alignment: .bottom, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(guide.title)
-                    .font(.system(size: 23, weight: .bold))
+                    .mocoText(MocoScreenTheme.Typeface.title2)
                     .tracking(-0.3)
                     .foregroundStyle(.white)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)
 
                 Text(guide.description)
-                    .font(.system(size: 13))
+                    .mocoText(MocoScreenTheme.Typeface.caption)
                     .foregroundStyle(.white.opacity(0.78))
                     .lineSpacing(2)
                     .lineLimit(2)
@@ -326,13 +323,12 @@ struct ImageryGuideListView: View {
                 .font(.system(size: 10, weight: .semibold))
 
             Text(guide.tag)
-                .font(.system(size: 11, weight: .semibold))
+                .mocoText(MocoScreenTheme.Typeface.caption)
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 10)
-        .frame(height: 27)
-        .background(Capsule().fill(Color.black.opacity(0.32)))
-        .overlay(Capsule().stroke(Color.white.opacity(0.16), lineWidth: 1))
+        .padding(.vertical, 6)
+        .background(Capsule().fill(MocoScreenTheme.Colors.dataNode))
     }
 
     private func durationPill(for guide: ImageryGuide) -> some View {
@@ -341,18 +337,14 @@ struct ImageryGuideListView: View {
                 .font(.system(size: 10, weight: .semibold))
 
             Text(guide.durationLabel)
-                .font(.system(size: 11, weight: .semibold))
+                .mocoText(MocoScreenTheme.Typeface.caption)
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 10)
-        .frame(height: 27)
-        .background(Capsule().fill(Color.black.opacity(0.32)))
-        .overlay(Capsule().stroke(Color.white.opacity(0.16), lineWidth: 1))
+        .padding(.vertical, 6)
+        .background(Capsule().fill(MocoScreenTheme.Colors.dataNode))
     }
 
-    private var background: some View {
-        screenBg
-    }
 }
 
 private struct ImageryGuidePressStyle: ButtonStyle {
