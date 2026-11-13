@@ -11,8 +11,6 @@
 		297922943089E3990016BAEE /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 297922933089E3990016BAEE /* Supabase */; };
 		297922A33089EFF00016BAEE /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 297922A23089EFF00016BAEE /* GoogleSignIn */; };
 		297922A53089EFF00016BAEE /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 297922A43089EFF00016BAEE /* GoogleSignInSwift */; };
-		297922B1308A00000016BAEE /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 297922B0308A00000016BAEE /* Lottie */; };
-		A1B2C3D4E5F60718293A4B5E /* RiveRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = A1B2C3D4E5F60718293A4B5D /* RiveRuntime */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,8 +22,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Resources/Animations/MokoMeditationRive/rive.yaml,
-				Resources/Animations/MokoMeditationRive/scene.rml,
 			);
 			target = 177E22F23089D968002C18EB /* Moko */;
 		};
@@ -49,10 +45,8 @@
 			files = (
 				297922943089E3990016BAEE /* Supabase in Frameworks */,
 				297922A53089EFF00016BAEE /* GoogleSignInSwift in Frameworks */,
-				297922B1308A00000016BAEE /* Lottie in Frameworks */,
 				2979228A3089E3990016BAEE /* Auth in Frameworks */,
 				297922A33089EFF00016BAEE /* GoogleSignIn in Frameworks */,
-				A1B2C3D4E5F60718293A4B5E /* RiveRuntime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -99,8 +93,6 @@
 				297922933089E3990016BAEE /* Supabase */,
 				297922A23089EFF00016BAEE /* GoogleSignIn */,
 				297922A43089EFF00016BAEE /* GoogleSignInSwift */,
-				297922B0308A00000016BAEE /* Lottie */,
-				A1B2C3D4E5F60718293A4B5D /* RiveRuntime */,
 			);
 			productName = Moko;
 			productReference = 177E22F33089D968002C18EB /* Moko.app */;
@@ -133,8 +125,6 @@
 			packageReferences = (
 				297922803089E1680016BAEE /* XCRemoteSwiftPackageReference "supabase-swift" */,
 				297922A13089EFF00016BAEE /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
-				297922AF308A00000016BAEE /* XCRemoteSwiftPackageReference "lottie-ios" */,
-				A1B2C3D4E5F60718293A4B5C /* XCRemoteSwiftPackageReference "rive-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 177E22F43089D968002C18EB /* Products */;
@@ -305,7 +295,6 @@
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Moko uses your mic only when you record a voice reflection. You choose when it starts and you can delete recordings any time.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -341,7 +330,6 @@
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Moko uses your mic only when you record a voice reflection. You choose when it starts and you can delete recordings any time.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -403,22 +391,6 @@
 				minimumVersion = 10.0.0;
 			};
 		};
-		297922AF308A00000016BAEE /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/airbnb/lottie-ios";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 4.0.0;
-			};
-		};
-		A1B2C3D4E5F60718293A4B5C /* XCRemoteSwiftPackageReference "rive-ios" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/rive-app/rive-ios";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 6.27.0;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -441,16 +413,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 297922A13089EFF00016BAEE /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
 			productName = GoogleSignInSwift;
-		};
-		297922B0308A00000016BAEE /* Lottie */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 297922AF308A00000016BAEE /* XCRemoteSwiftPackageReference "lottie-ios" */;
-			productName = Lottie;
-		};
-		A1B2C3D4E5F60718293A4B5D /* RiveRuntime */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A1B2C3D4E5F60718293A4B5C /* XCRemoteSwiftPackageReference "rive-ios" */;
-			productName = RiveRuntime;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

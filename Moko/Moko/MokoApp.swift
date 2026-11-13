@@ -12,10 +12,6 @@ import UIKit
 struct MokoApp: App {
 
     init() {
-        // Warm the local vector loader while the static splash is shown; the
-        // floss animation is only presented by actual loading states.
-        MokoFlossLoadingView.prewarm()
-
         let segments = UISegmentedControl.appearance()
         segments.selectedSegmentTintColor = UIColor(
             red: 226.0 / 255.0,

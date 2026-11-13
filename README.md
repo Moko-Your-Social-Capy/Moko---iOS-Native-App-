@@ -60,7 +60,7 @@ MOKO makes wellness feel approachable. A capybara coach appears at meaningful mo
 | Relax | Guided breathing with start, pause, resume, reset and completion | ✅ Implemented |
 | Relax | Guided imagery, grounding and mirror exercises | 🚧 In progress |
 | Relax | Timed sessions and completion screen | 🚧 In progress |
-| Mascot | Lottie animations via `MokoLottieView` | 🚧 Integrated, sizing and rendering being debugged |
+| Mascot | Native SwiftUI splash, welcome, breathing, and badge animations | ✅ Implemented |
 | Insights | Presence, Courage, Clarity, Warmth dimensions | 🚧 In progress |
 | Insights | Day / Week / Month / Year summaries (Swift Charts) | 📋 Planned |
 | Profile | Personal progress, achievements and milestones | 🚧 In progress |
@@ -110,15 +110,12 @@ The breathing timer is independent of the animation. The mascot is purely presen
 
 ## The mascot and animations
 
-Moko is a flat-vector capybara with a friendly, calm expression. Animations are Lottie JSON files rendered with [lottie-ios](https://github.com/airbnb/lottie-ios).
+Moco uses the supplied capybara artwork in `MocoMascot` and the supplied app logo in `MocoLogo` and `AppIcon`. Animation is native SwiftUI, with no third-party animation runtime.
 
-| Animation | File | Duration | Loop | Used on |
-|---|---|---|---|---|
-| Hello | `MokoHello.json` | 2.5 s | Play once | Welcome |
-| Meditation | `MokoMeditation.json` | 4 s | Loop | Breathing background |
-| Listening | `MokoListening.json` | 3 s | Loop | Conversation and coaching |
-| Complete | `MokoComplete.json` | 2.5 s | Play once | Session and goal completion |
-| Idle | `MokoIdle.json` | 2.5 s | Loop | Dashboard and empty states |
+- Splash: the mascot rises from below with a 0.5-second spring on a lavender background.
+- Welcome and earned badges: one-shot entrances.
+- Breathing: mascot scale follows the session's 4-second inhale and 6-second exhale, including pause and reset.
+- Loading: native progress indicators. Completion: SwiftUI Canvas artwork.
 
 **Palette**
 
@@ -135,16 +132,12 @@ Moko is a flat-vector capybara with a friendly, calm expression. Animations are 
 
 ```swift
 import SwiftUI
-import Lottie
 
-MokoLottieView(
-    animationName: "MokoListening",
-    loopMode: .loop,
-    frameWidth: 280
-)
+SplashScreenView(autoAdvance: false)
+MokoAnimatedMascotView(size: 220)
 ```
 
-Animations respect **Reduce Motion**: when it is on, Moko shows a still frame instead of playing.
+The splash, welcome, and badge entrances use fades with **Reduce Motion**. Breathing keeps the mascot still, and loading shows an hourglass.
 
 ---
 
@@ -156,7 +149,7 @@ Animations respect **Reduce Motion**: when it is on, Moko shows a still frame in
 | Language | Swift | Application logic |
 | Local data | SwiftData | Onboarding and private user data |
 | Auth | Supabase | Sign-in and account management |
-| Animation | Lottie + SwiftUI | Animated mascot |
+| Animation | SwiftUI | Native mascot, progress, and badge animations |
 | Charts | Swift Charts | Wellness insights |
 | Apple platform | WidgetKit, ActivityKit | Widgets and Live Activities (planned) |
 | Design | SF Symbols, SF Pro Rounded | Native iconography and typography |
@@ -187,11 +180,9 @@ Moko---iOS-Native-App-/
 │   │   └── QuestModels.swift
 │   ├── Features/
 │   │   └── Animation/
-│   │       ├── MokoLottieView.swift
-│   │       ├── MokoAnimationTypes.swift
-│   │       └── MokoAnimationController.swift
-│   ├── Resources/
-│   │   └── Animations/            # Lottie JSON files
+│   │       ├── MokoCompletionAnimation.swift
+│   │       └── MokoFlossLoadingView.swift
+│   ├── Assets.xcassets/          # Mascot, logo, and app icon artwork
 │   ├── UIScreens/
 │   │   ├── startScreens/          # Welcome and onboarding
 │   │   ├── homeScreens/           # Home, Overview, Insights
@@ -224,7 +215,7 @@ cd Moko---iOS-Native-App-
 open Moko/Moko.xcodeproj
 ```
 
-1. **Add Lottie.** In Xcode, go to **File → Add Package Dependencies** and enter `https://github.com/airbnb/lottie-ios`.
+1. **Resolve packages.** Let Xcode resolve the project's authentication dependencies. Animations need no additional packages.
 2. **Configure Supabase.** Copy the template and fill in your project values:
 
    ```bash
@@ -329,7 +320,6 @@ TBD. Choose a license before making the repository public.
 
 ## Acknowledgements
 
-- [Lottie](https://github.com/airbnb/lottie-ios) by Airbnb for mascot animation
 - [Supabase](https://supabase.com) for authentication
 - Apple's SF Symbols and SF Pro for the native visual language
 
