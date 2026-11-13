@@ -74,7 +74,6 @@ struct ProfileOverViewEditProfile: View {
                     }
                     .padding(.vertical, 8)
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                    .listRowBackground(ProfilePalette.grouped)
                 } header: {
                     Text("Profile photo")
                 } footer: {
@@ -93,7 +92,7 @@ struct ProfileOverViewEditProfile: View {
                     if showValidation, let nameError {
                         Text(nameError)
                             .font(.footnote)
-                            .foregroundStyle(Color(hex: 0xB9583F))
+                            .foregroundStyle(ProfilePalette.error)
                             .accessibilityAddTraits(.isStaticText)
                     }
                     LabeledContent("Username (optional)") {
@@ -112,7 +111,7 @@ struct ProfileOverViewEditProfile: View {
 
                 if let saveError {
                     Section {
-                        Text(saveError).foregroundStyle(Color(hex: 0xB9583F))
+                        Text(saveError).foregroundStyle(ProfilePalette.error)
                     }
                 }
             }

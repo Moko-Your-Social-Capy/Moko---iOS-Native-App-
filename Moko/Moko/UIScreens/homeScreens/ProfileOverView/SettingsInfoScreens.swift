@@ -11,10 +11,10 @@ import SwiftUI
 // MARK: - Shared style
 
 private enum InfoTheme {
-    static let screenBg = Color(hex: 0xF7F5F2)
-    static let deepGreen = Color(hex: 0x1F7488)
-    static let cream = Color(hex: 0xF7F5F2)
-    static let ink = Color(hex: 0x4A3826)
+    static let screenBg = ProfilePalette.background
+    static let deepGreen = ProfilePalette.accent
+    static let cream = ProfilePalette.grouped
+    static let ink = ProfilePalette.text
 }
 
 private struct InfoScrollView<Content: View>: View {
@@ -49,7 +49,7 @@ private struct InfoCard<Content: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .background(InfoTheme.cream, in: RoundedRectangle(cornerRadius: 20))
+        .mocoCard(fill: InfoTheme.cream)
     }
 }
 

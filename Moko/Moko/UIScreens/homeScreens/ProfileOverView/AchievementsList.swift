@@ -1,6 +1,8 @@
 import SwiftUI
 import SwiftData
 
+private typealias Theme = MocoScreenTheme
+
 enum AchievementBadgeShapeKind: Hashable { case streak, quest, skill, calm }
 enum AchievementTier: Int, Hashable {
     case one = 1, two, three
@@ -199,16 +201,18 @@ struct Achievement: Identifiable, Hashable {
 }
 
 // MARK: - Flat vector badge artwork
+/// Medal artwork. Every value resolves through the theme so the badges belong to
+/// the same palette as the screen that shows them.
 private enum BadgePalette {
-    static let teal = Color(hex: 0x1F7488)
-    static let lightTeal = Color(hex: 0x3D94A8)
-    static let white = Color(hex: 0xFFFFFF)
-    static let cream = Color(hex: 0xF7F5F2)
-    static let brown = Color(hex: 0x4A3826)
-    static let gold = Color(hex: 0xD9A441)
-    static let silver = Color(hex: 0xB9C1C3)
-    static let locked = Color(hex: 0xB8BDBD)
-    static let lockedFace = Color(hex: 0xD8DADA)
+    static let teal = Theme.Colors.forest
+    static let lightTeal = Theme.Colors.sage
+    static let white = Theme.Colors.surfaceWhite
+    static let cream = Theme.Colors.cream
+    static let brown = Theme.Colors.textTitle
+    static let gold = Theme.Colors.medalGold
+    static let silver = Theme.Colors.medalSilver
+    static let locked = Theme.Colors.lockedInk
+    static let lockedFace = Theme.Colors.ringTrack
 }
 
 struct AchievementBadgeShape: Shape {
@@ -320,14 +324,22 @@ struct ProfileOverViewAchievementsList: View {
     private func card(_ item: Achievement) -> some View {
         VStack(spacing: 9) {
             AchievementBadgeView(achievement: item, size: 74)
-            Text(item.title).font(.system(size: 15, weight: .semibold)).foregroundStyle(BadgePalette.brown)
-                .multilineTextAlignment(.center).lineLimit(2).frame(height: 38)
+            Text(item.title)
+                .mocoText(Theme.Typeface.cardTitle)
+                .foregroundStyle(Theme.Colors.textTitle)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
+                .frame(minHeight: 38)
             Text("\(item.unlocked ? "Earned" : "Locked") · \(item.tier.title)")
-                .font(.caption2.weight(.medium)).foregroundStyle(item.unlocked ? BadgePalette.teal : BadgePalette.brown.opacity(0.62))
+                .mocoText(Theme.Typeface.badge)
+                .foregroundStyle(item.unlocked ? Theme.Colors.sage : Theme.Colors.lockedInk)
                 .lineLimit(1)
         }
-        .frame(maxWidth: .infinity, minHeight: 152).padding(.vertical, 14).padding(.horizontal, 8)
-        .background(Color.clear, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .frame(maxWidth: .infinity, minHeight: 152)
+        .padding(.vertical, 14)
+        .padding(.horizontal, 8)
+        .mocoCard(fill: Theme.Card.fill)
     }
 }
 

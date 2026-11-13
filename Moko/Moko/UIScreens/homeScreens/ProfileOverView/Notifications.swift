@@ -14,8 +14,8 @@ import UIKit
 
 struct ProfileOverViewNotifications: View {
 
-    private let screenBg = Color(hex: 0xF7F5F2)
-    private let deepGreen = Color(hex: 0x1F7488)
+    private let screenBg = ProfilePalette.background
+    private let deepGreen = ProfilePalette.accent
 
     // Saved on the device so the switches keep their state. Switches start off
     // until iOS has granted notification permission.

@@ -1,5 +1,7 @@
 import SwiftUI
 
+private typealias Theme = MocoScreenTheme
+
 struct ProfileOverViewAchievementDetailUnlocked: View {
     let achievement: Achievement
     @Environment(\.dismiss) private var dismiss
@@ -23,9 +25,9 @@ struct ProfileOverViewAchievementDetailUnlocked: View {
             }
 
             Text(achievement.title)
-                .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(ProfilePalette.text)
-                .multilineTextAlignment(.leading)
+                .mocoText(Theme.Typeface.profileName)
+                .foregroundStyle(Theme.Colors.textTitle)
+                .multilineTextAlignment(.center)
 
             Text(achievement.unlocked ? "Earned · \(achievement.tier.title)" : "Locked · \(achievement.tier.title)")
                 .font(.subheadline.weight(.semibold))
@@ -35,8 +37,8 @@ struct ProfileOverViewAchievementDetailUnlocked: View {
                 .background(ProfilePalette.grouped, in: Capsule())
 
             Text(achievement.detail)
-                .font(.system(size: 17))
-                .foregroundStyle(ProfilePalette.secondary)
+                .mocoText(Theme.Typeface.body)
+                .foregroundStyle(Theme.Colors.textBody)
                 .multilineTextAlignment(.center)
                 .lineSpacing(4)
                 .padding(.horizontal, 28)

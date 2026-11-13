@@ -8,6 +8,8 @@
 import SwiftUI
 import SwiftData
 
+private typealias Theme = MocoScreenTheme
+
 struct Overview: View {
     @Binding var selectedTab: MokoTab
 
@@ -33,7 +35,6 @@ struct Overview: View {
     @Query private var calmDowns: [CalmDownModel]
     @Query(sort: \Quest.date, order: .reverse) private var allQuests: [Quest]
 
-    @State private var slideOffset: CGFloat = 0
     @State private var showRadarInfo: Bool = false      // "How your radar chart works" sheet
     @State private var openInsights: Bool = false       // set by the sheet's button
     @State private var showInsights: Bool = false       // pushes InsightsView
@@ -64,39 +65,25 @@ struct Overview: View {
         activeMission.isCompleted
     }
 
-    // Custom Palette based on design specs
-    private let screenBg = MokoTheme.limeBackground // #F6FAE8
-    private let primaryGreen = Color(red: 27/255, green: 66/255, blue: 47/255) // #1B422F
-    private let micGreen = Color(red: 47/255, green: 79/255, blue: 64/255)
-    private let titleDark = MokoTheme.titleBrown // #5C4330
-    private let subtextGray = Color(red: 111/255, green: 103/255, blue: 98/255) // #6F6762
-
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background
-                screenBg
-                    .ignoresSafeArea()
+                // §5 Canvas: graded green, bush bottom-left, leaf right edge.
+                MocoBackdrop()
 
-                // Scrollable Content Area
+                // Safe/Content
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-                        // MARK: - Header
                         headerSection
-                            .padding(.horizontal, 20)
-                            .padding(.top, 14)
 
-                        // MARK: - Today's Mission Section
-                        todaysMissionSection
-                            .padding(.top, 28)
-                            .padding(.horizontal, 16)
+                        missionSection
+                            .padding(.top, Theme.Space.s7)
 
-                        // MARK: - Statistics Section
-                        statisticsSection
-                            .padding(.top, 28)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 24)
+                        progressSection
+                            .padding(.top, Theme.Space.s7)
                     }
+                    .padding(.horizontal, Theme.Space.page)
+                    .padding(.bottom, Theme.Space.tabBand)
                 }
             }
             // Overview keeps its own header; pushed screens get the default bar and back button
@@ -116,7 +103,9 @@ struct Overview: View {
             .sheet(isPresented: $showProfile) {
                 ProfileOverView()
                     .presentationDetents([.large])
-                    .presentationDragIndicator(.visible)
+                    /// The hero owns a close button, so the grabber would only
+                    /// collide with the centred title.
+                    .presentationDragIndicator(.hidden)
             }
             .task {
                 await DailyMissionService.ensureDailyMission(in: modelContext, existingQuests: allQuests)
@@ -124,89 +113,146 @@ struct Overview: View {
         }
     }
 
-    // MARK: - Header Section
+    // MARK: - Header (§4 Header/Title + Avatar/User)
+
     private var headerSection: some View {
-        HStack(alignment: .center) {
+        HStack(alignment: .center, spacing: Theme.Space.s4) {
             Text("Overview")
-                .font(.system(size: 34, weight: .bold))
-                .foregroundColor(MokoTheme.titleBrown)
+                .mocoText(Theme.Typeface.title1)
+                .foregroundStyle(Theme.Colors.textTitle)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            // Avatar Circle: opens the Profile screen
-            Button {
-                showProfile = true
-            } label: {
-                ZStack {
-                    Circle()
-                        .fill(Color(red: 68/255, green: 68/255, blue: 68/255).opacity(0.6))
-                        .frame(width: 47, height: 47)
+            avatarButton
+        }
+        .padding(.top, Theme.Space.s2)
+    }
 
-                    if let name = profiles.first?.username, !name.isEmpty {
-                        Text(String(name.prefix(2)).uppercased())
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                    } else {
-                        Image(systemName: "person.fill")
-                            .foregroundColor(.white)
-                    }
-                }
+    private var avatarButton: some View {
+        Button {
+            showProfile = true
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Theme.Colors.avatarFill)
+
+                Circle()
+                    .strokeBorder(Color.white.opacity(0.9), lineWidth: Theme.Line.hair)
+
+                avatarGlyph
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Open profile")
+            .frame(width: Theme.Size.avatar, height: Theme.Size.avatar)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Open profile")
+    }
+
+    @ViewBuilder
+    private var avatarGlyph: some View {
+        if let name = profiles.first?.username, !name.isEmpty {
+            Text(String(name.prefix(2)).uppercased())
+                .mocoText(Theme.Typeface.cardTitle)
+                .foregroundStyle(Theme.Colors.avatarText)
+        } else {
+            Image(systemName: "person.fill")
+                .font(.system(size: Theme.Glyph.avatar, weight: .semibold))
+                .foregroundStyle(Theme.Colors.avatarText)
         }
     }
 
-    // MARK: - Today's Mission Section
-    private var todaysMissionSection: some View {
-        let currentMission = activeMission
+    // MARK: - Mission (§4 Section/Mission + Card/Mission)
 
-        return VStack(alignment: .leading, spacing: 14) {
+    private var missionSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.gapSection) {
             Text("Mission")
-                .font(.system(size: 22, weight: .bold))
-                .foregroundColor(titleDark)
+                .mocoText(Theme.Typeface.section)
+                .foregroundStyle(Theme.Colors.textTitle)
 
-            VStack(alignment: .leading, spacing: 0) {
-                // Mission Title
-                Text(currentMission.title)
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(primaryGreen)
-                    .padding(.top, 24)
-                    .padding(.horizontal, 20)
+            missionCard(for: activeMission)
+        }
+    }
 
-                // Mission Subtitle / Description
-                Text(missionDescription(for: currentMission))
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundColor(subtextGray)
-                    .lineSpacing(3)
-                    .padding(.top, 12)
-                    .padding(.horizontal, 20)
+    private func missionCard(for quest: Quest) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Space.gapInner) {
+            Text(quest.title)
+                .mocoText(Theme.Typeface.cardTitle)
+                .foregroundStyle(Theme.Colors.textTitle)
+                .fixedSize(horizontal: false, vertical: true)
 
-                // Action: Slides to complete OR reveals Start Debrief + Mic
-                if !isMissionCompleted {
-                    slideToCompleteWidget(for: currentMission)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 32)
-                        .padding(.bottom, 24)
-                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
-                } else {
-                    startDebriefWidget(for: currentMission)
-                        .padding(.horizontal, 24)
-                        .padding(.top, 36)
-                        .padding(.bottom, 24)
-                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
+            Text(missionDescription(for: quest))
+                .mocoText(Theme.Typeface.body)
+                .foregroundStyle(Theme.Colors.textBody)
+                .fixedSize(horizontal: false, vertical: true)
+
+            missionAction(for: quest)
+                .padding(.top, Theme.Space.gapSection)
+        }
+        .padding(.horizontal, Theme.Space.cardHorizontal)
+        .padding(.vertical, Theme.Space.cardVertical)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .mocoCard()
+        .animation(Theme.Motion.crossfade, value: isMissionCompleted)
+    }
+
+    /// State/Active → Control/Slide. Once the quest is complete the app needs its
+    /// debrief affordance, which v1.0 does not draw: it is built from registered
+    /// tokens only (accent.blue, radius.inner, 54pt touch target).
+    @ViewBuilder
+    private func missionAction(for quest: Quest) -> some View {
+        if isMissionCompleted {
+            debriefRow(for: quest)
+                .transition(.opacity)
+        } else {
+            MocoSlideControl(label: "Slide to Complete") {
+                QuestProgress.complete(quest, in: modelContext)
+            }
+            .id(quest.id)
+            .transition(.opacity)
+        }
+    }
+
+    private func debriefRow(for quest: Quest) -> some View {
+        HStack(spacing: Theme.Space.s3) {
+            Button {
+                openDebrief(for: quest)
+            } label: {
+                Text("Start Debrief")
+                    .mocoText(Theme.Typeface.cardTitle)
+                    .foregroundStyle(Theme.Colors.accentBlue)
+                    .frame(maxWidth: .infinity, minHeight: Theme.Control.mic)
+                    .background {
+                        RoundedRectangle(cornerRadius: Theme.Radius.inner, style: .continuous)
+                            .fill(Theme.Card.wash)
+                    }
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                openDebrief(for: quest)
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(Theme.Colors.accentBlue)
+                        .frame(width: Theme.Control.mic, height: Theme.Control.mic)
+
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: Theme.Glyph.mic, weight: .semibold))
+                        .foregroundStyle(.white)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
-            .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isMissionCompleted)
-            .onChange(of: currentMission.id) { _, _ in
-                // A different mission starts with the knob back at the left
-                slideOffset = 0
-            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Start debrief with voice")
         }
+    }
+
+    private func openDebrief(for quest: Quest) {
+        if quest.modelContext == nil {
+            modelContext.insert(quest)
+            try? modelContext.save()
+        }
+        onStartDebrief?(quest)
     }
 
     /// A description built from the quest's notes or category and intensity.
@@ -218,147 +264,13 @@ struct Overview: View {
         return "A \(quest.intensity.rawValue.lowercased()) \(quest.category.rawValue.lowercased()) quest. Take your time and go at your pace."
     }
 
-    private var emptyMissionContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("No Active Quest")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(primaryGreen)
-                .padding(.top, 24)
-                .padding(.horizontal, 20)
+    // MARK: - Progress (§4 Section/Progress)
 
-            Text("Choose a quest from the library to give today a direction.")
-                .font(.system(size: 15, weight: .regular))
-                .foregroundColor(subtextGray)
-                .lineSpacing(3)
-                .padding(.horizontal, 20)
-
-            Button {
-                selectedTab = .search
-            } label: {
-                Text("Explore Quests")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 20)
-                    .frame(height: 44)
-                    .background(Capsule().fill(primaryGreen))
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-            .padding(.bottom, 24)
-        }
-    }
-
-    // MARK: - Start Debrief Widget (Shown after sliding)
-    private func startDebriefWidget(for mission: Quest) -> some View {
-        HStack(alignment: .center) {
-            Spacer()
-
-            Button(action: {
-                if mission.modelContext == nil {
-                    modelContext.insert(mission)
-                    try? modelContext.save()
-                }
-                onStartDebrief?(mission)
-            }) {
-                Text("Start Debrief")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(titleDark)
-            }
-
-            Spacer()
-
-            Button(action: {
-                if mission.modelContext == nil {
-                    modelContext.insert(mission)
-                    try? modelContext.save()
-                }
-                onStartDebrief?(mission)
-            }) {
-                ZStack {
-                    Circle()
-                        .fill(micGreen)
-                        .frame(width: 46, height: 46)
-                        .shadow(color: Color.black.opacity(0.12), radius: 6, x: 0, y: 3)
-
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.white)
-                }
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    // MARK: - Slide to Complete Widget
-    private func slideToCompleteWidget(for mission: Quest) -> some View {
-        GeometryReader { geo in
-            let sliderWidth = geo.size.width
-            let knobSize: CGFloat = 43
-            let maxDrag = sliderWidth - knobSize - 5
-
-            ZStack(alignment: .leading) {
-                // Pill Background
-                Capsule()
-                    .fill(primaryGreen.opacity(0.88))
-                    .frame(height: 48)
-
-                // Centered Label
-                HStack {
-                    Spacer()
-                    Text("Slide to Complete")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.white)
-                    Spacer()
-                }
-                .frame(height: 48)
-
-                // Draggable White Knob with Arrow
-                ZStack {
-                    Circle()
-                        .fill(Color(red: 252/255, green: 248/255, blue: 240/255))
-                        .frame(width: knobSize, height: knobSize)
-                        .shadow(color: Color.black.opacity(0.12), radius: 3, x: 0, y: 1)
-
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(MokoTheme.titleBrown)
-                }
-                .offset(x: 2.5 + slideOffset)
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            guard !isMissionCompleted else { return }
-                            let drag = max(0, min(value.translation.width, maxDrag))
-                            slideOffset = drag
-                        }
-                        .onEnded { _ in
-                            guard !isMissionCompleted else { return }
-                            if slideOffset > maxDrag * 0.7 {
-                                // Completing the real quest awards XP and the streak
-                                QuestProgress.complete(mission, in: modelContext)
-
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                    slideOffset = maxDrag
-                                }
-                            } else {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                    slideOffset = 0
-                                }
-                            }
-                        }
-                )
-            }
-        }
-        .frame(height: 48)
-    }
-
-    // MARK: - Statistics Section
-    private var statisticsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+    private var progressSection: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.gapSection) {
             Text("Growth")
-                .font(.system(size: 22, weight: .bold))
-                .foregroundColor(titleDark)
+                .mocoText(Theme.Typeface.section)
+                .foregroundStyle(Theme.Colors.textTitle)
 
             // Insights Card (opens the radar chart info sheet)
             insightsCard
@@ -376,122 +288,92 @@ struct Overview: View {
         }
     }
 
-    // MARK: - Insights Card
+    // MARK: - Insights Card (§6.5)
+
     private var insightsCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Card Top Row
-            HStack(alignment: .center) {
-                Text("Insights")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(primaryGreen)
+        progressCard {
+            ZStack(alignment: .topLeading) {
+                VStack(alignment: .leading, spacing: 0) {
+                    cardHeader(title: "Insights")
 
-                Spacer()
+                    Spacer(minLength: Theme.Space.gapInner)
 
-                HStack(spacing: 4) {
-                    Text(Date.now.formatted(
-                        .dateTime
-                            .locale(Locale(identifier: "en_US"))
-                            .month(.abbreviated)
-                            .day()
-                    ))
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(titleDark)
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(titleDark)
+                    metric(value: "\(Int(data.insights.warmth.rounded()))", unit: "warmth")
                 }
+
+                MocoRadarChart(scores: data.insights)
+                    .frame(width: Theme.Size.radar, height: Theme.Size.radar)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .trailing)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 18)
-
-            // Card Content: Number + Radar Chart
-            HStack(alignment: .bottom) {
-                HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text("\(Int(data.insights.warmth.rounded()))")
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
-                        .foregroundColor(primaryGreen)
-
-                    Text("warmth")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(primaryGreen)
-                }
-                .padding(.bottom, 6)
-
-                Spacer()
-
-                // Radar / Diamond Shape Chart
-                InsightsRadarChartView(scores: data.insights)
-                    .frame(width: 106, height: 106)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 10)
-            .padding(.bottom, 16)
         }
-        .frame(maxWidth: .infinity)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    // MARK: - Calm Down Card
+    // MARK: - Calm Down Card (§6.6)
+
     private var calmDownCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Card Top Row
-            HStack(alignment: .center) {
-                Text("Calm Down")
-                    .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(primaryGreen)
+        progressCard {
+            ZStack(alignment: .topLeading) {
+                VStack(alignment: .leading, spacing: 0) {
+                    cardHeader(title: "Calm Down")
 
-                Spacer()
+                    Spacer(minLength: Theme.Space.gapInner)
 
-                HStack(spacing: 4) {
-                    Text(Date.now.formatted(
-                        .dateTime
-                            .locale(Locale(identifier: "en_US"))
-                            .month(.abbreviated)
-                            .day()
-                    ))
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(titleDark)
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(titleDark)
+                    metric(value: "\(data.calmDownMinutes)", unit: "min")
                 }
+
+                MocoBarChart(values: data.calmDownBars)
+                    .frame(width: Theme.Size.barChart.width, height: Theme.Size.barChart.height)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 18)
-
-            // Card Content: Number + Bar Chart
-            HStack(alignment: .bottom) {
-                HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text("\(data.calmDownMinutes)")
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
-                        .foregroundColor(primaryGreen)
-
-                    Text("min")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(primaryGreen)
-                }
-                .padding(.bottom, 6)
-
-                Spacer()
-
-                // Bar Chart Visual
-                CalmDownBarChartView(minutes: data.calmDownBars)
-                    .frame(height: 72)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 14)
-            .padding(.bottom, 18)
         }
-        .frame(maxWidth: .infinity)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .shadow(color: Color.black.opacity(0.03), radius: 8, x: 0, y: 2)
-        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    /// Shared shell for the two growth cards: one fill, full height, 18/20 insets.
+    private func progressCard<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        content()
+            .padding(.horizontal, Theme.Space.cardHorizontal)
+            .padding(.vertical, Theme.Space.cardVertical)
+            .frame(maxWidth: .infinity, minHeight: Theme.Size.progressCard, alignment: .leading)
+            .mocoCard()
+    }
+
+    private func cardHeader(title: String) -> some View {
+        HStack(alignment: .center, spacing: Theme.Space.s2) {
+            Text(title)
+                .mocoText(Theme.Typeface.cardTitle)
+                .foregroundStyle(Theme.Colors.textTitle)
+
+            Spacer(minLength: 0)
+
+            HStack(spacing: Theme.Space.s1) {
+                Text(Date.now.formatted(
+                    .dateTime
+                        .locale(Locale(identifier: "en_US"))
+                        .month(.abbreviated)
+                        .day()
+                ))
+                .mocoText(Theme.Typeface.caption)
+                .foregroundStyle(Theme.Colors.textMuted)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: Theme.Glyph.disclosure, weight: .semibold))
+                    .foregroundStyle(Theme.Colors.textMuted)
+            }
+        }
+    }
+
+    private func metric(value: String, unit: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: Theme.Space.s1) {
+            Text(value)
+                .mocoText(Theme.Typeface.numeral)
+                .foregroundStyle(Theme.Colors.dataNumeral)
+
+            Text(unit)
+                .mocoText(Theme.Typeface.unit)
+                .foregroundStyle(Theme.Colors.textMuted)
+        }
     }
 }
 

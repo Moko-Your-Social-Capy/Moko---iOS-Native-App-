@@ -39,6 +39,9 @@ struct MokoCostumeAvatar: View {
     let level: Int
     let photoData: Data?
     var size: CGFloat
+    /// Pass `.clear` when the avatar sits on a themed surface of its own.
+    var background: Color = ProfilePalette.grouped
+    var ring: Color? = ProfilePalette.accent.opacity(0.18)
     @AppStorage("moko.selectedCostumeLevel") private var selectedLevel = 1
 
     private var costume: MokoCostume { .selected(unlockedAt: level, selection: selectedLevel) }
@@ -57,9 +60,13 @@ struct MokoCostumeAvatar: View {
             }
         }
         .frame(width: size, height: size)
-        .background(ProfilePalette.grouped, in: Circle())
+        .background(background, in: Circle())
         .clipShape(Circle())
-        .overlay(Circle().stroke(ProfilePalette.accent.opacity(0.18), lineWidth: 1))
+        .overlay {
+            if let ring {
+                Circle().stroke(ring, lineWidth: 1)
+            }
+        }
         .accessibilityLabel(photoData == nil ? "Moko wearing \(costume.name)" : "Profile photo")
     }
 }
