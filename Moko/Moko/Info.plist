@@ -2,10 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Moko uses the front camera only during the Mirror Reflection exercise. Nothing is recorded or saved.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Moko uses your mic only when you record a voice reflection. You choose when it starts and you can delete recordings any time.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
