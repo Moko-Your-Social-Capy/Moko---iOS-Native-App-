@@ -4,7 +4,7 @@
 > change session (sections that changed + a new entry in [Change log](#change-log)).
 > Keep it factual: if the code and this file disagree, the code wins — then fix this file.
 
-Last updated: 2026-11-13 · Branch: `fix/bugs` · HEAD: `deb76c8`
+Last updated: 2026-11-13 · Branch: `fix/bugs` · HEAD: `9e3718b`
 
 ---
 
@@ -16,7 +16,7 @@ guided relaxation (breathing, grounding, imagery, mirror). Light gamification: X
 badges. Not a medical device; no treatment claims.
 
 - Repo: `Moko-Your-Social-Capy/Moko---iOS-Native-App-`
-- Bundle ID: `com.SRMIST.Moko`
+- Bundle ID: `com.mahik.MokoApp` (was `com.SRMIST.Moko`; changed together with the signing pin)
 - Roughly 21k lines of Swift across ~90 files.
 
 ---
@@ -37,11 +37,9 @@ Dependencies (Swift Package Manager, resolved versions):
 |---|---|---|
 | `supabase/supabase-swift` | 2.55.4 | Auth, Postgres/REST, Storage |
 | `google/GoogleSignIn-iOS` | 10.0.0 | Google sign-in |
-| `airbnb/lottie-ios` | 4.6.1 | Legacy mascot JSON animations |
-| `rive-app/rive-ios` | 6.29.0 | Current mascot / badge animations |
 
-Frameworks linked in the target: `Supabase`, `Auth`, `GoogleSignIn`, `GoogleSignInSwift`,
-`Lottie`, `RiveRuntime`.
+Frameworks linked in the target: `Supabase`, `Auth`, `GoogleSignIn`, `GoogleSignInSwift`.
+The `lottie-ios` and `rive-ios` packages were removed with the animation stack (§8).
 
 ### File membership — the most important build fact
 
@@ -89,8 +87,9 @@ Moko/Moko/
 ├── Models/                  SwiftData @Model types + value types + theme tokens
 ├── Features/
 │   ├── AFM/                 Apple Foundation Models layer (mission bank, prompts, engines)
-│   ├── Animation/           Lottie view, Rive helpers, floss loader, completion animation
+│   ├── Animation/           floss loader + completion animation
 │   ├── Audio/               Debrief success sound player
+│   ├── DesignSystem/        MocoScreenTheme tokens + MocoComponents (§7)
 │   └── QuestLibrary/        Supabase-backed Explore tab (service, store, view)
 ├── UIScreens/
 │   ├── startScreens/        MokoTheme, splash, intro, auth, mascot
@@ -99,12 +98,13 @@ Moko/Moko/
 │   ├── homeScreens/         Overview, resume, debrief-done, Insights, Profile + subscreens, Summary
 │   ├── Quests/              Quests list, new quest, detail, debrief, navigation env values
 │   └── relaxScreens/        Relax home, box breathing, breathing, grounding, imagery, mirror
-├── Resources/Animations/    Lottie .json + Rive .riv files
+├── Resources/               `google-pay-success.mp3` (no animation assets any more)
 └── Assets.xcassets/         Mascot costumes, onboarding art, illustrations, success mp3
 ```
 
-Outside the app target (do not mistake for source of truth): `Moko/Features/`, `Moko/RiveProjects/`
-(Rive CLI `.rml` projects + their own `AGENTS.md`/`CLAUDE.md`), `Moko/.agents/skills/rive-animation/`.
+Outside the app target (do not mistake for source of truth): `Moko/Features/` (only the stale
+`ColorSystem/`), `Moko/RiveProjects/` (Rive CLI `.rml` projects + their own `AGENTS.md`/
+`CLAUDE.md`, kept as authoring sources — nothing ships from them), `Moko/.agents/skills/rive-animation/`.
 Inside the synced group but not app logic: `Moko/Moko/supabase/functions/delete-account/` (Deno edge
 function, treated as a resource).
 
@@ -133,7 +133,7 @@ splash → intro → auth → onboardingInfo (carousel → name → age → welc
 - `MokoTab` (single source of truth): `.overview`, `.quests`, `.relax`, `.search` (Explore).
 - `TabView` + `.tabBarMinimizeBehavior(.onScrollDown)` +
   `.tabViewSearchActivation(.searchTabSelection)` (required for the detached search tab on iOS 27),
-  tint `MokoTheme.forestGreen`, text `MokoTheme.titleBrown`.
+  tint `MocoScreenTheme.Colors.tabActiveGlyph`, text `MocoScreenTheme.Colors.textTitle`.
 - **Explore uses the system search field, unmodified.** `QuestLibraryView` keeps its plain
   `.searchable(text:placement: .navigationBarDrawer(displayMode: .always))` and `MokoRootView` has no
   search-related state, no focus handling and no keyboard workarounds. Selecting the search tab
@@ -142,8 +142,9 @@ splash → intro → auth → onboardingInfo (carousel → name → age → welc
   framework's behaviour and is deliberately left alone (see §11.8).
 - Overview has three versions via `OverviewMode { .todo, .resume, .debriefDone }`.
   Deep screens set it through `\.openOverview` (mostly the debrief, presented as a `fullScreenCover`).
-- The Overview mission card is a single slide pill — `OverviewSlideControl`, defined at the bottom of
-  `Overview.swift` and shared with `OverviewResumeScreen`. One slide does the whole thing: the `.todo`
+- The Overview mission card is a single slide pill — `MocoSlideControl`
+  (`Features/DesignSystem/MocoComponents.swift`), shared with `OverviewResumeScreen`. One slide does
+  the whole thing: the `.todo`
   pill reads "Slide to Complete", completes the quest (`QuestProgress.complete`) **and** opens the
   debrief in the same gesture. "Slide to Debrief" is only shown when the quest is already completed
   (reachable by leaving a debrief behind, never by completing one). `.resume` shows "Slide to Resume".
@@ -312,14 +313,21 @@ profile entrance animations and Lottie/Rive usage. Decorative animations carry
 
 ## 8. Animation stack
 
+**No Lottie, no Rive in the app any more.** Both packages and every `.riv` / animation `.json` asset
+were removed with the design-system redesign; nothing under `Moko/Moko` references either runtime.
+The mascot is a plain `Image("MocoMascot")`: `MokoAnimatedMascotView` fades/slides it in once
+(`MocoScreenTheme.Motion.mascotEntrance`, crossfade under Reduce Motion) and stops there, and
+`SplashScreenView` is a static `MocoScreenTheme.Colors.tileLilac` screen — "Moko" wordmark plus the
+same image — that advances on tap or after its auto-advance.
+
 | Tech | Entry point | Notes |
 |---|---|---|
-| Lottie | `Features/Animation/MokoLottieView.swift` + `MokoAnimationTypes.swift` | `MokoLottieView(animationType:size:)` over `UIViewRepresentable`; JSON in `Resources/Animations`, tries `Resources/Animations` → `Animations` → bundle root |
-| Rive | `UIScreens/startScreens/MokoAnimatedMascotView.swift`, `relaxScreens/Breathing/Breathingsessionscreen.swift`, `ProfileOverView/BadgeUnlockRiveView.swift` | `AsyncRiveUIViewRepresentable`, view-model properties (badge glyph, tier, angle, reduceMotion), `.riv` names `MokoWelcomeRive`, `MokoMeditationRive`, `MokoMascotRive`, `MokoCompleteRive`, `BadgeUnlock` |
+| SwiftUI | `UIScreens/startScreens/MokoAnimatedMascotView.swift`, `SplashScreenView.swift` | `Image("MocoMascot")` with a one-shot entrance |
 | WebKit | `Features/Animation/MokoFlossLoadingView.swift` + `MokoFlossLoader.html` | Prewarmed in `MokoApp.init`; WebView pooling |
-| Audio | `Features/Audio/DebriefSoundPlayer.swift` | `Assets.xcassets/google-pay-success.dataset` |
+| Audio | `Features/Audio/DebriefSoundPlayer.swift` | `Resources/google-pay-success.mp3` |
 
-Rive authoring projects live in `Moko/RiveProjects/*` (RML + `rive` CLI). Their `AGENTS.md` requires
+`Moko/RiveProjects/*` (RML + `rive` CLI, each with its own `AGENTS.md`/`CLAUDE.md`) is kept as
+Rive authoring source only — no `.riv` is built into or loaded by the app. Their `AGENTS.md` requires
 `rive schema` / `rive docs` lookups instead of guessing types, then `rive . --verify`,
 `rive inspect . --summary`, and `rive . --screenshot --advance=<t>`.
 
@@ -388,10 +396,9 @@ Rive authoring projects live in `Moko/RiveProjects/*` (RML + `rive` CLI). Their 
 
 ## 11. Known pitfalls
 
-1. **Editing the wrong copy.** `Moko/Features/Animation/MokoLottieView.swift` and
-   `Moko/Features/ColorSystem/Colors.swift` are stale, out-of-target duplicates. Only
-   `Moko/Moko/**` ships.
-2. **README is stale** (iOS 17+, Xcode 15, Lottie-only, `MokoTests`, `ios-ci.yml`). Trust the
+1. **Editing the wrong copy.** `Moko/Features/ColorSystem/Colors.swift` is a stale, out-of-target
+duplicate. Only `Moko/Moko/**` ships.
+2. **README is stale** (iOS 17+, Xcode 15, Lottie/Rive, `MokoTests`, `ios-ci.yml`). Trust the
    pbxproj and this file.
 3. **CI is broken** (`swift build` with no `Package.swift`). Fix or ignore knowingly.
 4. **No shared scheme / no tests** — `xcodebuild test` has nothing to run.
@@ -465,6 +472,7 @@ Newest first. One entry per session: date, what changed, which files/sections.
 
 | Date | Change |
 |---|---|
+| 2026-11-13 | **Merge follow-ups after pushing `080e336`:** the incoming `origin/main` had also switched the bundle identifier to `com.mahik.MokoApp` (the old `com.SRMIST.Moko` no longer resolves — `simctl launch` on it fails with `FBSOpenApplicationServiceErrorDomain` code 4 even though `simctl install` exits 0), deleted the `lottie-ios` / `rive-ios` packages and the whole `Resources/Animations` tree, replaced `MokoAnimatedMascotView` with a one-shot `Image("MocoMascot")` and made `SplashScreenView` a static `MocoScreenTheme.Colors.tileLilac` screen. Sections 1, 2, 3, 4, 8 and 11 updated to match; verified by installing the merged build on the iPhone 18 Pro simulator and screenshotting the new splash (lilac, "Hello, I'm Moco.", "Let's Begin"). |
 | 2026-11-13 | **Merged `origin/main` into `fix/bugs` and pushed (`deb76c8`).** The incoming work replaced the old palette with the `Features/DesignSystem/` system (`MocoScreenTheme`, `MocoBackdrop`, `.mocoCard()`, `.mocoText(_:)`, `MocoSlideControl`, `MocoRadarChart`, `MocoBarChart`) and rewrote `Overview.swift` / restyled `OverviewResumeScreen.swift`, `Summaryview.swift`, `Questdetailscreen.swift`, `Questdebrief.swift` on top of it, while this branch had changed the same screens' behaviour — every conflict was resolved as "main's structure + our behaviour": `Overview` keeps the themed file and the single `MocoSlideControl` that completes *and* opens the debrief (`slideTitle` + `isHandingOffToDebrief` + `.id("\(quest.id)-\(slideTitle)")`, because `MocoSlideControl` never resets its `.completing` state), `debriefRow`/`OverviewSlideControl`/`openDebrief`'s old button are gone; `OverviewResumeScreen` keeps main's palette and gains `MocoSlideControl(label: "Slide to Resume")` (the `startDebriefWidget`/`slideToResumeWidget` pair, `slideOffset`, `isResumeCompleted`, `screenBg`, `micGreen` deleted) plus the draft-aware `resumeDescription`; `Questdebrief` stays chat-only (main's restyled header block and `focusLabel` deleted, `.padding(.top, 16)` under `MocoScreenTheme.Space.page`); `Questdetailscreen` keeps `.background(MocoBackdrop())` and `.toolbar(showingDebrief ? .hidden : .visible, for: .navigationBar)`; `Summaryview` keeps the chart hint deleted; `QuestLibraryView` keeps both `@ScaledMetric` cards and `scrollOffset`. Verified: no conflict markers, no stale `gradedCount`/`focusLabel`/`OverviewSlideControl`/`startDebriefWidget` references, `xcodebuild` clean apart from the pre-existing `Text` `+` deprecation in `Questdebrief.swift`, merged Overview/Resume screens screenshotted on the simulator. Sections 7 and 10 updated. |
 | 2026-11-13 | **The debrief is now chat only.** `UIScreens/Quests/Questdebrief.swift`: deleted the whole header block of `QuestDebriefScreen` — the 32 pt "Debrief" title, the "<Quest> · Your story/Presence" subtitle (`focusLabel`) and the 4-segment progress bar — plus the session state that existed only to feed it (`DebriefSession.gradedCount`; `focus`, `questionNumber`, `result`, `reward` all stay because grading/persistence use them). `conversation`'s top padding went 24 → 16 pt so the first bubble sits under the status bar. `UIScreens/Quests/Questdetailscreen.swift` now hides its navigation bar while the debrief is pushed (`.toolbar(showingDebrief ? .hidden : .visible, for: .navigationBar)`), which also drops the back chevron that dismissed the whole quest detail *without* closing the debrief. Nothing else referenced the removed UI (`grep`: `gradedCount`, `focusLabel` and `Text("Debrief")` are gone repo-wide; every `DebriefStyle` token is still used by the bubbles/composer/score panel), and no other file duplicated the header — `OverviewResumeScreen`'s `DebriefSession.followUpCount` is the "N of 4 answers saved" copy, not a second progress bar. Section 10 updated. Verified on the simulator with a temporary `-MokoShowDebrief` harness (removed, `grep` clean): the debrief opens straight into the coach's greeting with no heading, no progress bar, no bar chrome; build clean with no new warnings. |
 | 2026-11-13 | **Quest Library keeps its title visible while scrolling.** `Features/QuestLibrary/QuestLibraryView.swift` gains a collapsing header: `scrollOffset` is read with `.onScrollGeometryChange` on the `ScrollView` (`contentOffset.y + contentInsets.top`, 0 at rest) and drives `compactTitleOpacity` (0→1 between 24 and 56 pt, i.e. exactly as the 34 pt in-content title leaves); the compact bar is a 44 pt centred 17 pt semibold "Quest Library" with a lime backing that `ignoresSafeArea(edges: .top)` — the first build let scrolled cards show through above the bar, hence the widened backing — plus a 0.5 pt `QuestStyle.title.opacity(0.12)` hairline, applied as `.overlay(alignment: .top)` so nothing reflows, `allowsHitTesting(false)`, `accessibilityHidden` below half opacity. The large header, the refresh button, the hidden navigation bar and the stock `.searchable` are unchanged. Section 10 updated. Verified on the simulator with a temporary `-MokoStartOnExplore` + `-MokoScrollLibrary` harness (both removed, `grep` clean): at rest only the large title shows; after a 240 pt scroll the small title is pinned under the status bar with no content bleeding above it; build clean. |
