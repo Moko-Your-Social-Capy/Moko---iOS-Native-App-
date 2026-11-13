@@ -4,7 +4,8 @@
 //
 //  Camera version of Mirror Reflection: phone-themed illustration for the setup
 //  checklist, then a 2:00 timer with your front camera live in the card and the
-//  affirmations over it. Plugged into MirrorFlowView.
+//  affirmations over it. The lines come from MirrorAffirmationStore (eight slots,
+//  15 s each, editable). Plugged into MirrorFlowView.
 //
 
 import SwiftUI
@@ -182,17 +183,14 @@ struct CameraTimerScreen: View {
     @State private var runState: RunState = .idle
     @State private var elapsed: TimeInterval = 0
     @State private var lastTick: Date?
+    @State private var isEditingAffirmations = false
 
     private let total: TimeInterval = 120 // fixed, not customisable
     private let cardRadius = MocoScreenTheme.Radius.card
     private let ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
 
-    private let affirmations = [
-        "I am good and getting better.",
-        "I am growing and I am going at my own pace.",
-        "I am held and supported by those who love me.",
-        "I am in charge of how I feel and I choose to feel happy."
-    ]
+    /// Shared with the mirror flow and the editor sheet.
+    @ObservedObject private var affirmationStore = MirrorAffirmationStore.shared
 
     private var progress: Double { min(1, elapsed / total) }
     private var remainingSeconds: Int { max(0, Int(ceil(total - elapsed))) }
@@ -203,8 +201,10 @@ struct CameraTimerScreen: View {
     private var isActive: Bool { runState == .running || runState == .paused }
     private var hasFeed: Bool { camera.status == .running }
 
+    /// One slot per 15 seconds, so eight lines fill the fixed 2:00 exactly.
     private var activeIndex: Int {
-        min(affirmations.count - 1, Int(elapsed / (total / Double(affirmations.count))))
+        min(affirmationStore.quotes.count - 1,
+            Int(elapsed / MirrorAffirmationStore.slotDuration))
     }
 
     private var chipText: String {
@@ -221,6 +221,14 @@ struct CameraTimerScreen: View {
 
             VStack(spacing: 0) {
                 MirrorHeader()
+                    .overlay(alignment: .topTrailing) {
+                        // Hidden mid-session: the ticker keeps running behind a sheet.
+                        if runState != .running {
+                            MirrorEditAffirmationsButton {
+                                isEditingAffirmations = true
+                            }
+                        }
+                    }
                     .padding(.horizontal, MocoScreenTheme.Space.page)
                     .padding(.top, 18)
 
@@ -252,6 +260,9 @@ struct CameraTimerScreen: View {
             case (.idle, .running):  return .impact(weight: .medium)
             default:                 return .impact(weight: .light)
             }
+        }
+        .sheet(isPresented: $isEditingAffirmations) {
+            MirrorAffirmationsSheet(store: affirmationStore)
         }
     }
 
@@ -367,26 +378,43 @@ struct CameraTimerScreen: View {
     }
 
     private var affirmationsView: some View {
-        VStack(spacing: 8) {
-            ForEach(affirmations.indices, id: \.self) { index in
-                let highlighted = isActive && index == activeIndex
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 8) {
+                    ForEach(affirmationStore.quotes.indices, id: \.self) { index in
+                        let highlighted = isActive && index == activeIndex
 
-                Text(affirmations[index])
-                    .mocoText(highlighted ? MocoScreenTheme.Typeface.slider : MocoScreenTheme.Typeface.body)
-                    .foregroundColor(
-                        hasFeed
-                            ? Color.white
-                            : (highlighted ? MirrorPalette.title : MirrorPalette.subtext)
-                    )
-                    .shadow(color: hasFeed ? Color.black.opacity(0.5) : Color.clear, radius: 3, y: 1)
-                    .multilineTextAlignment(.center)
-                    .opacity(isActive ? (highlighted ? 1 : 0.55) : 0.95)
-                    .scaleEffect(highlighted ? 1.04 : 1)
+                        Text(affirmationStore.quotes[index])
+                            .mocoText(highlighted ? MocoScreenTheme.Typeface.slider : MocoScreenTheme.Typeface.body)
+                            .foregroundColor(
+                                hasFeed
+                                    ? Color.white
+                                    : (highlighted ? MirrorPalette.title : MirrorPalette.subtext)
+                            )
+                            .shadow(color: hasFeed ? Color.black.opacity(0.5) : Color.clear, radius: 3, y: 1)
+                            .multilineTextAlignment(.center)
+                            .opacity(isActive ? (highlighted ? 1 : 0.55) : 0.95)
+                            .scaleEffect(highlighted ? 1.04 : 1)
+                            .frame(maxWidth: .infinity)
+                            .id(index)
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+            // Same four-row window as the mirror flow: the feed stays visible and
+            // the highlighted line never scrolls out of sight.
+            .frame(height: MirrorAffirmationsWindow.height)
+            .defaultScrollAnchor(.top)
+            .animation(.easeInOut(duration: 0.4), value: activeIndex)
+            .animation(.easeInOut(duration: 0.4), value: runState)
+            // No scroll on appear: the card's height resolves after first layout, and
+            // scrolling then left the window parked a couple of rows down.
+            .onChange(of: activeIndex) { _, index in
+                withAnimation(.easeInOut(duration: 0.45)) {
+                    proxy.scrollTo(index, anchor: index == 0 ? .top : .center)
+                }
             }
         }
-        .frame(maxWidth: .infinity)
-        .animation(.easeInOut(duration: 0.4), value: activeIndex)
-        .animation(.easeInOut(duration: 0.4), value: runState)
     }
 
     // MARK: Controls

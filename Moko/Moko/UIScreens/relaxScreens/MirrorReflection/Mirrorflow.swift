@@ -4,6 +4,7 @@
 //
 //  The full Mirror Reflection practice:
 //  landing -> prep screen (4 bullet points) -> 2:00 affirmation timer -> "You did it!"
+//  The timer walks eight editable lines, 15 seconds each (see MirrorAffirmations.swift).
 //
 //  Present MirrorFlowView full screen. onExit fires if the user backs out of the
 //  landing screen; onFinish fires when they tap Done at the end.
@@ -335,17 +336,14 @@ struct MirrorTimerScreen: View {
     @State private var runState: RunState = .idle
     @State private var elapsed: TimeInterval = 0
     @State private var lastTick: Date?
+    @State private var isEditingAffirmations = false
     @Environment(\.modelContext) private var modelContext
 
     private let total: TimeInterval = 120 // fixed, not customisable
     private let ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
 
-    private let affirmations = [
-        "I am good and getting better.",
-        "I am growing and I am going at my own pace.",
-        "I am held and supported by those who love me.",
-        "I am in charge of how I feel and I choose to feel happy."
-    ]
+    /// Shared with the camera flow and the editor sheet.
+    @ObservedObject private var affirmationStore = MirrorAffirmationStore.shared
 
     private var progress: Double { min(1, elapsed / total) }
     private var remainingSeconds: Int { max(0, Int(ceil(total - elapsed))) }
@@ -355,9 +353,11 @@ struct MirrorTimerScreen: View {
 
     private var isActive: Bool { runState == .running || runState == .paused }
 
-    /// Which affirmation is highlighted (each gets an equal share of the 2 minutes)
+    /// Which affirmation is highlighted: one slot per 15 seconds, so eight lines
+    /// fill the fixed 2:00 exactly.
     private var activeIndex: Int {
-        min(affirmations.count - 1, Int(elapsed / (total / Double(affirmations.count))))
+        min(affirmationStore.quotes.count - 1,
+            Int(elapsed / MirrorAffirmationStore.slotDuration))
     }
 
     private var titleText: String {
@@ -372,36 +372,44 @@ struct MirrorTimerScreen: View {
         ZStack {
             MocoBackdrop()
 
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 0) {
-                    MirrorHeader()
-                        .padding(.horizontal, MocoScreenTheme.Space.page)
-                        .padding(.top, 18)
+            VStack(spacing: 0) {
+                MirrorHeader()
+                    .overlay(alignment: .topTrailing) {
+                        // Hidden mid-session: the ticker keeps running behind a sheet.
+                        if runState != .running {
+                            MirrorEditAffirmationsButton {
+                                isEditingAffirmations = true
+                            }
+                        }
+                    }
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.top, 18)
 
-                    affirmationsView
-                        .padding(.top, 26)
-                        .padding(.horizontal, MocoScreenTheme.Space.page)
+                affirmationsView
+                    .padding(.top, 22)
+                    .padding(.horizontal, MocoScreenTheme.Space.page)
 
-                    Text(titleText)
-                        .mocoText(MocoScreenTheme.Typeface.title2)
-                        .foregroundColor(MirrorPalette.title)
-                        .padding(.top, 28)
+                Text(titleText)
+                    .mocoText(MocoScreenTheme.Typeface.title2)
+                    .foregroundColor(MirrorPalette.title)
+                    .padding(.top, 22)
 
-                    MirrorTimerRing(
-                        progress: progress,
-                        isRunning: runState == .running,
-                        isCompleted: runState == .completed
-                    )
-                    .frame(width: 250, height: 250)
-                    .padding(.top, 14)
+                MirrorTimerRing(
+                    progress: progress,
+                    isRunning: runState == .running,
+                    isCompleted: runState == .completed
+                )
+                .frame(width: 230, height: 230)
+                .padding(.top, 10)
 
-                    Text(timeText)
-                        .mocoText(MocoScreenTheme.Typeface.numeral)
-                        .monospacedDigit()
-                        .foregroundColor(MirrorPalette.green)
-                        .padding(.top, 6)
-                        .padding(.bottom, 24)
-                }
+                Text(timeText)
+                    .mocoText(MocoScreenTheme.Typeface.numeral)
+                    .monospacedDigit()
+                    .foregroundColor(MirrorPalette.green)
+                    .padding(.top, 4)
+                    .padding(.bottom, 16)
+
+                Spacer(minLength: 0)
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -419,25 +427,45 @@ struct MirrorTimerScreen: View {
             default:                 return .impact(weight: .light)
             }
         }
+        .sheet(isPresented: $isEditingAffirmations) {
+            MirrorAffirmationsSheet(store: affirmationStore)
+        }
     }
 
     // MARK: Affirmations
-    private var affirmationsView: some View {
-        VStack(spacing: 10) {
-            ForEach(affirmations.indices, id: \.self) { index in
-                let highlighted = isActive && index == activeIndex
 
-                Text(affirmations[index])
-                    .mocoText(highlighted ? MocoScreenTheme.Typeface.slider : MocoScreenTheme.Typeface.body)
-                    .foregroundColor(highlighted ? MirrorPalette.title : MirrorPalette.subtext)
-                    .multilineTextAlignment(.center)
-                    .opacity(isActive ? (highlighted ? 1 : 0.35) : 0.9)
-                    .scaleEffect(highlighted ? 1.04 : 1)
+    /// A four-row scrolling window instead of all eight lines, so the ring and the
+    /// clock stay on screen. The window follows the highlighted line as the
+    /// session advances; the user can still swipe to read ahead.
+    private var affirmationsView: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 10) {
+                    ForEach(affirmationStore.quotes.indices, id: \.self) { index in
+                        let highlighted = isActive && index == activeIndex
+
+                        Text(affirmationStore.quotes[index])
+                            .mocoText(highlighted ? MocoScreenTheme.Typeface.slider : MocoScreenTheme.Typeface.body)
+                            .foregroundColor(highlighted ? MirrorPalette.title : MirrorPalette.subtext)
+                            .multilineTextAlignment(.center)
+                            .opacity(isActive ? (highlighted ? 1 : 0.35) : 0.9)
+                            .scaleEffect(highlighted ? 1.04 : 1)
+                            .frame(maxWidth: .infinity)
+                            .id(index)
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+            .frame(height: MirrorAffirmationsWindow.height)
+            .defaultScrollAnchor(.top)
+            .animation(.easeInOut(duration: 0.4), value: activeIndex)
+            .animation(.easeInOut(duration: 0.4), value: runState)
+            .onChange(of: activeIndex) { _, index in
+                withAnimation(.easeInOut(duration: 0.45)) {
+                    proxy.scrollTo(index, anchor: index == 0 ? .top : .center)
+                }
             }
         }
-        .frame(maxWidth: .infinity)
-        .animation(.easeInOut(duration: 0.4), value: activeIndex)
-        .animation(.easeInOut(duration: 0.4), value: runState)
     }
 
     // MARK: Controls
