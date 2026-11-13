@@ -4,6 +4,9 @@
 //
 //  Guided 5-4-3-2-1 sensory grounding exercise.
 //  Consistent layout and smooth transitions between all five steps.
+//  Numbers within a step must be picked in order (1, then 2, then 3 …): only the
+//  next number in the sequence is tappable, and only the most recent one can be
+//  taken back. Continue stays disabled until the whole run is selected.
 //  Completion badge styling matches BreathingSessionScreen.
 //  When the exercise finishes, the time spent (stopwatch from start to finish)
 //  is saved to SwiftData as a CalmDownModel, which the Summary screen shows.
@@ -91,6 +94,23 @@ struct GroundingExerciseScreen: View {
 
     private var isCurrentStepComplete: Bool {
         selectedNumbers.count == requiredCount
+    }
+
+    /// The only number that can be added right now. Selection is sequential, so
+    /// this is simply "how many are already selected, plus one".
+    private var nextNumber: Int {
+        selectedNumbers.count + 1
+    }
+
+    private func isSelected(_ number: Int) -> Bool {
+        selectedNumbers.contains(number)
+    }
+
+    /// A number is tappable only if it is the next one in the sequence, or if it
+    /// is the most recently picked one (so a mis-tap can be undone). Numbers
+    /// further ahead stay locked, which is what keeps the order fixed.
+    private func isAvailable(_ number: Int) -> Bool {
+        number == nextNumber || number == selectedNumbers.count
     }
 
     // MARK: - Animation
@@ -305,12 +325,12 @@ struct GroundingExerciseScreen: View {
             HStack(spacing: 10) {
                 ForEach(1...requiredCount, id: \.self) { number in
                     Button {
-                        toggleSelection(number)
+                        selectNumber(number)
                     } label: {
                         Text("\(number)")
                             .mocoText(MocoScreenTheme.Typeface.cardTitle)
                             .foregroundColor(
-                                selectedNumbers.contains(number)
+                                isSelected(number)
                                 ? .white
                                 : cardGreen
                             )
@@ -319,7 +339,7 @@ struct GroundingExerciseScreen: View {
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
                                     .fill(
-                                        selectedNumbers.contains(number)
+                                        isSelected(number)
                                         ? cardGreen
                                         : .white
                                     )
@@ -327,11 +347,21 @@ struct GroundingExerciseScreen: View {
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
                                     .stroke(
-                                        selectedNumbers.contains(number)
+                                        isSelected(number)
                                         ? cardGreen
                                         : trackGreen,
                                         lineWidth: 1
                                     )
+                            )
+                            // Numbers further down the sequence are dimmed so the
+                            // next one to tap stands out. No .disabled here: SwiftUI
+                            // dims disabled buttons itself, which would wash out the
+                            // already-selected ones too -- selectNumber ignores taps
+                            // that are out of order anyway.
+                            .opacity(
+                                isSelected(number) || isAvailable(number)
+                                ? 1
+                                : 0.35
                             )
                     }
                     .buttonStyle(.plain)
@@ -339,6 +369,7 @@ struct GroundingExerciseScreen: View {
                 }
             }
             .frame(height: 48)
+            .animation(stepAnimation, value: selectedNumbers)
         }
         .frame(maxWidth: .infinity)
         .animation(stepAnimation, value: currentStepIndex)
@@ -375,12 +406,14 @@ struct GroundingExerciseScreen: View {
 
     // MARK: - Selection
 
-    private func toggleSelection(_ number: Int) {
+    /// Sequential-only selection: the next number gets added, the most recent
+    /// one can be removed again, anything else is ignored.
+    private func selectNumber(_ number: Int) {
         withAnimation(.easeInOut(duration: 0.15)) {
-            if selectedNumbers.contains(number) {
-                selectedNumbers.remove(number)
-            } else {
+            if number == nextNumber {
                 selectedNumbers.insert(number)
+            } else if number == selectedNumbers.count {
+                selectedNumbers.remove(number)
             }
         }
     }
