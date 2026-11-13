@@ -4,7 +4,7 @@
 > change session (sections that changed + a new entry in [Change log](#change-log)).
 > Keep it factual: if the code and this file disagree, the code wins — then fix this file.
 
-Last updated: 2026-11-13 · Branch: `fix/bugs` · HEAD: `6d55755`
+Last updated: 2026-11-13 · Branch: `fix/bugs` · HEAD: `deb76c8`
 
 ---
 
@@ -267,7 +267,18 @@ speech-to-text input, per-turn confidence + note, evidence-weighted final scores
 
 ## 7. Design system
 
-`MokoTheme` (`UIScreens/startScreens/MokoTheme.swift`) is the canonical token set:
+Two generations coexist. **`MocoScreenTheme` is the current one** for the home/quest screens:
+`Features/DesignSystem/MocoScreenTheme.swift` (`enum MocoScreenTheme` with `Colors`, `Space`,
+`Size`, `Typeface`, `Radius`, `Control`, `Motion`, `Card`; `Text.mocoText(_:)` applies a
+`TextStyle`) and `Features/DesignSystem/MocoComponents.swift` (`MocoBackdrop` for the screen
+background, `View.mocoCard()` for the white rounded surface, `MocoSlideControl`, `MocoRadarChart`,
+`MocoBarChart`, `Haptics`). New home-screen work uses these. `MocoSlideControl(label:onComplete:)`
+owns its own drag state (`.idle/.dragging/.ready/.completing`) and **never resets after a slide**,
+so a control whose label changes needs a fresh identity — `Overview` gives it
+`.id("\(quest.id)-\(slideTitle)")`.
+
+The older `MokoTheme` (`UIScreens/startScreens/MokoTheme.swift`) still backs onboarding, splash and
+profile. Its tokens:
 
 | Token | Hex | Use |
 |---|---|---|
@@ -288,7 +299,7 @@ Overlapping token sets exist and should not proliferate:
 (`OBColor`), `UIScreens/Onboarding/Colors.swift` (static `Color` extension),
 plus a **conflicting, out-of-target** `ColorTokens` in `Moko/Features/ColorSystem/Colors.swift`.
 `Color(hex:)` is declared in several files with different signatures (`UInt32`, `UInt32, opacity`).
-New code: use `MokoTheme`; don't add another palette.
+New code: `MocoScreenTheme` on home/quest screens, `MokoTheme` elsewhere; don't add another palette.
 
 Typography is system only (SF Pro / `.system(size:weight:design:)`) — no custom fonts, no
 string catalog / localisation (English only).
@@ -341,8 +352,10 @@ Rive authoring projects live in `Moko/RiveProjects/*` (RML + `rive` CLI). Their 
   (edge function). "Sign in with Apple" is a **UI stub** — `onContinueWithApple` fakes `"Apple User"`.
 - **Onboarding:** intro carousel, name, age, welcome; 8 swipe questions scoring Courage / Clarity /
   Presence / Warmth; reflection; mic preprompt.
-- **Overview:** today's mission (one slide completes it and opens the debrief), debrief
-  resume/done versions, radar/insights cards, Calm Down summary entry, avatar → Profile sheet.
+- **Overview:** today's mission (one `MocoSlideControl` completes it and opens the debrief),
+  debrief resume/done versions, radar/insights cards, Calm Down summary entry, avatar → Profile
+  sheet. `Overview` and `OverviewResumeScreen` are fully themed (`MocoScreenTheme` +
+  `.mocoCard()` + `MocoBackdrop`), and both open the debrief from a single "Slide to …" pill.
 - **Quests:** list by day, create custom quest (category/intensity/date), detail, full debrief with
   scores and AFM coaching (reopens from the saved draft when one exists). The debrief screen is
   **chat only**: no "Debrief" heading, no quest/focus subtitle, no 4-segment progress bar, and no
@@ -452,6 +465,7 @@ Newest first. One entry per session: date, what changed, which files/sections.
 
 | Date | Change |
 |---|---|
+| 2026-11-13 | **Merged `origin/main` into `fix/bugs` and pushed (`deb76c8`).** The incoming work replaced the old palette with the `Features/DesignSystem/` system (`MocoScreenTheme`, `MocoBackdrop`, `.mocoCard()`, `.mocoText(_:)`, `MocoSlideControl`, `MocoRadarChart`, `MocoBarChart`) and rewrote `Overview.swift` / restyled `OverviewResumeScreen.swift`, `Summaryview.swift`, `Questdetailscreen.swift`, `Questdebrief.swift` on top of it, while this branch had changed the same screens' behaviour — every conflict was resolved as "main's structure + our behaviour": `Overview` keeps the themed file and the single `MocoSlideControl` that completes *and* opens the debrief (`slideTitle` + `isHandingOffToDebrief` + `.id("\(quest.id)-\(slideTitle)")`, because `MocoSlideControl` never resets its `.completing` state), `debriefRow`/`OverviewSlideControl`/`openDebrief`'s old button are gone; `OverviewResumeScreen` keeps main's palette and gains `MocoSlideControl(label: "Slide to Resume")` (the `startDebriefWidget`/`slideToResumeWidget` pair, `slideOffset`, `isResumeCompleted`, `screenBg`, `micGreen` deleted) plus the draft-aware `resumeDescription`; `Questdebrief` stays chat-only (main's restyled header block and `focusLabel` deleted, `.padding(.top, 16)` under `MocoScreenTheme.Space.page`); `Questdetailscreen` keeps `.background(MocoBackdrop())` and `.toolbar(showingDebrief ? .hidden : .visible, for: .navigationBar)`; `Summaryview` keeps the chart hint deleted; `QuestLibraryView` keeps both `@ScaledMetric` cards and `scrollOffset`. Verified: no conflict markers, no stale `gradedCount`/`focusLabel`/`OverviewSlideControl`/`startDebriefWidget` references, `xcodebuild` clean apart from the pre-existing `Text` `+` deprecation in `Questdebrief.swift`, merged Overview/Resume screens screenshotted on the simulator. Sections 7 and 10 updated. |
 | 2026-11-13 | **The debrief is now chat only.** `UIScreens/Quests/Questdebrief.swift`: deleted the whole header block of `QuestDebriefScreen` — the 32 pt "Debrief" title, the "<Quest> · Your story/Presence" subtitle (`focusLabel`) and the 4-segment progress bar — plus the session state that existed only to feed it (`DebriefSession.gradedCount`; `focus`, `questionNumber`, `result`, `reward` all stay because grading/persistence use them). `conversation`'s top padding went 24 → 16 pt so the first bubble sits under the status bar. `UIScreens/Quests/Questdetailscreen.swift` now hides its navigation bar while the debrief is pushed (`.toolbar(showingDebrief ? .hidden : .visible, for: .navigationBar)`), which also drops the back chevron that dismissed the whole quest detail *without* closing the debrief. Nothing else referenced the removed UI (`grep`: `gradedCount`, `focusLabel` and `Text("Debrief")` are gone repo-wide; every `DebriefStyle` token is still used by the bubbles/composer/score panel), and no other file duplicated the header — `OverviewResumeScreen`'s `DebriefSession.followUpCount` is the "N of 4 answers saved" copy, not a second progress bar. Section 10 updated. Verified on the simulator with a temporary `-MokoShowDebrief` harness (removed, `grep` clean): the debrief opens straight into the coach's greeting with no heading, no progress bar, no bar chrome; build clean with no new warnings. |
 | 2026-11-13 | **Quest Library keeps its title visible while scrolling.** `Features/QuestLibrary/QuestLibraryView.swift` gains a collapsing header: `scrollOffset` is read with `.onScrollGeometryChange` on the `ScrollView` (`contentOffset.y + contentInsets.top`, 0 at rest) and drives `compactTitleOpacity` (0→1 between 24 and 56 pt, i.e. exactly as the 34 pt in-content title leaves); the compact bar is a 44 pt centred 17 pt semibold "Quest Library" with a lime backing that `ignoresSafeArea(edges: .top)` — the first build let scrolled cards show through above the bar, hence the widened backing — plus a 0.5 pt `QuestStyle.title.opacity(0.12)` hairline, applied as `.overlay(alignment: .top)` so nothing reflows, `allowsHitTesting(false)`, `accessibilityHidden` below half opacity. The large header, the refresh button, the hidden navigation bar and the stock `.searchable` are unchanged. Section 10 updated. Verified on the simulator with a temporary `-MokoStartOnExplore` + `-MokoScrollLibrary` harness (both removed, `grep` clean): at rest only the large title shows; after a 240 pt scroll the small title is pinned under the status bar with no content bleeding above it; build clean. |
 | 2026-11-13 | **Reverted every tab-bar/search change.** `Moko/Moko/MokoRootView.swift` and `Moko/Moko/Features/QuestLibrary/QuestLibraryView.swift` are back to `HEAD` (the only remaining diff in the root is the earlier "no Start Debrief" resume call). The search tab is stock again: `Tab("Explore", systemImage: "magnifyingglass", value: .search, role: .search)` + `.tabViewSearchActivation(.searchTabSelection)`, no `import UIKit`, no `lowerSearchKeyboard()`, no `onChange(of: selectedTab)` keyboard pass, no `.searchable` on the `TabView`, `QuestLibraryView` keeps its own `@State searchText` and `.searchable(placement: .navigationBarDrawer(displayMode: .always))`. Trigger: the requested "✕ should only hide the keyboard" cannot be built on public API — measured on the live hierarchy, the ✕ is a `UIButton` in the private `_UITabHostedSearchContainer` whose action deactivates search and selects the previous tab (`tab=search` → `tab=overview`), and `dismissSearch()`, `.searchFocused`, `.searchable(isPresented:)`, `.searchToolbarBehavior(.minimize)`, a `TabView`-level `.searchable` and a title-less `Tab(value:role: .search)` with `.automatic` all leave that behaviour (or remove the field entirely) untouched. All temporary launch-argument harnesses removed (`grep` verified) and the keyboard-notification probe deleted. Sections 4, 10, 11.8 rewritten. Build clean; simulator screenshot shows the original 3 tabs + detached search button. |
