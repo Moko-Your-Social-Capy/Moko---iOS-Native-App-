@@ -1,1 +1,0 @@
-Apple Foundation Models (`FoundationModels` + `SystemLanguageModel` + `@Generable`/`@Guide` prompt-driven generation, iOS 26+), Supabase client for remote quest content, Lottie/Rive for animations, AVFoundation for audio.

@@ -1,8 +1,0 @@
-Pure SwiftUI view layer with no business logic; data and UI are co-located per screen.
-
-- Data model: `OnboardingQuestions.swift` defines the `OnboardingAnswer` enum (yes/no) and `OnboardingCardQuestion` struct holding id, text, asset name, and image height; `all` is a static array of 8 questions whose count drives the progress bar (`totalSteps = 8`).
-- Flow controller: `OnboardingFlowView` owns navigation state (`index`, `step`, `answers`), implements the drag gesture with threshold/flick detection, and composes `SwipeQuestionCard`. It exposes an `onFinish` callback returning `[Int: OnboardingAnswer]` keyed by question id so callers persist answers.
-- Card component: `SwipeQuestionCard` renders the illustration, question text, mascot peek, and NO/YES buttons; it receives a normalized `swipeProgress` (-1..+1) from the parent to drive color wash and button scaling.
-- Post-onboarding screens: `ReflectionView` shows expandable Strengths / Weak spots rows built from static `ReflectionItem` arrays, reads the user's name from `@AppStorage("userName")`, and navigates via `onOverview`; `OnboardingDoneView` is the terminal screen.
-- Theming: `OnboardingTheme.swift` centralizes onboarding-specific colors in `OBColor` (with a local `Color(hex:)` initializer); `SharedUI.swift` provides shared Done/Reflection palette (`RColor`) and the reusable `PillButton` capsule button. Both layers depend on the app-wide `MokoTheme` for base colors like `titleBrown` and `limeBackground`.
-- Dependency direction is one-way: views → theme enums → app `MokoTheme`; there is no networking or persistence inside this module.

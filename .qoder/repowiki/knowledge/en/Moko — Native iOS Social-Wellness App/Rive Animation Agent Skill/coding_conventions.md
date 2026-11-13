@@ -1,4 +1,0 @@
-- Every optimization step is paired with a concrete verification command (e.g. `rive inspect . --json | jq '.problems'`, `--screenshot` at multiple viewport sizes, `--advance` probes) rather than relying on a clean build alone.
-- Animation assets are referenced by stable `assetId`/`name` pairs instead of being embedded, so the app's runtime asset loader can supply fonts and images without bloating the `.riv` file.
-- View model properties follow a naming convention: plain names for inputs, verb forms for triggers, past-tense for signals back to the app, and underscore-prefixed names for internal helpers the app must not touch.
-- Responsive layouts separate concerns into named regions (`Screen`, `Bleed`, `Box`) pinned to edges, with motion applied via `x`/`y`/`scale`/`opacity` on top of the layout rather than by animating layout properties.

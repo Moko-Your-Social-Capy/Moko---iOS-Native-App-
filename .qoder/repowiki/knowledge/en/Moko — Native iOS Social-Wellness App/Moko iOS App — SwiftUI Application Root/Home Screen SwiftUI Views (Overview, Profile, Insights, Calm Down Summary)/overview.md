@@ -1,1 +1,0 @@
-SwiftUI view layer for the app's home tab: overview with today's mission and growth cards, profile overview with badges/XP charts, insights radar analysis, and calm-down summary.

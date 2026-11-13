@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: ios_app
-title: Moko iOS App — SwiftUI Application Root
-scope:
-    - Moko/Moko/
-source_files: []
-depends_on: []
-related_to: []

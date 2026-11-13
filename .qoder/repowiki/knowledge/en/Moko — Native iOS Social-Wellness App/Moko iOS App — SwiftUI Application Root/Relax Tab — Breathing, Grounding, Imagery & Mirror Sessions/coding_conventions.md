@@ -1,6 +1,0 @@
-- Each exercise screen defines its own private color palette as `let` constants (e.g. `screenBg`, `cardGreen`, `titleBrown`, `subtextGray`) rather than importing a shared theme.
-- Timed sessions expose lifecycle via callback closures (`onFinish`, `onContinue`, `onComplete`, `onSelectOption`) instead of mutating parent state directly.
-- Screens hide the tab bar during immersive runs with `.toolbar(.hidden, for: .tabBar)` and set `.navigationBarTitleDisplayMode(.inline)` to match the app's native back-bar style.
-- Completion animations reuse the shared `MokoCompletionAnimation(ringDiameter: 190)` component across Box Breathing, Breathing, and Grounding screens.
-- Session duration is persisted by calling `modelContext.logCalmDown(<name>, seconds: <seconds>)` on completion inside each exercise screen.
-- Navigation between exercises uses a single typed `NavigationStack(path:)` with an `enum ...: Hashable` route type (e.g. `RelaxRoute`, `RelaxStep`) and `.navigationDestination(for:)` switch dispatch.

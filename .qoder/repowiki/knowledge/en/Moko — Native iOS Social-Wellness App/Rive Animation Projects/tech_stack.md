@@ -1,1 +1,0 @@
-Rive runtime authoring tool using `.rml` scene files and `rive.yaml` manifests for compilation into the iOS app's resource bundle.

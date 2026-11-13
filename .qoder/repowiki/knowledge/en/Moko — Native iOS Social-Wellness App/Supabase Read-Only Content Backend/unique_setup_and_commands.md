@@ -1,1 +1,0 @@
-Deploy by running the five SQL files in order through the Supabase dashboard SQL Editor, `psql $DATABASE_URL -f ...`, or `npx supabase@latest db query --remote=qyxnhmnfzcxbtphzwsiq --file ...`. Upload imagery artwork via `npx supabase@latest storage cp "supabase/imagery-guide/*.png" ss:///imagery-guide/... --remote=qyxnhmnfzcxbtphzwsiq --experimental`.

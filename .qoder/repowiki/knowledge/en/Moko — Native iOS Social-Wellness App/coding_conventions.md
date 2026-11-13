@@ -1,6 +1,0 @@
-- Every AFM call goes through `AFM.generate` with a fresh session and a static Swift fallback so the UI never blocks when Apple Intelligence is unavailable.
-- User-supplied text is wrapped in `<user_input>` / `<user_said>` tags and treated as data rather than prompt instructions.
-- Shared services are exposed as `@MainActor enum` with static functions or `@MainActor @Observable final class` stores, and value types crossing actor boundaries are marked `nonisolated`.
-- Cross-screen actions flow through environment values (`endSession`, `openOverview`) instead of passing view models between views.
-- Networking stores expose `isLoading`, `errorMessage`, `hasAttemptedLoad` and always render an error state.
-- New color tokens go through `MokoTheme` rather than duplicating palettes in per-feature files.

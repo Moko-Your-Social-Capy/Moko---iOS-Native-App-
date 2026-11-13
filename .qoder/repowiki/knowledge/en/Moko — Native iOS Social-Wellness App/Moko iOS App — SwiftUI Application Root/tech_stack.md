@@ -1,1 +1,0 @@
-SwiftUI + SwiftData for UI and local persistence; Supabase (Auth module) for cloud auth and the delete-account Edge Function; Lottie/Rive assets under Resources/Animations; Xcode asset catalogs under Assets.xcassets.

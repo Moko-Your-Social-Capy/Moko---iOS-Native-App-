@@ -1,1 +1,0 @@
-Supabase-backed read-only content store for the Moko iOS app's Explore Quest Library and Relax Imagery Guides, deployed via SQL migrations and seed data.

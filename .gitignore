@@ -10,3 +10,6 @@ Moko/.build/theme-build.log
 # Xcode user-specific files
 *.xcuserstate
 xcuserdata/
+
+# Qoder IDE workspace state (regenerated locally, never source)
+.qoder/

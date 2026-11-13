@@ -122,11 +122,16 @@ struct ProfileOverViewEditProfile: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .font(.body.weight(.medium))
-                        .foregroundStyle(ProfilePalette.text)
-                        .frame(minWidth: 44, minHeight: 44)
-                        .buttonStyle(.plain)
+                    // Dismissal is a cross, not a "Cancel" title: this is a sheet, so the system
+                    // close affordance is the expected control (role `.close` is iOS 26+).
+                    // No explicit frame/buttonStyle — the toolbar sizes and shapes it like the
+                    // system close button (a fixed 44 pt frame stretched the glass capsule).
+                    Button(role: .close) { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel("Close")
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(ProfilePalette.text)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save)

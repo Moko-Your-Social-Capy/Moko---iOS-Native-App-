@@ -1,1 +1,0 @@
-Each project is built independently with the Rive CLI against its local `rive.yaml`; compiled logs go to `build/rive.log` and `build/problems.log`. Output destinations vary per project — most write to `../../Moko/Resources/Animations`, while `MokoCompleteRive` writes to the parent directory.

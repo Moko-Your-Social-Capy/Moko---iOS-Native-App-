@@ -1,1 +1,0 @@
-SwiftUI screens that guide new users through the Moko app's splash, intro, mascot greeting, and Supabase/Google/Apple authentication flow.

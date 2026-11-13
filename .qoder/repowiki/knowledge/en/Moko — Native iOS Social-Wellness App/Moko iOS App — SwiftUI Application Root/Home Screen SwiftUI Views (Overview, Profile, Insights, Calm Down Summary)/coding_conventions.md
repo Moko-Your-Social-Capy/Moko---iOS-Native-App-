@@ -1,6 +1,0 @@
-- Each screen file declares its own `#Preview` block that wraps the View in a `NavigationStack` and injects an in-memory `ModelContainer` for the relevant SwiftData models.
-- Color values are expressed as explicit RGB tuples (e.g. `Color(red: 27/255, green: 66/255, blue: 47/255)`) alongside named constants such as `MokoTheme.limeBackground` or `MokoTheme.titleBrown` rather than raw hex literals.
-- Modal sheets use `.presentationDetents([.large])` (or `[.medium, .large]` for detail screens) together with `.presentationDragIndicator(.visible)` to present them as draggable bottom sheets.
-- Time-range selection is modeled as a `CaseIterable` enum (e.g. `InsightsRange`, `SummaryRange`, `XPChartRange`) with a `Calendar.Component` mapping and a human-readable `rawValue` used by segmented pickers.
-- Data computation is separated into private computed properties or dedicated structs (`OverviewData`, `InsightsScores`, `SummaryData`) so the View body stays focused on layout.
-- Accessibility labels are attached to interactive elements (buttons, streak dots, achievement badges, empty scenes) using `.accessibilityLabel(...)` and `.accessibilityHidden(true)` for purely decorative icons.

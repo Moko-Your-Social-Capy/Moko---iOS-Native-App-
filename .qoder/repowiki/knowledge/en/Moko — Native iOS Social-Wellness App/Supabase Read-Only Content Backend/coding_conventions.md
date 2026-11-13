@@ -1,5 +1,0 @@
-- Migrations use `create table if not exists` / `drop policy if exists` / `drop trigger if exists` / `create or replace function` so they can be re-run without errors.
-- Every content table carries an `is_active boolean default true` column and exposes it through an RLS `select` policy so inactive rows are hidden from the app.
-- Timestamps are maintained by a shared `set_*_updated_at()` plpgsql trigger fired `before update` on each table rather than client-supplied values.
-- Content is ordered using dedicated integer sort columns (`category_sort_order`, `sort_order`, `sort_order`) with gaps between values to allow inserts without renumbering.
-- Each migration ends with `notify pgrst, 'reload schema'` to force PostgREST to refresh its schema cache after DDL changes.

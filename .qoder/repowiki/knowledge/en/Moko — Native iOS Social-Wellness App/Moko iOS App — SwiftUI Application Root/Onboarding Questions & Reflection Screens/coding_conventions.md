@@ -1,5 +1,0 @@
-- Screen-level data (questions, reflection items) is declared as static arrays on a dedicated `Identifiable` struct extension rather than injected from a store.
-- Colors are centralized in file-scoped enums (`OBColor` for onboarding, `RColor` for done/reflection) and consumed via static members instead of inline hex literals.
-- Each SwiftUI View ships a trailing `#Preview` block that instantiates the view with sample data for live preview.
-- User-facing strings (question text, reflection titles/details) are embedded directly in the data structs alongside their asset identifiers, keeping copy close to presentation.
-- Navigation out of the flow is expressed as closure callbacks (`onFinish`, `onOverview`) passed into the view's initializer rather than via environment objects or navigation stacks defined inside the module.

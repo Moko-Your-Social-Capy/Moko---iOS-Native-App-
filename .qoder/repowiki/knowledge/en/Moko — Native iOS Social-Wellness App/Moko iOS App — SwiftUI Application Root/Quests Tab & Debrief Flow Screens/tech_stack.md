@@ -1,1 +1,0 @@
-SwiftUI + SwiftData for stateful lists and persistence; `Observation`'s `@Observable` on `DebriefSession` drives the debrief conversation UI; UserDefaults for persisting the pending debrief's quest ID across app launches.

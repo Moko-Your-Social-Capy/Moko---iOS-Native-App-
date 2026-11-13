@@ -1,1 +1,0 @@
-SwiftUI application root that wires SwiftData persistence, Supabase auth, and the top-level state machine driving onboarding, home, quests, and relax flows across feature modules.

@@ -1,1 +1,0 @@
-Agent skill package that documents and provides tooling for building, optimizing, and reviewing Rive animations (.rml/.riv) in the Moko project.

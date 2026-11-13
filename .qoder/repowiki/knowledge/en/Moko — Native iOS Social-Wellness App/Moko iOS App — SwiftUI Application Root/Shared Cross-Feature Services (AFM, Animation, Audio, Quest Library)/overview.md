@@ -1,1 +1,0 @@
-Cross-cutting feature modules powering Apple Intelligence debriefs and quest generation, Lottie/Rive animation playback, debrief completion audio, and the remote Supabase-backed Quest Library.

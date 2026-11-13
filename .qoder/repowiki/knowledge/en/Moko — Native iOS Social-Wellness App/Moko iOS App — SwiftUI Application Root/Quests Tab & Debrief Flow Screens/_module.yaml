@@ -1,8 +1,0 @@
-schema_version: 1
-module_path: ios_app/quests
-title: Quests Tab & Debrief Flow Screens
-scope:
-    - Moko/Moko/UIScreens/Quests/
-source_files: []
-depends_on: []
-related_to: []

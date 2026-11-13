@@ -1,1 +1,0 @@
-PostgreSQL + Supabase (PostgREST) with PL/pgSQL triggers for `updated_at` timestamps and RLS policies; Supabase Storage buckets for public image/audio assets.

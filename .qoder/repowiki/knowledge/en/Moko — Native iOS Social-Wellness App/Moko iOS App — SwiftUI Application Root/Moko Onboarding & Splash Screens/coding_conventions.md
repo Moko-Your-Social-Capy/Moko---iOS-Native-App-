@@ -1,5 +1,0 @@
-- Each screen is a self-contained SwiftUI `View` struct that communicates upward through optional `@escaping` closures (e.g. `onFinished`, `onLetsBegin`, `onAuthenticated`) rather than direct dependencies.
-- Visual styling goes exclusively through `MokoTheme` static properties (`background`, `cardBackground`, `textPrimary`, `forestGreen`, etc.) instead of hard-coded colors in views.
-- Haptic feedback on user interactions is routed through `MokoTheme.playFeedback(.light|medium|rigid)` rather than constructing `UIImpactFeedbackGenerator` inline.
-- Entry animations follow a consistent pattern: an `@State hasAppeared` flag toggled in `onAppear` drives spring-based opacity/scale/offset transitions for child elements.
-- Long-running auth work is dispatched into `Task { ... }` blocks with `isLoading`/`isError` state flags, and results are surfaced via `MokoTheme.playNotificationFeedback` before invoking the parent callback.

@@ -87,7 +87,12 @@ struct NewQuestScreen: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    // The screen is a full-screen cover, so the leading control is the system
+                    // cross that closes it rather than a "Cancel" title.
+                    Button(role: .close) { dismiss() } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .accessibilityLabel("Close")
                 }
             }
             .safeAreaInset(edge: .bottom) {
