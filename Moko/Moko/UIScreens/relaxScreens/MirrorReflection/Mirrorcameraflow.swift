@@ -198,7 +198,9 @@ struct CameraTimerScreen: View {
         String(format: "%d:%02d", remainingSeconds / 60, remainingSeconds % 60)
     }
 
-    private var isActive: Bool { runState == .running || runState == .paused }
+    /// Idle shows the four-row preview; from the moment Start is tapped (and until the
+    /// user resets) only the current line is on screen.
+    private var showsCurrentLine: Bool { runState != .idle }
     private var hasFeed: Bool { camera.status == .running }
 
     /// One slot per 15 seconds, so eight lines fill the fixed 2:00 exactly.
@@ -296,7 +298,7 @@ struct CameraTimerScreen: View {
                     .allowsHitTesting(false)
                 }
 
-                affirmationsView
+                affirmationsArea
                     .padding(.horizontal, 20)
                     .padding(.bottom, 24)
             }
@@ -377,44 +379,55 @@ struct CameraTimerScreen: View {
         }
     }
 
-    private var affirmationsView: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 8) {
-                    ForEach(affirmationStore.quotes.indices, id: \.self) { index in
-                        let highlighted = isActive && index == activeIndex
-
-                        Text(affirmationStore.quotes[index])
-                            .mocoText(highlighted ? MocoScreenTheme.Typeface.slider : MocoScreenTheme.Typeface.body)
-                            .foregroundColor(
-                                hasFeed
-                                    ? Color.white
-                                    : (highlighted ? MirrorPalette.title : MirrorPalette.subtext)
-                            )
-                            .shadow(color: hasFeed ? Color.black.opacity(0.5) : Color.clear, radius: 3, y: 1)
-                            .multilineTextAlignment(.center)
-                            .opacity(isActive ? (highlighted ? 1 : 0.55) : 0.95)
-                            .scaleEffect(highlighted ? 1.04 : 1)
-                            .frame(maxWidth: .infinity)
-                            .id(index)
-                    }
-                }
-                .padding(.vertical, 8)
-            }
-            // Same four-row window as the mirror flow: the feed stays visible and
-            // the highlighted line never scrolls out of sight.
-            .frame(height: MirrorAffirmationsWindow.height)
-            .defaultScrollAnchor(.top)
-            .animation(.easeInOut(duration: 0.4), value: activeIndex)
-            .animation(.easeInOut(duration: 0.4), value: runState)
-            // No scroll on appear: the card's height resolves after first layout, and
-            // scrolling then left the window parked a couple of rows down.
-            .onChange(of: activeIndex) { _, index in
-                withAnimation(.easeInOut(duration: 0.45)) {
-                    proxy.scrollTo(index, anchor: index == 0 ? .top : .center)
-                }
+    /// Same split as the mirror flow: a four-row preview before the session, then
+    /// only the current line while it runs.
+    private var affirmationsArea: some View {
+        ZStack {
+            if showsCurrentLine {
+                currentAffirmation
+                    .transition(.opacity)
+            } else {
+                affirmationWindow
+                    .transition(.opacity)
             }
         }
+        .frame(height: MirrorAffirmationsWindow.height)
+        .animation(.easeInOut(duration: 0.35), value: showsCurrentLine)
+    }
+
+    private var currentAffirmation: some View {
+        ZStack {
+            Text(affirmationStore.quotes[min(activeIndex, affirmationStore.quotes.count - 1)])
+                .mocoText(MocoScreenTheme.Typeface.title2)
+                .foregroundColor(hasFeed ? Color.white : MirrorPalette.title)
+                .shadow(color: hasFeed ? Color.black.opacity(0.55) : Color.clear, radius: 4, y: 1)
+                .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.7)
+                .lineLimit(4)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .id(activeIndex)
+                .transition(.opacity)
+        }
+        .animation(.easeInOut(duration: 0.3), value: activeIndex)
+    }
+
+    /// Same four-row window as the mirror flow, only before the session: the feed
+    /// stays visible and no line is squeezed out of sight.
+    private var affirmationWindow: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 8) {
+                ForEach(affirmationStore.quotes.indices, id: \.self) { index in
+                    Text(affirmationStore.quotes[index])
+                        .mocoText(MocoScreenTheme.Typeface.body)
+                        .foregroundColor(hasFeed ? Color.white : MirrorPalette.subtext)
+                        .shadow(color: hasFeed ? Color.black.opacity(0.5) : Color.clear, radius: 3, y: 1)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.vertical, 8)
+        }
+        .defaultScrollAnchor(.top)
     }
 
     // MARK: Controls

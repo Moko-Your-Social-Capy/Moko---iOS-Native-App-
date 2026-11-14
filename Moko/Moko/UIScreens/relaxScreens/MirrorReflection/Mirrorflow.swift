@@ -351,7 +351,9 @@ struct MirrorTimerScreen: View {
         String(format: "%d:%02d", remainingSeconds / 60, remainingSeconds % 60)
     }
 
-    private var isActive: Bool { runState == .running || runState == .paused }
+    /// Idle shows the four-row preview; from the moment Start is tapped (and until the
+    /// user resets) only the current line is on screen.
+    private var showsCurrentLine: Bool { runState != .idle }
 
     /// Which affirmation is highlighted: one slot per 15 seconds, so eight lines
     /// fill the fixed 2:00 exactly.
@@ -385,7 +387,7 @@ struct MirrorTimerScreen: View {
                     .padding(.horizontal, MocoScreenTheme.Space.page)
                     .padding(.top, 18)
 
-                affirmationsView
+                affirmationsArea
                     .padding(.top, 22)
                     .padding(.horizontal, MocoScreenTheme.Space.page)
 
@@ -434,38 +436,57 @@ struct MirrorTimerScreen: View {
 
     // MARK: Affirmations
 
-    /// A four-row scrolling window instead of all eight lines, so the ring and the
-    /// clock stay on screen. The window follows the highlighted line as the
-    /// session advances; the user can still swipe to read ahead.
-    private var affirmationsView: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 10) {
-                    ForEach(affirmationStore.quotes.indices, id: \.self) { index in
-                        let highlighted = isActive && index == activeIndex
-
-                        Text(affirmationStore.quotes[index])
-                            .mocoText(highlighted ? MocoScreenTheme.Typeface.slider : MocoScreenTheme.Typeface.body)
-                            .foregroundColor(highlighted ? MirrorPalette.title : MirrorPalette.subtext)
-                            .multilineTextAlignment(.center)
-                            .opacity(isActive ? (highlighted ? 1 : 0.35) : 0.9)
-                            .scaleEffect(highlighted ? 1.04 : 1)
-                            .frame(maxWidth: .infinity)
-                            .id(index)
-                    }
-                }
-                .padding(.vertical, 8)
-            }
-            .frame(height: MirrorAffirmationsWindow.height)
-            .defaultScrollAnchor(.top)
-            .animation(.easeInOut(duration: 0.4), value: activeIndex)
-            .animation(.easeInOut(duration: 0.4), value: runState)
-            .onChange(of: activeIndex) { _, index in
-                withAnimation(.easeInOut(duration: 0.45)) {
-                    proxy.scrollTo(index, anchor: index == 0 ? .top : .center)
-                }
+    /// Before the session the user previews the next four lines; from Start onwards
+    /// only the current line stays on screen, so nothing competes with it.
+    private var affirmationsArea: some View {
+        ZStack {
+            if showsCurrentLine {
+                currentAffirmation
+                    .transition(.opacity)
+            } else {
+                affirmationWindow
+                    .transition(.opacity)
             }
         }
+        // Fixed height so the window -> single line swap doesn't move the ring.
+        .frame(height: MirrorAffirmationsWindow.height)
+        .animation(.easeInOut(duration: 0.35), value: showsCurrentLine)
+    }
+
+    /// The one line that owns the 15 seconds it is up: large, semibold, crossfading
+    /// into the next one instead of shrinking back into a list.
+    private var currentAffirmation: some View {
+        ZStack {
+            Text(affirmationStore.quotes[min(activeIndex, affirmationStore.quotes.count - 1)])
+                .mocoText(MocoScreenTheme.Typeface.title2)
+                .foregroundColor(MirrorPalette.title)
+                .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.7)
+                .lineLimit(4)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .id(activeIndex)
+                .transition(.opacity)
+        }
+        .animation(.easeInOut(duration: 0.3), value: activeIndex)
+    }
+
+    /// A four-row scrolling window, shown before the session starts (and again once
+    /// the user resets it) instead of all eight lines, so the ring and the clock stay
+    /// on screen.
+    private var affirmationWindow: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 10) {
+                ForEach(affirmationStore.quotes.indices, id: \.self) { index in
+                    Text(affirmationStore.quotes[index])
+                        .mocoText(MocoScreenTheme.Typeface.body)
+                        .foregroundColor(MirrorPalette.subtext)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.vertical, 8)
+        }
+        .defaultScrollAnchor(.top)
     }
 
     // MARK: Controls
