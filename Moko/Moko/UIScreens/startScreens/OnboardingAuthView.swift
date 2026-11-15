@@ -421,22 +421,17 @@ struct OnboardingAuthView: View {
         isError = false
         defer { isLoading = false }
         
-        do {
-            if isSignUpMode && !password.isEmpty {
-                try? await auth.signUp(email: cleanEmail, password: password)
-            } else if !password.isEmpty {
-                try? await auth.signIn(email: cleanEmail, password: password)
-            }
-            let user = try? await auth.getCurrentUser()
-            MokoTheme.playNotificationFeedback(.success)
-            if let user = user {
-                onAuthenticated?(user)
-            }
-            onContinueWithEmail?(cleanEmail)
-        } catch {
-            MokoTheme.playNotificationFeedback(.success)
-            onContinueWithEmail?(cleanEmail)
+        if isSignUpMode && !password.isEmpty {
+            try? await auth.signUp(email: cleanEmail, password: password)
+        } else if !password.isEmpty {
+            try? await auth.signIn(email: cleanEmail, password: password)
         }
+        let user = try? await auth.getCurrentUser()
+        MokoTheme.playNotificationFeedback(.success)
+        if let user = user {
+            onAuthenticated?(user)
+        }
+        onContinueWithEmail?(cleanEmail)
     }
     
     // MARK: - Supabase Google Sign In Flow

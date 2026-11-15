@@ -10,7 +10,6 @@ struct ImageryGuideListView: View {
     private let sage      = MocoScreenTheme.Colors.dataVioletDeep
     private let deepGreen = MocoScreenTheme.Colors.dataVioletDeep
     private let ink       = MocoScreenTheme.Colors.textTitle
-    private let bodyText  = MocoScreenTheme.Colors.textBody
     private let muted     = MocoScreenTheme.Colors.textBody
     private let mint      = MocoScreenTheme.Colors.surfaceLavender
 

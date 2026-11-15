@@ -4,7 +4,7 @@
 > change session (sections that changed + a new entry in [Change log](#change-log)).
 > Keep it factual: if the code and this file disagree, the code wins — then fix this file.
 
-Last updated: 2026-11-14 · Branch: `main` · HEAD: `e7e4825`
+Last updated: 2026-11-14 · Branch: `fix/cleanup` · HEAD: `15b8aad`
 
 ---
 
@@ -45,15 +45,14 @@ The `lottie-ios` and `rive-ios` packages were removed with the animation stack (
 
 The target uses a **`PBXFileSystemSynchronizedRootGroup` with `path = Moko`**. Everything under
 `Moko/Moko/` is compiled automatically (no pbxproj edit needed for new files). Build-file
-exceptions (excluded/treated specially): `Info.plist`, `Resources/Animations/MokoMeditationRive/rive.yaml`,
-`Resources/Animations/MokoMeditationRive/scene.rml`.
+exception: `Info.plist` is treated as the bundle plist, not a resource.
 
 Consequences:
 
 - `Moko/Moko/**` → **in the app** (Swift sources compiled, other files bundled as resources).
-- `Moko/Features/` (duplicate `MokoLottieView.swift`, `ColorSystem/Colors.swift`),
-  `Moko/RiveProjects/`, `Moko/.agents/` → **NOT part of the app at all**.
-  Editing those changes nothing in the app (and the duplicates have *diverged*).
+- Nothing else in the repo is compiled. The out-of-target trees were deleted with the 2026-11-14
+  cleanup: `Moko/Features/` (a duplicate of the design-system files that had diverged and silently
+  shadowed nothing), `Moko/RiveProjects/` and `Moko/.agents/` (Rive authoring sources).
 
 ### Commands
 
@@ -76,13 +75,12 @@ to a nonexistent `ios-ci.yml`. Treat CI as non-functional until fixed.
 
 ```
 Moko/Moko/
-├── MokoApp.swift            @main; prewarms floss loader; SwiftData container; segmented control tint
+├── MokoApp.swift            @main; segmented-control tint; SwiftData container
 ├── ContentView.swift        App flow state machine (splash → auth → onboarding → home)
 ├── MokoRootView.swift       TabView shell + OverviewMode switching + debrief cover
 ├── AuthService.swift        Supabase email/password auth + deleteAccount() edge function call
 ├── GoogleAuthService.swift  GIDSignIn → Supabase signInWithIdToken
 ├── SupabaseManager.swift    Shared SupabaseClient (URL/key hardcoded)
-├── MokoFlossLoader.html     Bundled page rendered by the WKWebView loader
 ├── Info.plist               Camera + mic usage strings, Google URL scheme
 ├── Models/                  SwiftData @Model types + value types + theme tokens
 ├── Features/
@@ -229,7 +227,7 @@ Requires iOS 26 + Apple Intelligence device; **every call has a static Swift fal
 |---|---|
 | `MokoMissionBank.swift` | `Stat`, `Difficulty`, `MissionTemplate`, the 20-situation mission bank |
 | `MokoAFM.swift` | `AFM.generate` (one process-wide generation slot, fresh session per call, retry only on *transient* faults), preview gate, availability, `@Generable` types, all prompts |
-| `MokoServices.swift` | `OnboardingScoring`, `StatScores`, `Band`, `QuestCardService`, `MissionPlanner`, `DebriefEngine` |
+| `MokoServices.swift` | `OnboardingScoring`, `StatScores`, `Band`, `QuestCardService`, `AFMDebriefContext` |
 | `MokoMissionInvention.swift` | Invented daily missions + validator + AFM review pass |
 | `AFMDebriefCoach.swift` | `DebriefCoaching` bridge into `QuestDebriefScreen`; `Stat ⇄ DebriefParameter` mapping |
 | `DailyMissionService.swift` | Guarantees today's Overview mission; lowest-stat targeting; prep ramp for upcoming quests |
@@ -260,7 +258,7 @@ an upcoming custom quest's prep ramp, then optionally rewrites it via AFM. It al
 per remaining category so the Quests tab has variety. `Quest.overviewMission` / `todayFallbackQuest`
 guarantee the UI never shows an empty mission.
 
-Debrief: `DebriefEngine` (fixed 1 main + 3 follow-up turns, `finished` is terminal), typed or
+Debrief: `AFMDebriefCoach` (`DebriefCoaching`) runs a fixed 1 main + 3 follow-up sequence, typed or
 speech-to-text input, per-turn confidence + note, evidence-weighted final scores.
 `DummyDebriefCoach` is the offline fallback; `AFMDebriefCoach` the live one.
 
@@ -290,15 +288,13 @@ profile. Its tokens:
 | `bodyBrown` | `#51443E` | Body copy |
 | `cardBackground` | `#FAFDF1` | Cards, fields |
 | `textTertiary` | `#6F6762` | Muted/placeholder |
-| `warmCream` | `#F6F0E4` | Alternate surface |
 
-Also: `MokoPrimaryButtonStyle` (press scale + light haptic), `MokoFlowerOrnament`,
+Also: `MokoPrimaryButtonStyle` (press scale + light haptic),
 `MokoTheme.playFeedback(_:)` / `playNotificationFeedback(_:)`.
 
 Overlapping token sets exist and should not proliferate:
-`Models/ColorTokens.swift` (`public enum ColorTokens`), `UIScreens/Onboarding_Questions/OnboardingTheme.swift`
-(`OBColor`), `UIScreens/Onboarding/Colors.swift` (static `Color` extension),
-plus a **conflicting, out-of-target** `ColorTokens` in `Moko/Features/ColorSystem/Colors.swift`.
+`UIScreens/Onboarding_Questions/OnboardingTheme.swift` (`OBColor`) and
+`UIScreens/Onboarding/Colors.swift` (static `Color` extension).
 `Color(hex:)` is declared in several files with different signatures (`UInt32`, `UInt32, opacity`).
 New code: `MocoScreenTheme` on home/quest screens, `MokoTheme` elsewhere; don't add another palette.
 
@@ -315,21 +311,19 @@ profile entrance animations and Lottie/Rive usage. Decorative animations carry
 
 **No Lottie, no Rive in the app any more.** Both packages and every `.riv` / animation `.json` asset
 were removed with the design-system redesign; nothing under `Moko/Moko` references either runtime.
-The mascot is a plain `Image("MocoMascot")`: `MokoAnimatedMascotView` fades/slides it in once
+The mascot is a plain `Image("MokoMascot")`: `MokoAnimatedMascotView` fades/slides it in once
 (`MocoScreenTheme.Motion.mascotEntrance`, crossfade under Reduce Motion) and stops there, and
 `SplashScreenView` is a static `MocoScreenTheme.Colors.tileLilac` screen — "Moko" wordmark plus the
 same image — that advances on tap or after its auto-advance.
 
 | Tech | Entry point | Notes |
 |---|---|---|
-| SwiftUI | `UIScreens/startScreens/MokoAnimatedMascotView.swift`, `SplashScreenView.swift` | `Image("MocoMascot")` with a one-shot entrance |
-| WebKit | `Features/Animation/MokoFlossLoadingView.swift` + `MokoFlossLoader.html` | Prewarmed in `MokoApp.init`; WebView pooling |
+| SwiftUI | `UIScreens/startScreens/MokoAnimatedMascotView.swift`, `SplashScreenView.swift` | `Image("MokoMascot")` with a one-shot entrance |
+| SwiftUI | `Features/Animation/MokoFlossLoadingView.swift` | Native `ProgressView`; the mascot rides along above 60 pt (Quest Library, auth, account sheets) |
 | Audio | `Features/Audio/DebriefSoundPlayer.swift` | `Resources/google-pay-success.mp3` |
 
-`Moko/RiveProjects/*` (RML + `rive` CLI, each with its own `AGENTS.md`/`CLAUDE.md`) is kept as
-Rive authoring source only — no `.riv` is built into or loaded by the app. Their `AGENTS.md` requires
-`rive schema` / `rive docs` lookups instead of guessing types, then `rive . --verify`,
-`rive inspect . --summary`, and `rive . --screenshot --advance=<t>`.
+There is no Rive/Lottie authoring tree in the repo any more (`Moko/RiveProjects/*` and
+`MokoFlossLoader.html` were deleted in `b31701c`), so no `.riv` exists to build into the bundle either.
 
 ---
 
@@ -339,8 +333,7 @@ Rive authoring source only — no `.riv` is built into or loaded by the app. The
 - SwiftData models are `final class` + `@Model`; new fields get defaults so the store can migrate
   implicitly (see the `Quest.isCompleted = false` comment).
 - Shared services are `@MainActor enum` with static functions (`DailyMissionService`, `QuestProgress`,
-  `AFM`) or `@MainActor @Observable final class` stores (`QuestLibraryStore`, `ImageryGuideStore`,
-  `DebriefEngine`).
+  `AFM`) or `@MainActor @Observable final class` stores (`QuestLibraryStore`, `ImageryGuideStore`).
 - Value types crossing actor boundaries are marked `nonisolated` (e.g. `QuestIntensity`,
   `QuestCategory`, `ImageryGuide`).
 - Views take `Binding<MokoTab>` with `.constant(...)` defaults; callbacks are optional closures
@@ -479,9 +472,10 @@ duplicate. Only `Moko/Moko/**` ships.
 ## 13. Change log
 
 Newest first. One entry per session: date, what changed, which files/sections.
-
 | Date | Change |
 |---|---|
+| 2026-11-14 | **Breathing session has its Moko mascot back.** The mascot asset was renamed `MocoMascot` → `MokoMascot` (same `mascot.png`, verified by hash), and `SplashScreenView`/`MokoAnimatedMascotView` were updated — but `Breathingsessionscreen.swift` and `Features/Animation/MokoFlossLoadingView.swift` still asked for `Image("MocoMascot")`, and asset lookups are case/exact-name sensitive, so both drew nothing (the breathing ring stayed empty and the 176 pt Quest Library loader lost its mascot). Both now use `Image("MokoMascot")`, and `Info.plist`'s `UILaunchScreen` → `UIColorName` follows the same rename to `MokoLaunchBackground`. A scripted `Image("…")` ↔ `Assets.xcassets` audit now reports no missing names. Verified on the simulator with a temporary `-MokoBreathingCheck` root harness (removed, `grep` clean): the capybara renders inside the ring at 250 pt with "Ready" + 1:00 below; build clean, no asset warnings. Section 8 updated. |
+| 2026-11-14 | **Cleanup pass: ~1,300 lines of dead code and every file nothing referenced are gone; the tree now boots clean with no unused-type complaints.** Deleted files: `UIScreens/relaxScreens/ImageryGuide/RelaxFlow.swift` (`RelaxFlow`/`RelaxStep`, fully unreferenced), `Models/ColorTokens.swift`, the out-of-target `Moko/Features/` duplicate of the design system, both stray `.build` trees (a one-off `prepare_brand_assets.py`/`mascot-check.png` plus SwiftPM markers), `moko_jump_wave.json` (the last Lottie asset, no loader left), `ProfileOverView/README.md` (documented ten file names that do not exist), and six unreferenced imagesets — `MocoLogo`, `imagery_guide`, `moko_splash_icon_raw`, `moko_waving_raw`, `splash_leaves_top_raw`, `splash_leaves_bottom_raw` (~3.7 MB of art from the pre-redesign splash) — plus the unused `google_logo.png` / `moko_sitting@2x,@3x,raw.png` children. Dead code removed: `OnboardingInsights`, `OnboardingPrompts`, `OnboardingInsightService`, `OnboardingResult`/`OnboardingFallback`, `DebriefEngine`/`DebriefTurn`/`CardDebriefContext`/`DebriefClosing` and the orphaned `DebriefPrompts` closing block, `MissionPlanner`/`PlannedMission`/`QuestCardService.dailyCard` (the live path is `DailyMissionService` → `freshDailyCard`), `MokoFlowerOrnament`, `BBCompletionBadge`/`BBConfettiBurst`/`BBCheckShape`, `InsightsRadarChartView`/`CalmDownBarChartView`/`DiamondShape`, `MirrorConfettiBurst` + `mirrorConfettiColors`, `DummyQuestBriefGenerator`, `StatScores.overall`/`updated(with:)`/`init(model:)`, `Band.label`, `OnboardingScoring.behaviors`, `Difficulty.rank`, `QuestFormat.dateText`, `ImageryGuide.detailDescription`, and twelve unused theme tokens (`warmCream`, `lightGray`, `secondaryText`, `mutedBrown`, `accentBrown`, `ringTrack`, `stateEmptyTitle`, `tabActiveBackground`, `tabInactive`, `Space.s8`, `safeTop`, `safeBottom`). Hygiene: `.gitignore` gained a generic `**/.build/` rule, the nine tracked `xcuserdata` files were removed from the index (`git rm --cached`), the `welcome_moko` 3x slot no longer points at a missing `Image.png`, and the unreachable `catch` in `OnboardingAuthView` is gone. Kept deliberately: the `@Generable` evidence fields (`courageEvidence`, `clarityEvidence`, `sameSkillReason`) — their `@Guide` text makes the model reason before it scores — and `CalmDownModel.exerciseId`, a persisted property. Verified with a scripted reference-count audit over all 91 sources (0 zero-reference types, 0 unreferenced imagesets), `** BUILD SUCCEEDED **`, and a simulator boot screenshot (mascot + "Let's Begin" render); the only warnings left are the two pre-existing `init(client:)` actor-isolation notices and the `Text` `+` deprecation in `Questdebrief.swift`. Sections 3, 6, 7, 9 updated. |
 | 2026-11-14 | **Mirror: preview four lines, then only the current affirmation once running.** The four-row window was also showing mid-session, which kept the other lines competing with the one that is actually up. `MirrorTimerScreen` and `CameraTimerScreen` now switch between two presentations inside the same `MirrorAffirmationsWindow.height` frame (so the ring never moves): while `runState == .idle` the `affirmationWindow` scroll view lists the next four lines, and from Start onwards `currentAffirmation` shows **only the active line**, at `Typeface.title2` (semibold), centred, 4-line ceiling with `minimumScaleFactor(0.7)`, `.id(activeIndex)` crossfading every 15 s. The preview rows lost their highlight/dim branches since they can no longer be on screen while a line is active. `isActive` became `showsCurrentLine` (`runState != .idle`), so the single line also holds through the completed state and the window only returns when the user resets. The camera variant keeps its white/shadow treatment over the feed. Verified on the simulator with a temporary `-MokoMirrorIdle/-MokoMirrorRun <s>/-MokoMirrorCam <s>` harness (removed, `grep` clean): idle shows rows 1–4 with ring/2:00/Start on screen, 40 s in shows only "I am held and supported by those who love me." large with no other lines and the pause/reset controls unchanged, 118 s in completes to the final line + badge + Continue, and the camera card shows the same single line above its bottom edge. Build clean. |
 | 2026-11-13 | **Mirror sessions show four affirmation lines at a time, not all eight.** Listing eight stacked the text block and pushed the timer ring against the bottom bar (the clock and Start overlapped). Both `MirrorTimerScreen` and `CameraTimerScreen` now put the lines in a `ScrollViewReader` + `ScrollView` windowed by `MirrorAffirmationsWindow.height` (136 pt ≈ four `moco.type.body` rows, in `MirrorAffirmations.swift`) with `.defaultScrollAnchor(.top)`; `onChange(of: activeIndex)` auto-scrolls the highlighted line to centre, so the window follows the 15 s cadence while the rest stay a swipe away. `MirrorTimerScreen` lost its outer `ScrollView` (nested same-axis scrolling) in favour of a plain `VStack`, and its ring went 250 → 230 pt so header + window + ring + clock fit one screen. The editor is unchanged and still edits all eight. Verified: idle shows rows 1–4 with ring/2:00/Start all on screen; at 1:08 remaining the window had scrolled to rows 4–7 with row 5 highlighted; the camera card keeps the same four-row window above its bottom edge. Build clean, harness removed. |
 | 2026-11-13 | **Mirror Reflection now uses eight editable affirmations, 15 s each.** Both timers hardcoded the same four lines and divided the fixed 2:00 by four, so each line hung for 30 s. New `UIScreens/relaxScreens/MirrorReflection/MirrorAffirmations.swift` owns `MirrorAffirmationStore.shared` (8 slots × `slotDuration = 15` s = 120 s, persisted as a string array under `mirror.affirmations.v1`), `MirrorEditAffirmationsButton` and `MirrorAffirmationsSheet`. `MirrorTimerScreen` and `CameraTimerScreen` dropped their private arrays, read `affirmationStore.quotes`, and compute `activeIndex` from `elapsed / slotDuration` instead of `total / count`. The sheet is an 8-row editor (cross to close per §9, Done, per-row "15s" label, plus reset to defaults); edits save as typed and blanks fall back to the matching default on close. The Edit pill sits in the header overlay and is hidden while `runState == .running`, because the ticker keeps advancing behind a sheet. Four new defaults were written to sound personal without being saccharine. Verified on the simulator via a temporary `-MokoMirrorCheck/-MokoMirrorEdit/-MokoMirrorSeed/-MokoMirrorReset` harness (removed, `grep` clean; store reset): eight lines + Edit pill on the timer, editor sheet laid out correctly, and a seeded first line still present after a relaunch without the seed flag (persistence). Build clean. |

@@ -139,7 +139,7 @@ struct BreathingSessionScreen: View {
                         .animation(.linear(duration: 1.0 / 30.0), value: progress)
                         .accessibilityLabel("Session progress, \(Int(progress * 100)) percent")
 
-                    Image("MocoMascot")
+                    Image("MokoMascot")
                         .resizable()
                         .scaledToFit()
                         .padding(18)

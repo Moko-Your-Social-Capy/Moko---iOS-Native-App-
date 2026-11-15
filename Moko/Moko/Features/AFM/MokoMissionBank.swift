@@ -28,13 +28,6 @@ enum Stat: String, CaseIterable, Codable, Hashable, Sendable {
 
 enum Difficulty: String, CaseIterable, Codable, Hashable, Sendable {
     case easy, medium, hard
-    var rank: Int {
-        switch self {
-        case .easy: return 0
-        case .medium: return 1
-        case .hard: return 2
-        }
-    }
 }
 
 extension Difficulty {

@@ -8,13 +8,13 @@ struct MokoAnimatedMascotView: View {
     @State private var appeared = false
 
     var body: some View {
-        Image("MocoMascot")
+        Image("MokoMascot")
             .resizable()
             .scaledToFit()
             .frame(width: size, height: size * (758.0 / 592.0))
             .offset(y: appeared || reduceMotion ? 0 : size * 0.12)
             .opacity(appeared ? 1 : 0)
-            .accessibilityLabel("Moco waves hello")
+            .accessibilityLabel("Moko waves hello")
             .onAppear {
                 withAnimation(reduceMotion ? MocoScreenTheme.Motion.crossfade : MocoScreenTheme.Motion.mascotEntrance) {
                     appeared = true

@@ -21,7 +21,6 @@ enum MirrorPalette {
     static let deepGreen = MocoScreenTheme.Colors.dataVioletDeep    // #1B422F
     static let softGreen = MocoScreenTheme.Colors.dataViolet
     static let mint = MocoScreenTheme.Colors.surfaceLavender
-    static let doneGreen = MocoScreenTheme.Colors.dataViolet
     static let title = MocoScreenTheme.Colors.textTitle       // warm brown
     static let subtext = MocoScreenTheme.Colors.textBody    // #6F6762
     static let chip = MocoScreenTheme.Colors.surfaceLavender      // #EDEDED
@@ -681,76 +680,6 @@ struct MirrorCompletionScreen: View {
         }
         // Stays immersive until Done returns to the mirror landing.
         .toolbar(.hidden, for: .tabBar)
-    }
-}
-
-let mirrorConfettiColors: [Color] = [
-    MirrorPalette.green,
-    MirrorPalette.softGreen,
-    Color(red: 244/255, green: 190/255, blue: 70/255),   // yellow
-    Color(red: 230/255, green: 110/255, blue: 90/255),   // coral
-    Color(red: 130/255, green: 185/255, blue: 175/255),  // teal
-    Color(red: 140/255, green: 175/255, blue: 200/255)   // blue
-]
-
-/// Leaves and petals that burst outward once, in the same palette as the other illustrations.
-struct MirrorConfettiBurst: View {
-    var radius: CGFloat
-
-    @State private var burst: CGFloat = 0
-
-    private struct Piece {
-        let angle: Double
-        let distance: CGFloat
-        let size: CGFloat
-        let color: Color
-        let isLeaf: Bool
-    }
-
-    private let pieces: [Piece] = (0..<16).map { index in
-        let jitter: Double = index % 2 == 0 ? 0.1 : -0.1
-        let angle = Double(index) / 16 * 2 * Double.pi + jitter
-        let distances: [CGFloat] = [1.0, 0.8, 0.92]
-        let sizes: [CGFloat] = [20, 13, 16]
-        return Piece(
-            angle: angle,
-            distance: distances[index % 3],
-            size: sizes[(index + 1) % 3],
-            color: mirrorConfettiColors[index % mirrorConfettiColors.count],
-            isLeaf: index % 2 == 0
-        )
-    }
-
-    var body: some View {
-        ZStack {
-            ForEach(pieces.indices, id: \.self) { index in
-                let piece = pieces[index]
-
-                Group {
-                    if piece.isLeaf {
-                        Capsule()
-                            .fill(piece.color)
-                            .frame(width: piece.size * 0.5, height: piece.size)
-                            .rotationEffect(.radians(piece.angle + Double.pi / 2))
-                    } else {
-                        Circle()
-                            .fill(piece.color)
-                            .frame(width: piece.size * 0.7, height: piece.size * 0.7)
-                    }
-                }
-                .offset(
-                    x: CGFloat(cos(piece.angle)) * radius * piece.distance * burst,
-                    y: CGFloat(sin(piece.angle)) * radius * piece.distance * burst
-                )
-                .scaleEffect(0.3 + 0.7 * burst)
-                .opacity(Double(min(1, burst * 2)))
-            }
-        }
-        .onAppear {
-            withAnimation(.spring(response: 0.9, dampingFraction: 0.65).delay(0.25)) {
-                burst = 1
-            }
-        }
     }
 }
 

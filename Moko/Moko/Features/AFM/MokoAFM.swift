@@ -255,21 +255,7 @@ extension Stat {
     }
 }
 
-// MARK: - 1) Onboarding insights
-
-@Generable
-struct OnboardingInsights {
-    @Guide(description: "Courage insight for the user. 1–2 warm sentences, max 35 words, addressed to 'you'.")
-    var courage: String
-    @Guide(description: "Clarity insight for the user. 1–2 warm sentences, max 35 words, addressed to 'you'.")
-    var clarity: String
-    @Guide(description: "Presence insight for the user. 1–2 warm sentences, max 35 words, addressed to 'you'.")
-    var presence: String
-    @Guide(description: "Warmth insight for the user. 1–2 warm sentences, max 35 words, addressed to 'you'.")
-    var warmth: String
-}
-
-// MARK: - 2 & 4) Quest cards
+// MARK: - Quest cards
 
 @Generable
 struct TemplateChoice {
@@ -302,7 +288,7 @@ struct CardSeed {
     var totalDays: Int?
 }
 
-// MARK: - 3) Voice debrief
+// MARK: - Voice debrief
 
 @Generable
 struct DebriefOpening {
@@ -351,48 +337,7 @@ struct FollowUpAnalysis {
     var confidenceNote: String
 }
 
-@Generable
-struct DebriefClosing {
-    @Guide(description: "Closing message, exactly 2 sentences, max 45 words. First names one specific thing the user did; second ties it to the goal. No question, no homework, no scores.")
-    var message: String
-}
-
 // MARK: - Prompts
-
-enum OnboardingPrompts {
-    static let instructions = """
-    You write short, kind insight notes for Moko, a social-confidence app. The user just finished a quick self-reflection. For four social skills you get a score (0-100), a band, and a few everyday patterns that were or were not true for them.
-
-    Write ONE note per skill: 1-2 sentences, max 35 words, speaking directly to "you".
-    - Band "strength": warmly celebrate what they already do well. No "but".
-    - Band "steady": acknowledge what is working, then offer one gentle idea.
-    - Band "growth": start with kindness or normalise it ("this is really common"), then suggest ONE tiny, doable step. Say it sweetly, like a supportive friend.
-
-    Rules: never mention questions, yes/no answers, or the number. Never use clinical or negative words (anxiety, disorder, problem, weakness, fear, issue, struggle). Never judge. Only talk about patterns listed for that skill. No emojis.
-
-    Examples
-    strength: "You move toward social moments instead of stepping back, and that willingness is a real strength worth leaning on."
-    growth: "Sharing your thoughts first can feel like a big step, and that's very common. Try offering one small opinion early in your next group chat."
-    """
-
-    static func prompt(scores: StatScores, answers: [OnboardingScoredAnswer]) -> String {
-        let yes = Set(answers.filter { $0.yes }.map { $0.questionID })
-        var blocks: [String] = []
-        for stat in Stat.allCases {
-            let relevant = OnboardingScoring.tags
-                .filter { $0.value.contains { $0.stat == stat } }
-                .keys.sorted()
-            let present = relevant.filter { yes.contains($0) }.compactMap { OnboardingScoring.behaviors[$0] }
-            let absent  = relevant.filter { !yes.contains($0) }.compactMap { OnboardingScoring.behaviors[$0] }
-            blocks.append([
-                "\(stat.title.uppercased()) — score \(scores[stat])/100, band: \(Band(score: scores[stat]).label)",
-                "Patterns that are true for them: \(present.isEmpty ? "none" : present.joined(separator: "; "))",
-                "Patterns that are NOT true for them: \(absent.isEmpty ? "none" : absent.joined(separator: "; "))"
-            ].joined(separator: "\n"))
-        }
-        return "Write the four notes.\n\n" + blocks.joined(separator: "\n\n")
-    }
-}
 
 enum QuestPrompts {
     static let matchInstructions = """
@@ -593,26 +538,4 @@ enum DebriefPrompts {
                                userSaid: String, differentFrom previous: String?) -> String {
         questionPrompt(c.afmContext, stat: stat, base: base, userSaid: userSaid, differentFrom: previous)
     }
-
-    // ---- Closing ----
-    static let closingInstructions = """
-    You are Moko, the friendly guide in this social-confidence app. Write the closing message of a short debrief. Exactly 2 sentences, max 45 words.
-    Sentence 1: name ONE specific thing the user actually did (use the observations given).
-    Sentence 2: tie it to the mission goal with quiet encouragement.
-    Rules: no question, no homework, no advice list, no scores or numbers, no invitation to reflect more, no comment on the other person's character. No emojis. Do not use "should".
-    """
-
-    static func closingPrompt(_ c: AFMDebriefContext, observations: [String], strongest: Stat?) -> String {
-        """
-        MISSION: \(c.title)
-        GOAL: \(c.goal)
-        What the user did: \(observations.isEmpty ? "(they completed the debrief)" : observations.joined(separator: " | "))
-        Strongest area today: \(strongest?.title ?? "n/a")
-        """
-    }
-
-    static func closingPrompt(_ c: DebriefContext, observations: [String], strongest: Stat?) -> String {
-        closingPrompt(c.afmContext, observations: observations, strongest: strongest)
-    }
 }
-

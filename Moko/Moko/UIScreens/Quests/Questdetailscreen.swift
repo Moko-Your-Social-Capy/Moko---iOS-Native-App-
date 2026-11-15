@@ -3,10 +3,9 @@
 //  Moko
 //
 //  Opens when a quest card (or its check button) is tapped. A category image, then the
-//  quest's title, category, intensity and XP, then a briefing (scene, who, goal) from a
-//  QuestBriefGenerating object. For now that is a dummy generator; swap in an Apple
-//  Foundation Models one later. Sliding "Slide to debrief" completes the quest and opens
-//  the debrief conversation (QuestDebrief.swift).
+//  quest's title, category, intensity and XP, then a briefing (scene, who, goal) generated
+//  on-device through `QuestBriefGenerating` (backed by the AFM quest-card service). Sliding
+//  "Slide to debrief" completes the quest and opens the debrief conversation (Questdebrief.swift).
 //
 
 import SwiftUI
@@ -45,28 +44,6 @@ final class AFMQuestBriefGenerator: QuestBriefGenerating {
         )
         let (card, _) = await QuestCardService.customCard(input)
         return QuestBrief(scene: card.scene, who: card.who, goal: card.goal)
-    }
-}
-
-/// Fallback generator pulling vetted context from the Mission Bank.
-struct DummyQuestBriefGenerator: QuestBriefGenerating {
-    func brief(for request: QuestBriefRequest) async -> QuestBrief {
-        let templates = MissionBank.templates(in: request.category)
-        let template = templates.first ?? MissionBank.all[0]
-
-        var scene = template.scene
-        let trimmedNotes = request.notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedNotes.isEmpty {
-            scene = "\(trimmedNotes). \(template.scene)"
-        }
-
-        var who = template.who
-        let trimmedTitle = request.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedTitle.isEmpty {
-            who = "\(trimmedTitle): \(template.who)"
-        }
-
-        return QuestBrief(scene: scene, who: who, goal: template.goal)
     }
 }
 

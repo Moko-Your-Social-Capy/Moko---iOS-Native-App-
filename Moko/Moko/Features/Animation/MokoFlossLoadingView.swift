@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Native loading indicator; larger placements include the Moco mascot.
+/// Native loading indicator; larger placements include the Moko mascot.
 struct MokoFlossLoadingView: View {
     var size: CGFloat = 112
 
@@ -9,7 +9,7 @@ struct MokoFlossLoadingView: View {
     var body: some View {
         VStack(spacing: 8) {
             if size >= 60 {
-                Image("MocoMascot")
+                Image("MokoMascot")
                     .resizable()
                     .scaledToFit()
                     .frame(height: size * 0.7)

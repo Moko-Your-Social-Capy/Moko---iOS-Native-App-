@@ -31,7 +31,7 @@ struct SplashScreenView: View {
                     .position(x: size.width * (landscape ? 0.27 : 0.5),
                               y: size.height * (landscape ? 0.44 : 0.30))
 
-                    Image("MocoMascot")
+                    Image("MokoMascot")
                         .resizable()
                         .scaledToFit()
                         .frame(width: mascotWidth, height: mascotHeight)

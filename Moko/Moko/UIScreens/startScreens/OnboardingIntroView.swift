@@ -29,7 +29,7 @@ struct OnboardingIntroView: View {
                         .padding(.bottom, 16)
                     
                     // Title
-                    Text("Hello, I’m Moco.")
+                    Text("Hello, I’m Moko.")
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundColor(MocoScreenTheme.Colors.dataVioletDeep)
                         .multilineTextAlignment(.center)
