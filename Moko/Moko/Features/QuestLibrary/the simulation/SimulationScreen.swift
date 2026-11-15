@@ -2,11 +2,8 @@
 //  SimulationScreen.swift
 //  Moko
 //
-//  The Duolingo-style video call simulation. After the flash screen, this
-//  shows a video-call-style conversation with Moko. When the conversation
-//  ends, a popup says the conversation is done. The user can then deep dive
-//  into the debrief now or later. The debrief is linked to the quest card in
-//  the Quest Library / Quests section.
+//  A self-paced rehearsal before a real quest. Nothing is recorded, scored,
+//  or marked complete here. The user returns to the briefing when ready.
 //
 //  Comment style: every important line has a short, plain-words comment.
 
@@ -18,6 +15,9 @@ import SwiftData
 struct SimulationScreen: View {
     /// Which quest this simulation belongs to (its title, for the debrief link).
     let questTitle: String
+
+    // Closes practice without changing the saved quest.
+    @Environment(\.dismiss) private var dismiss
 
     /// Which stage the screen is on.
     @State private var stage: Stage = .talking
@@ -31,11 +31,11 @@ struct SimulationScreen: View {
     /// The lines Moko "says" during the call, in order.
     private var lines: [String] {
         [
-            "Hi! I'm Moko. Let's talk about \(questTitle).",
-            "How are you feeling right now?",
-            "That's okay — lots of people feel that way.",
-            "What's one small thing you could try today?",
-            "Great idea. I'll check in with you tomorrow.",
+            "Picture this moment: \(questTitle). Take your time to imagine where you are.",
+            "Try your opening sentence out loud, or quietly in your head. Nothing is recorded.",
+            "Imagine the other person responds. What could you ask to understand them better?",
+            "Try one clear, kind sentence that moves toward your goal.",
+            "Choose one small step to try in the real moment. You can practice again whenever you like.",
         ]
     }
 
@@ -47,16 +47,16 @@ struct SimulationScreen: View {
 
     var body: some View {
         ZStack {
-            MokoScreenTheme.Colors.canvasTop
-                .ignoresSafeArea()
+            MokoBackdrop()
 
-            VStack(spacing: 0) {
+            ScrollView {
+              VStack(spacing: 0) {
                 // MARK: Video-call style header
                 HStack {
-                    Image(systemName: "video.fill")
+                    Image(systemName: "bubble.left.and.bubble.right.fill")
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(MokoScreenTheme.Colors.textTitle)
-                    Text("Moko Call")
+                    Text("Guided rehearsal")
                         .mokoText(MokoScreenTheme.Typeface.section)
                         .foregroundStyle(MokoScreenTheme.Colors.textTitle)
                     Spacer()
@@ -71,13 +71,14 @@ struct SimulationScreen: View {
                     RoundedRectangle(cornerRadius: MokoScreenTheme.Radius.card)
                         .fill(MokoScreenTheme.Colors.surfaceWhite)
                         .frame(height: 320)
-                    Image("MokoMascot")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: MokoScreenTheme.Size.mascotFlash)
-                        .symbolEffect(.bounce, value: currentLine)
+                    MokoAnimatedMascotView(size: MokoScreenTheme.Size.mascotFlash)
                 }
                 .padding(.horizontal, MokoScreenTheme.Space.page)
+
+                Text("Step \(currentLine + 1) of \(lines.count) · At your pace")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.top)
 
                 // MARK: Conversation line
                 if stage == .talking {
@@ -96,7 +97,7 @@ struct SimulationScreen: View {
                     nextLine()
                 } label: {
                     Text(stage == .talking && currentLine == lines.count - 1
-                         ? "End call" : "Next")
+                         ? "Finish practice" : "Next")
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity, minHeight: 50)
                         .background(MokoScreenTheme.Colors.forest)
@@ -106,31 +107,25 @@ struct SimulationScreen: View {
                 .padding(.horizontal, MokoScreenTheme.Space.page)
                 .padding(.bottom, MokoScreenTheme.Space.s7)
                 .disabled(stage == .done)
+              }
             }
+            .accessibilityHidden(showDonePopup)
+            .allowsHitTesting(!showDonePopup)
 
             // MARK: "Conversation done" popup
             if showDonePopup {
                 ConversationDonePopup(
-                    onDeepDiveNow: {
+                    onReviewQuest: { dismiss() },
+                    onPracticeAgain: {
+                        currentLine = 0
+                        stage = .talking
                         showDonePopup = false
-                        onDeepDive?(.now)
-                    },
-                    onDeepDiveLater: {
-                        showDonePopup = false
-                        onDeepDive?(.later)
                     }
                 )
                 .transition(.opacity)
             }
         }
-        // Restart the wait after each line or stage change; leaving cancels it.
-        .task(id: stage == .talking ? currentLine : lines.count) {
-            await startConversation()
-        }
     }
-
-    /// Tells the parent whether the user wants to deep dive now or later.
-    var onDeepDive: ((DeepDiveChoice) -> Void)? = nil
 
     /// Moves to the next conversation line. When the last line ends, shows
     /// the "conversation done" popup.
@@ -139,43 +134,17 @@ struct SimulationScreen: View {
         if currentLine < lines.count - 1 {
             currentLine += 1
         } else {
-            // The stage change starts the short wait before showing the popup.
             stage = .done
+            showDonePopup = true
         }
     }
 
-    /// Waits for this line or the end-of-call pause without blocking taps.
-    private func startConversation() async {
-        do {
-            switch stage {
-            case .talking:
-                // Each line gets a fresh wait, even when Next was tapped early.
-                try await Task.sleep(for: .seconds(4))
-                nextLine()
-            case .done:
-                // A cancelled wait must not reopen the popup after leaving.
-                try await Task.sleep(for: .seconds(0.6))
-                withAnimation(MokoScreenTheme.Motion.crossfade) {
-                    showDonePopup = true
-                }
-            }
-        } catch {
-            // A new line or leaving the screen cancels the old wait.
-            return
-        }
-    }
-}
-
-/// What the user chooses when the conversation is done.
-enum DeepDiveChoice {
-    case now    // Open the debrief right away
-    case later  // Save the debrief for later (it stays on the quest card)
 }
 
 /// The popup that appears when the conversation ends.
 private struct ConversationDonePopup: View {
-    let onDeepDiveNow: () -> Void
-    let onDeepDiveLater: () -> Void
+    let onReviewQuest: () -> Void
+    let onPracticeAgain: () -> Void
 
     var body: some View {
         ZStack {
@@ -189,20 +158,20 @@ private struct ConversationDonePopup: View {
                     .font(.system(size: 50, weight: .medium))
                     .foregroundStyle(MokoScreenTheme.Colors.forest)
 
-                Text("Conversation done")
+                Text("A little more ready")
                     .mokoText(MokoScreenTheme.Typeface.title1)
                     .foregroundStyle(MokoScreenTheme.Colors.textTitle)
                     .multilineTextAlignment(.center)
 
-                Text("You finished talking with Moko. Your debrief is saved on the quest card.")
+                Text("Practice is complete. Return to your quest and try it in real life. Debrief afterward to reflect on what actually happened.")
                     .mokoText(MokoScreenTheme.Typeface.body)
                     .foregroundStyle(MokoScreenTheme.Colors.textBody)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, MokoScreenTheme.Space.page)
 
-                HStack(spacing: MokoScreenTheme.Space.s3) {
-                    Button("Deep dive now") {
-                        onDeepDiveNow()
+                VStack(spacing: MokoScreenTheme.Space.s3) {
+                    Button("Back to quest") {
+                        onReviewQuest()
                     }
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity, minHeight: 50)
@@ -210,8 +179,8 @@ private struct ConversationDonePopup: View {
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: MokoScreenTheme.Radius.pill))
 
-                    Button("Later") {
-                        onDeepDiveLater()
+                    Button("Practice again") {
+                        onPracticeAgain()
                     }
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity, minHeight: 50)

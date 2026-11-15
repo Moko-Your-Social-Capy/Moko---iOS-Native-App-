@@ -132,6 +132,8 @@ struct QuestDetailScreen: View {
     @State private var brief: QuestBrief?
     // false = briefing, true = debrief chat. Both live on this one screen.
     @State private var showingDebrief = false
+    // Practice is separate from the real event and never awards XP.
+    @State private var showingSimulation = false
 
     // Timeline colours: lavender + violet for the scene and goal, blue for who.
     private let sceneFill = MokoScreenTheme.Colors.surfaceLavender
@@ -155,6 +157,16 @@ struct QuestDetailScreen: View {
             }
         }
         .background(MokoBackdrop())
+        .fullScreenCover(isPresented: $showingSimulation) {
+            NavigationStack {
+                SimulationScreen(questTitle: quest.title)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close", systemImage: "xmark") { showingSimulation = false }
+                        }
+                    }
+            }
+        }
         // The NavigationStack supplies the default back button on the detail; the debrief is
         // chat-only, so no bar (and no back button) sits above its conversation.
         .navigationBarTitleDisplayMode(.inline)
@@ -195,6 +207,25 @@ struct QuestDetailScreen: View {
                         .padding(.horizontal, MokoScreenTheme.Space.page)
                         .padding(.top, 20)
                         .padding(.bottom, 24)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Practice first", systemImage: "bubble.left.and.bubble.right")
+                            .font(.headline)
+                        Text("Rehearse with Moko before the real event. Practice does not complete your quest or award XP.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                        Button("Practice with Moko", systemImage: "play.fill") {
+                            showingSimulation = true
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(MokoScreenTheme.Colors.forest)
+                        .controlSize(.large)
+                    }
+                    .padding(20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .mokoCard()
+                    .padding(.horizontal, MokoScreenTheme.Space.page)
+                    .padding(.bottom, 24)
                 }
             }
         }
