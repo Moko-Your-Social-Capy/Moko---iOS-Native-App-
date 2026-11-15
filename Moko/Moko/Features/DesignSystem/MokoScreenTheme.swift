@@ -118,6 +118,7 @@ enum MokoScreenTheme {
         static let s5: CGFloat = 20
         static let s6: CGFloat = 24
         static let s7: CGFloat = 32
+        static let s8: CGFloat = 40
 
         /// Page gutter.
         static let page = s6
