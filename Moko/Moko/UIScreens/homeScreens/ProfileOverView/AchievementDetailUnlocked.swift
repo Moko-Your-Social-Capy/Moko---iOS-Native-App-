@@ -111,6 +111,7 @@ private struct BadgeUnlockAnimation: View {
                 title: "One Month",
                 detail: "Practise on thirty consecutive days.",
                 symbol: "calendar",
+                leafSymbol: "leaf.fill",
                 shape: .streak,
                 tier: .two,
                 unlocked: true

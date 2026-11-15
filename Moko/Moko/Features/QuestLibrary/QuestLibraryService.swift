@@ -60,9 +60,9 @@ final class QuestLibraryStore {
     /// True after one successful download, so switching tabs doesn't download again.
     private var hasLoaded = false
 
-    // `nonisolated` lets the screen create the store as a default `@State` value.
-    nonisolated init(service: QuestLibraryService = QuestLibraryService()) {
-        self.service = service
+    // Build the service on the same main actor as the screens that use it.
+    init(service: QuestLibraryService? = nil) {
+        self.service = service ?? QuestLibraryService()
     }
 
     /// Loads once on entry. The Quest Library refresh button also calls `load()`.

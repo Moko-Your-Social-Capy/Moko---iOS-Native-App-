@@ -123,7 +123,8 @@ enum DailyMissionService {
 
     /// The run that is creating today's mission right now, if any. A second caller
     /// waits for this one instead of creating a duplicate mission.
-    private static var runningMission: Task<Quest?, Never>?
+    // Share only the saved ID; the quest itself stays in its SwiftData context.
+    private static var runningMission: Task<PersistentIdentifier?, Never>?
 
     /// True while `seedRemainingCategories` is working, so two copies never run at once.
     private static var isSeeding = false
@@ -134,13 +135,20 @@ enum DailyMissionService {
     @discardableResult
     static func ensureDailyMission(in modelContext: ModelContext, existingQuests: [Quest]) async -> Quest? {
         if let runningMission {
-            return await runningMission.value
+            guard let identifier = await runningMission.value else { return nil }
+            // Read the shared quest through the caller's own SwiftData context.
+            return modelContext.model(for: identifier) as? Quest
         }
-        let run = Task { await makeDailyMission(in: modelContext, existingQuests: existingQuests) }
+        let run = Task { @MainActor in
+            let quest = await makeDailyMission(in: modelContext, existingQuests: existingQuests)
+            return quest?.persistentModelID
+        }
         runningMission = run
         // `defer` clears the guard when this function finishes, so tomorrow can run again.
         defer { runningMission = nil }
-        return await run.value
+        guard let identifier = await run.value else { return nil }
+        // Resolve the ID here so a model is never returned across task boundaries.
+        return modelContext.model(for: identifier) as? Quest
     }
 
     private static func makeDailyMission(in modelContext: ModelContext, existingQuests: [Quest]) async -> Quest? {

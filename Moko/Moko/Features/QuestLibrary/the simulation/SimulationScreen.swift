@@ -29,13 +29,15 @@ struct SimulationScreen: View {
     @State private var showDonePopup = false
 
     /// The lines Moko "says" during the call, in order.
-    private let lines = [
-        "Hi! I'm Moko. Let's talk about \(questTitle).",
-        "How are you feeling right now?",
-        "That's okay — lots of people feel that way.",
-        "What's one small thing you could try today?",
-        "Great idea. I'll check in with you tomorrow.",
-    ]
+    private var lines: [String] {
+        [
+            "Hi! I'm Moko. Let's talk about \(questTitle).",
+            "How are you feeling right now?",
+            "That's okay — lots of people feel that way.",
+            "What's one small thing you could try today?",
+            "Great idea. I'll check in with you tomorrow.",
+        ]
+    }
 
     /// The stages of the simulation.
     private enum Stage {
@@ -118,18 +120,12 @@ struct SimulationScreen: View {
                         onDeepDive?(.later)
                     }
                 )
-                .transition(MokoScreenTheme.Motion.crossfade)
+                .transition(.opacity)
             }
         }
-        // `.task` starts the conversation line timer when the screen appears.
-        .task {
+        // Restart the wait after each line or stage change; leaving cancels it.
+        .task(id: stage == .talking ? currentLine : lines.count) {
             await startConversation()
-        }
-        // When the popup closes, tell the parent what the user chose.
-        .onChange(of: showDonePopup) { old, new in
-            if !new, old {
-                // Popup just closed; parent already got the choice above.
-            }
         }
     }
 
@@ -139,29 +135,33 @@ struct SimulationScreen: View {
     /// Moves to the next conversation line. When the last line ends, shows
     /// the "conversation done" popup.
     private func nextLine() {
+        guard stage == .talking else { return }
         if currentLine < lines.count - 1 {
             currentLine += 1
         } else {
-            // Conversation is over. Show the done popup after a short pause.
+            // The stage change starts the short wait before showing the popup.
             stage = .done
-            try? Task.sleep(for: .seconds(0.6))
-            withAnimation(MokoScreenTheme.Motion.crossfade) {
-                showDonePopup = true
-            }
         }
     }
 
-    /// Starts the conversation: each line shows for a few seconds, then moves on.
+    /// Waits for this line or the end-of-call pause without blocking taps.
     private func startConversation() async {
-        for index in lines.indices {
-            currentLine = index
-            try? await Task.sleep(for: .seconds(4))
-        }
-        // After the last line, end the call and show the popup.
-        stage = .done
-        try? await Task.sleep(for: .seconds(0.6))
-        withAnimation(MokoScreenTheme.Motion.crossfade) {
-            showDonePopup = true
+        do {
+            switch stage {
+            case .talking:
+                // Each line gets a fresh wait, even when Next was tapped early.
+                try await Task.sleep(for: .seconds(4))
+                nextLine()
+            case .done:
+                // A cancelled wait must not reopen the popup after leaving.
+                try await Task.sleep(for: .seconds(0.6))
+                withAnimation(MokoScreenTheme.Motion.crossfade) {
+                    showDonePopup = true
+                }
+            }
+        } catch {
+            // A new line or leaving the screen cancels the old wait.
+            return
         }
     }
 }

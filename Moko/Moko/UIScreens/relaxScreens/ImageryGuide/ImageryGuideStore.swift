@@ -83,8 +83,9 @@ final class ImageryGuideStore {
     // True after the first successful load, so we do not download again on every screen.
     private var hasLoaded = false
 
-    nonisolated init(service: ImageryGuideService = ImageryGuideService()) {
-        self.service = service
+    // Build the service on the same main actor as the screens that use it.
+    init(service: ImageryGuideService? = nil) {
+        self.service = service ?? ImageryGuideService()
     }
 
     var guides: [ImageryGuide] { content?.guides ?? [] }

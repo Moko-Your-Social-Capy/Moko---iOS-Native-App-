@@ -143,10 +143,10 @@ struct ProfileOverView: View {
 
     private var hero: some View {
         MokoProfileHero(title: "Profile",
-                        height: Theme.Size.heroLarge,
-                        avatarSize: Theme.Size.avatarExtraLarge,
                         onClose: { dismiss() },
-                        onOverflow: { activeSheet = .editProfile }) {
+                        onOverflow: { activeSheet = .editProfile },
+                        height: Theme.Size.heroLarge,
+                        avatarSize: Theme.Size.avatarExtraLarge) {
             avatar
         }
     }

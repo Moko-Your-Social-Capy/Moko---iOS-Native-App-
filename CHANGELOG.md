@@ -1,5 +1,9 @@
 # Changelog
 
+- 2026-11-15 — `welcome_moko.imageset/Contents.json`: Removed a reference to a nonexistent 3× image while preserving the available artwork.
+- 2026-11-15 — `DailyMissionService.swift`, `QuestLibraryService.swift`, `ImageryGuideStore.swift`: Share a persistent ID instead of a non-Sendable quest between tasks and keep store initialization on the main actor to resolve concurrency warnings.
+- 2026-11-15 — `SimulationScreen.swift`: Compute dialogue after the quest title is available, use an opacity transition, and make line/popup delays cancellable so automatic progress and Next taps share one timer.
+- 2026-11-15 — Profile (`ProfileOverView.swift`, `AchievementDetailUnlocked.swift`): Fixed the hero initializer argument order and supplied the preview badge's required leaf symbol to restore compilation after cleanup.
 - 2026-11-14 — `AGENTS.md`: Saved the owner's code rules at the repository root so future changes follow one shared policy.
 - 2026-11-14 — `CHANGELOG.md`: Started the requested dated change log to record what changed and why.
 - 2026-11-14 — All files: Renamed every "Moco" to "Moko" (types, files, asset names, docs, app display name) so the brand is spelled one way.
