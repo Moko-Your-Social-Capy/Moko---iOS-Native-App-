@@ -2,14 +2,16 @@
 //  QuestModels.swift
 //  Moko
 //
-//  Custom quest data: model, local storage, and shared styling/formatting.
+//  Custom quest data: the SwiftData `Quest` model, the current user's id,
+//  the database container, and shared quest colours and date formatting.
 //
 
 import SwiftUI
 import SwiftData
-import Combine
 
 // MARK: - Model
+
+// `nonisolated` lets these simple enums be used from any thread (SwiftData saves them in the background).
 nonisolated enum QuestIntensity: String, CaseIterable, Identifiable, Codable, Hashable {
     case easy = "Easy"
     case medium = "Medium"
@@ -17,7 +19,7 @@ nonisolated enum QuestIntensity: String, CaseIterable, Identifiable, Codable, Ha
 
     var id: String { rawValue }
 
-    /// XP shown on the quest card
+    /// XP shown on the quest card.
     var xp: Int {
         switch self {
         case .easy:   return 100
@@ -36,6 +38,7 @@ nonisolated enum QuestCategory: String, CaseIterable, Identifiable, Codable, Has
 
     var id: String { rawValue }
 
+    /// SF Symbol shown on chips and cards.
     var symbol: String {
         switch self {
         case .work:    return "briefcase.fill"
@@ -51,13 +54,13 @@ nonisolated enum QuestCategory: String, CaseIterable, Identifiable, Codable, Has
 @Model
 final class Quest {
     @Attribute(.unique) var id: UUID
-    /// Which user this quest belongs to
+    /// Which user this quest belongs to.
     var ownerID: String
     var title: String
     var notes: String
     var intensity: QuestIntensity
     var category: QuestCategory
-    /// Scheduled day and time
+    /// Scheduled day and time.
     var date: Date
     var createdAt: Date
     /// Set when the user taps the check on the quest card. The default value lets SwiftData
@@ -103,10 +106,12 @@ extension Quest {
     /// Library scenarios award a specific XP amount. Custom quests leave `xp` nil.
     var isFromLibrary: Bool { xp != nil }
 
-    /// The quest the Overview shows: the earliest completed quest that still needs
-    /// a debrief, otherwise the soonest incomplete quest for today (or overdue). Only this device's user.
-    /// Library scenarios are started from Explore and never become the daily mission.
-    /// Future scheduled custom quests trigger daily preparation missions instead.
+    /// The quest the Overview shows:
+    /// 1. the earliest completed quest that still needs a debrief, otherwise
+    /// 2. the soonest incomplete quest for today (or overdue).
+    /// Only this device's user. Library scenarios are started from Explore and never
+    /// become the daily mission. Future scheduled custom quests trigger daily preparation
+    /// missions instead.
     static func overviewMission(
         from quests: [Quest],
         ownerID: String = CurrentUser.localID
@@ -124,15 +129,32 @@ extension Quest {
             .filter { !$0.isCompleted && (calendar.isDateInToday($0.date) || $0.date < .now) }
             .min(by: { $0.date < $1.date })
     }
+
+    /// What the Overview mission card shows. Never nil:
+    /// 1. `overviewMission(from:)`, otherwise
+    /// 2. any custom quest scheduled today, otherwise
+    /// 3. a ready-made Mission Bank quest, shown until `DailyMissionService` saves the real one.
+    /// `@MainActor` because it is only used by screens, which run on the main thread.
+    @MainActor
+    static func todaysMission(from quests: [Quest]) -> Quest {
+        if let mission = overviewMission(from: quests) {
+            return mission
+        }
+        if let todayQuest = quests.first(where: { Calendar.current.isDateInToday($0.date) && !$0.isFromLibrary }) {
+            return todayQuest
+        }
+        return DailyMissionService.todayFallbackQuest(existingQuests: quests)
+    }
 }
 
 // MARK: - Current user
-/// Who is using the app. There's no login yet, so this is a profile ID created on first
-/// launch and kept on the device. When real accounts exist, return the signed-in user's
-/// ID here and every quest query and new quest follows automatically.
+
+/// Who is using the app: a profile ID created on first launch and kept on the device.
+/// Every quest query and new quest uses it, so each user only sees their own quests.
 enum CurrentUser {
     private static let storageKey = "moko.currentUserID"
 
+    /// The saved id, or a new one (saved for next time) on first use.
     static var localID: String {
         if let existing = UserDefaults.standard.string(forKey: storageKey) {
             return existing
@@ -149,10 +171,11 @@ enum CurrentUser {
 }
 
 // MARK: - Database
+
 enum MokoDatabase {
-    /// The real on-device database
+    /// The real on-device database.
     static let shared: ModelContainer = make(inMemory: false)
-    /// Throwaway database for Xcode previews
+    /// Throwaway database for Xcode previews.
     static let preview: ModelContainer = make(inMemory: true)
 
     private static func make(inMemory: Bool) -> ModelContainer {
@@ -160,26 +183,29 @@ enum MokoDatabase {
         do {
             return try ModelContainer(for: Quest.self, configurations: configuration)
         } catch {
+            // Without a database the app can't work at all, so stopping here is intended.
             fatalError("Could not create the database: \(error)")
         }
     }
 }
 
 // MARK: - Shared style
+
+/// Quest screen colours, all taken from the shared Moko theme.
 enum QuestStyle {
-    static let screenBg = MocoScreenTheme.Colors.canvasTop  // #F6FAE8
-    static let green = MocoScreenTheme.Colors.dataVioletDeep        // #365948
-    static let deepGreen = MocoScreenTheme.Colors.dataVioletDeep    // #1B422F
-    static let title = MocoScreenTheme.Colors.textTitle        // #5C4330
-    static let subtext = MocoScreenTheme.Colors.textBody    // #6F6762
-    static let chipSelectedFill = MocoScreenTheme.Colors.surfaceLavender
-    static let chipSelectedBorder = MocoScreenTheme.Colors.dataGrid
+    static let screenBg = MokoScreenTheme.Colors.canvasTop
+    static let accent   = MokoScreenTheme.Colors.dataVioletDeep   // buttons, XP, icons
+    static let title    = MokoScreenTheme.Colors.textTitle
+    static let subtext  = MokoScreenTheme.Colors.textBody
+    static let chipSelectedFill = MokoScreenTheme.Colors.surfaceLavender
+    static let chipSelectedBorder = MokoScreenTheme.Colors.dataGrid
     static let divider = Color.black.opacity(0.08)
 }
 
 // MARK: - Formatting
+
 nonisolated enum QuestFormat {
-    /// Tomorrow at 9:30 AM
+    /// Tomorrow at 9:30 AM.
     static func defaultSchedule() -> Date {
         let calendar = Calendar.current
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date()) ?? Date()
@@ -191,7 +217,7 @@ nonisolated enum QuestFormat {
         date.formatted(date: .omitted, time: .shortened)
     }
 
-    /// Section header: "Tomorrow" or "Friday, 16th October"
+    /// Section header: "Tomorrow" or "Friday, 16th October".
     static func groupTitle(_ day: Date) -> String {
         let calendar = Calendar.current
 
@@ -204,6 +230,7 @@ nonisolated enum QuestFormat {
         return "\(weekday), \(ordinal(number)) \(month)"
     }
 
+    /// 1 → "1st", 2 → "2nd", 11 → "11th", 23 → "23rd".
     private static func ordinal(_ number: Int) -> String {
         let suffix: String
         switch number % 100 {

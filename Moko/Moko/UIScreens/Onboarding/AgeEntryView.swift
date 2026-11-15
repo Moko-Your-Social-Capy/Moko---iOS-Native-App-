@@ -1,11 +1,26 @@
+//
+//  AgeEntryView.swift
+//  Moko
+//
+//  Intro step 3: the user picks their age on a snapping scroll wheel.
+//
+//  How the wheel works: a vertical ScrollView of numbers that snaps one row
+//  at a time (`.viewAligned`). `.scrollPosition(id:)` keeps `selected` in sync
+//  with whichever row sits in the middle, and tapping a row scrolls to it.
+//
+
 import SwiftUI
 
 struct AgeEntryView: View {
-    var progress: CGFloat = 0.903          // 352 / 390 in the design
+    /// How full the top progress bar is (0...1).
+    var progress: CGFloat = 0.903
     var initialAge: Int = 20
     var ageRange: ClosedRange<Int> = 13...100
+    /// Called with the chosen age when the user taps Continue.
     var onContinue: (Int) -> Void = { _ in }
 
+    /// The row currently centered in the wheel. Optional because
+    /// `.scrollPosition(id:)` sets it to nil mid-scroll.
     @State private var selected: Int?
 
     private let rowHeight: CGFloat = 48.5
@@ -21,14 +36,17 @@ struct AgeEntryView: View {
         self.initialAge = initialAge
         self.ageRange = ageRange
         self.onContinue = onContinue
+        // Start the wheel on the saved age instead of the top of the list.
         _selected = State(initialValue: initialAge)
     }
 
+    /// The selected age, falling back to the starting age while scrolling.
     private var currentAge: Int { selected ?? initialAge }
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            OnboardingProgressBar(progress: progress)
+                .padding(.horizontal, 20)
 
             Text("How old are you?")
                 .font(.system(size: 30, weight: .bold))
@@ -44,26 +62,13 @@ struct AgeEntryView: View {
 
             Spacer()
 
-            continueButton
+            OnboardingContinueButton { onContinue(currentAge) }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
         }
         .background(MokoTheme.limeBackground.ignoresSafeArea())
+        // A small haptic "tick" every time the selected age changes.
         .sensoryFeedback(.selection, trigger: selected)
-    }
-
-    // MARK: Header (progress bar)
-
-    private var header: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.track)
-                Capsule().fill(Color.forestLight)
-                    .frame(width: geo.size.width * progress)
-            }
-        }
-        .frame(height: 3)
-        .padding(.horizontal, 20)
     }
 
     // MARK: Age wheel
@@ -74,7 +79,7 @@ struct AgeEntryView: View {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(Color.cardFill)
 
-            // Highlight behind the selected number
+            // White highlight behind the selected (middle) number
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color.white)
                 .frame(height: 58)
@@ -93,13 +98,16 @@ struct AgeEntryView: View {
                                     selected = age
                                 }
                             }
+                            // The id `.scrollPosition` uses to find this row.
                             .id(age)
                     }
                 }
+                // Marks the rows as snap targets for `.viewAligned` below.
                 .scrollTargetLayout()
             }
             .scrollTargetBehavior(.viewAligned)
             .scrollPosition(id: $selected, anchor: .center)
+            // Empty space above/below so the first and last ages can reach the middle.
             .contentMargins(.vertical, (wheelHeight - rowHeight) / 2, for: .scrollContent)
             .animation(.easeOut(duration: 0.15), value: currentAge)
         }
@@ -109,6 +117,7 @@ struct AgeEntryView: View {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(Color.cardStroke, lineWidth: 1)
         )
+        // VoiceOver: treat the wheel as one control the user swipes up/down to adjust.
         .accessibilityElement()
         .accessibilityLabel("Age")
         .accessibilityValue("\(currentAge)")
@@ -120,28 +129,15 @@ struct AgeEntryView: View {
             }
         }
     }
-
-    // MARK: Continue button
-
-    private var continueButton: some View {
-        Button { onContinue(currentAge) } label: {
-            HStack(spacing: 8) {
-                Text("Continue")
-            }
-            .font(.system(size: 17))
-            .foregroundStyle(Color.cream)
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-            .background(Color.forest, in: Capsule())
-        }
-    }
 }
 
 // MARK: - One number in the wheel
 
+/// A single age. It gets bigger and darker the closer it is to the middle row.
 private struct AgeRow: View {
     let age: Int
-    let distance: Int       // how many rows away from the selected one
+    /// How many rows away from the selected one (0 = selected).
+    let distance: Int
 
     var body: some View {
         Text("\(age)")
@@ -149,18 +145,18 @@ private struct AgeRow: View {
                           weight: distance == 0 ? .bold : .semibold))
             .foregroundStyle(Color.ink)
             .opacity(opacity)
-            .monospacedDigit()
+            .monospacedDigit()                           // stops digits jiggling while scrolling
     }
 
     private var opacity: Double {
         switch distance {
-        case 0:  return 1
-        case 1:  return 0.75
-        default: return 0.45
+        case 0:  1
+        case 1:  0.75
+        default: 0.45
         }
     }
 }
 
 #Preview {
-    AgeEntryView(onContinue: { print("Age:", $0) })
+    AgeEntryView(onContinue: { _ in })
 }

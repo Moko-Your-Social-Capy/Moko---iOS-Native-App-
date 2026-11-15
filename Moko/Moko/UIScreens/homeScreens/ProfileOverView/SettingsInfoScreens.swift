@@ -3,13 +3,17 @@
 //  Moko
 //
 //  Real destinations for the Settings rows: privacy overview, privacy policy,
-//  terms of service, help & support, and about MOKO.
+//  terms of service, help & support, and about Moko.
+//
+//  The small private views at the top (InfoScrollView, InfoCard, ...) are the
+//  building blocks every screen in this file shares, so they all look the same.
 //
 
 import SwiftUI
 
 // MARK: - Shared style
 
+/// The colours used by every screen in this file.
 private enum InfoTheme {
     static let screenBg = ProfilePalette.background
     static let deepGreen = ProfilePalette.accent
@@ -17,6 +21,8 @@ private enum InfoTheme {
     static let ink = ProfilePalette.text
 }
 
+/// A scrolling page with the standard padding and background.
+/// `@ViewBuilder` lets you pass several views inside `{ }`, like a VStack.
 private struct InfoScrollView<Content: View>: View {
     let content: Content
 
@@ -36,6 +42,7 @@ private struct InfoScrollView<Content: View>: View {
     }
 }
 
+/// A rounded cream card that groups related content.
 private struct InfoCard<Content: View>: View {
     let content: Content
 
@@ -49,10 +56,11 @@ private struct InfoCard<Content: View>: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
-        .mocoCard(fill: InfoTheme.cream)
+        .mokoCard(fill: InfoTheme.cream)
     }
 }
 
+/// A heading with a paragraph under it.
 private struct InfoSection: View {
     let title: String
     let text: String
@@ -65,11 +73,13 @@ private struct InfoSection: View {
             Text(text)
                 .font(.subheadline)
                 .foregroundStyle(InfoTheme.ink.opacity(0.72))
+                // Lets long text wrap onto more lines instead of being cut off with "...".
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
 
+/// An icon on the left, with a title and paragraph on the right.
 private struct InfoPoint: View {
     let symbol: String
     let title: String
@@ -96,6 +106,7 @@ private struct InfoPoint: View {
     }
 }
 
+/// The label for a NavigationLink row: icon, title and a ">" arrow.
 private struct InfoLinkRow: View {
     let title: String
     let symbol: String
@@ -117,10 +128,12 @@ private struct InfoLinkRow: View {
                 .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 4)
+        // Makes the empty space in the row tappable too, not just the text.
         .contentShape(Rectangle())
     }
 }
 
+/// A question that opens to show its answer. DisclosureGroup handles the open/close arrow.
 private struct FAQItem: View {
     let question: String
     let answer: String
@@ -142,11 +155,13 @@ private struct FAQItem: View {
     }
 }
 
+// `mailto:` links open the Mail app with this address filled in.
 private let supportEmailURL = URL(string: "mailto:support@moko.app")
 private let supportEmail = "support@moko.app"
 
 // MARK: - Privacy overview
 
+/// Settings → "Data we collect": a short, plain summary.
 struct ProfileOverViewPrivacy: View {
     var body: some View {
         InfoScrollView {
@@ -200,7 +215,7 @@ struct ProfileOverViewPrivacy: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-        .background(InfoTheme.cream, in: RoundedRectangle(cornerRadius: 20))
+            .background(InfoTheme.cream, in: RoundedRectangle(cornerRadius: 20))
             .tint(InfoTheme.deepGreen)
         }
         .navigationTitle("Data we collect")
@@ -210,6 +225,7 @@ struct ProfileOverViewPrivacy: View {
 
 // MARK: - Privacy Policy
 
+/// The full privacy policy text.
 struct ProfileOverViewPrivacyPolicy: View {
     var body: some View {
         InfoScrollView {
@@ -220,7 +236,7 @@ struct ProfileOverViewPrivacyPolicy: View {
             InfoCard {
                 InfoSection(
                     title: "Overview",
-                    text: "This policy explains how MOKO handles information when you use the app. MOKO is a personal wellbeing and habit-building app. We keep the collection of personal information to what is needed to provide the service."
+                    text: "This policy explains how Moko handles information when you use the app. Moko is a personal wellbeing and habit-building app. We keep the collection of personal information to what is needed to provide the service."
                 )
             }
 
@@ -234,7 +250,7 @@ struct ProfileOverViewPrivacyPolicy: View {
             InfoCard {
                 InfoSection(
                     title: "How we use information",
-                    text: "We use your account details to authenticate you and keep your session secure. Information stored on your device is used only to show your profile, progress, streaks, Insights and history inside MOKO."
+                    text: "We use your account details to authenticate you and keep your session secure. Information stored on your device is used only to show your profile, progress, streaks, Insights and history inside Moko."
                 )
             }
 
@@ -262,7 +278,7 @@ struct ProfileOverViewPrivacyPolicy: View {
             InfoCard {
                 InfoSection(
                     title: "Children",
-                    text: "MOKO is intended for people aged 13 and over. We do not knowingly collect personal information from children under 13."
+                    text: "Moko is intended for people aged 13 and over. We do not knowingly collect personal information from children under 13."
                 )
             }
 
@@ -311,8 +327,8 @@ struct ProfileOverViewTerms: View {
 
             InfoCard {
                 InfoSection(
-                    title: "Using MOKO",
-                    text: "By using MOKO, you agree to these terms. MOKO is a self-improvement and wellbeing app that offers daily quests, reflections and calming exercises. You may use the app for personal, non-commercial purposes."
+                    title: "Using Moko",
+                    text: "By using Moko, you agree to these terms. Moko is a self-improvement and wellbeing app that offers daily quests, reflections and calming exercises. You may use the app for personal, non-commercial purposes."
                 )
             }
 
@@ -326,14 +342,14 @@ struct ProfileOverViewTerms: View {
             InfoCard {
                 InfoSection(
                     title: "Your content",
-                    text: "You keep ownership of the reflections, notes and other content you create in MOKO. Your content stays on your device unless you choose to share it. You are responsible for what you write and share."
+                    text: "You keep ownership of the reflections, notes and other content you create in Moko. Your content stays on your device unless you choose to share it. You are responsible for what you write and share."
                 )
             }
 
             InfoCard {
                 InfoSection(
                     title: "Wellbeing disclaimer",
-                    text: "MOKO supports healthy habits but is not a medical device and does not provide diagnosis, treatment or emergency support. If you are in crisis or need urgent help, contact your local emergency services or a qualified professional."
+                    text: "Moko supports healthy habits but is not a medical device and does not provide diagnosis, treatment or emergency support. If you are in crisis or need urgent help, contact your local emergency services or a qualified professional."
                 )
             }
 
@@ -347,7 +363,7 @@ struct ProfileOverViewTerms: View {
             InfoCard {
                 InfoSection(
                     title: "Ending use",
-                    text: "You can stop using MOKO at any time and delete your account from Account & Data. We may suspend access if the app is used in a way that harms MOKO, another person or the service."
+                    text: "You can stop using Moko at any time and delete your account from Account & Data. We may suspend access if the app is used in a way that harms Moko, another person or the service."
                 )
             }
 
@@ -357,6 +373,7 @@ struct ProfileOverViewTerms: View {
                     text: "Questions about these terms? Email us at \(supportEmail)."
                 )
 
+                // `if let` only shows the link if the email URL was valid.
                 if let supportEmailURL {
                     Link(destination: supportEmailURL) {
                         Label("Email support", systemImage: "envelope")
@@ -373,6 +390,7 @@ struct ProfileOverViewTerms: View {
 
 // MARK: - Help & Support
 
+/// FAQs and a button to email support.
 struct ProfileOverViewHelpSupport: View {
     var body: some View {
         InfoScrollView {
@@ -397,12 +415,12 @@ struct ProfileOverViewHelpSupport: View {
                     Divider()
                     FAQItem(
                         question: "What happens if I leave a debrief?",
-                        answer: "Your progress is saved. Choose Finish later and MOKO will keep the debrief ready for you on the Overview tab."
+                        answer: "Your progress is saved. Choose Finish later and Moko will keep the debrief ready for you on the Overview tab."
                     )
                     Divider()
                     FAQItem(
                         question: "Why aren’t reminders appearing?",
-                        answer: "Notifications need permission from iOS. Open Settings → Notifications in MOKO, turn a reminder on and allow notifications when asked. If permission was declined, use Open Settings to enable it in iOS Settings."
+                        answer: "Notifications need permission from iOS. Open Settings → Notifications in Moko, turn a reminder on and allow notifications when asked. If permission was declined, use Open Settings to enable it in iOS Settings."
                     )
                     Divider()
                     FAQItem(
@@ -464,9 +482,11 @@ struct ProfileOverViewHelpSupport: View {
     }
 }
 
-// MARK: - About MOKO
+// MARK: - About Moko
 
+/// App name, version number and what Moko is for.
 struct ProfileOverViewAboutMoko: View {
+    // Reads the version and build numbers from the app's Info.plist (set in Xcode → General).
     private var versionText: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
@@ -482,7 +502,7 @@ struct ProfileOverViewAboutMoko: View {
                     .frame(width: 82, height: 82)
                     .background(Circle().fill(InfoTheme.cream))
 
-                Text("MOKO")
+                Text("Moko")
                     .font(.largeTitle.bold())
 
                 Text("Small daily nudges, an honest chat after.")
@@ -499,8 +519,8 @@ struct ProfileOverViewAboutMoko: View {
 
             InfoCard {
                 InfoSection(
-                    title: "Why MOKO exists",
-                    text: "Building a habit is easier when it feels small. MOKO gives you one gentle mission at a time, a space to reflect afterwards, and simple calming exercises for the moments in between."
+                    title: "Why Moko exists",
+                    text: "Building a habit is easier when it feels small. Moko gives you one gentle mission at a time, a space to reflect afterwards, and simple calming exercises for the moments in between."
                 )
             }
 
@@ -520,7 +540,7 @@ struct ProfileOverViewAboutMoko: View {
                 InfoPoint(
                     symbol: "heart",
                     title: "Made with care",
-                    text: "MOKO is built with SwiftUI and SwiftData, with account authentication provided by Supabase."
+                    text: "Moko is built with SwiftUI and SwiftData, with account authentication provided by Supabase."
                 )
             }
 
@@ -552,13 +572,13 @@ struct ProfileOverViewAboutMoko: View {
             .background(InfoTheme.cream, in: RoundedRectangle(cornerRadius: 20))
             .tint(InfoTheme.deepGreen)
 
-            Text("© 2026 MOKO. Made with care.")
+            Text("© 2026 Moko. Made with care.")
                 .font(.caption)
                 .foregroundStyle(InfoTheme.ink.opacity(0.72))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
         }
-        .navigationTitle("About MOKO")
+        .navigationTitle("About Moko")
         .navigationBarTitleDisplayMode(.large)
     }
 }

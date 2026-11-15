@@ -2,8 +2,12 @@
 //  MirrorReflectionScreen.swift
 //  Moko
 //
-//  Landing screen after "Continue" on the Mirror session.
-//  Hero: a glowing arch mirror with a drawn face, then two options.
+//  Relax → Mirror. The first Mirror screen: a glowing mirror picture, a short
+//  explanation, and two choices (use a real mirror, or the front camera).
+//  RelaxScreen decides which screen comes next from the choice.
+//
+//  This file also holds `MirrorHero` and `MirrorFaceIcon`, which the other
+//  Mirror screens reuse.
 //
 
 import SwiftUI
@@ -14,38 +18,36 @@ struct MirrorReflectionScreen: View {
         case camera
     }
 
-    /// Fires when the user picks one of the two options.
+    // Runs when the user picks one of the two options.
     var onSelectOption: ((Option) -> Void)? = nil
 
-    // Palette matching the rest of the app
-    private let screenBg = MocoScreenTheme.Colors.canvasTop // pale lime
-    private let cardGreen = MocoScreenTheme.Colors.dataVioletDeep     // #365948
-    private let titleDark = MocoScreenTheme.Colors.textTitle    // warm brown
-    private let subtextGray = MocoScreenTheme.Colors.textBody // #6F6762
+    private let accent = MokoScreenTheme.Colors.dataVioletDeep
+    private let ink = MokoScreenTheme.Colors.textTitle
+    private let bodyText = MokoScreenTheme.Colors.textBody
 
     var body: some View {
         ZStack {
-            MocoBackdrop()
+            MokoBackdrop()
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
                     header
-                        .padding(.horizontal, MocoScreenTheme.Space.page)
+                        .padding(.horizontal, MokoScreenTheme.Space.page)
                         .padding(.top, 18)
 
                     MirrorHero()
                         .padding(.top, 28)
 
                     Text("Meet yourself with kindness")
-                        .mocoText(MocoScreenTheme.Typeface.title2)
-                        .foregroundColor(titleDark)
+                        .mokoText(MokoScreenTheme.Typeface.title2)
+                        .foregroundStyle(ink)
                         .multilineTextAlignment(.center)
                         .padding(.top, 28)
-                        .padding(.horizontal, MocoScreenTheme.Space.page)
+                        .padding(.horizontal, MokoScreenTheme.Space.page)
 
                     Text("Take a moment to look at yourself without judging. You don’t need to be perfect to be proud of who you are. Find one thing you appreciate about yourself and give yourself some credit.")
-                        .mocoText(MocoScreenTheme.Typeface.body)
-                        .foregroundColor(subtextGray)
+                        .mokoText(MokoScreenTheme.Typeface.body)
+                        .foregroundStyle(bodyText)
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
                         .padding(.top, 12)
@@ -53,8 +55,8 @@ struct MirrorReflectionScreen: View {
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Options")
-                            .mocoText(MocoScreenTheme.Typeface.body)
-                            .foregroundColor(subtextGray)
+                            .mokoText(MokoScreenTheme.Typeface.body)
+                            .foregroundStyle(bodyText)
                             .padding(.leading, 8)
 
                         optionRow("I have access to a mirror") {
@@ -66,58 +68,64 @@ struct MirrorReflectionScreen: View {
                         }
                     }
                     .padding(.top, 30)
-                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.horizontal, MokoScreenTheme.Space.page)
                     .padding(.bottom, 32)
                 }
             }
         }
     }
 
-    // MARK: - Top bar and header
+    // MARK: - Header
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("Mirror Reflection")
-                .mocoText(MocoScreenTheme.Typeface.title1)
-                .foregroundColor(titleDark)
+                .mokoText(MokoScreenTheme.Typeface.title1)
+                .foregroundStyle(ink)
 
             Text("A self-reflective confidence practice")
-                .mocoText(MocoScreenTheme.Typeface.body)
-                .foregroundColor(subtextGray)
+                .mokoText(MokoScreenTheme.Typeface.body)
+                .foregroundStyle(bodyText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Option row
+
+    /// A white card row with a chevron. The whole row is one button.
     private func optionRow(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack {
                 Text(title)
-                    .mocoText(MocoScreenTheme.Typeface.body)
-                    .foregroundColor(titleDark)
+                    .mokoText(MokoScreenTheme.Typeface.body)
+                    .foregroundStyle(ink)
 
                 Spacer()
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(cardGreen)
+                    .foregroundStyle(accent)
             }
-            .padding(.horizontal, MocoScreenTheme.Space.page)
-            .padding(.vertical, MocoScreenTheme.Space.cardVertical)
+            .padding(.horizontal, MokoScreenTheme.Space.page)
+            .padding(.vertical, MokoScreenTheme.Space.cardVertical)
             .frame(minHeight: 58)
-            .mocoCard()
+            .mokoCard()
         }
         .buttonStyle(.plain)
-        .sensoryFeedback(.selection, trigger: title)
     }
 }
 
 // MARK: - Hero: glowing arch mirror with a drawn face
+
+/// A rounded mirror with a soft glow behind it and three twinkling sparkles.
 struct MirrorHero: View {
-    /// Show the "Meet Your Eyes" caption. Off for a larger face-only mirror.
-    var showCaption: Bool = true
-    /// 0...1: how bright the halo glows.
+    /// 0...1: how bright the glow is. The prep screen raises it as the user gets ready.
     var level: Double = 0.5
 
+    // The phone setting "Reduce Motion". If it is on, the glow and sparkles stay still.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    // Flipped once on appear. `repeatForever` then animates them back and forth on its own.
     @State private var glow = false
     @State private var sparkle = false
 
@@ -125,16 +133,15 @@ struct MirrorHero: View {
     private let frameBottom = Color(red: 200/255, green: 222/255, blue: 208/255)
     private let glassTop = Color(red: 253/255, green: 254/255, blue: 253/255)
     private let glassBottom = Color(red: 232/255, green: 243/255, blue: 236/255)
-    private let green = MocoScreenTheme.Colors.dataVioletDeep
-    private let subtextGray = MocoScreenTheme.Colors.textBody
+    private let accent = MokoScreenTheme.Colors.dataVioletDeep
 
     var body: some View {
         ZStack {
-            // Soft halo that gently pulses
+            // Soft glow that slowly grows and shrinks.
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [green.opacity(0.10 + 0.20 * level), green.opacity(0)],
+                        colors: [accent.opacity(0.10 + 0.20 * level), accent.opacity(0)],
                         center: .center,
                         startRadius: 20,
                         endRadius: 170
@@ -147,7 +154,7 @@ struct MirrorHero: View {
             RoundedRectangle(cornerRadius: 104, style: .continuous)
                 .fill(LinearGradient(colors: [frameTop, frameBottom], startPoint: .top, endPoint: .bottom))
                 .frame(width: 212, height: 282)
-                .shadow(color: green.opacity(0.16), radius: 18, x: 0, y: 10)
+                .shadow(color: accent.opacity(0.16), radius: 18, x: 0, y: 10)
 
             // Glass
             RoundedRectangle(cornerRadius: 88, style: .continuous)
@@ -157,7 +164,7 @@ struct MirrorHero: View {
                     RoundedRectangle(cornerRadius: 88, style: .continuous)
                         .stroke(Color.white.opacity(0.9), lineWidth: 2)
                 }
-                // Light streaks across the glass
+                // Two light streaks across the glass, cut to the glass shape.
                 .overlay {
                     ZStack {
                         Capsule()
@@ -174,36 +181,28 @@ struct MirrorHero: View {
                     .clipShape(RoundedRectangle(cornerRadius: 88, style: .continuous))
                 }
 
-            // Content inside the glass
+            MirrorFaceIcon()
+                .frame(width: 72, height: 72)
 
-            VStack(spacing: 8) {
-                    MirrorFaceIcon()
-                        .frame(width: 72, height: 72)
-                }
-
-            // Twinkles around the mirror
-            Image(systemName: "sparkle")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(green.opacity(0.55))
+            // Sparkles around the mirror. Two fade in while the other fades out.
+            sparkleIcon(size: 18, opacity: 0.55)
                 .offset(x: 112, y: -112)
                 .opacity(sparkle ? 1 : 0.25)
                 .scaleEffect(sparkle ? 1 : 0.7)
 
-            Image(systemName: "sparkle")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(green.opacity(0.45))
+            sparkleIcon(size: 12, opacity: 0.45)
                 .offset(x: -118, y: 84)
                 .opacity(sparkle ? 0.25 : 1)
                 .scaleEffect(sparkle ? 0.7 : 1)
 
-            Image(systemName: "sparkle")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundColor(green.opacity(0.4))
+            sparkleIcon(size: 9, opacity: 0.4)
                 .offset(x: 120, y: 70)
                 .opacity(sparkle ? 1 : 0.3)
         }
         .frame(height: 300)
+        .accessibilityHidden(true)   // decoration only
         .onAppear {
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
                 glow = true
             }
@@ -212,9 +211,17 @@ struct MirrorHero: View {
             }
         }
     }
+
+    private func sparkleIcon(size: CGFloat, opacity: Double) -> some View {
+        Image(systemName: "sparkle")
+            .font(.system(size: size, weight: .semibold))
+            .foregroundStyle(accent.opacity(opacity))
+    }
 }
 
 // MARK: - Simple friendly face (closed eyes, soft smile)
+
+/// A small drawn face made only from circles. Drawn on a 72 x 72 frame.
 struct MirrorFaceIcon: View {
     private let disc = Color(red: 232/255, green: 243/255, blue: 236/255)
     private let skin = Color(red: 243/255, green: 206/255, blue: 182/255)
@@ -237,7 +244,7 @@ struct MirrorFaceIcon: View {
                 .frame(width: 40, height: 40)
                 .offset(y: 4)
 
-            // Hair cap
+            // Hair cap: `.trim(from: 0.5, to: 1)` keeps only the top half of the circle.
             Circle()
                 .trim(from: 0.5, to: 1)
                 .fill(hair)
@@ -248,17 +255,9 @@ struct MirrorFaceIcon: View {
             Circle().fill(cheek.opacity(0.4)).frame(width: 8, height: 8).offset(x: -12, y: 12)
             Circle().fill(cheek.opacity(0.4)).frame(width: 8, height: 8).offset(x: 12, y: 12)
 
-            // Closed eyes
-            Circle()
-                .trim(from: 0.05, to: 0.45)
-                .stroke(hair, style: StrokeStyle(lineWidth: 1.8, lineCap: .round))
-                .frame(width: 9, height: 9)
-                .offset(x: -8, y: 6)
-            Circle()
-                .trim(from: 0.05, to: 0.45)
-                .stroke(hair, style: StrokeStyle(lineWidth: 1.8, lineCap: .round))
-                .frame(width: 9, height: 9)
-                .offset(x: 8, y: 6)
+            // Closed eyes: small arcs from the bottom part of a circle.
+            eyeArc.offset(x: -8, y: 6)
+            eyeArc.offset(x: 8, y: 6)
 
             // Smile
             Circle()
@@ -267,6 +266,13 @@ struct MirrorFaceIcon: View {
                 .frame(width: 16, height: 16)
                 .offset(y: 11)
         }
+    }
+
+    private var eyeArc: some View {
+        Circle()
+            .trim(from: 0.05, to: 0.45)
+            .stroke(hair, style: StrokeStyle(lineWidth: 1.8, lineCap: .round))
+            .frame(width: 9, height: 9)
     }
 }
 

@@ -8,14 +8,17 @@ import Foundation
 
 // MARK: 1) ONBOARDING
 
+/// One onboarding answer, ready for scoring.
 struct OnboardingScoredAnswer: Codable, Equatable, Sendable {
     let questionID: Int   // 1...8
     let yes: Bool         // every question is phrased so that "yes" = the harder behavior
 }
 
+/// The four social stats, each 0–100.
 struct StatScores: Codable, Equatable, Sendable {
     var courage = 0, clarity = 0, presence = 0, warmth = 0
 
+    /// Lets code read or write a stat by name, e.g. `scores[.warmth] = 70`.
     subscript(_ stat: Stat) -> Int {
         get {
             switch stat {
@@ -47,12 +50,15 @@ struct StatScores: Codable, Equatable, Sendable {
     }
 }
 
+/// Which "band" a score falls into: 70+ strength, 50–69 steady, below 50 growth.
 enum Band {
     case strength, steady, growth
     init(score: Int) { self = score >= 70 ? .strength : (score >= 50 ? .steady : .growth) }
 }
 
+/// Turns the 8 yes/no onboarding answers into starting stat scores. No AI involved.
 enum OnboardingScoring {
+    /// Which stat a question affects, and how much (1.0 = main stat, 0.4 = side stat).
     struct Tag { let stat: Stat; let weight: Double }
 
     /// From "Moko — Onboarding Item Tagging". Primary = 1.0, secondary = 0.4.
@@ -71,6 +77,9 @@ enum OnboardingScoring {
     /// Baseline range: a self-report should never land on a hard 0 or 100.
     static let minScore = 25.0, maxScore = 90.0
 
+    /// For each stat: add up the weight of every question tagged with it (`possible`),
+    /// and the weight of the ones answered "yes" (`lost`). More "yes" → lower score,
+    /// always inside `minScore...maxScore`.
     static func scores(from answers: [OnboardingScoredAnswer]) -> StatScores {
         let yes = Set(answers.filter { $0.yes }.map { $0.questionID })
         var result = StatScores()
@@ -99,6 +108,7 @@ enum OnboardingScoring {
 // MARK: 2) QUEST CARDS
 // ═══════════════════════════════════════════════════════════════
 
+/// What the user typed when creating a custom quest.
 struct CustomQuestInput: Sendable {
     var title: String
     var notes: String
@@ -123,6 +133,7 @@ struct CustomQuestInput: Sendable {
     }
 }
 
+/// The text shown on a mission card.
 struct QuestCard: Identifiable, Codable, Hashable, Sendable {
     var id = UUID()
     var templateID: String        // links the card to its Mission Bank entry → follow-up questions at debrief time
@@ -158,7 +169,8 @@ enum QuestCardService {
         let options = MissionBank.templates(in: category)
         guard !options.isEmpty else { return MissionBank.all[0] }
 
-        // Content relevance fallback index
+        // Plain-Swift backup pick: the option sharing the most words (3+ letters) with
+        // the user's title and notes. Used only if AFM can't choose.
         var bestIndex = 0
         var bestMatchScore = 0
         let searchTokens = (title + " " + notes).lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init)
@@ -178,15 +190,24 @@ enum QuestCardService {
             temperature: 0.1
         )
         if let choice {
+            // AFM counts from 1; clamp so a bad number can never crash the array lookup.
             let index = min(max(choice.number - 1, 0), options.count - 1)
             return options[index]
         }
         return options[bestIndex]
     }
 
+    /// Builds the card from bank text first (the fallback), then lets AFM overwrite
+    /// each field only if its version passes the length checks.
     private static func makeCard(_ seed: CardSeed) async -> QuestCard {
         let t = seed.template
-        let fallbackTitle = (seed.userTitle?.isEmpty == false) ? seed.userTitle! : t.title
+        // The user's own title if they typed one, otherwise the bank title.
+        let fallbackTitle: String
+        if let userTitle = seed.userTitle, !userTitle.isEmpty {
+            fallbackTitle = userTitle
+        } else {
+            fallbackTitle = t.title
+        }
 
         var fallbackScene = t.scene
         var fallbackWho = t.who
@@ -210,6 +231,7 @@ enum QuestCardService {
             temperature: 0.6
         ) else { return card }
 
+        // Returns the trimmed text, or nil if it is empty or longer than `max` characters.
         func ok(_ s: String, max: Int) -> String? {
             let v = s.trimmingCharacters(in: .whitespacesAndNewlines)
             return (!v.isEmpty && v.count <= max) ? v : nil
@@ -223,13 +245,14 @@ enum QuestCardService {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MARK: 3) VOICE DEBRIEF
+// MARK: 4) VOICE DEBRIEF
 // ═══════════════════════════════════════════════════════════════
 // Flow (fixed, so it can't turn into a rumination chatbot):
 //   greeting + main question → user answer (confidence + note; courage & clarity read from it)
 //   → follow-up 1 (Presence) → follow-up 2 (Warmth) → follow-up 3 (stat with the weakest evidence so far)
 //   → closing → finished (input is rejected from here on)
 
+/// Everything the debrief prompts need to know about the mission being talked about.
 struct AFMDebriefContext: Sendable {
     let title: String
     let scene: String
@@ -268,8 +291,8 @@ struct AFMDebriefContext: Sendable {
     }
 }
 
-
 extension DebriefContext {
+    /// Converts the debrief screen's context into the one the AFM prompts use.
     var afmContext: AFMDebriefContext {
         let template = MissionBank.templates(in: category).first ?? MissionBank.all[0]
         return AFMDebriefContext(title: questTitle, scene: template.scene, who: template.who, goal: template.goal, template: template, userName: userName)

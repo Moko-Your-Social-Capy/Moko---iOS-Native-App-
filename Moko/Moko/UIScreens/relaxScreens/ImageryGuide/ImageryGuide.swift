@@ -1,3 +1,12 @@
+//
+//  ImageryGuide.swift
+//  Moko
+//
+//  The data types for the Imagery Guide flow. They match the Supabase tables,
+//  and `Decodable` turns the downloaded JSON into these Swift structs.
+//  `CodingKeys` maps database names (snake_case) to Swift names (camelCase).
+//
+
 import SwiftUI
 
 // MARK: - Guide

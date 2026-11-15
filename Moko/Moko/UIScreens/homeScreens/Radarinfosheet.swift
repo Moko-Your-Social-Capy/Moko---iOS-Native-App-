@@ -3,6 +3,7 @@
 //  Moko
 //
 //  "How your radar chart works" modal shown when the Insights card is tapped.
+//  "Continue" closes it; the Overview then pushes the full Insights screen.
 //
 
 import SwiftUI
@@ -11,23 +12,24 @@ struct RadarInfoSheet: View {
     /// Called when "Continue" is tapped (the sheet then closes itself).
     var onViewInsights: () -> Void = {}
 
+    // Closes this sheet.
     @Environment(\.dismiss) private var dismiss
 
-    private let green     = MocoScreenTheme.Colors.dataVioletDeep    // #1B422F
-    private let mint      = MocoScreenTheme.Colors.surfaceLavender
-    private let titleDark = MocoScreenTheme.Colors.textTitle    // #5C4330
-    private let gray      = MocoScreenTheme.Colors.textBody  // #6F6762
+    private let accent    = MokoScreenTheme.Colors.dataVioletDeep
+    private let soft      = MokoScreenTheme.Colors.surfaceLavender
+    private let titleDark = MokoScreenTheme.Colors.textTitle
+    private let gray      = MokoScreenTheme.Colors.textBody
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("How your radar chart works")
-                        .mocoText(MocoScreenTheme.Typeface.title1)
+                        .mokoText(MokoScreenTheme.Typeface.title1)
                         .foregroundStyle(titleDark)
 
                     Text("Four scores, one shape. Here’s how to read it.")
-                        .mocoText(MocoScreenTheme.Typeface.body)
+                        .mokoText(MokoScreenTheme.Typeface.body)
                         .foregroundStyle(gray)
                 }
 
@@ -50,27 +52,28 @@ struct RadarInfoSheet: View {
                     dismiss()
                 } label: {
                     Text("Continue")
-                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
+                        .mokoText(MokoScreenTheme.Typeface.cardTitle)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 25)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(green)
+                .tint(accent)
                 .controlSize(.large)
                 .padding(.top, 4)
             }
-            .padding(.horizontal, MocoScreenTheme.Space.page)
+            .padding(.horizontal, MokoScreenTheme.Space.page)
             .padding(.top, 28)
             .padding(.bottom, 24)
         }
-        .background { MocoBackdrop() }
+        .background { MokoBackdrop() }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }
 
     // MARK: Illustration
 
+    /// A sample radar chart with fixed scores, labelled on all four sides.
     private var radar: some View {
         VStack(spacing: 8) {
             Text("Courage")
@@ -78,7 +81,7 @@ struct RadarInfoSheet: View {
             HStack {
                 Text("Clarity")
 
-                MocoRadarChart(scores: InsightsScores(clarity: 65, courage: 85, presence: 72, warmth: 90))
+                MokoRadarChart(scores: InsightsScores(clarity: 65, courage: 85, presence: 72, warmth: 90))
                     .aspectRatio(1, contentMode: .fit)
                     .accessibilityHidden(true)
 
@@ -87,29 +90,31 @@ struct RadarInfoSheet: View {
 
             Text("Warmth")
         }
-        .mocoText(MocoScreenTheme.Typeface.caption)
+        .mokoText(MokoScreenTheme.Typeface.caption)
         .foregroundStyle(gray)
         .frame(maxWidth: .infinity)
-        .padding(MocoScreenTheme.Space.cardHorizontal)
-        .mocoCard()
+        .padding(MokoScreenTheme.Space.cardHorizontal)
+        .mokoCard()
     }
 
     // MARK: Row
 
+    /// Icon tile on the left, title and explanation on the right.
     private func row(icon: String, title: String, text: String) -> some View {
         HStack(alignment: .top, spacing: 16) {
             Image(systemName: icon)
                 .font(.title2)
-                .foregroundStyle(green)
+                .foregroundStyle(accent)
                 .frame(width: 44, height: 44)
-                .background(mint, in: RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.inner, style: .continuous))
+                .background(soft, in: RoundedRectangle(cornerRadius: MokoScreenTheme.Radius.inner, style: .continuous))
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .mocoText(MocoScreenTheme.Typeface.cardTitle)
+                    .mokoText(MokoScreenTheme.Typeface.cardTitle)
                     .foregroundStyle(titleDark)
                 Text(text)
-                    .mocoText(MocoScreenTheme.Typeface.body)
+                    .mokoText(MokoScreenTheme.Typeface.body)
                     .foregroundStyle(gray)
             }
         }

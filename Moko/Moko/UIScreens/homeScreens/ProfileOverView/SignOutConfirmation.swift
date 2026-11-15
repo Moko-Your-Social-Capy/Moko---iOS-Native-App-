@@ -1,19 +1,19 @@
 //
-//  ProfileOverViewSignOutConfirmation.swift
+//  SignOutConfirmation.swift
 //  Moko
 //
-//  Sign out confirmation. In the prototype this is a small alert over the
-//  Settings screen (not a full screen), so it is a native SwiftUI alert.
+//  The "Sign out of Moko?" alert, as a reusable modifier.
 //
-//  Use it on Settings:
+//  Use it on any screen:
 //      .signOutAlert(isPresented: $showSignOut) { /* sign out here */ }
 //
 
 import SwiftUI
 
 extension View {
+    /// Shows the sign-out alert while `isPresented` is true. `onConfirm` runs when the user taps "Sign out".
     func signOutAlert(isPresented: Binding<Bool>, onConfirm: @escaping () -> Void) -> some View {
-        alert("Sign out of MOKO?", isPresented: isPresented) {
+        alert("Sign out of Moko?", isPresented: isPresented) {
             Button("Cancel", role: .cancel) { }
             Button("Sign out", action: onConfirm)
         } message: {

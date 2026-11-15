@@ -1,19 +1,32 @@
+//
+//  BoxBreathingView.swift
+//  Moko
+//
+//  Relax → Box Breathing. Breathe in 4 s, hold 4 s, out 4 s, hold 4 s.
+//  Each 4-second phase fills one side of the box.
+//
+//  How the timer works (good place to start debugging):
+//  - `elapsed` is the only number that moves. Everything on screen (which side
+//    is filling, the phase name, the countdown) is worked out from it.
+//  - `.task(id: state)` runs `runClock()`. While running it calls `tick()`
+//    about 30 times a second. Changing `state` stops the old loop and starts a new one.
+//
+
 import SwiftUI
 import SwiftData
 
+/// Box Breathing colours, shared with `BoxBreathingInfoView`.
 enum BBColor {
-    static let background = MocoScreenTheme.Colors.canvasTop   // pale lime
-    static let button     = MocoScreenTheme.Colors.dataVioletDeep   // buttons, check circle, "Not now"
-    static let dark       = MocoScreenTheme.Colors.dataVioletDeep    // corner dots + filled box edges
-    static let track      = MocoScreenTheme.Colors.surfaceLavender   // lime track
-    static let title      = MocoScreenTheme.Colors.textTitle
-    static let subtitle   = MocoScreenTheme.Colors.textMuted
-    static let muted      = MocoScreenTheme.Colors.textBody
-    static let card       = MocoScreenTheme.Colors.surfaceWhite   // cream icon circle
-    static let lime       = MocoScreenTheme.Colors.surfaceLavender
-    static let titleBrown = MocoScreenTheme.Colors.textTitle
+    static let button     = MokoScreenTheme.Colors.dataVioletDeep   // buttons
+    static let dark       = MokoScreenTheme.Colors.dataVioletDeep   // corner dots + filled box edges
+    static let track      = MokoScreenTheme.Colors.surfaceLavender  // the empty box edges and arc
+    static let title      = MokoScreenTheme.Colors.textTitle
+    static let subtitle   = MokoScreenTheme.Colors.textMuted
+    static let muted      = MokoScreenTheme.Colors.textBody
+    static let titleBrown = MokoScreenTheme.Colors.textTitle
 }
 
+/// Where the session is right now.
 private enum SessionState: Equatable {
     case idle        // Start screen
     case running
@@ -22,6 +35,7 @@ private enum SessionState: Equatable {
     case complete    // "You did it!"
 }
 
+/// The four parts of one breath. The raw value (0–3) is also the box side that fills.
 private enum BreathPhase: Int {
     case inhale, holdFull, exhale, holdEmpty
 
@@ -59,7 +73,9 @@ private struct Edge: Shape {
 // MARK: - The screen
 
 struct BoxBreathingView: View {
+    // How many full boxes (cycles) to do. Chosen on the info sheet.
     let initialCycles: Int
+    // Runs when the user taps "Complete" on the done screen.
     var onComplete: () -> Void = {}
 
     init(initialCycles: Int = 2, onComplete: @escaping () -> Void = {}) {
@@ -67,7 +83,9 @@ struct BoxBreathingView: View {
         self.onComplete = onComplete
     }
 
+    // Tells us when the app goes to the background, so we can pause.
     @Environment(\.scenePhase) private var scenePhase
+    // The SwiftData database. Used to save the finished session.
     @Environment(\.modelContext) private var modelContext
 
     @State private var state: SessionState = .idle
@@ -75,12 +93,14 @@ struct BoxBreathingView: View {
     @State private var elapsedAtResume: TimeInterval = 0  // elapsed when the current run started
     @State private var resumeDate: Date?                  // when the current run started
 
+    // Seconds per phase. One cycle = 4 phases = 16 s.
     private let phaseLength: TimeInterval = 4
     private var cycleLength: TimeInterval { phaseLength * 4 }
     private var totalLength: TimeInterval { cycleLength * Double(initialCycles) }
 
     // MARK: Values worked out from `elapsed`
 
+    /// Which phase we are in, counted from the very start (0, 1, 2, ...).
     private var stepIndex: Int {
         min(Int(elapsed / phaseLength), initialCycles * 4 - 1)
     }
@@ -95,12 +115,14 @@ struct BoxBreathingView: View {
         return min(Int(elapsed / cycleLength) + 1, initialCycles)
     }
 
+    /// How full one side of the box is, from 0 (empty) to 1 (full).
     private func sideProgress(_ side: Int) -> CGFloat {
         if state == .finishing { return 1 }
         let inCycle = elapsed.truncatingRemainder(dividingBy: cycleLength) / phaseLength
         return CGFloat(min(max(inCycle - Double(side), 0), 1))
     }
 
+    /// Seconds left in the current phase, e.g. "0:03".
     private var timeString: String {
         switch state {
         case .idle, .finishing, .complete:
@@ -120,7 +142,7 @@ struct BoxBreathingView: View {
 
     var body: some View {
         ZStack {
-            MocoBackdrop()
+            MokoBackdrop()
 
             VStack(spacing: 0) {
                 if state == .complete {
@@ -133,13 +155,17 @@ struct BoxBreathingView: View {
         .navigationBarTitleDisplayMode(.inline)
         // Immersive session: keep the tab bar out of the way.
         .toolbar(.hidden, for: .tabBar)
+        // Restarts every time `state` changes. See `runClock()`.
         .task(id: state) { await runClock() }
+        // If the app leaves the screen (phone call, home button), pause the session.
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase != .active && state == .running { pause() }
         }
+        // A light buzz at the start of each new phase.
         .sensoryFeedback(trigger: stepIndex) { old, new in
             (state == .running && new > old) ? .impact(weight: .light) : nil
         }
+        // A "success" buzz when the session is done.
         .sensoryFeedback(trigger: state) { _, new in
             new == .complete ? .success : nil
         }
@@ -172,13 +198,13 @@ struct BoxBreathingView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Box Breathing")
-                .mocoText(MocoScreenTheme.Typeface.title1)
+                .mokoText(MokoScreenTheme.Typeface.title1)
                 .foregroundStyle(BBColor.titleBrown)
-                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
 
             HStack {
                 Text(cyclesText)
-                    .mocoText(MocoScreenTheme.Typeface.caption)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
                     .foregroundStyle(BBColor.muted)
 
                 Spacer()
@@ -186,18 +212,19 @@ struct BoxBreathingView: View {
                 // Cycle counter — only visible once the session has started
                 if state == .running || state == .paused || state == .finishing {
                     Text("Cycle \(currentCycle) of \(initialCycles)")
-                        .mocoText(MocoScreenTheme.Typeface.caption)
+                        .mokoText(MokoScreenTheme.Typeface.caption)
                         .foregroundStyle(BBColor.muted)
                         .monospacedDigit()
                         .transition(.opacity)
                 }
             }
-            .padding(.horizontal, MocoScreenTheme.Space.page)
+            .padding(.horizontal, MokoScreenTheme.Space.page)
             .animation(.easeInOut(duration: 0.25), value: state)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// The box: 4 grey sides, 4 coloured sides on top that fill with `.trim`, and 4 corner dots.
     private var boxView: some View {
         ZStack {
             ForEach(0..<4, id: \.self) { side in
@@ -220,6 +247,7 @@ struct BoxBreathingView: View {
         .accessibilityHidden(true)
     }
 
+    /// Side 0 is the top, then right, bottom and left (clockwise).
     private func edge(_ side: Int) -> Edge {
         switch side {
         case 0:  return Edge(from: BoxGeometry.topLeft,     to: BoxGeometry.topRight)
@@ -237,18 +265,19 @@ struct BoxBreathingView: View {
     private var phaseLabel: some View {
         VStack(spacing: 0) {
             Text(phase.title)
-                .mocoText(MocoScreenTheme.Typeface.title1)
+                .mokoText(MokoScreenTheme.Typeface.title1)
                 .tracking(-0.5)
                 .foregroundStyle(BBColor.titleBrown)
 
             Text("For \(Int(phaseLength)) Seconds")
-                .mocoText(MocoScreenTheme.Typeface.caption)
+                .mokoText(MokoScreenTheme.Typeface.caption)
                 .foregroundStyle(BBColor.subtitle)
                 .opacity(state == .idle ? 0 : 1)
         }
         .accessibilityElement(children: .combine)
     }
 
+    /// A half circle with the countdown under it.
     private var timerArc: some View {
         Circle()
             .trim(from: 0.5, to: 1)
@@ -257,18 +286,19 @@ struct BoxBreathingView: View {
             .frame(width: 200, height: 100, alignment: .top)
             .overlay(alignment: .bottom) {
                 Text(timeString)
-                    .mocoText(MocoScreenTheme.Typeface.numeral)
+                    .mokoText(MokoScreenTheme.Typeface.numeral)
                     .monospacedDigit()
-                    .foregroundStyle(MocoScreenTheme.Colors.dataNumeral)
+                    .foregroundStyle(MokoScreenTheme.Colors.dataNumeral)
             }
     }
 
+    /// The buttons change with the state: Start, or Pause/Resume + Reset.
     @ViewBuilder
     private var controls: some View {
         switch state {
         case .idle:
             BreathingPillButton(title: "Start", action: start)
-                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
 
         case .running, .paused, .finishing:
             HStack {
@@ -293,7 +323,7 @@ struct BoxBreathingView: View {
             HStack {
                 Spacer()
                 Text(cyclesText)
-                    .mocoText(MocoScreenTheme.Typeface.caption)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
                     .foregroundStyle(BBColor.muted)
             }
             .padding(.trailing, 39)
@@ -302,12 +332,12 @@ struct BoxBreathingView: View {
             MokoCompletionAnimation(ringDiameter: 190)
 
             Text("You did it!")
-                .mocoText(MocoScreenTheme.Typeface.title2)
+                .mokoText(MokoScreenTheme.Typeface.title2)
                 .foregroundStyle(BBColor.titleBrown)
                 .padding(.top, 8)
 
             Text("You took a moment to pause, breathe, and find your calm. Be proud of yourself for showing up!")
-                .mocoText(MocoScreenTheme.Typeface.body)
+                .mokoText(MokoScreenTheme.Typeface.body)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(BBColor.titleBrown)
                 .padding(.horizontal, 34)
@@ -328,23 +358,30 @@ struct BoxBreathingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
+    // MARK: Clock
+
+    /// Runs inside `.task(id: state)`. SwiftUI cancels it when `state` changes.
     private func runClock() async {
         switch state {
         case .running:
+            // About 30 updates a second keeps the box filling smoothly.
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 33_000_000)
+                try? await Task.sleep(for: .milliseconds(33))
                 tick()
             }
         case .finishing:
-            try? await Task.sleep(nanoseconds: 900_000_000)
+            // Show 0:00 and the full box for a moment, then the done screen.
+            try? await Task.sleep(for: .milliseconds(900))
             guard !Task.isCancelled else { return }
             withAnimation(.easeInOut(duration: 0.3)) { state = .complete }
+            // Save the session so it shows up in Insights and achievements.
             modelContext.logCalmDown("Box Breathing", seconds: totalLength)
         default:
             break
         }
     }
 
+    /// Works out `elapsed` from the real clock, so pauses and slow frames never drift.
     private func tick() {
         guard state == .running, let began = resumeDate else { return }
         let now = elapsedAtResume + Date().timeIntervalSince(began)
@@ -356,6 +393,8 @@ struct BoxBreathingView: View {
         }
     }
 
+    // MARK: Buttons
+
     private func start() {
         elapsed = 0
         elapsedAtResume = 0
@@ -364,6 +403,7 @@ struct BoxBreathingView: View {
     }
 
     private func pause() {
+        // Update `elapsed` one last time so we resume from the exact spot.
         tick()
         if state == .running { state = .paused }
     }
@@ -386,6 +426,7 @@ struct BoxBreathingView: View {
     }
 }
 
+/// The big rounded "Start" / "Complete" button.
 private struct BreathingPillButton: View {
     let title: String
     let action: () -> Void
@@ -393,7 +434,7 @@ private struct BreathingPillButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .mocoText(MocoScreenTheme.Typeface.section)
+                .mokoText(MokoScreenTheme.Typeface.section)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 63)
@@ -403,6 +444,7 @@ private struct BreathingPillButton: View {
     }
 }
 
+/// A round button with an icon (pause, play, reset).
 private struct RoundIconButton: View {
     let systemName: String
     let label: String

@@ -1,7 +1,17 @@
+//
+//  FamiliarCarouselView.swift
+//  Moko
+//
+//  Intro step 1: a swipeable deck of "does this sound familiar?" cards.
+//  The Continue button only appears on the last card.
+//
+//  Only the cards swipe; the title, dots and button stay put.
+//
+
 import SwiftUI
 
-struct Situation: Identifiable {
-    let id = UUID()
+/// One card in the carousel: an illustration plus a quote.
+struct Situation {
     let imageName: String
     let quote: String
 }
@@ -9,7 +19,7 @@ struct Situation: Identifiable {
 struct FamiliarCarouselView: View {
     var onContinue: () -> Void = {}
 
-    // Add more cards here, in order
+    /// The cards, in order. Add more here; the dots and progress bar adapt.
     private let situations: [Situation] = [
         Situation(imageName: "familiar_a",
                   quote: "“Someone took credit for my idea, and I didn’t say anything.”"),
@@ -23,9 +33,12 @@ struct FamiliarCarouselView: View {
                   quote: "“I rewrote the text three times but kept my phone down without sending it.”")
     ]
 
-    // Total steps in your whole onboarding (progress = card number / this)
+    /// Total steps in the whole intro flow (progress = card number / this).
     private let totalOnboardingSteps: CGFloat = 9
+    private let cardHeight: CGFloat = 446
 
+    /// Index of the card in view. `.scrollPosition(id:)` updates it as the user swipes
+    /// (it can be nil mid-swipe, hence the Optional).
     @State private var selection: Int? = 0
 
     private var index: Int { selection ?? 0 }
@@ -33,8 +46,8 @@ struct FamiliarCarouselView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Fixed: does not swipe
-            progressBar
+            OnboardingProgressBar(progress: CGFloat(index + 1) / totalOnboardingSteps)
+                .animation(.easeInOut(duration: 0.25), value: index)
                 .padding(.horizontal, 20)
                 .padding(.top, 47)
 
@@ -48,35 +61,25 @@ struct FamiliarCarouselView: View {
 
             Spacer(minLength: 24)
 
-            // Only this part swipes
             cards
 
             Spacer(minLength: 24)
 
-            // Fixed: does not swipe
             pageDots
 
             Spacer(minLength: 24)
 
-            continueButton
+            OnboardingContinueButton(action: onContinue)
+                // Hidden (but still taking space) until the last card,
+                // so the layout doesn't jump when it appears.
+                .opacity(isLastCard ? 1 : 0)
+                .allowsHitTesting(isLastCard)
+                .accessibilityHidden(!isLastCard)
+                .animation(.easeInOut(duration: 0.25), value: isLastCard)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 38)
         }
         .background(MokoTheme.limeBackground.ignoresSafeArea())
-    }
-
-    // MARK: Progress bar
-
-    private var progressBar: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.track)
-                Capsule().fill(Color.forestLight)
-                    .frame(width: geo.size.width * CGFloat(index + 1) / totalOnboardingSteps)
-            }
-        }
-        .frame(height: 3)
-        .animation(.easeInOut(duration: 0.25), value: index)
     }
 
     // MARK: Swipeable cards
@@ -84,9 +87,11 @@ struct FamiliarCarouselView: View {
     private var cards: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             LazyHStack(spacing: 0) {
+                // `offset` is the card's position (0, 1, 2…) and doubles as its id.
                 ForEach(Array(situations.enumerated()), id: \.offset) { i, item in
-                    SituationCard(situation: item)
+                    SituationCard(situation: item, height: cardHeight)
                         .padding(.horizontal, 51)
+                        // Each card is exactly one screen wide, so paging lands on it.
                         .containerRelativeFrame(.horizontal)
                         .id(i)
                 }
@@ -96,38 +101,23 @@ struct FamiliarCarouselView: View {
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $selection)
         .scrollBounceBehavior(.basedOnSize)
-        .frame(height: 446)
+        .frame(height: cardHeight)
     }
 
     // MARK: Dots
 
+    /// One dot per card; the current one stretches into a terracotta pill.
     private var pageDots: some View {
         HStack(spacing: 8) {
-            ForEach(0..<situations.count, id: \.self) { i in
+            ForEach(situations.indices, id: \.self) { i in
                 Capsule()
                     .fill(i == index ? Color.terracotta : Color.dotInactive)
                     .frame(width: i == index ? 24 : 8, height: 8)
             }
         }
         .animation(.easeInOut(duration: 0.2), value: index)
-    }
-
-    // MARK: Continue button (only visible on the last card)
-
-    private var continueButton: some View {
-        Button(action: onContinue) {
-            HStack(spacing: 8) {
-                Text("Continue")
-            }
-            .font(.system(size: 17))
-            .foregroundStyle(Color.cream)
-            .frame(maxWidth: .infinity)
-            .frame(height: 50.5)
-            .background(Color.forest, in: Capsule())
-        }
-        .opacity(isLastCard ? 1 : 0)
-        .allowsHitTesting(isLastCard)
-        .animation(.easeInOut(duration: 0.25), value: isLastCard)
+        .accessibilityElement()
+        .accessibilityLabel("Card \(index + 1) of \(situations.count)")
     }
 }
 
@@ -135,6 +125,7 @@ struct FamiliarCarouselView: View {
 
 private struct SituationCard: View {
     let situation: Situation
+    let height: CGFloat
 
     var body: some View {
         VStack(spacing: 0) {
@@ -144,6 +135,7 @@ private struct SituationCard: View {
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .padding(.top, 15)
+                .accessibilityHidden(true)               // decorative; the quote says it all
 
             Spacer(minLength: 8)
 
@@ -158,7 +150,7 @@ private struct SituationCard: View {
         }
         .padding(.horizontal, 9)
         .frame(maxWidth: .infinity)
-        .frame(height: 446)
+        .frame(height: height)
         .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Color.cardFill))
         .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Color.cardStroke, lineWidth: 1))
     }

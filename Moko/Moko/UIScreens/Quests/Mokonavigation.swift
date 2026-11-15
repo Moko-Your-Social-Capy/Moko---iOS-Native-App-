@@ -2,13 +2,19 @@
 //  MokoNavigation.swift
 //  Moko
 //
-//  Lets a screen that is deep inside a full-screen cover (like the debrief) send the user
-//  to a particular version of the Overview tab. MokoRootView provides `openOverview`.
+//  Small "remote controls" that deep screens can use without being handed callbacks:
+//  - `openOverview`: jump to a version of the Overview tab (provided by MokoRootView).
+//  - `endSession`: sign out or finish deleting the account (provided by MokoRootView).
+//  - `PendingDebriefStore`: remembers an unfinished debrief across app launches.
+//
+//  How to use one in a view:
+//      @Environment(\.openOverview) private var openOverview
+//      openOverview?(.debriefDone)    // `?` because it is nil in previews
 //
 
 import SwiftUI
 
-/// Which version of the Overview tab to show
+/// Which version of the Overview tab to show.
 enum OverviewMode: String {
     case todo          // Overview: today's mission
     case resume        // OverviewResumeScreen: pick up an unfinished debrief
@@ -21,6 +27,8 @@ enum SessionEndReason {
     case deleteAccount
 }
 
+// An `EnvironmentKey` is the "slot" a value lives in. `defaultValue` is used
+// when no parent view has filled the slot (for example in a #Preview).
 private struct EndSessionKey: EnvironmentKey {
     static let defaultValue: ((SessionEndReason) -> Void)? = nil
 }
@@ -46,6 +54,7 @@ extension EnvironmentValues {
 }
 
 /// Remembers the quest whose debrief was left unfinished, so "Slide to resume" can reopen it.
+/// Stored in UserDefaults, so it survives closing the app.
 enum PendingDebriefStore {
     private static let key = "moko.pendingDebriefQuestID"
 

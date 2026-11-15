@@ -2,15 +2,15 @@
 //  ProfileOverView.swift
 //  Moko
 //
-//  "Moco Screen Theme" v1.0 — Profile, direction 01 (Wave hero).
-//  Every colour, size, radius, shadow and type style comes from MocoScreenTheme.
+//  "Moko Screen Theme" v1.0 — Profile, direction 01 (Wave hero).
+//  Every colour, size, radius, shadow and type style comes from MokoScreenTheme.
 //  Cards carry no stroke: they separate from the canvas by the two-layer lift.
 //
 
 import SwiftUI
 import SwiftData
 
-private typealias Theme = MocoScreenTheme
+private typealias Theme = MokoScreenTheme
 
 /// Screen-internal nudges. They describe this one composition rather than a
 /// shared design decision, so they stay out of the token registry.
@@ -28,17 +28,23 @@ private enum Nudge {
 /// Profile is presented as a sheet from the Overview avatar, so the hero owns the
 /// header row and the navigation bar stays hidden.
 struct ProfileOverView: View {
+    // Closes the Profile sheet.
     @Environment(\.dismiss) private var dismiss
+    // The phone's "Reduce Motion" setting. When on, numbers appear without counting up.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    // @Query reads saved SwiftData rows and redraws this screen when they change.
     @Query private var profiles: [Profile]
     @Query private var calmDowns: [CalmDownModel]
     @Query private var quests: [Quest]
     @Query private var insights: [InsightsModel]
     @Query private var onboardingStates: [OnboardingState]
 
+    // Goes from 0 to 1 once, so the stat numbers count up from zero.
     @State private var countProgress = 0.0
+    // Which tab of the Day / Week / Month control is picked.
     @State private var journeySelection = JourneyRange.week.rawValue
+    // The sheet that is open (edit profile or a badge). `nil` means none.
     @State private var activeSheet: ProfileSheet?
 
     // MARK: - Model
@@ -57,10 +63,12 @@ struct ProfileOverView: View {
     }
 
     private var xp: Int { profile?.xp ?? 0 }
+    // Every 400 XP is one level. `levelXP` is the progress inside the current level.
     private var level: Int { xp / 400 + 1 }
     private var levelXP: Int { xp % 400 }
     private var streak: Int { profile?.currentStreak ?? 0 }
 
+    // Only quests that belong to the person on this phone.
     private var localQuests: [Quest] { quests.filter { $0.ownerID == CurrentUser.localID } }
     private var questsDone: Int { localQuests.filter(\.isCompleted).count }
 
@@ -96,16 +104,18 @@ struct ProfileOverView: View {
                             settingsSection
                         }
                         .padding(.horizontal, Theme.Space.profilePage)
-                        /// Clearance for the avatar, which overlaps the hero seam.
-                        .padding(.top, Theme.Size.avatarLarge / 2 + Theme.Space.s3)
-                        .padding(.bottom, Theme.Space.s7)
+                        // Clearance for the bigger avatar, which overlaps the hero seam.
+                        .padding(.top, Theme.Size.avatarExtraLarge / 2 + Theme.Space.s4)
+                        .padding(.bottom, Theme.Space.s8)
                     }
                 }
                 .scrollIndicators(.hidden)
             }
             .toolbar(.hidden, for: .navigationBar)
             .tint(ProfilePalette.accent)
+            // `.task` runs when the screen appears: start the count-up animation.
             .task { animateNumbersOnce() }
+            // One `.sheet(item:)` for every sheet: the `switch` picks which screen to show.
             .sheet(item: $activeSheet) { sheet in
                 switch sheet {
                 case .editProfile:
@@ -124,13 +134,20 @@ struct ProfileOverView: View {
         .preferredColorScheme(nil)
     }
 
+    /// Bigger avatar for the brighter profile section.
+    private var avatar: some View {
+        MokoProfileAvatar(level: level, photoData: profile?.profileImageData)
+    }
+
     // MARK: - §3 Hero
 
     private var hero: some View {
-        MocoProfileHero(title: "Profile",
+        MokoProfileHero(title: "Profile",
                         onClose: { dismiss() },
-                        onOverflow: { activeSheet = .editProfile }) {
-            MocoProfileAvatar(level: level, photoData: profile?.profileImageData)
+                        onOverflow: { activeSheet = .editProfile },
+                        height: Theme.Size.heroLarge,
+                        avatarSize: Theme.Size.avatarExtraLarge) {
+            avatar
         }
     }
 
@@ -139,19 +156,19 @@ struct ProfileOverView: View {
     private var identityBlock: some View {
         VStack(spacing: 0) {
             Text(displayName)
-                .mocoText(Theme.Typeface.profileName)
+                .mokoText(Theme.Typeface.profileName)
                 .foregroundStyle(Theme.Colors.textTitle)
                 .multilineTextAlignment(.center)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
 
             Text(handle.map { "@\($0)" } ?? "\(animated(levelXP)) XP to level \(level + 1)")
-                .mocoText(Theme.Typeface.caption)
+                .mokoText(Theme.Typeface.caption)
                 .foregroundStyle(Theme.Colors.textMuted)
                 .contentTransition(.numericText())
                 .padding(.top, Nudge.subtitleTop)
 
-            MocoLevelChip(level: level)
+            MokoLevelChip(level: level)
                 .padding(.top, Nudge.chipTop)
         }
         .frame(maxWidth: .infinity)
@@ -161,22 +178,22 @@ struct ProfileOverView: View {
     // MARK: - §5 Stats
 
     private var statsRow: some View {
-        MocoStatsRow(tiles: [
-            MocoStat(id: 0,
+        MokoStatsRow(tiles: [
+            MokoStat(id: 0,
                      symbol: "flame.fill",
-                     value: "\(animated(streak))",
+                     value: "\(animated(streak)) days",
                      label: "Day streak",
                      plate: Theme.Colors.tileSage,
-                     tint: Theme.Colors.forest,
+                     tint: Theme.Colors.brightGreen,
                      fill: Theme.Colors.surfaceWhite),
-            MocoStat(id: 1,
+            MokoStat(id: 1,
                      symbol: "checkmark.seal.fill",
                      value: "\(animated(questsDone))",
                      label: "Quests done",
                      plate: Theme.Colors.tileLilac,
                      tint: Theme.Colors.dataVioletDeep,
                      fill: Theme.Colors.surfaceLavender),
-            MocoStat(id: 2,
+            MokoStat(id: 2,
                      symbol: "bolt.fill",
                      value: animated(xp).formatted(),
                      label: "Total XP",
@@ -199,37 +216,37 @@ struct ProfileOverView: View {
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: Theme.Space.s2) {
                 Text("My Journey")
-                    .mocoText(Theme.Typeface.title2)
+                    .mokoText(Theme.Typeface.title2)
                     .foregroundStyle(Theme.Colors.textTitle)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
 
                 Spacer(minLength: Theme.Space.s2)
 
-                MocoSegmented(titles: JourneyRange.allCases.map(\.title),
+                MokoSegmented(titles: JourneyRange.allCases.map(\.title),
                               selection: $journeySelection)
             }
 
             HStack(alignment: .firstTextBaseline, spacing: Nudge.journeyValueGap) {
                 Text("\(Int(total).formatted()) XP")
-                    .mocoText(Theme.Typeface.journeyValue)
+                    .mokoText(Theme.Typeface.journeyValue)
                     .foregroundStyle(Theme.Colors.dataVioletDeep)
                     .contentTransition(.numericText())
 
                 Text(journeyRange.caption)
-                    .mocoText(Theme.Typeface.caption)
+                    .mokoText(Theme.Typeface.caption)
                     .foregroundStyle(Theme.Colors.textMuted)
                     .lineLimit(1)
             }
             .padding(.top, Nudge.journeyValueTop)
 
-            MocoWeekBars(values: buckets.map { $0.xp / tallest }, peak: peak)
+            MokoWeekBars(values: buckets.map { $0.xp / tallest }, peak: peak)
                 .padding(.top, Nudge.journeyBarsTop)
 
-            HStack(spacing: MocoWeekBars.spacing) {
+            HStack(spacing: MokoWeekBars.spacing) {
                 ForEach(buckets) { bucket in
                     Text(axisLabel(for: bucket.start))
-                        .mocoText(Theme.Typeface.badge)
+                        .mokoText(Theme.Typeface.badge)
                         .foregroundStyle(Theme.Colors.axisLabel)
                         .frame(maxWidth: .infinity)
                 }
@@ -238,11 +255,12 @@ struct ProfileOverView: View {
             .accessibilityHidden(true)
         }
         .padding(Theme.Space.profileCard)
-        .mocoCard(fill: Theme.Colors.cream)
+        .mokoCard(fill: Theme.Colors.cream)
         .animation(reduceMotion ? nil : Theme.Motion.tap, value: journeySelection)
         .accessibilityElement(children: .contain)
     }
 
+    /// Short date under each bar: weekday letter, day number or month letter.
     private func axisLabel(for start: Date) -> String {
         switch journeyRange {
         case .day: start.formatted(.dateTime.weekday(.narrow))
@@ -252,6 +270,7 @@ struct ProfileOverView: View {
     }
 
     /// Seven complete periods ending with the current one, oldest first.
+    /// Each bucket adds up the XP from quests finished in that day, week or month.
     private var journeyBuckets: [JourneyBucket] {
         let calendar = Calendar.current
         let component = journeyRange.component
@@ -276,7 +295,7 @@ struct ProfileOverView: View {
         VStack(alignment: .leading, spacing: Nudge.sectionHeadGap) {
             HStack(spacing: Theme.Space.s2) {
                 Text("Achievements")
-                    .mocoText(Theme.Typeface.section)
+                    .mokoText(Theme.Typeface.section)
                     .foregroundStyle(Theme.Colors.textTitle)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
@@ -288,7 +307,7 @@ struct ProfileOverView: View {
                         .toolbar(.hidden, for: .tabBar)
                 } label: {
                     Text("View all")
-                        .mocoText(Theme.Typeface.caption)
+                        .mokoText(Theme.Typeface.caption)
                         .foregroundStyle(Theme.Colors.dataVioletDeep)
                         .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
                 }
@@ -300,7 +319,7 @@ struct ProfileOverView: View {
                     Button {
                         activeSheet = .badge(chip.achievement)
                     } label: {
-                        MocoAchievementChip(symbol: chip.achievement.symbol,
+                        MokoAchievementChip(symbol: chip.achievement.symbol,
                                             title: chip.achievement.title,
                                             plate: chip.plate,
                                             tint: chip.tint,
@@ -339,24 +358,30 @@ struct ProfileOverView: View {
 
     private var settingsSection: some View {
         VStack(spacing: Theme.Space.s2) {
-            settingsRow("Moko’s wardrobe",
-                        symbol: "tshirt",
-                        destination: AnyView(MokoWardrobeView(level: level)))
-            settingsRow("Settings & privacy",
-                        symbol: "gearshape",
-                        destination: AnyView(ProfileOverViewSettingsOverview()))
-            settingsRow("Account & data",
-                        symbol: "person.crop.circle",
-                        destination: AnyView(ProfileOverViewAccountAndData()))
+            settingsRow("Moko’s wardrobe", symbol: "tshirt") {
+                MokoWardrobeView(level: level)
+            }
+            settingsRow("Settings & privacy", symbol: "gearshape") {
+                ProfileOverViewSettingsOverview()
+            }
+            settingsRow("Account & data", symbol: "person.crop.circle") {
+                ProfileOverViewAccountAndData()
+            }
         }
     }
 
-    private func settingsRow(_ title: String, symbol: String, destination: AnyView) -> some View {
+    /// One settings row that opens `destination` when tapped.
+    /// `Destination` is a generic, so each row can open a different screen without `AnyView`.
+    private func settingsRow<Destination: View>(
+        _ title: String,
+        symbol: String,
+        @ViewBuilder destination: @escaping () -> Destination
+    ) -> some View {
         NavigationLink {
-            destination
+            destination()
         } label: {
-            MocoSettingRow(symbol: symbol, title: title)
-                .mocoCard(fill: Theme.Card.fill, radius: Theme.Radius.chip)
+            MokoSettingRow(symbol: symbol, title: title)
+                .mokoCard(fill: Theme.Card.fill, radius: Theme.Radius.chip)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
@@ -364,10 +389,12 @@ struct ProfileOverView: View {
 
     // MARK: - Numbers
 
+    /// The number to show right now while counting up (e.g. 50% of 120 = 60).
     private func animated(_ value: Int) -> Int {
         Int((Double(value) * countProgress).rounded())
     }
 
+    /// Counts the numbers up only the first time Profile opens in this app session.
     private func animateNumbersOnce() {
         guard !ProfileSessionAnimation.didAnimateNumbers else {
             countProgress = 1
@@ -384,6 +411,7 @@ struct ProfileOverView: View {
 
 // MARK: - Data
 
+/// The Day / Week / Month choice for the "My Journey" chart.
 private enum JourneyRange: Int, CaseIterable, Identifiable {
     case day, week, month
 
@@ -414,6 +442,7 @@ private enum JourneyRange: Int, CaseIterable, Identifiable {
     }
 }
 
+/// One bar in the chart: when the period starts and how much XP was earned.
 private struct JourneyBucket: Identifiable {
     let start: Date
     let xp: Double
@@ -427,6 +456,7 @@ private struct AchievementChipItem: Identifiable {
     var id: Int { achievement.id }
 }
 
+/// The sheets Profile can open. `Identifiable` is needed for `.sheet(item:)`.
 private enum ProfileSheet: Identifiable {
     case editProfile
     case badge(Achievement)
@@ -439,6 +469,7 @@ private enum ProfileSheet: Identifiable {
     }
 }
 
+/// Remembers (until the app is closed) that the numbers already counted up once.
 @MainActor
 private enum ProfileSessionAnimation {
     static var didAnimateNumbers = false
@@ -449,14 +480,14 @@ private enum ProfileSessionAnimation {
 /// The profile cluster's shared palette. Remapped onto the theme so every screen
 /// pushed from here — edit, wardrobe, badges, settings, legal — re-skins at once.
 enum ProfilePalette {
-    static let background = MocoScreenTheme.Colors.canvasTop
-    static let grouped = MocoScreenTheme.Colors.cream
-    static let text = MocoScreenTheme.Colors.textTitle
-    static let secondary = MocoScreenTheme.Colors.textBody
-    static let accent = MocoScreenTheme.Colors.sage
-    static let lime = MocoScreenTheme.Colors.tileCream
-    static let success = MocoScreenTheme.Colors.forest
-    static let error = MocoScreenTheme.Colors.error
+    static let background = MokoScreenTheme.Colors.canvasTop
+    static let grouped = MokoScreenTheme.Colors.cream
+    static let text = MokoScreenTheme.Colors.textTitle
+    static let secondary = MokoScreenTheme.Colors.textBody
+    static let accent = MokoScreenTheme.Colors.sage
+    static let lime = MokoScreenTheme.Colors.tileCream
+    static let success = MokoScreenTheme.Colors.forest
+    static let error = MokoScreenTheme.Colors.error
 }
 
 #Preview {

@@ -1,3 +1,14 @@
+//
+//  Summaryview.swift
+//  Moko
+//
+//  The Calm Down summary: total relax time and a bar chart for the chosen
+//  Day / Week / Month / Year, plus a list of the exercises done in that period.
+//
+//  Flow: `@Query` reads every saved `CalmDownModel` → `SummaryData` does all the
+//  maths (no UI) → `SummaryView` only draws it.
+//  Debug tip: create sample sessions with the "With Sessions" preview at the bottom.
+//
 
 import SwiftUI
 import SwiftData
@@ -5,6 +16,7 @@ import Charts
 
 // MARK: - Model
 
+/// The segmented control options at the top of the screen.
 enum SummaryRange: String, CaseIterable, Identifiable {
     case day = "Day"
     case week = "Week"
@@ -14,15 +26,19 @@ enum SummaryRange: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// One bar in the chart (one hour, day, week or month).
 struct SummaryBar: Identifiable {
+    /// Where the bar sits on the time axis.
     let date: Date
     let label: String
     let minutes: Double
+    /// True for the current hour/day/week/month. Drawn in the darker colour.
     let isSelected: Bool
 
     var id: Date { date }
 }
 
+/// One row in the "All Activities" list.
 struct SummaryActivity: Identifiable {
     let id = UUID()
     let name: String
@@ -32,6 +48,8 @@ struct SummaryActivity: Identifiable {
 
 // MARK: - Summary Data
 
+/// Everything the screen shows for one range, worked out from the saved sessions.
+/// Plain maths only, so it is easy to test without the UI.
 struct SummaryData {
 
     let totalText: String
@@ -39,7 +57,9 @@ struct SummaryData {
     let selectedDate: Date
     let chartStart: Date
     let chartEnd: Date
+    /// How much time fits on screen before the chart scrolls sideways.
     let visibleDuration: TimeInterval
+    /// Top of the chart's y-axis.
     let maxMinutes: Double
     let listTitle: String
     let sessionCount: Int
@@ -60,14 +80,9 @@ struct SummaryData {
         calendar.firstWeekday = 2
         calendar.minimumDaysInFirstWeek = 4
 
-        let interval = calendar.dateInterval(
-            of: Self.component(for: range),
-            for: now
-        ) ?? DateInterval(
-            start: now,
-            duration: 86400
-        )
+        let interval = Self.period(Self.component(for: range), containing: now, in: calendar)
 
+        // Only the sessions inside today / this week / this month / this year.
         let inRange = records.filter {
             interval.contains($0.date)
         }
@@ -97,11 +112,12 @@ struct SummaryData {
             chart.bars.map(\.minutes).max() ?? 0
         )
 
+        listTitle = Self.listTitle(for: range)
+
         switch range {
 
         case .day:
-            listTitle = "Completed Today"
-
+            // Today: one row per session, newest first.
             activities = inRange
                 .sorted { $0.date > $1.date }
                 .map {
@@ -113,21 +129,7 @@ struct SummaryData {
                 }
 
         case .week, .month, .year:
-
-            switch range {
-            case .week:
-                listTitle = "Completed This Week"
-
-            case .month:
-                listTitle = "Completed This Month"
-
-            case .year:
-                listTitle = "Completed This Year"
-
-            case .day:
-                listTitle = "Completed Today"
-            }
-
+            // Longer ranges: one row per exercise, with its time added up.
             let totals = Dictionary(
                 grouping: inRange,
                 by: \.exerciseTitle
@@ -179,6 +181,27 @@ struct SummaryData {
 
     // MARK: Helpers
 
+    private static func listTitle(for range: SummaryRange) -> String {
+        switch range {
+        case .day:   return "Completed Today"
+        case .week:  return "Completed This Week"
+        case .month: return "Completed This Month"
+        case .year:  return "Completed This Year"
+        }
+    }
+
+    /// The whole day / week / month / year that contains `date`.
+    /// `dateInterval` can return nil in theory, so this falls back to that single day
+    /// instead of force unwrapping (`!`) and crashing.
+    private static func period(
+        _ component: Calendar.Component,
+        containing date: Date,
+        in calendar: Calendar
+    ) -> DateInterval {
+        calendar.dateInterval(of: component, for: date)
+            ?? DateInterval(start: calendar.startOfDay(for: date), duration: 24 * 60 * 60)
+    }
+
     private static func component(
         for range: SummaryRange
     ) -> Calendar.Component {
@@ -200,6 +223,7 @@ struct SummaryData {
 
     // MARK: Generate Chart Bars
 
+    /// Builds the bars for one range, and tells the chart where to start, end and scroll to.
     private static func makeBars(
         for range: SummaryRange,
         records: [CalmDownModel],
@@ -213,6 +237,7 @@ struct SummaryData {
         visibleDuration: TimeInterval
     ) {
 
+        // Total minutes logged between two dates (all sessions, not just this range).
         func minutes(
             from start: Date,
             to end: Date
@@ -231,10 +256,7 @@ struct SummaryData {
 
         if range == .day {
 
-            let interval = calendar.dateInterval(
-                of: .day,
-                for: now
-            )!
+            let interval = period(.day, containing: now, in: calendar)
 
             let bars = (0..<24).compactMap { hour -> SummaryBar? in
 
@@ -290,10 +312,7 @@ struct SummaryData {
 
         if range == .week {
 
-            let interval = calendar.dateInterval(
-                of: .weekOfYear,
-                for: now
-            )!
+            let interval = period(.weekOfYear, containing: now, in: calendar)
 
             let bars = (0..<7).compactMap { offset -> SummaryBar? in
 
@@ -345,15 +364,9 @@ struct SummaryData {
 
         if range == .month {
 
-            let monthInterval = calendar.dateInterval(
-                of: .month,
-                for: now
-            )!
-
-            let firstWeek = calendar.dateInterval(
-                of: .weekOfYear,
-                for: monthInterval.start
-            )!
+            let monthInterval = period(.month, containing: now, in: calendar)
+            // The week the month starts in (it may begin in the previous month).
+            let firstWeek = period(.weekOfYear, containing: monthInterval.start, in: calendar)
 
             var cursor = firstWeek.start
             var weekNumber = 1
@@ -424,10 +437,7 @@ struct SummaryData {
 
         // MARK: YEAR - January to December
 
-        let yearInterval = calendar.dateInterval(
-            of: .year,
-            for: now
-        )!
+        let yearInterval = period(.year, containing: now, in: calendar)
 
         let bars = (1...12).compactMap { month -> SummaryBar? in
 
@@ -473,17 +483,8 @@ struct SummaryData {
             )
         }
 
-        let selectedMonth = calendar.date(
-            byAdding: .day,
-            value: 14,
-            to: calendar.date(
-                from: DateComponents(
-                    year: calendar.component(.year, from: now),
-                    month: calendar.component(.month, from: now),
-                    day: 1
-                )
-            )!
-        )!
+        // Scroll the chart to this month's bar.
+        let selectedMonth = bars.first(where: \.isSelected)?.date ?? yearInterval.start
 
         return (
             bars,
@@ -603,23 +604,24 @@ struct SummaryData {
 
 struct SummaryView: View {
 
+    // `@Query` reads every saved calm-down session from SwiftData and redraws
+    // this screen automatically when a new one is saved.
     @Query(sort: \CalmDownModel.date, order: .reverse)
     private var records: [CalmDownModel]
 
+    // Which segment is picked: Day, Week, Month or Year.
     @State private var range: SummaryRange = .day
 
-    private let darkGreen = MocoScreenTheme.Colors.dataVioletDeep
-
-    private let lightGreen = MocoScreenTheme.Colors.surfaceLavender
-
-    private let titleDark = MocoScreenTheme.Colors.textTitle
-
-    private let subtextGray = MocoScreenTheme.Colors.textBody
+    private let accent = MokoScreenTheme.Colors.dataVioletDeep
+    private let soft = MokoScreenTheme.Colors.surfaceLavender
+    private let titleDark = MokoScreenTheme.Colors.textTitle
+    private let subtextGray = MokoScreenTheme.Colors.textBody
 
     // MARK: Body
 
     var body: some View {
 
+        // Recalculated on every redraw. Cheap, because it is only simple maths.
         let data = SummaryData(
             range: range,
             records: records
@@ -627,7 +629,7 @@ struct SummaryView: View {
 
         ZStack {
 
-            MocoBackdrop()
+            MokoBackdrop()
 
             ScrollView {
 
@@ -650,7 +652,7 @@ struct SummaryView: View {
                         activitiesCard(data)
                     }
                 }
-                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
             }
@@ -658,7 +660,8 @@ struct SummaryView: View {
         .navigationTitle("Calm Down")
         .navigationBarTitleDisplayMode(.large)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .tint(MocoScreenTheme.Colors.dataVioletDeep)
+        .tint(MokoScreenTheme.Colors.dataVioletDeep)
+        // Smoothly changes the chart when another range is picked.
         .animation(.easeInOut, value: range)
     }
 
@@ -670,24 +673,25 @@ struct SummaryView: View {
 
             Image(systemName: "leaf.fill")
                 .font(.system(size: 36))
-                .foregroundStyle(darkGreen)
+                .foregroundStyle(accent)
                 .frame(width: 80, height: 80)
-                .background(lightGreen, in: Circle())
+                .background(soft, in: Circle())
+                .accessibilityHidden(true)
 
             Text("No exercise logged yet")
-                .mocoText(MocoScreenTheme.Typeface.section)
+                .mokoText(MokoScreenTheme.Typeface.section)
                 .foregroundStyle(titleDark)
 
             Text(
                 "Try some calm down exercises. The time you spend on each one shows up here."
             )
-            .mocoText(MocoScreenTheme.Typeface.body)
+            .mokoText(MokoScreenTheme.Typeface.body)
             .foregroundStyle(subtextGray)
             .multilineTextAlignment(.center)
         }
         .padding(28)
         .frame(maxWidth: .infinity)
-        .mocoCard()
+        .mokoCard()
     }
 
     // MARK: Total Time + Chart
@@ -699,12 +703,12 @@ struct SummaryView: View {
         VStack(alignment: .leading, spacing: 4) {
 
             Text("Total time")
-                .mocoText(MocoScreenTheme.Typeface.caption)
+                .mokoText(MokoScreenTheme.Typeface.caption)
                 .foregroundStyle(subtextGray)
 
             Text(data.totalText)
-                .mocoText(MocoScreenTheme.Typeface.title1)
-                .foregroundStyle(MocoScreenTheme.Colors.dataNumeral)
+                .mokoText(MokoScreenTheme.Typeface.title1)
+                .foregroundStyle(MokoScreenTheme.Colors.dataNumeral)
 
             Chart(data.bars) { bar in
 
@@ -713,10 +717,11 @@ struct SummaryView: View {
                     y: .value("Minutes", bar.minutes)
                 )
                 .foregroundStyle(
-                    bar.isSelected ? darkGreen : MocoScreenTheme.Colors.dataViolet
+                    bar.isSelected ? accent : MokoScreenTheme.Colors.dataViolet
                 )
                 .cornerRadius(4)
             }
+            // The chart scrolls sideways and opens on the current hour/day/week/month.
             .chartXScale(
                 domain: data.chartStart...data.chartEnd
             )
@@ -742,16 +747,17 @@ struct SummaryView: View {
                 ) { value in
 
                     AxisGridLine()
-                        .foregroundStyle(MocoScreenTheme.Colors.dataGrid)
+                        .foregroundStyle(MokoScreenTheme.Colors.dataGrid)
 
                     AxisValueLabel {
                         if let minutes = value.as(Double.self) {
                             Text(data.axisText(minutes))
-                                .mocoText(MocoScreenTheme.Typeface.caption)
+                                .mokoText(MokoScreenTheme.Typeface.caption)
                         }
                     }
                 }
             }
+            // One label per bar, using the bar's own text ("9 AM", "Monday", "Week 2", "Jan").
             .chartXAxis {
 
                 AxisMarks(
@@ -770,7 +776,7 @@ struct SummaryView: View {
                            ) {
 
                             Text(bar.label)
-                                .mocoText(MocoScreenTheme.Typeface.caption)
+                                .mokoText(MokoScreenTheme.Typeface.caption)
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.75)
                                 .foregroundStyle(subtextGray)
@@ -781,9 +787,9 @@ struct SummaryView: View {
             .frame(height: 150)
             .padding(.top, 12)
         }
-        .padding(MocoScreenTheme.Space.cardHorizontal)
+        .padding(MokoScreenTheme.Space.cardHorizontal)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .mocoCard()
+        .mokoCard()
     }
 
     // MARK: Activities
@@ -799,11 +805,11 @@ struct SummaryView: View {
                 VStack(alignment: .leading, spacing: 2) {
 
                     Text("All Activities")
-                        .mocoText(MocoScreenTheme.Typeface.caption)
+                        .mokoText(MokoScreenTheme.Typeface.caption)
                         .foregroundStyle(subtextGray)
 
                     Text(data.listTitle)
-                        .mocoText(MocoScreenTheme.Typeface.slider)
+                        .mokoText(MokoScreenTheme.Typeface.slider)
                         .foregroundStyle(titleDark)
                 }
 
@@ -812,7 +818,7 @@ struct SummaryView: View {
                 Text(
                     "\(data.sessionCount) \(data.sessionCount == 1 ? "Session" : "Sessions")"
                 )
-                .mocoText(MocoScreenTheme.Typeface.caption)
+                .mokoText(MokoScreenTheme.Typeface.caption)
                 .foregroundStyle(subtextGray)
             }
             .padding(.bottom, 12)
@@ -825,10 +831,10 @@ struct SummaryView: View {
 
                     Image(systemName: activity.icon)
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(darkGreen)
+                        .foregroundStyle(accent)
                         .frame(width: 36, height: 36)
                         .background(
-                            lightGreen,
+                            soft,
                             in: RoundedRectangle(
                                 cornerRadius: 12,
                                 style: .continuous
@@ -836,21 +842,21 @@ struct SummaryView: View {
                         )
 
                     Text(activity.name)
-                        .mocoText(MocoScreenTheme.Typeface.slider)
+                        .mokoText(MokoScreenTheme.Typeface.slider)
                         .foregroundStyle(titleDark)
 
                     Spacer()
 
                     Text(activity.duration)
-                        .mocoText(MocoScreenTheme.Typeface.caption)
+                        .mokoText(MokoScreenTheme.Typeface.caption)
                         .foregroundStyle(titleDark)
                 }
                 .padding(.vertical, 12)
             }
         }
-        .padding(MocoScreenTheme.Space.cardHorizontal)
+        .padding(MokoScreenTheme.Space.cardHorizontal)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .mocoCard()
+        .mokoCard()
     }
 }
 
@@ -867,13 +873,13 @@ struct SummaryView: View {
 }
 
 #Preview("With Sessions") {
-
-    let container = try! ModelContainer(
+    // An in-memory database, so preview data never touches the real app data.
+    guard let container = try? ModelContainer(
         for: CalmDownModel.self,
-        configurations: ModelConfiguration(
-            isStoredInMemoryOnly: true
-        )
-    )
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    ) else {
+        return Text("Preview database could not be created")
+    }
 
     let calendar = Calendar.current
 

@@ -1,7 +1,16 @@
+//
+//  SettingsOverview.swift
+//  Moko
+//
+//  Profile → "Settings & privacy": the list that links to account, reminders,
+//  legal pages, phone permissions, delete-my-data and support.
+//
+
 import SwiftUI
 import UIKit
 
 struct ProfileOverViewSettingsOverview: View {
+    // SwiftUI's way to open a link (a website or the Settings app).
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -39,7 +48,8 @@ struct ProfileOverViewSettingsOverview: View {
                     Label("Data we collect", systemImage: "list.bullet.rectangle")
                 }
                 Button {
-                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                    // Jumps to Moko's page in the iPhone Settings app (camera, microphone, notifications).
+                    if let url = mokoOpenAppSettingsURL() { openURL(url) }
                 } label: {
                     Label("Manage permissions", systemImage: "lock")
                         .foregroundStyle(ProfilePalette.text)

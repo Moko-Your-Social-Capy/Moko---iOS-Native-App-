@@ -1,19 +1,26 @@
 //
-//  MocoComponents.swift
+//  MokoComponents.swift
 //  Moko
 //
-//  The "Moco Screen Theme" v1.0 building blocks. Every value comes from
-//  MocoScreenTheme — nothing here states a literal twice.
+//  The shared building blocks every screen uses:
+//  - `.mokoCard()`      a white rounded card with a soft shadow
+//  - `MokoBackdrop`     the screen background with the bush and leaf drawings
+//  - `MokoSlideControl` the "slide to finish" button
+//  - `MokoRadarChart`   the diamond chart on Insights
+//  - `MokoBarChart`     the small bar chart on Insights
+//  Sizes and colours come from `MokoScreenTheme`, so change them there.
 //
 
 import SwiftUI
 import UIKit
 
-private typealias Theme = MocoScreenTheme
+// A short nickname so we can write `Theme.Colors` instead of `MokoScreenTheme.Colors`.
+private typealias Theme = MokoScreenTheme
 
 // MARK: - Card shell (§6.2)
 
-private struct MocoCardModifier: ViewModifier {
+// A ViewModifier is a reusable "recipe" of modifiers. We wrap it in `.mokoCard()` below.
+private struct MokoCardModifier: ViewModifier {
     let fill: Color
     let radius: CGFloat
     /// Locked and disabled surfaces drop the lift so they read as set aside.
@@ -44,17 +51,17 @@ private struct MocoCardModifier: ViewModifier {
 extension View {
     /// The only card surface in the theme: continuous corners plus a two-layer
     /// tinted lift. No outline — cards separate from the canvas by elevation alone.
-    func mocoCard(fill: Color = Theme.Card.fill,
+    func mokoCard(fill: Color = Theme.Card.fill,
                   radius: CGFloat = Theme.Radius.card,
                   lift: Bool = true) -> some View {
-        modifier(MocoCardModifier(fill: fill, radius: radius, lift: lift))
+        modifier(MokoCardModifier(fill: fill, radius: radius, lift: lift))
     }
 }
 
 // MARK: - Background (§5)
 
 /// Green canvas plus the two vector strokes.
-struct MocoBackdrop: View {
+struct MokoBackdrop: View {
     var body: some View {
         ZStack {
             LinearGradient(
@@ -172,6 +179,7 @@ struct VectorLeafShape: Shape {
 
 // MARK: - Control/Slide (§6.4)
 
+/// Small helpers that make the phone buzz. "Impact" is a tap, "notify" is a success/error pattern.
 private enum Haptics {
     static func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
         UIImpactFeedbackGenerator(style: style).impactOccurred()
@@ -182,22 +190,32 @@ private enum Haptics {
     }
 }
 
+/// What the slider is doing right now.
+/// idle = untouched, dragging = finger on it, ready = far enough to finish,
+/// completing = finished and playing the end animation.
 private enum SlideState {
     case idle, dragging, ready, completing
 }
 
 /// Track 54, knob 46 inset 4, five states, rubber-band ends, 10% a11y steps.
-struct MocoSlideControl: View {
+struct MokoSlideControl: View {
     let label: String
     let onComplete: () -> Void
 
+    // The phone setting "Reduce Motion". If it is on, we skip the bouncy animations.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    // How far (in points) the round knob has moved to the right.
     @State private var travel: CGFloat = 0
+    // Where the knob was when the finger first touched it.
     @State private var dragStart: CGFloat = 0
+    // Which step of the slide we are in (see SlideState above).
     @State private var state: SlideState = .idle
+    // True for a moment when the slide finishes, so the track flashes lighter.
     @State private var flashToTint = false
+    // Flips on and off forever to make the idle track gently "breathe".
     @State private var breath = false
+    // Remembers the last buzz position so we only buzz once per step.
     @State private var lastHapticStep = 0
 
     private var trackHeight: CGFloat { Theme.Control.trackHeight }
@@ -225,6 +243,7 @@ struct MocoSlideControl: View {
                 .accessibilityAction(named: Text("Complete")) {
                     complete(maxTravel: maxTravel)
                 }
+                // Runs once when the slider shows up and starts the idle "breathing" glow.
                 .onAppear(perform: startBreathing)
         }
         .frame(height: trackHeight)
@@ -243,7 +262,7 @@ struct MocoSlideControl: View {
                 .frame(width: knobInset + travel + knobSize)
 
             Text(label)
-                .mocoText(Theme.Typeface.slider)
+                .mokoText(Theme.Typeface.slider)
                 .foregroundStyle(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
@@ -383,15 +402,18 @@ struct MocoSlideControl: View {
         }
 
         // Track flashes accent → tint → accent over 240ms, then the card swaps.
-        withAnimation(Theme.Motion.flash) { flashToTint = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+        // `Task` lets us wait without freezing the screen; `Task.sleep` is the wait.
+        Task {
+            withAnimation(Theme.Motion.flash) { flashToTint = true }
+            try? await Task.sleep(for: .milliseconds(120))
             withAnimation(Theme.Motion.flash) { flashToTint = false }
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
+            try? await Task.sleep(for: .milliseconds(120))
             onComplete()
         }
     }
 
+    /// Past either end the knob only moves 15% as far as the finger,
+    /// so it feels like stretching a rubber band.
     private func rubberBanded(_ raw: CGFloat, maxTravel: CGFloat) -> CGFloat {
         if raw < 0 { return raw * 0.15 }
         if raw > maxTravel { return maxTravel + (raw - maxTravel) * 0.15 }
@@ -405,6 +427,7 @@ struct MocoSlideControl: View {
         return Double(1 - min(max(fade, 0), 1))
     }
 
+    /// Gives a light buzz every `step` points so the drag feels like a ratchet.
     private func tickHaptics(every step: CGFloat) {
         let index = Int(travel / step)
         guard index != lastHapticStep else { return }
@@ -412,6 +435,7 @@ struct MocoSlideControl: View {
         Haptics.impact(.light)
     }
 
+    /// Starts a slow glow that repeats forever while the slider is waiting.
     private func startBreathing() {
         guard !reduceMotion else { return }
         withAnimation(Theme.Motion.breath.repeatForever(autoreverses: true)) {
@@ -423,7 +447,7 @@ struct MocoSlideControl: View {
 // MARK: - Control/Radar (§6.5)
 
 /// Four axes on a 45° diamond, three rings at 33/66/100%, violet at 35%.
-struct MocoRadarChart: View {
+struct MokoRadarChart: View {
     var scores: InsightsScores = .zero
 
     private let ringFactors: [CGFloat] = [0.33, 0.66, 1.0]
@@ -476,6 +500,7 @@ struct MocoRadarChart: View {
         ]
     }
 
+    /// One diamond-shaped ring of the background grid.
     private func diamond(center: CGPoint, radius: CGFloat) -> Path {
         var path = Path()
         path.move(to: CGPoint(x: center.x, y: center.y - radius))
@@ -495,6 +520,7 @@ struct MocoRadarChart: View {
         return path
     }
 
+    /// The filled violet shape that shows the four scores.
     private func dataPolygon(center: CGPoint, radius: CGFloat) -> Path {
         let points = vertexPoints(center: center, radius: radius)
         var path = Path()
@@ -510,7 +536,7 @@ struct MocoRadarChart: View {
 // MARK: - Control/Bars (§6.6)
 
 /// 8pt-gap bars, 6pt wide, 3pt radius, ascending opacity, last bar deep +2pt.
-struct MocoBarChart: View {
+struct MokoBarChart: View {
     var values: [Double]
 
     private let barWidth: CGFloat = 6
@@ -539,11 +565,13 @@ struct MocoBarChart: View {
         .accessibilityLabel("Calm down minutes for recent days")
     }
 
+    /// Older bars are fainter, newer bars are stronger (45% → 90%).
     private func opacity(at index: Int, of count: Int) -> Double {
         guard count > 1 else { return 0.7 }
         return 0.45 + (0.45 * Double(index) / Double(count - 1))
     }
 
+    /// Bar height compared with the tallest bar. Empty days still get a 4pt stub.
     private func barHeight(_ value: Double, peak: Double, available: CGFloat) -> CGFloat {
         guard value > 0 else { return 4 }
         return max(4, available * CGFloat(value / peak))

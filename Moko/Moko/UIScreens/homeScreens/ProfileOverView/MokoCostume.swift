@@ -1,6 +1,17 @@
+//
+//  MokoCostume.swift
+//  Moko
+//
+//  Moko's outfits. A new costume unlocks as the user levels up.
+//  - `MokoCostume`: the list of outfits and the unlock rules.
+//  - `MokoCostumeAvatar`: the round picture (user photo or Moko in an outfit).
+//  - `MokoWardrobeView`: the screen where the user picks an outfit.
+//
+
 import SwiftUI
 import UIKit
 
+/// One outfit. `level` is the level needed to unlock it, and it is also the outfit's id.
 struct MokoCostume: Identifiable, Hashable {
     let level: Int
     let name: String
@@ -25,16 +36,21 @@ struct MokoCostume: Identifiable, Hashable {
         .init(level: 30, name: "Level Master", assetName: "MokoCostume15")
     ]
 
+    /// How many outfits the user has at this level.
     static func unlockedCount(for level: Int) -> Int {
         all.filter { $0.level <= level }.count
     }
 
+    /// The outfit to show: the one the user picked if it is unlocked,
+    /// otherwise the newest unlocked one, otherwise the first outfit (for level 0).
     static func selected(unlockedAt level: Int, selection: Int) -> MokoCostume {
         all.first(where: { $0.level == selection && $0.level <= level })
-            ?? all.last(where: { $0.level <= level })!
+            ?? all.last(where: { $0.level <= level })
+            ?? all[0]
     }
 }
 
+/// A round avatar. Shows the user's photo if they set one, otherwise Moko in the chosen outfit.
 struct MokoCostumeAvatar: View {
     let level: Int
     let photoData: Data?
@@ -42,12 +58,15 @@ struct MokoCostumeAvatar: View {
     /// Pass `.clear` when the avatar sits on a themed surface of its own.
     var background: Color = ProfilePalette.grouped
     var ring: Color? = ProfilePalette.accent.opacity(0.18)
+    // @AppStorage saves the picked outfit in UserDefaults, so it is remembered after the app closes.
+    // Every view that uses the same key updates together.
     @AppStorage("moko.selectedCostumeLevel") private var selectedLevel = 1
 
     private var costume: MokoCostume { .selected(unlockedAt: level, selection: selectedLevel) }
 
     var body: some View {
         Group {
+            // Turn the saved photo bytes back into an image. If that fails, show Moko instead.
             if let photoData, let image = UIImage(data: photoData) {
                 Image(uiImage: image)
                     .resizable()
@@ -71,8 +90,10 @@ struct MokoCostumeAvatar: View {
     }
 }
 
+/// Profile → Wardrobe: every outfit, with locked ones greyed out.
 struct MokoWardrobeView: View {
     let level: Int
+    // Same key as `MokoCostumeAvatar`, so tapping an outfit here changes the avatar everywhere.
     @AppStorage("moko.selectedCostumeLevel") private var selectedLevel = 1
 
     var body: some View {
@@ -96,6 +117,7 @@ struct MokoWardrobeView: View {
                 ForEach(MokoCostume.all) { costume in
                     let unlocked = level >= costume.level
                     Button {
+                        // Locked outfits cannot be picked.
                         guard unlocked else { return }
                         selectedLevel = costume.level
                     } label: {

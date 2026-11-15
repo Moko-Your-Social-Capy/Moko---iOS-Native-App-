@@ -2,21 +2,33 @@
 //  QuestLibraryView.swift
 //  Moko
 //
-//  Quest Library screen showing categorized situation cards with horizontal snapping
-//  and case-insensitive search filtering.
+//  The Explore tab: ready-made quests from Supabase, grouped by category in
+//  horizontal rows, with a search bar that filters by title.
+//
+//  Flow: `QuestLibraryStore` downloads the sections → tapping a card finds (or
+//  creates) a hidden SwiftData `Quest` for it → `QuestDetailScreen` opens.
+//  Debug tip: if nothing loads, check `store.errorMessage` and the "Network" log.
 //
 
 import SwiftUI
 import SwiftData
 import UIKit
+import OSLog
 
 struct QuestLibraryView: View {
     // MARK: - Properties
+
+    // SwiftData's "save box". Used to find or create the quest behind a card.
     @Environment(\.modelContext) private var modelContext
+    // The phone setting "Reduce Motion". Cards fade in without sliding when it is on.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    // Downloads the library from Supabase. @State keeps it alive between redraws.
     @State private var store = QuestLibraryStore()
+    // What the user typed in the search bar.
     @State private var searchText: String = ""
+    // Setting this pushes the quest briefing.
     @State private var openedQuest: Quest?
+    // Card size that grows with the user's text size setting.
     @ScaledMetric(relativeTo: .body) private var cardWidth: CGFloat = 164
     @ScaledMetric(relativeTo: .body) private var cardHeight: CGFloat = 224
     /// How far the library has scrolled (0 at rest), used to swap the large header for a compact title.
@@ -27,6 +39,9 @@ struct QuestLibraryView: View {
     @State private var libraryArtworkURL: URL?
 
     // MARK: - Filtered Data
+
+    /// Sections with only the quests whose title matches the search.
+    /// Curly apostrophes (’) are treated like straight ones (') so "don't" finds "don’t".
     private var filteredSections: [QuestSection] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else {
@@ -47,7 +62,7 @@ struct QuestLibraryView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                MocoBackdrop()
+                MokoBackdrop()
 
                 if store.isLoading || !store.hasAttemptedLoad {
                     VStack(spacing: 14) {
@@ -55,7 +70,7 @@ struct QuestLibraryView: View {
                             .frame(width: 176, height: 176)
 
                         Text("Loading quests…")
-                            .mocoText(MocoScreenTheme.Typeface.body)
+                            .mokoText(MokoScreenTheme.Typeface.body)
                             .foregroundStyle(QuestStyle.title)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -68,6 +83,7 @@ struct QuestLibraryView: View {
                         }
                         .padding(.bottom, 16)
                     }
+                    // Reports how far the list has scrolled, so the small title can fade in.
                     .onScrollGeometryChange(for: CGFloat.self) { geometry in
                         geometry.contentOffset.y + geometry.contentInsets.top
                     } action: { _, offset in
@@ -78,17 +94,19 @@ struct QuestLibraryView: View {
                     }
                 }
             }
+            // `.task` runs when the screen appears. Downloads the library the first time only.
             .task {
                 await store.loadIfNeeded()
             }
             // Matches the Overview, Quests and Relax tab headers.
             .navigationTitle("Quest Library")
-            .tint(MocoScreenTheme.Colors.dataVioletDeep)
+            .tint(MokoScreenTheme.Colors.dataVioletDeep)
             .toolbar(.hidden, for: .navigationBar)
             .searchable(
                 text: $searchText,
                 placement: .navigationBarDrawer(displayMode: .always)
             )
+            // Pushes the briefing whenever `openedQuest` is set.
             .navigationDestination(item: $openedQuest) { quest in
                 QuestDetailScreen(quest: quest, libraryArtworkURL: libraryArtworkURL)
             }
@@ -101,14 +119,14 @@ struct QuestLibraryView: View {
     /// away, so the screen stays labelled without a navigation bar.
     private var compactTitleBar: some View {
         Text("Quest Library")
-            .font(.system(size: 17, weight: .semibold))
-            .foregroundStyle(MokoTheme.titleBrown)
+            .font(.headline)
+            .foregroundStyle(MokoScreenTheme.Colors.textTitle)
             .lineLimit(1)
             .frame(maxWidth: .infinity)
             .frame(height: 44)
-            // The lime backing runs up through the status bar so scrolled cards cannot show there.
+            // The backing runs up through the status bar so scrolled cards cannot show there.
             .background {
-                MokoTheme.limeBackground
+                MokoScreenTheme.Colors.canvasTop
                     .ignoresSafeArea(edges: .top)
             }
             .overlay(alignment: .bottom) {
@@ -131,8 +149,8 @@ struct QuestLibraryView: View {
     private var headerSection: some View {
         HStack(alignment: .firstTextBaseline) {
             Text("Quest Library")
-                .mocoText(MocoScreenTheme.Typeface.title1)
-                .foregroundColor(MocoScreenTheme.Colors.textTitle)
+                .mokoText(MokoScreenTheme.Typeface.title1)
+                .foregroundStyle(MokoScreenTheme.Colors.textTitle)
 
             Spacer(minLength: 12)
 
@@ -141,7 +159,7 @@ struct QuestLibraryView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(QuestStyle.green)
+                    .foregroundStyle(QuestStyle.accent)
                     .frame(width: 44, height: 44)
                     .contentShape(Circle())
             }
@@ -149,11 +167,13 @@ struct QuestLibraryView: View {
             .disabled(store.isLoading)
             .accessibilityLabel("Refresh quests")
         }
-        .padding(.horizontal, MocoScreenTheme.Space.page)
+        .padding(.horizontal, MokoScreenTheme.Space.page)
         .padding(.top, 14)
     }
 
     // MARK: - Content
+
+    /// Error, empty, "no search results" or the category rows.
     @ViewBuilder
     private var libraryContent: some View {
         if let error = store.errorMessage, store.sections.isEmpty {
@@ -166,7 +186,7 @@ struct QuestLibraryView: View {
                     Task { await store.load() }
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(QuestStyle.green)
+                .tint(QuestStyle.accent)
             }
             .frame(maxWidth: .infinity)
             .padding(.top, 40)
@@ -183,6 +203,7 @@ struct QuestLibraryView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.top, 40)
         } else {
+            // Some quests are already showing, but the latest refresh failed.
             if let error = store.errorMessage {
                 refreshFailedBanner(error)
             }
@@ -199,7 +220,7 @@ struct QuestLibraryView: View {
                 .font(.system(size: 13, weight: .semibold))
 
             Text(message)
-                .mocoText(MocoScreenTheme.Typeface.caption)
+                .mokoText(MokoScreenTheme.Typeface.caption)
                 .fixedSize(horizontal: false, vertical: true)
 
             Spacer(minLength: 6)
@@ -207,44 +228,48 @@ struct QuestLibraryView: View {
             Button("Retry") {
                 Task { await store.load() }
             }
-            .mocoText(MocoScreenTheme.Typeface.caption)
-            .foregroundStyle(QuestStyle.green)
+            .mokoText(MokoScreenTheme.Typeface.caption)
+            .foregroundStyle(QuestStyle.accent)
         }
         .foregroundStyle(QuestStyle.title)
         .padding(14)
-        .mocoCard(fill: MocoScreenTheme.Colors.surfaceLavender, radius: MocoScreenTheme.Radius.inner, lift: false)
-        .padding(.horizontal, MocoScreenTheme.Space.page)
+        .mokoCard(fill: MokoScreenTheme.Colors.surfaceLavender, radius: MokoScreenTheme.Radius.inner, lift: false)
+        .padding(.horizontal, MokoScreenTheme.Space.page)
     }
 
     // MARK: - Section View
+
+    /// One category: a heading and a sideways-scrolling row of cards.
     @ViewBuilder
     private func sectionView(for section: QuestSection, sectionIndex: Int) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            // Heading: size 22, weight medium, colour #111827, 20pt left padding
-            Text(section.title)
-                .mocoText(MocoScreenTheme.Typeface.title2)
-                .foregroundStyle(MocoScreenTheme.Colors.textTitle)
-                .padding(.leading, MocoScreenTheme.Space.page)
+        // How many cards come before this row. Used to stagger the first cards' entrance.
+        let firstCardIndex = filteredSections.prefix(sectionIndex).reduce(0) { $0 + $1.quests.count }
 
-            // Horizontal scroll with snapping
+        VStack(alignment: .leading, spacing: 14) {
+            Text(section.title)
+                .mokoText(MokoScreenTheme.Typeface.title2)
+                .foregroundStyle(MokoScreenTheme.Colors.textTitle)
+                .padding(.leading, MokoScreenTheme.Space.page)
+
+            // Horizontal scroll that snaps so a card always lines up with the left edge.
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 14) {
                     ForEach(Array(section.quests.enumerated()), id: \.element.id) { questIndex, quest in
-                        let firstCardIndex = filteredSections.prefix(sectionIndex).reduce(0) { $0 + $1.quests.count }
                         situationCard(for: quest, in: section)
                             .questCardEntrance(order: firstCardIndex + questIndex, reduceMotion: reduceMotion)
                     }
                 }
-                .scrollTargetLayout()
+                .scrollTargetLayout()   // tells `.viewAligned` which views to snap to
             }
             .scrollIndicators(.hidden)
             .scrollTargetBehavior(.viewAligned)
-            .contentMargins(.horizontal, MocoScreenTheme.Space.page, for: .scrollContent)
+            .contentMargins(.horizontal, MokoScreenTheme.Space.page, for: .scrollContent)
             .scrollClipDisabled()
         }
     }
 
-    // MARK: - Situation Card (fixed 150 x 202)
+    // MARK: - Situation Card
+
     private func situationCard(for quest: LibraryQuest, in section: QuestSection) -> some View {
         Button {
             open(quest, in: section)
@@ -256,43 +281,44 @@ struct QuestLibraryView: View {
         .accessibilityHint("Opens the quest briefing")
     }
 
+    /// Picture, title, divider, XP — top to bottom.
     private func cardContent(for quest: LibraryQuest, in section: QuestSection) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            // 1. Picture area: 128 x 98, corner radius 15 (continuous), filled with pastel tint
-            RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.inner, style: .continuous)
+            // 1. Picture area, filled with the quest's pastel tint behind the artwork.
+            RoundedRectangle(cornerRadius: MokoScreenTheme.Radius.inner, style: .continuous)
                 .fill(quest.tint)
                 .frame(width: cardWidth - 24, height: 106)
                 .overlay {
                     artwork(for: quest, in: section)
                 }
-                .clipShape(RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.inner, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: MokoScreenTheme.Radius.inner, style: .continuous))
 
-            // 2. Title: size 16, weight medium, colour #111827, max 2 lines, left aligned, min height 39, 5pt above it
+            // 2. Title: up to 2 lines. The min height keeps every card's divider at the same place.
             Text(quest.title)
-                .mocoText(MocoScreenTheme.Typeface.cardTitle)
-                .foregroundStyle(MocoScreenTheme.Colors.textTitle)
+                .mokoText(MokoScreenTheme.Typeface.cardTitle)
+                .foregroundStyle(MokoScreenTheme.Colors.textTitle)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, minHeight: 39, alignment: .topLeading)
                 .padding(.top, 5)
 
-            // 3. Flexible spacer
+            // 3. Pushes the divider and XP to the bottom of the card.
             Spacer(minLength: 0)
 
-            // 4. 1pt divider, colour #F3F4F6, full inner width
+            // 4. Thin divider.
             Rectangle()
-                .fill(MocoScreenTheme.Colors.dataGrid)
+                .fill(MokoScreenTheme.Colors.dataGrid)
                 .frame(height: 1)
 
-            // 5. XP label: size 12, regular, colour #9CA3AF, left aligned, min height 21.5
+            // 5. XP label.
             Text("\(quest.xp) XP")
-                .mocoText(MocoScreenTheme.Typeface.caption)
-                .foregroundStyle(MocoScreenTheme.Colors.textMuted)
+                .mokoText(MokoScreenTheme.Typeface.caption)
+                .foregroundStyle(MokoScreenTheme.Colors.textMuted)
                 .frame(maxWidth: .infinity, minHeight: 21.5, alignment: .leading)
         }
         .padding(12)
         .frame(width: cardWidth, height: cardHeight)
-        .mocoCard()
+        .mokoCard()
     }
 
     /// Card artwork from Supabase Storage. Until a file is uploaded, or while it
@@ -300,6 +326,7 @@ struct QuestLibraryView: View {
     @ViewBuilder
     private func artwork(for quest: LibraryQuest, in section: QuestSection) -> some View {
         if let url = quest.artworkURL {
+            // AsyncImage downloads the picture. `phase` tells us loading / done / failed.
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let image):
@@ -331,7 +358,7 @@ struct QuestLibraryView: View {
     private func categorySymbol(for category: QuestCategory) -> some View {
         Image(systemName: category.symbol)
             .font(.system(size: 32, weight: .semibold))
-            .foregroundStyle(QuestStyle.green.opacity(0.45))
+            .foregroundStyle(QuestStyle.accent.opacity(0.45))
     }
 
     // MARK: - Connections
@@ -346,6 +373,7 @@ struct QuestLibraryView: View {
     /// quests carry a specific XP value, which keeps them out of the Quests tab
     /// while still letting their debrief scores reach Insights.
     private func libraryQuest(for item: LibraryQuest, in section: QuestSection) -> Quest {
+        // #Predicate can't read `item.title` directly, so copy values into locals first.
         let ownerID = CurrentUser.localID
         let title = item.title
         let descriptor = FetchDescriptor<Quest>(
@@ -354,7 +382,15 @@ struct QuestLibraryView: View {
             },
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
-        let matches = (try? modelContext.fetch(descriptor)) ?? []
+
+        let matches: [Quest]
+        do {
+            matches = try modelContext.fetch(descriptor)
+        } catch {
+            Logger.data.error("Library quest lookup failed: \(error.localizedDescription, privacy: .public)")
+            matches = []
+        }
+
         if let existing = matches.first(where: {
             $0.isFromLibrary && !$0.debriefRecorded && $0.category == section.category
         }) {
@@ -371,14 +407,17 @@ struct QuestLibraryView: View {
             xp: item.xp
         )
         modelContext.insert(quest)
-        try? modelContext.save()
+        modelContext.saveOrLog("library quest")
         return quest
     }
 }
 
+/// Fades (and slides up) the first 6 cards when the library appears, one after another.
+/// Later cards appear straight away so long lists don't feel slow.
 private struct QuestCardEntranceModifier: ViewModifier {
     let order: Int
     let reduceMotion: Bool
+    // false until the card has appeared once.
     @State private var isVisible = false
 
     func body(content: Content) -> some View {

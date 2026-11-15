@@ -12,7 +12,7 @@
 //
 
 import SwiftUI
-import Combine
+import Observation
 
 // MARK: - Store
 
@@ -20,8 +20,12 @@ import Combine
 ///
 /// Every slot always holds a non-empty line: blanks fall back to the matching
 /// default, which keeps a timer that divides 2:00 by the slot count well defined.
-final class MirrorAffirmationStore: ObservableObject {
+///
+/// `@Observable` means any screen that reads `quotes` redraws by itself when they change.
+@Observable
+final class MirrorAffirmationStore {
 
+    /// One shared copy, so the mirror and camera screens always show the same lines.
     static let shared = MirrorAffirmationStore()
 
     /// Seconds each line stays highlighted. `slotCount * slotDuration` is the
@@ -42,7 +46,8 @@ final class MirrorAffirmationStore: ObservableObject {
 
     private static let storageKey = "mirror.affirmations.v1"
 
-    @Published var quotes: [String] {
+    /// The eight lines. Every change is saved to the phone straight away.
+    var quotes: [String] {
         didSet { persist() }
     }
 
@@ -70,6 +75,7 @@ final class MirrorAffirmationStore: ObservableObject {
         }
     }
 
+    /// UserDefaults is a tiny on-phone notebook for small settings. It survives app restarts.
     private func persist() {
         UserDefaults.standard.set(quotes, forKey: Self.storageKey)
     }
@@ -81,7 +87,7 @@ final class MirrorAffirmationStore: ObservableObject {
 /// window about four rows tall and keep the highlighted line in view. Four is the
 /// cap, not a page size -- the rest are one swipe (or 15 s) away.
 enum MirrorAffirmationsWindow {
-    /// ~4 rows of `moco.type.body` (22 pt line + 10 pt gap) plus padding. Rows that
+    /// ~4 rows of `moko.type.body` (22 pt line + 10 pt gap) plus padding. Rows that
     /// wrap to two lines trade a row for a line, never more than four blocks.
     static let height: CGFloat = 136
 }
@@ -98,12 +104,12 @@ struct MirrorEditAffirmationsButton: View {
                     .font(.system(size: 12, weight: .semibold))
 
                 Text("Edit")
-                    .mocoText(MocoScreenTheme.Typeface.caption)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
             }
-            .foregroundColor(MirrorPalette.green)
+            .foregroundStyle(MirrorPalette.accent)
             .padding(.horizontal, 12)
             .frame(height: 32)
-            .background(Capsule().fill(MirrorPalette.chip))
+            .background(Capsule().fill(MirrorPalette.track))
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Edit affirmations")
@@ -113,7 +119,8 @@ struct MirrorEditAffirmationsButton: View {
 // MARK: - Editor
 
 struct MirrorAffirmationsSheet: View {
-    @ObservedObject var store: MirrorAffirmationStore
+    // @Bindable lets the text fields below write straight into `store.quotes`.
+    @Bindable var store: MirrorAffirmationStore
     @Environment(\.dismiss) private var dismiss
 
     private var slotSeconds: Int { Int(MirrorAffirmationStore.slotDuration) }
@@ -128,8 +135,8 @@ struct MirrorAffirmationsSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     Text("These lines play one at a time during the \(practiceMinutes) practice, \(slotSeconds) seconds each. Rewrite any of them so they sound like you.")
-                        .mocoText(MocoScreenTheme.Typeface.body)
-                        .foregroundColor(MirrorPalette.subtext)
+                        .mokoText(MokoScreenTheme.Typeface.body)
+                        .foregroundStyle(MirrorPalette.subtext)
                         .fixedSize(horizontal: false, vertical: true)
 
                     ForEach(store.quotes.indices, id: \.self) { index in
@@ -140,19 +147,19 @@ struct MirrorAffirmationsSheet: View {
                         store.resetToDefaults()
                     } label: {
                         Text("Reset to the default lines")
-                            .mocoText(MocoScreenTheme.Typeface.caption)
-                            .foregroundColor(MirrorPalette.green)
+                            .mokoText(MokoScreenTheme.Typeface.caption)
+                            .foregroundStyle(MirrorPalette.accent)
                             .frame(maxWidth: .infinity)
                             .frame(height: 44)
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 4)
                 }
-                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
                 .padding(.vertical, 18)
             }
             .scrollDismissesKeyboard(.interactively)
-            .background(MocoBackdrop())
+            .background(MokoBackdrop())
             .navigationTitle("Your affirmations")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -167,7 +174,7 @@ struct MirrorAffirmationsSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { close() }
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(MirrorPalette.green)
+                        .foregroundStyle(MirrorPalette.accent)
                 }
             }
         }
@@ -177,27 +184,27 @@ struct MirrorAffirmationsSheet: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("Line \(index + 1)")
-                    .mocoText(MocoScreenTheme.Typeface.caption)
-                    .foregroundColor(MirrorPalette.subtext)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
+                    .foregroundStyle(MirrorPalette.subtext)
 
                 Spacer()
 
                 Text("\(slotSeconds)s")
-                    .mocoText(MocoScreenTheme.Typeface.caption)
-                    .foregroundColor(MirrorPalette.green.opacity(0.6))
+                    .mokoText(MokoScreenTheme.Typeface.caption)
+                    .foregroundStyle(MirrorPalette.accent.opacity(0.6))
             }
 
             TextField("Write your affirmation", text: $store.quotes[index], axis: .vertical)
-                .mocoText(MocoScreenTheme.Typeface.body)
-                .foregroundColor(MirrorPalette.title)
-                .tint(MirrorPalette.green)
+                .mokoText(MokoScreenTheme.Typeface.body)
+                .foregroundStyle(MirrorPalette.title)
+                .tint(MirrorPalette.accent)
                 .lineLimit(1...3)
                 .textInputAutocapitalization(.sentences)
                 .submitLabel(.done)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(MocoScreenTheme.Space.cardHorizontal)
-        .mocoCard()
+        .padding(MokoScreenTheme.Space.cardHorizontal)
+        .mokoCard()
     }
 
     /// Edits persist as they're typed; this only tidies blanks left behind.

@@ -1,15 +1,26 @@
-// MokoMissionBank.swift
-// Shared domain types + the 20-situation Mission Bank (v2) from "Lowkey-Mission-Bank-Followups.pdf".
-// This is the retrieval source for: similar-mission planning, goals, the debrief main question,
-// and the per-stat follow-up questions. AFM personalises these; it never invents them from nothing.
+//
+//  MokoMissionBank.swift
+//  Moko
+//
+//  The shared AFM vocabulary (`Stat`, `Difficulty`, `MissionTemplate`) and the
+//  20-situation Mission Bank (v2) from "Lowkey-Mission-Bank-Followups.pdf".
+//
+//  The bank is the source for mission planning, goals, the debrief main question
+//  and the per-stat follow-up questions. AFM rewords these; it never makes
+//  missions up from nothing (see MokoMissionInvention.swift for the checked exception).
+//
+//  To add a mission: add one `t(...)` line in the right category below.
+//
 
 import Foundation
 
 // MARK: - Core vocab
 
+/// The four social skills Moko measures.
 enum Stat: String, CaseIterable, Codable, Hashable, Sendable {
     case courage, clarity, presence, warmth
 
+    /// "Courage", "Clarity", ...
     var title: String { rawValue.capitalized }
 
     /// Definitions from the Moko onboarding tagging doc.
@@ -26,10 +37,12 @@ enum Stat: String, CaseIterable, Codable, Hashable, Sendable {
 // Note: QuestCategory is declared in QuestModels.swift:
 // (.work, .dating, .friends, .family, .others)
 
+/// How hard a mission is. Mirrors `QuestIntensity` (the SwiftData side).
 enum Difficulty: String, CaseIterable, Codable, Hashable, Sendable {
     case easy, medium, hard
 }
 
+// Convert between `Difficulty` (AFM side) and `QuestIntensity` (saved on `Quest`).
 extension Difficulty {
     init(intensity: QuestIntensity) {
         switch intensity {
@@ -48,25 +61,13 @@ extension Difficulty {
     }
 }
 
-extension QuestIntensity {
-    init(difficulty: Difficulty) {
-        switch difficulty {
-        case .easy: self = .easy
-        case .medium: self = .medium
-        case .hard: self = .hard
-        }
-    }
-
-    var difficulty: Difficulty {
-        Difficulty(intensity: self)
-    }
-}
-
+/// One situation in the bank.
 struct MissionTemplate: Identifiable, Hashable, Sendable {
     let id: String
     let category: QuestCategory
     /// Lower bound of the bank's tier: 1 (1–3), 4 (4–7), 8 (8–12), 13 (13+).
     let tierLow: Int
+    /// Ages this situation suits.
     let ageRange: ClosedRange<Int>
     let title: String
     let scene: String
@@ -86,8 +87,10 @@ struct MissionTemplate: Identifiable, Hashable, Sendable {
 // MARK: - Bank
 
 enum MissionBank {
+    /// The template with this id, or nil if the id is unknown.
     static func template(id: String) -> MissionTemplate? { all.first { $0.id == id } }
 
+    /// Templates in a category (`.others` means "any category"), optionally only those suiting `age`.
     static func templates(in category: QuestCategory, age: Int? = nil) -> [MissionTemplate] {
         let pool = (category == .others) ? all : all.filter { $0.category == category }
         return pool.filter { t in
@@ -95,6 +98,7 @@ enum MissionBank {
         }
     }
 
+    /// Every situation. Follow-up labels: c = Courage, cl = Clarity, p = Presence, w = Warmth.
     static let all: [MissionTemplate] = [
 
         // ───────── WORK ─────────

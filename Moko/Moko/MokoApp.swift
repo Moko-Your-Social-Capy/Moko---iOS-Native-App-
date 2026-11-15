@@ -2,7 +2,8 @@
 //  MokoApp.swift
 //  Moko
 //
-//  Premium Apple-native social wellness and self-improvement application.
+//  Where the app starts. It opens ContentView and sets up the on-phone database.
+//
 
 import SwiftUI
 import SwiftData
@@ -12,22 +13,15 @@ import UIKit
 struct MokoApp: App {
 
     init() {
-        let segments = UISegmentedControl.appearance()
-        segments.selectedSegmentTintColor = UIColor(
-            red: 226.0 / 255.0,
-            green: 245.0 / 255.0,
-            blue: 177.0 / 255.0,
-            alpha: 1
-        )
-        let brown = UIColor(red: 92.0 / 255.0, green: 67.0 / 255.0, blue: 48.0 / 255.0, alpha: 1)
-        segments.setTitleTextAttributes([.foregroundColor: brown], for: .selected)
-        segments.setTitleTextAttributes([.foregroundColor: brown], for: .normal)
+        styleSegmentedPickers()
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
+        // SwiftData is Apple's storage. It saves these types on the phone
+        // and shares them with every screen through the environment.
         .modelContainer(for: [
             OnboardingState.self,
             OnboardingQuestion.self,
@@ -37,5 +31,17 @@ struct MokoApp: App {
             Quest.self,
             InsightsModel.self
         ])
+    }
+
+    /// Colours every segmented `Picker` in the app (lime pill, brown text).
+    /// UIKit is used because SwiftUI has no way to change these colours yet.
+    private func styleSegmentedPickers() {
+        let segments = UISegmentedControl.appearance()
+        let lime = UIColor(red: 226 / 255, green: 245 / 255, blue: 177 / 255, alpha: 1)
+        let brown = UIColor(red: 92 / 255, green: 67 / 255, blue: 48 / 255, alpha: 1)
+
+        segments.selectedSegmentTintColor = lime
+        segments.setTitleTextAttributes([.foregroundColor: brown], for: .selected)
+        segments.setTitleTextAttributes([.foregroundColor: brown], for: .normal)
     }
 }

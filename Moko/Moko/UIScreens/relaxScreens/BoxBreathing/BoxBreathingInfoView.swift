@@ -1,7 +1,16 @@
+//
+//  BoxBreathingInfoView.swift
+//  Moko
+//
+//  The intro sheet before Box Breathing: explains the exercise and lets the
+//  user pick how many cycles (1–20) to do.
+//
+
 import SwiftUI
 
 /// The "Box Breathing" intro card, shown inside a modal sheet.
 struct BoxBreathingInfoView: View {
+    // @Binding: the number lives in the parent screen. Changing it here changes it there.
     @Binding var cycles: Int
     var onContinue: () -> Void = {}
     var onNotNow: () -> Void = {}
@@ -18,30 +27,30 @@ struct BoxBreathingInfoView: View {
                             .resizable()
                             .scaledToFill()
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 0, style: .continuous))
+                    .clipped()
                     .accessibilityHidden(true)
 
                 Text("Box Breathing")
-                    .mocoText(MocoScreenTheme.Typeface.title2)
+                    .mokoText(MokoScreenTheme.Typeface.title2)
                     .foregroundStyle(BBColor.titleBrown)
                     .padding(.top, 20)
 
                 Text("Breathe in for 4 seconds, hold for 4 seconds.\nBreathe out for 4 seconds, hold for 4 seconds.\nRepeat this cycle at your own pace.")
-                    .mocoText(MocoScreenTheme.Typeface.body)
+                    .mokoText(MokoScreenTheme.Typeface.body)
                     .lineSpacing(3)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(BBColor.muted)
-                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.horizontal, MokoScreenTheme.Space.page)
                     .padding(.top, 10)
 
-                // Cycle Counter with Plus and Minus Buttons
+                // Cycle counter: minus and plus keep the number between 1 and 20.
                 HStack(spacing: 20) {
                     Button(action: { cycles = max(1, cycles - 1) }) {
                         Image(systemName: "minus")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(cycles > 1 ? BBColor.button : .gray)
+                            .foregroundStyle(cycles > 1 ? BBColor.button : .gray)
                             .frame(width: 44, height: 44)
-                            .background(Circle().fill(MocoScreenTheme.Colors.surfaceLavender))
+                            .background(Circle().fill(MokoScreenTheme.Colors.surfaceLavender))
                     }
                     .buttonStyle(.plain)
                     .disabled(cycles <= 1)
@@ -49,10 +58,10 @@ struct BoxBreathingInfoView: View {
 
                     VStack(spacing: 2) {
                         Text("\(cycles)")
-                            .mocoText(MocoScreenTheme.Typeface.title2)
+                            .mokoText(MokoScreenTheme.Typeface.title2)
                             .foregroundStyle(BBColor.title)
                         Text(cycles == 1 ? "Cycle" : "Cycles")
-                            .mocoText(MocoScreenTheme.Typeface.caption)
+                            .mokoText(MokoScreenTheme.Typeface.caption)
                             .foregroundStyle(BBColor.subtitle)
                     }
                     .frame(minWidth: 70)
@@ -60,9 +69,9 @@ struct BoxBreathingInfoView: View {
                     Button(action: { cycles = min(20, cycles + 1) }) {
                         Image(systemName: "plus")
                             .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(cycles < 20 ? BBColor.button : .gray)
+                            .foregroundStyle(cycles < 20 ? BBColor.button : .gray)
                             .frame(width: 44, height: 44)
-                            .background(Circle().fill(MocoScreenTheme.Colors.surfaceLavender))
+                            .background(Circle().fill(MokoScreenTheme.Colors.surfaceLavender))
                     }
                     .buttonStyle(.plain)
                     .disabled(cycles >= 20)
@@ -72,21 +81,21 @@ struct BoxBreathingInfoView: View {
 
                 Button(action: onContinue) {
                     Text("Continue")
-                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
+                        .mokoText(MokoScreenTheme.Typeface.cardTitle)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
                         .background(Capsule().fill(BBColor.button))
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
                 .padding(.top, 20)
 
                 Button(action: onNotNow) {
                     Text("Not now")
-                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
+                        .mokoText(MokoScreenTheme.Typeface.cardTitle)
                         .foregroundStyle(BBColor.button)
-                        .padding(.horizontal, MocoScreenTheme.Space.page)
+                        .padding(.horizontal, MokoScreenTheme.Space.page)
                         .padding(.vertical, 8)
                         .contentShape(Rectangle())
                 }
@@ -96,8 +105,9 @@ struct BoxBreathingInfoView: View {
             }
             .frame(maxWidth: .infinity)
         }
+        // Only bounce when the content is taller than the sheet.
         .scrollBounceBehavior(.basedOnSize)
-        .background { MocoBackdrop() }
+        .background { MokoBackdrop() }
         .ignoresSafeArea(edges: .top)
     }
 }

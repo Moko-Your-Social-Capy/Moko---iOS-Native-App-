@@ -1,9 +1,19 @@
+//
+//  WelcomeView.swift
+//  Moko
+//
+//  Intro step 4 (last): greets the user by name and starts the reflection questions.
+//
+
 import SwiftUI
 
 struct WelcomeView: View {
-    let name: String                       // the name the user typed earlier
+    /// The name the user typed on NameEntryView.
+    let name: String
+    /// Called when the user taps "Start reflections".
     var onStart: () -> Void = {}
 
+    /// "Nice to meet you, Sam", or without the name if it is blank.
     private var greeting: String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "Nice to meet you" : "Nice to meet you, \(trimmed)"
@@ -11,7 +21,9 @@ struct WelcomeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            // Last intro step, so the bar is full.
+            OnboardingProgressBar(progress: 1)
+                .padding(.horizontal, 20)
 
             Text(greeting)
                 .font(.system(size: 25, weight: .semibold))
@@ -36,38 +48,15 @@ struct WelcomeView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .padding(.horizontal, 20)
                 .padding(.top, 60)
+                .accessibilityHidden(true)
 
             Spacer(minLength: 16)
 
-            startButton
+            OnboardingContinueButton(title: "Start reflections", action: onStart)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 36)
         }
         .background(MokoTheme.limeBackground.ignoresSafeArea())
-    }
-
-    // MARK: Header (full progress bar)
-
-    private var header: some View {
-        Capsule()
-            .fill(Color.forestLight)
-            .frame(height: 3)
-            .padding(.horizontal, 20)
-    }
-
-    // MARK: Start button
-
-    private var startButton: some View {
-        Button(action: onStart) {
-            HStack(spacing: 8) {
-                Text("Start reflections")
-            }
-            .font(.system(size: 17))
-            .foregroundStyle(Color.cream)
-            .frame(maxWidth: .infinity)
-            .frame(height: 52)
-            .background(Color.forest, in: Capsule())
-        }
     }
 }
 

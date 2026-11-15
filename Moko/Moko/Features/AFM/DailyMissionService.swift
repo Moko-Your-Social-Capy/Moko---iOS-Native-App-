@@ -1,17 +1,22 @@
-// DailyMissionService.swift
-// Ensures a fresh, tailored daily mission is always available for the user.
-// Integrates with AFM (QuestCardService.freshDailyCard) and MissionBank so the
-// user always has an active mission on the Overview screen instead of "No Active Quest".
 //
-// ADAPTIVE BEHAVIOR:
-//   1. Lowest-Scored Parameter Focus: When no custom quest is upcoming, the daily mission
-//      targets the user's lowest-scored parameter from Insights (Courage, Clarity, Presence, or Warmth)
-//      across diverse life categories (Work, Dating, Friends, Family).
-//   2. Custom Quest Preparation: When an upcoming custom quest exists, daily missions act
-//      as stepping stones leading up to it. To prevent boredom and avoid spoon-feeding,
-//      categories alternate between different domains (foundational social skills) and
-//      similar situations to prepare directly for the event.
-//   3. Equal Evaluation: During debrief, all parameters continue to be evaluated with equal importance.
+//  DailyMissionService.swift
+//  Moko
+//
+//  Makes sure the Overview always has today's mission (never "No Active Quest").
+//  Missions come from the Mission Bank; AFM may freshen the wording
+//  (`QuestCardService.freshDailyCard` in MokoMissionInvention.swift).
+//
+//  How today's mission is chosen:
+//    1. No upcoming custom quest → practise the user's LOWEST stat from Insights,
+//       rotating through Work, Friends, Dating and Family.
+//    2. An upcoming custom quest → daily missions are stepping stones toward it.
+//       They alternate between a different life area (general practice) and the
+//       quest's own area (close rehearsal), so it never feels like spoon-feeding.
+//    3. The debrief still scores all four stats equally either way.
+//
+//  Called from `MokoRootView`'s `.task`. Debug tip: if missions appear twice,
+//  check that nothing else calls `ensureDailyMission` without awaiting it.
+//
 
 import Foundation
 import SwiftData
@@ -19,13 +24,40 @@ import SwiftData
 @MainActor
 enum DailyMissionService {
 
-    // Category rotation order — 4 life areas that have Mission Bank templates, cycling day by day.
-    // Pattern: work → friends → dating → family → work → friends → …
+    /// The four life areas with Mission Bank templates, cycled one per day.
     private static let categoryRotation: [QuestCategory] = [
         .work, .friends, .dating, .family
     ]
 
-    /// Returns the template to use for a given day's featured (Overview) mission.
+    /// Which bank missions practise each stat best.
+    private static let templateIDsByStat: [Stat: [String]] = [
+        .courage: ["work-speak-up-meeting", "work-introduce-new-job", "dating-first-message",
+                   "friends-suggest-hangout", "family-share-small"],
+        .clarity: ["work-decline-extra", "dating-suggest-place", "dating-end-it",
+                   "friends-turn-down-plan", "family-ask-help", "family-visit-boundary"],
+        .presence: ["work-correct-boss", "friends-admit-dont-know", "family-correct-narrative",
+                    "dating-exclusivity"],
+        .warmth: ["dating-name-what-you-felt", "friends-bring-up-distance", "family-unspoken-thing",
+                  "friends-say-hurt", "work-feedback-after-mistake"],
+    ]
+
+    // MARK: - Date helpers
+
+    /// 1 on 1 January, 365 (or 366) on 31 December. Used to rotate missions day by day.
+    private static func dayOfYear(_ date: Date = .now, calendar: Calendar = .current) -> Int {
+        calendar.ordinality(of: .day, in: .year, for: date) ?? 1
+    }
+
+    /// Whole days from today until `quest`'s day, never less than 1.
+    private static func daysUntil(_ quest: Quest, calendar: Calendar = .current) -> Int {
+        let start = calendar.startOfDay(for: .now)
+        let end = calendar.startOfDay(for: quest.date)
+        return max(1, calendar.dateComponents([.day], from: start, to: end).day ?? 1)
+    }
+
+    // MARK: - Template choice
+
+    /// The template for a day when there is nothing more specific to practise.
     private static func templateForDay(_ dayOfYear: Int) -> MissionTemplate {
         let all = MissionBank.all
         let category = categoryRotation[dayOfYear % categoryRotation.count]
@@ -34,200 +66,166 @@ enum DailyMissionService {
         return pool[dayOfYear % pool.count]
     }
 
-    // MARK: - Lowest Scored Parameter
-
-    /// Analyzes the user's Insights records to find their lowest scored parameter.
+    /// Averages every saved Insights record and returns the weakest stat,
+    /// or nil if the user has no Insights yet.
     static func lowestScoredStat(in modelContext: ModelContext) -> Stat? {
         let descriptor = FetchDescriptor<InsightsModel>(sortBy: [SortDescriptor(\.date, order: .reverse)])
         guard let records = try? modelContext.fetch(descriptor), !records.isEmpty else {
             return nil
         }
         let count = Double(records.count)
-        let courage = Double(records.reduce(0) { $0 + $1.courage }) / count
-        let clarity = Double(records.reduce(0) { $0 + $1.clarity }) / count
-        let presence = Double(records.reduce(0) { $0 + $1.presence }) / count
-        let warmth = Double(records.reduce(0) { $0 + $1.warmth }) / count
-
-        let stats: [(Stat, Double)] = [
-            (.courage, courage),
-            (.clarity, clarity),
-            (.presence, presence),
-            (.warmth, warmth)
+        let averages: [(Stat, Double)] = [
+            (.courage, Double(records.reduce(0) { $0 + $1.courage }) / count),
+            (.clarity, Double(records.reduce(0) { $0 + $1.clarity }) / count),
+            (.presence, Double(records.reduce(0) { $0 + $1.presence }) / count),
+            (.warmth, Double(records.reduce(0) { $0 + $1.warmth }) / count),
         ]
-        return stats.min(by: { $0.1 < $1.1 })?.0
+        return averages.min(by: { $0.1 < $1.1 })?.0
     }
 
-    /// Template matching a targeted growth parameter across diverse categories
+    /// A bank mission that practises `stat`, rotating through the matching ones day by day.
     static func templateForStat(_ stat: Stat, dayOfYear: Int) -> MissionTemplate {
-        let matching: [MissionTemplate]
-        switch stat {
-        case .courage:
-            matching = MissionBank.all.filter {
-                ["work-speak-up-meeting", "work-introduce-new-job", "dating-first-message", "friends-suggest-hangout", "family-share-small"].contains($0.id)
-            }
-        case .clarity:
-            matching = MissionBank.all.filter {
-                ["work-decline-extra", "dating-suggest-place", "dating-end-it", "friends-turn-down-plan", "family-ask-help", "family-visit-boundary"].contains($0.id)
-            }
-        case .presence:
-            matching = MissionBank.all.filter {
-                ["work-correct-boss", "friends-admit-dont-know", "family-correct-narrative", "dating-exclusivity"].contains($0.id)
-            }
-        case .warmth:
-            matching = MissionBank.all.filter {
-                ["dating-name-what-you-felt", "friends-bring-up-distance", "family-unspoken-thing", "friends-say-hurt", "work-feedback-after-mistake"].contains($0.id)
-            }
-        }
+        let ids = templateIDsByStat[stat] ?? []
+        let matching = MissionBank.all.filter { ids.contains($0.id) }
         guard !matching.isEmpty else { return templateForDay(dayOfYear) }
         return matching[dayOfYear % matching.count]
     }
 
-    // MARK: - Upcoming Custom Quest Prep
-
-    /// Finds the soonest incomplete custom quest scheduled for a future day.
+    /// The soonest unfinished custom quest set for a later day (not today).
     static func upcomingCustomQuest(from existingQuests: [Quest], calendar: Calendar = .current) -> Quest? {
-        let now = Date()
+        let now = Date.now
         return existingQuests
             .filter { !$0.isFromLibrary && !$0.isCompleted && !calendar.isDateInToday($0.date) && $0.date > now }
             .min(by: { $0.date < $1.date })
     }
 
-    /// Chooses a stepping-stone template to prepare for an upcoming custom quest.
-    /// Rotates categories on alternating days to prevent boredom / spoon-feeding while
-    /// scheduling similar-situation tasks on other days to prepare for the real event.
+    /// A stepping-stone mission before an upcoming custom quest:
+    /// - 1 day left: the quest's own area, as a rehearsal.
+    /// - Even days left: a DIFFERENT area, for general social practice.
+    /// - Odd days left: the quest's own area, a similar situation.
     static func preparationTemplate(for upcoming: Quest, daysRemaining: Int, dayOfYear: Int) -> MissionTemplate {
         let all = MissionBank.all
+        let sameArea = all.filter { $0.category == upcoming.category }
+        let otherAreas = all.filter { $0.category != upcoming.category }
+        let index = dayOfYear + daysRemaining
 
         if daysRemaining <= 1 {
-            // Day right before the event: pick a similar situation in the same category as rehearsal
-            let sameCategoryPool = all.filter { $0.category == upcoming.category }
-            if let matched = sameCategoryPool.first {
-                return matched
-            }
+            if let rehearsal = sameArea.first { return rehearsal }
         } else if daysRemaining % 2 == 0 {
-            // Even days remaining: pick a foundational stepping stone from a DIFFERENT category
-            // (e.g. Work or Family if the custom quest is Friends) to build general social comfort without spoon-feeding
-            let otherCategoryPool = all.filter { $0.category != upcoming.category }
-            if !otherCategoryPool.isEmpty {
-                return otherCategoryPool[(dayOfYear + daysRemaining) % otherCategoryPool.count]
-            }
-        } else {
-            // Odd days remaining: pick a similar situation in the same category
-            let sameCategoryPool = all.filter { $0.category == upcoming.category }
-            if !sameCategoryPool.isEmpty {
-                return sameCategoryPool[(dayOfYear + daysRemaining) % sameCategoryPool.count]
-            }
+            if !otherAreas.isEmpty { return otherAreas[index % otherAreas.count] }
+        } else if !sameArea.isEmpty {
+            return sameArea[index % sameArea.count]
         }
-
         return templateForDay(dayOfYear)
     }
 
     // MARK: - Overview daily mission
 
+    /// The run that is creating today's mission right now, if any. A second caller
+    /// waits for this one instead of creating a duplicate mission.
+    // Share only the saved ID; the quest itself stays in its SwiftData context.
+    private static var runningMission: Task<PersistentIdentifier?, Never>?
+
+    /// True while `seedRemainingCategories` is working, so two copies never run at once.
+    private static var isSeeding = false
+
     /// Ensures today's featured (Overview) mission exists in SwiftData.
     /// Returns it immediately if it already exists; otherwise creates one via AFM / bank fallback.
+    /// Safe to call from several screens at once: only one mission is ever created.
     @discardableResult
     static func ensureDailyMission(in modelContext: ModelContext, existingQuests: [Quest]) async -> Quest? {
-        let calendar = Calendar.current
-        let now = Date()
+        if let runningMission {
+            guard let identifier = await runningMission.value else { return nil }
+            // Read the shared quest through the caller's own SwiftData context.
+            return modelContext.model(for: identifier) as? Quest
+        }
+        let run = Task { @MainActor in
+            let quest = await makeDailyMission(in: modelContext, existingQuests: existingQuests)
+            return quest?.persistentModelID
+        }
+        runningMission = run
+        // `defer` clears the guard when this function finishes, so tomorrow can run again.
+        defer { runningMission = nil }
+        guard let identifier = await run.value else { return nil }
+        // Resolve the ID here so a model is never returned across task boundaries.
+        return modelContext.model(for: identifier) as? Quest
+    }
 
-        // 1. If an active incomplete quest or a completed quest awaiting debrief exists, use it
+    private static func makeDailyMission(in modelContext: ModelContext, existingQuests: [Quest]) async -> Quest? {
+        let calendar = Calendar.current
+        let today = dayOfYear(calendar: calendar)
+
+        // 1. A quest that is in progress or waiting for its debrief wins.
         if let existing = Quest.overviewMission(from: existingQuests) {
             return existing
         }
 
-        // 2. If any non-library quest was scheduled for TODAY, return the first one
-        let todayCustom = existingQuests.filter { calendar.isDateInToday($0.date) && !$0.isFromLibrary }
-        if let firstToday = todayCustom.first {
-            // Also seed any missing category quests in the background
-            Task {
-                await seedRemainingCategories(
-                    in: modelContext,
-                    existingQuests: existingQuests,
-                    featuredCategory: firstToday.category,
-                    dayOfYear: calendar.ordinality(of: .day, in: .year, for: now) ?? 1
-                )
-            }
-            return firstToday
+        // 2. A custom quest the user set for today.
+        if let todaysCustom = existingQuests.first(where: { calendar.isDateInToday($0.date) && !$0.isFromLibrary }) {
+            startSeeding(in: modelContext, existingQuests: existingQuests,
+                         featuredCategory: todaysCustom.category, dayOfYear: today)
+            return todaysCustom
         }
 
-        let dayOfYear = calendar.ordinality(of: .day, in: .year, for: now) ?? 1
-        let recentTitles = existingQuests.prefix(10).map(\.title)
-
-        // 3. Check for upcoming custom quest
-        let upcoming = upcomingCustomQuest(from: existingQuests, calendar: calendar)
-
+        // 3. Otherwise make a new one: prepare for an upcoming quest, or practise the weakest stat.
         let template: MissionTemplate
         let practiceFor: String?
         let dayNumber: Int
         let totalDays: Int
-        let focusStat: Stat?
+        let focusStat = lowestScoredStat(in: modelContext)
 
-        if let upcoming {
-            // Preparation mode for upcoming custom quest
-            let start = calendar.startOfDay(for: now)
-            let end = calendar.startOfDay(for: upcoming.date)
-            let daysRemaining = max(1, calendar.dateComponents([.day], from: start, to: end).day ?? 1)
+        if let upcoming = upcomingCustomQuest(from: existingQuests, calendar: calendar) {
+            let daysRemaining = daysUntil(upcoming, calendar: calendar)
             totalDays = max(daysRemaining + 1, 3)
             dayNumber = max(1, totalDays - daysRemaining)
             practiceFor = upcoming.title
-            focusStat = lowestScoredStat(in: modelContext)
-
-            template = preparationTemplate(for: upcoming, daysRemaining: daysRemaining, dayOfYear: dayOfYear)
+            template = preparationTemplate(for: upcoming, daysRemaining: daysRemaining, dayOfYear: today)
         } else {
-            // Standard mode: focus on lowest scored parameter across diverse categories
-            let lowest = lowestScoredStat(in: modelContext)
-            focusStat = lowest
-            practiceFor = nil
-            dayNumber = dayOfYear
             totalDays = 1
-
-            if let lowest {
-                template = templateForStat(lowest, dayOfYear: dayOfYear)
-            } else {
-                template = templateForDay(dayOfYear)
-            }
+            dayNumber = today
+            practiceFor = nil
+            template = focusStat.map { templateForStat($0, dayOfYear: today) } ?? templateForDay(today)
         }
 
+        // AFM may invent a fresh version; if not, the bank text is used as is.
         let card = await QuestCardService.freshDailyCard(
             from: template,
-            recentTitles: recentTitles,
-            seed: "moko-daily-\(dayOfYear)-\(focusStat?.rawValue ?? "standard")",
+            recentTitles: existingQuests.prefix(10).map(\.title),
+            seed: "moko-daily-\(today)-\(focusStat?.rawValue ?? "standard")",
             dayNumber: dayNumber,
             totalDays: totalDays,
             practiceFor: practiceFor,
             focusStat: focusStat
         )
 
-        let dailyQuest = Quest(
-            ownerID: CurrentUser.localID,
-            title: card.title,
-            notes: card.goal,
-            intensity: card.difficulty.intensity,
-            category: card.category,
-            date: now
-        )
-
+        let dailyQuest = makeQuest(from: card)
         modelContext.insert(dailyQuest)
-        try? modelContext.save()
+        modelContext.saveOrLog("daily mission")
 
-        // Seed remaining categories asynchronously so the Quests list has variety across all life areas
-        Task {
-            await seedRemainingCategories(
-                in: modelContext,
-                existingQuests: existingQuests + [dailyQuest],
-                featuredCategory: card.category,
-                dayOfYear: dayOfYear
-            )
-        }
-
+        startSeeding(in: modelContext, existingQuests: existingQuests + [dailyQuest],
+                     featuredCategory: card.category, dayOfYear: today)
         return dailyQuest
     }
 
     // MARK: - Quests list variety seeding
 
-    /// Creates one quest per category (excluding the featured category already created) so the
-    /// Quests tab shows missions from all life areas, not just today's featured one.
+    /// Starts `seedRemainingCategories` in the background, unless it is already running.
+    /// `Task { }` lets today's mission show right away instead of waiting for the extra quests.
+    private static func startSeeding(in modelContext: ModelContext,
+                                     existingQuests: [Quest],
+                                     featuredCategory: QuestCategory,
+                                     dayOfYear: Int) {
+        guard !isSeeding else { return }
+        isSeeding = true
+        Task {
+            defer { isSeeding = false }
+            await seedRemainingCategories(in: modelContext, existingQuests: existingQuests,
+                                          featuredCategory: featuredCategory, dayOfYear: dayOfYear)
+        }
+    }
+
+    /// Creates one quest for each life area that has none today, so the Quests tab
+    /// shows variety and not just today's featured mission.
     private static func seedRemainingCategories(
         in modelContext: ModelContext,
         existingQuests: [Quest],
@@ -238,19 +236,17 @@ enum DailyMissionService {
         let todayCategories = Set(
             existingQuests
                 .filter { calendar.isDateInToday($0.date) && !$0.isFromLibrary }
-                .map { $0.category }
+                .map(\.category)
         )
-
         let recentTitles = existingQuests.prefix(15).map(\.title)
         let remaining = categoryRotation.filter { !todayCategories.contains($0) }
+        guard !remaining.isEmpty else { return }
 
         for (offset, category) in remaining.enumerated() {
-            let all = MissionBank.all
-            let pool = all.filter { $0.category == category }
+            let pool = MissionBank.all.filter { $0.category == category }
             guard !pool.isEmpty else { continue }
-            // Offset seed per category so each gets a distinct bank template
-            let seedIndex = (dayOfYear + offset + 1) % pool.count
-            let template = pool[seedIndex]
+            // A different offset per category, so each one gets a different bank mission.
+            let template = pool[(dayOfYear + offset + 1) % pool.count]
 
             let card = await QuestCardService.freshDailyCard(
                 from: template,
@@ -258,38 +254,37 @@ enum DailyMissionService {
                 seed: "moko-variety-\(dayOfYear)-\(category.rawValue)",
                 dayNumber: dayOfYear + offset + 1
             )
-
-            let quest = Quest(
-                ownerID: CurrentUser.localID,
-                title: card.title,
-                notes: card.goal,
-                intensity: card.difficulty.intensity,
-                category: card.category,
-                date: Date()
-            )
-            modelContext.insert(quest)
+            modelContext.insert(makeQuest(from: card))
         }
-        try? modelContext.save()
+        modelContext.saveOrLog("category quests")
+    }
+
+    /// A new, unsaved quest for today from an AFM / bank card.
+    private static func makeQuest(from card: QuestCard) -> Quest {
+        Quest(
+            ownerID: CurrentUser.localID,
+            title: card.title,
+            notes: card.goal,
+            intensity: card.difficulty.intensity,
+            category: card.category,
+            date: .now
+        )
     }
 
     // MARK: - Synchronous fallback
 
-    /// Instant synchronous fallback quest from the Mission Bank to guarantee
-    /// the Overview UI never shows an empty placeholder.
+    /// An instant (no AFM) mission from the bank, so the Overview is never empty while
+    /// the real one is being made. NOT saved: it is a new, unsaved `Quest` on every call.
     static func todayFallbackQuest(existingQuests: [Quest] = [], lowestStat: Stat? = nil) -> Quest {
-        let calendar = Calendar.current
-        let dayOfYear = calendar.ordinality(of: .day, in: .year, for: Date()) ?? 1
+        let today = dayOfYear()
 
         let template: MissionTemplate
-        if let upcoming = upcomingCustomQuest(from: existingQuests, calendar: calendar) {
-            let start = calendar.startOfDay(for: Date())
-            let end = calendar.startOfDay(for: upcoming.date)
-            let daysRemaining = max(1, calendar.dateComponents([.day], from: start, to: end).day ?? 1)
-            template = preparationTemplate(for: upcoming, daysRemaining: daysRemaining, dayOfYear: dayOfYear)
-        } else if let stat = lowestStat {
-            template = templateForStat(stat, dayOfYear: dayOfYear)
+        if let upcoming = upcomingCustomQuest(from: existingQuests) {
+            template = preparationTemplate(for: upcoming, daysRemaining: daysUntil(upcoming), dayOfYear: today)
+        } else if let lowestStat {
+            template = templateForStat(lowestStat, dayOfYear: today)
         } else {
-            template = templateForDay(dayOfYear)
+            template = templateForDay(today)
         }
 
         return Quest(
@@ -298,9 +293,7 @@ enum DailyMissionService {
             notes: template.goal,
             intensity: template.difficulty.intensity,
             category: template.category,
-            date: Date()
+            date: .now
         )
     }
 }
-
-

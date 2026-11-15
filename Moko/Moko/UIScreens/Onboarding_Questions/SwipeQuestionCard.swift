@@ -1,18 +1,27 @@
+//
+//  SwipeQuestionCard.swift
+//  Moko
+//
+//  Draws one question card: peeking mascot, illustration, question and NO / YES.
+//  It does not handle swiping itself — OnboardingFlowView moves it around and
+//  passes `swipeProgress` in so the card can tint and grow the matching label.
+//
+
 import SwiftUI
 
-/// The card only: mascot, illustration, question and the NO / YES buttons.
-/// Swiping is handled by `OnboardingFlowView`; the NO / YES labels also work as taps.
 struct SwipeQuestionCard: View {
     let question: OnboardingCardQuestion
-    /// -1 (dragged fully left = No) … +1 (dragged fully right = Yes)
+    /// -1 (dragged fully left = No) … 0 (centered) … +1 (dragged fully right = Yes)
     var swipeProgress: CGFloat = 0
     var onNo: () -> Void = {}
     var onYes: () -> Void = {}
 
     private let cornerRadius: CGFloat = 20
-    private let cardHeight: CGFloat = 430           // same on every screen (Figma)
+    /// Same height on every card so the layout never jumps between questions.
+    private let cardHeight: CGFloat = 430
     private let mascotSize = CGSize(width: 85, height: 80.7)
-    private let cardTopInset: CGFloat = 52          // mascot peeks above the card
+    /// The card starts this far down so the mascot can peek over its top edge.
+    private let cardTopInset: CGFloat = 52
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -41,23 +50,24 @@ struct SwipeQuestionCard: View {
                 .font(.system(size: 20))
                 .foregroundStyle(OBColor.ink)
                 .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, minHeight: 96, alignment: .center)   // 4-line block, centred
+                // Room for 4 lines, so short and long questions sit at the same height.
+                .frame(maxWidth: .infinity, minHeight: 96, alignment: .center)
                 .padding(.horizontal, 36)
                 .padding(.top, 30)
         }
         .frame(maxWidth: .infinity, minHeight: cardHeight, alignment: .top)
-        // …and the NO / YES buttons pinned to the bottom
+        // …and the NO / YES buttons pinned to the bottom.
         .overlay(alignment: .bottom) { answerButtons }
         .background(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill(OBColor.cardFill)
         )
-        // Soft green / red wash while dragging
+        // Soft green (Yes) or red (No) wash that gets stronger as you drag.
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .fill((swipeProgress >= 0 ? OBColor.yes : OBColor.no)
                     .opacity(Double(abs(swipeProgress)) * 0.12))
-                .allowsHitTesting(false)
+                .allowsHitTesting(false)                 // let taps pass through to the buttons
         )
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -66,6 +76,7 @@ struct SwipeQuestionCard: View {
         )
     }
 
+    /// NO on the left, YES on the right. The label on the drag side grows up to 20%.
     private var answerButtons: some View {
         HStack {
             Button(action: onNo) {
@@ -74,7 +85,7 @@ struct SwipeQuestionCard: View {
                     .scaleEffect(1 + max(0, -swipeProgress) * 0.2, anchor: .leading)
                     .padding(.vertical, 6)
                     .padding(.trailing, 20)
-                    .contentShape(Rectangle())
+                    .contentShape(Rectangle())           // bigger tap area than the text
             }
             .buttonStyle(.plain)
             .accessibilityLabel("No")
@@ -97,6 +108,7 @@ struct SwipeQuestionCard: View {
         .padding(.bottom, 18)
     }
 
+    /// Fixed-height frame that the image fills and gets cropped to.
     private var illustration: some View {
         Color.clear
             .frame(maxWidth: .infinity, minHeight: question.imageHeight, maxHeight: question.imageHeight)

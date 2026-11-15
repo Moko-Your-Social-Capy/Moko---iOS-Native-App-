@@ -6,6 +6,10 @@
 //  parameters, overall score and a card per parameter.
 //  Scores are averaged from the InsightsModel records saved in SwiftData.
 //
+//  Flow: a debrief saves an `InsightsModel` → `@Query` below picks it up →
+//  `InsightsScores` averages the records for the chosen range → the cards draw them.
+//  Debug tip: the preview at the bottom fills the screen with sample records.
+//
 
 import SwiftUI
 import SwiftData
@@ -66,17 +70,22 @@ struct InsightsScores {
     }
 }
 
+/// Everything one parameter card shows.
 struct InsightsParameter: Identifiable {
-    let id = UUID()
     let name: String
     let score: Double
+    /// "Core Strength", "Grounded & Steady" or "Growth Focus".
     let bandTitle: String
     let badgeColor: Color
-    let badgeBg: Color
+    /// What the parameter means, in one line.
     let detail: String
+    /// Advice for the user's current band.
     let analysis: String
-    let microAction: String
+    /// The relax exercise that helps this parameter.
     let supportedBy: String
+
+    // The name never changes, so SwiftUI can animate the same card when the range changes.
+    var id: String { name }
 }
 
 // MARK: - Screen
@@ -85,14 +94,15 @@ struct InsightsView: View {
     /// Every saved record, newest first. The selected range is filtered below.
     @Query(sort: \InsightsModel.date, order: .reverse) private var records: [InsightsModel]
 
+    // Which segment is picked: Day, Week, Month or Year.
     @State private var range: InsightsRange = .day
 
-    private let green     = MocoScreenTheme.Colors.dataVioletDeep    // #1B422F
-    private let mint      = MocoScreenTheme.Colors.surfaceLavender
-    private let titleDark = MocoScreenTheme.Colors.textTitle    // #5C4330
-    private let gray      = MocoScreenTheme.Colors.textBody  // #6F6762
+    private let accent    = MokoScreenTheme.Colors.dataVioletDeep
+    private let soft      = MokoScreenTheme.Colors.surfaceLavender
+    private let titleDark = MokoScreenTheme.Colors.textTitle
+    private let gray      = MokoScreenTheme.Colors.textBody
 
-    /// Records that fall in today / this week / this month
+    /// Records that fall in today / this week / this month / this year.
     private var rangeRecords: [InsightsModel] {
         guard let interval = Calendar.current.dateInterval(of: range.component, for: Date()) else {
             return []
@@ -100,6 +110,8 @@ struct InsightsView: View {
         return records.filter { interval.contains($0.date) }
     }
 
+    /// Scores for the chosen range. If that range has no records yet, the all-time
+    /// average is shown instead, so the screen isn't empty (the note explains this).
     private var scores: InsightsScores {
         if !rangeRecords.isEmpty {
             return InsightsScores(records: rangeRecords)
@@ -119,39 +131,28 @@ struct InsightsView: View {
         ]
     }
 
+    /// Builds one card's text and colours from the parameter and its score.
     private func parameterData(for stat: Stat, score: Double) -> InsightsParameter {
         let rounded = Int(score.rounded())
         let band = Band(score: rounded)
 
         let bandTitle: String
-        let badgeColor: Color
-        let badgeBg: Color
-
         switch band {
-        case .strength:
-            bandTitle = "Core Strength"
-            badgeColor = MocoScreenTheme.Colors.dataVioletDeep
-            badgeBg = MocoScreenTheme.Colors.surfaceLavender
-        case .steady:
-            bandTitle = "Grounded & Steady"
-            badgeColor = MocoScreenTheme.Colors.dataVioletDeep
-            badgeBg = MocoScreenTheme.Colors.surfaceLavender
-        case .growth:
-            bandTitle = "Growth Focus"
-            badgeColor = MocoScreenTheme.Colors.textBody
-            badgeBg = MocoScreenTheme.Colors.surfaceLavender
+        case .strength: bandTitle = "Core Strength"
+        case .steady:   bandTitle = "Grounded & Steady"
+        case .growth:   bandTitle = "Growth Focus"
         }
+        // "Growth Focus" uses a softer colour so it doesn't read as a warning.
+        let badgeColor = band == .growth ? MokoScreenTheme.Colors.textBody : accent
 
         let detail: String
         let analysis: String
-        let microAction: String
         let supportedBy: String
 
         switch stat {
         case .courage:
             detail = "Moving toward social moments instead of stepping back."
             supportedBy = "Reflection & Debrief"
-            microAction = ""
             switch band {
             case .strength:
                 analysis = "You consistently step in rather than sit back. Keep building this momentum by continuing to speak first in unfamiliar settings."
@@ -164,7 +165,6 @@ struct InsightsView: View {
         case .clarity:
             detail = "Saying what you mean, directly, without hedging or over-explaining."
             supportedBy = "Grounding Exercise"
-            microAction = ""
             switch band {
             case .strength:
                 analysis = "You speak with clear directness, which makes you easy to understand and trust. Keep trusting your first sentence without over-explaining."
@@ -177,7 +177,6 @@ struct InsightsView: View {
         case .presence:
             detail = "Being fully with the other person, not rehearsing or replaying in your head."
             supportedBy = "Box Breathing"
-            microAction = ""
             switch band {
             case .strength:
                 analysis = "You stay deeply grounded and tuned in to the person in front of you. Noticing concrete details about others keeps your conversations effortless."
@@ -190,7 +189,6 @@ struct InsightsView: View {
         case .warmth:
             detail = "Genuine engagement — taking in the other person's world and sharing your own."
             supportedBy = "Mirror Reflection"
-            microAction = ""
             switch band {
             case .strength:
                 analysis = "You bring natural openness and care that makes others feel valued. Continue asking curious follow-up questions to deepen your connections."
@@ -206,17 +204,15 @@ struct InsightsView: View {
             score: score,
             bandTitle: bandTitle,
             badgeColor: badgeColor,
-            badgeBg: badgeBg,
             detail: detail,
             analysis: analysis,
-            microAction: microAction,
             supportedBy: supportedBy
         )
     }
 
     var body: some View {
         ZStack {
-            MocoBackdrop()
+            MokoBackdrop()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
@@ -232,7 +228,7 @@ struct InsightsView: View {
                     overallCard
 
                     Text("Social Pulse")
-                        .mocoText(MocoScreenTheme.Typeface.section)
+                        .mokoText(MokoScreenTheme.Typeface.section)
                         .foregroundStyle(titleDark)
                         .padding(.top, 8)
 
@@ -240,19 +236,21 @@ struct InsightsView: View {
                         parameterCard(parameter)
                     }
                 }
-                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
                 .padding(.bottom, 24)
             }
         }
         .navigationTitle("Insights")
         .navigationBarTitleDisplayMode(.large)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .tint(MocoScreenTheme.Colors.dataVioletDeep)
+        .tint(MokoScreenTheme.Colors.dataVioletDeep)
+        // Smoothly updates the numbers and bars when another range is picked.
         .animation(.easeInOut, value: range)
     }
 
     // MARK: Radar chart
 
+    /// The radar chart with a name + score label on each of its four sides.
     private var radar: some View {
         VStack(spacing: 8) {
             label("Courage", scores.courage)
@@ -260,7 +258,7 @@ struct InsightsView: View {
             HStack {
                 label("Clarity", scores.clarity)
 
-                MocoRadarChart(scores: scores)
+                MokoRadarChart(scores: scores)
                     .aspectRatio(1, contentMode: .fit)
                     .accessibilityHidden(true)
 
@@ -269,17 +267,18 @@ struct InsightsView: View {
 
             label("Warmth", scores.warmth)
         }
-        .padding(MocoScreenTheme.Space.cardHorizontal)
-        .mocoCard()
+        .padding(MokoScreenTheme.Space.cardHorizontal)
+        .mokoCard()
     }
 
+    /// "Courage" above its score. VoiceOver reads both together.
     private func label(_ name: String, _ score: Double) -> some View {
         VStack(spacing: 2) {
             Text(name)
-                .mocoText(MocoScreenTheme.Typeface.caption)
+                .mokoText(MokoScreenTheme.Typeface.caption)
                 .foregroundStyle(titleDark)
             Text("\(Int(score.rounded()))")
-                .mocoText(MocoScreenTheme.Typeface.body)
+                .mokoText(MokoScreenTheme.Typeface.body)
                 .foregroundStyle(gray)
         }
         .accessibilityElement(children: .combine)
@@ -291,22 +290,23 @@ struct InsightsView: View {
         HStack(spacing: 20) {
             VStack(alignment: .leading) {
                 Text("Overall")
-                    .mocoText(MocoScreenTheme.Typeface.caption)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
                     .foregroundStyle(gray)
                 Text("\(Int(scores.overall.rounded()))")
-                    .mocoText(MocoScreenTheme.Typeface.numeral)
-                    .foregroundStyle(green)
+                    .mokoText(MokoScreenTheme.Typeface.numeral)
+                    .foregroundStyle(accent)
             }
 
             Text(overallNote)
-                .mocoText(MocoScreenTheme.Typeface.body)
+                .mokoText(MokoScreenTheme.Typeface.body)
                 .foregroundStyle(gray)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .mocoCard(fill: mint)
+        .mokoCard(fill: soft)
     }
 
+    /// The sentence next to the overall score. Explains where the number comes from.
     private var overallNote: String {
         let count = rangeRecords.count
         if count == 0 {
@@ -335,40 +335,40 @@ struct InsightsView: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(parameter.name)
-                        .mocoText(MocoScreenTheme.Typeface.section)
+                        .mokoText(MokoScreenTheme.Typeface.section)
                         .foregroundStyle(titleDark)
                     Text(parameter.bandTitle)
-                        .mocoText(MocoScreenTheme.Typeface.caption)
+                        .mokoText(MokoScreenTheme.Typeface.caption)
                         .foregroundStyle(parameter.badgeColor)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(parameter.badgeBg, in: Capsule())
+                        .background(soft, in: Capsule())
                 }
                 Spacer()
                 Text("\(Int(parameter.score.rounded()))")
-                    .mocoText(MocoScreenTheme.Typeface.numeral)
-                    .foregroundStyle(green)
+                    .mokoText(MokoScreenTheme.Typeface.numeral)
+                    .foregroundStyle(accent)
             }
 
             // Progress bar
             ProgressView(value: parameter.score, total: 100)
-                .tint(green)
+                .tint(accent)
 
             Divider()
 
             // What this parameter means
             Text(parameter.detail)
-                .mocoText(MocoScreenTheme.Typeface.body)
+                .mokoText(MokoScreenTheme.Typeface.body)
                 .foregroundStyle(gray)
                 .fixedSize(horizontal: false, vertical: true)
 
             // Personalised analysis
             VStack(alignment: .leading, spacing: 6) {
                 Label("Analysis", systemImage: "brain.head.profile")
-                    .mocoText(MocoScreenTheme.Typeface.caption)
-                    .foregroundStyle(green)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
+                    .foregroundStyle(accent)
                 Text(parameter.analysis)
-                    .mocoText(MocoScreenTheme.Typeface.body)
+                    .mokoText(MokoScreenTheme.Typeface.body)
                     .foregroundStyle(gray)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -376,25 +376,29 @@ struct InsightsView: View {
             // Supported-by tag
             HStack(spacing: 4) {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(green)
-                    .mocoText(MocoScreenTheme.Typeface.caption)
+                    .foregroundStyle(accent)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
+                    .accessibilityHidden(true)
                 Text("Supported by \(parameter.supportedBy)")
-                    .mocoText(MocoScreenTheme.Typeface.caption)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
                     .foregroundStyle(gray)
             }
         }
         .padding(20)
-        .mocoCard()
+        .mokoCard()
     }
 }
 
 // MARK: - Preview with sample records
 
 #Preview {
-    let container = try! ModelContainer(
+    // An in-memory database, so preview data never touches the real app data.
+    guard let container = try? ModelContainer(
         for: InsightsModel.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-    )
+    ) else {
+        return Text("Preview database could not be created")
+    }
 
     // Two entries today (average: clarity 56, courage 32, presence 42, warmth 78)
     // plus earlier entries so Week and Month differ from Day.

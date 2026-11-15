@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDisplayName</key>
-	<string>Moco</string>
+	<string>Moko</string>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>

@@ -1,20 +1,37 @@
+//
+//  EditProfileSheet.swift
+//  Moko
+//
+//  Profile → Edit: change the photo, display name, username and age range.
+//  Changes are kept in @State while editing and are saved to SwiftData only
+//  when the user taps Save.
+//
+
 import SwiftUI
 import PhotosUI
 import SwiftData
 import UIKit
 
 struct ProfileOverViewEditProfile: View {
+    // Closes this sheet.
     @Environment(\.dismiss) private var dismiss
+    // The SwiftData "database" we save the profile into.
     @Environment(\.modelContext) private var modelContext
+    // @Query reads every saved Profile. The app only ever keeps one.
     @Query private var profiles: [Profile]
 
+    // Copies of the profile fields that the form edits.
     @State private var name = ""
     @State private var handle = ""
     @State private var ageRange = ""
+    // The photo picked from the library, and its compressed bytes.
     @State private var photoItem: PhotosPickerItem?
     @State private var photoData: Data?
+    // Shows the "Choose a Moko avatar" menu.
     @State private var showAvatarChoices = false
+    // Only show "Enter a display name" after the user has tried to save.
     @State private var showValidation = false
+    // A message shown if saving to the database fails.
     @State private var saveError: String?
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -85,6 +102,7 @@ struct ProfileOverViewEditProfile: View {
                         TextField("Required", text: $name)
                             .multilineTextAlignment(.leading)
                             .textInputAutocapitalization(.words)
+                            // Runs every time the name changes: cut it at 30 characters.
                             .onChange(of: name) { _, newValue in
                                 if newValue.count > 30 { name = String(newValue.prefix(30)) }
                             }
@@ -146,7 +164,9 @@ struct ProfileOverViewEditProfile: View {
                 Button("Waving Moko") { photoData = compressedAvatar(named: "welcome_moko") }
                 Button("Cancel", role: .cancel) { }
             }
+            // Fill the form with the saved profile when the sheet opens.
             .onAppear(perform: loadProfile)
+            // `.task(id:)` runs again every time `photoItem` changes, i.e. after the user picks a photo.
             .task(id: photoItem) { await loadPhoto() }
         }
         .tint(ProfilePalette.accent)
@@ -169,6 +189,7 @@ struct ProfileOverViewEditProfile: View {
         .accessibilityLabel("Profile photo preview")
     }
 
+    /// Copies the saved profile into the form fields.
     private func loadProfile() {
         guard let profile = profiles.first else { return }
         name = profile.username
@@ -177,6 +198,7 @@ struct ProfileOverViewEditProfile: View {
         photoData = profile.profileImageData
     }
 
+    /// Older profiles stored only an age number. This turns it into one of the picker's ranges.
     private func inferredAgeRange(_ age: Int) -> String {
         switch age {
         case 13..<18: "13–17"
@@ -188,6 +210,7 @@ struct ProfileOverViewEditProfile: View {
         }
     }
 
+    /// The opposite of `inferredAgeRange`: one age number for a range (0 means "not given").
     private func representativeAge(_ range: String) -> Int {
         switch range {
         case "13–17": 15
@@ -199,21 +222,27 @@ struct ProfileOverViewEditProfile: View {
         }
     }
 
+    /// Reads the picked photo from the library and shrinks it. `try?` turns a failure into `nil`.
     private func loadPhoto() async {
         guard let raw = try? await photoItem?.loadTransferable(type: Data.self),
               let image = UIImage(data: raw) else { return }
         photoData = centeredSquareJPEG(image)
     }
 
+    /// Turns a Moko picture from Assets into avatar bytes.
     private func compressedAvatar(named name: String) -> Data? {
         guard let image = UIImage(named: name) else { return nil }
         return centeredSquareJPEG(image)
     }
 
+    /// Crops the middle square of an image, resizes it to 512 x 512 and saves it as a JPEG.
+    /// A small image keeps the database small.
     private func centeredSquareJPEG(_ image: UIImage) -> Data? {
         let side: CGFloat = 512
         let format = UIGraphicsImageRendererFormat.default()
+        // Scale 1 means 512 real pixels, not 512 x 3 on a Retina screen.
         format.scale = 1
+        // UIGraphicsImageRenderer is a blank canvas. We draw the photo on it, centred and filling it.
         return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).jpegData(withCompressionQuality: 0.78) { _ in
             let source = image.size
             let scale = side / min(source.width, source.height)
@@ -223,6 +252,7 @@ struct ProfileOverViewEditProfile: View {
         }
     }
 
+    /// Checks the name, updates (or creates) the Profile, then saves to disk.
     private func save() {
         showValidation = true
         guard nameError == nil else { return }
@@ -236,10 +266,12 @@ struct ProfileOverViewEditProfile: View {
             profile.profileImageData = photoData
             profile.updatedAt = .now
         } else {
+            // No profile yet (e.g. the user skipped onboarding), so make one.
             modelContext.insert(Profile(username: trimmedName, handle: normalizedHandle.isEmpty ? nil : normalizedHandle,
                                         ageRange: ageRange.isEmpty ? nil : ageRange, age: savedAge, profileImageData: photoData))
         }
         do {
+            // Write the changes to disk. Close the sheet only if that worked.
             try modelContext.save()
             dismiss()
         } catch {
