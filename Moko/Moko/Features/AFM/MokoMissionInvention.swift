@@ -1,5 +1,12 @@
-// MokoMissionInvention.swift
-// Lets AFM INVENT fresh daily missions (more variety) while keeping them doable and grounded.
+//
+//  MokoMissionInvention.swift
+//  Moko
+//
+//  Lets AFM INVENT fresh daily missions (more variety) while keeping them doable and grounded.
+//  Entry point: `QuestCardService.freshDailyCard` at the bottom of this file.
+//
+//  Debug tip: if every daily mission is plain bank text, `MissionInventor.invent` is returning
+//  nil. Put a breakpoint on each `continue` to see which check rejected it.
 //
 // How "interesting but not random" is enforced:
 //   1. ANCHOR      – every invented mission is tied to a vetted Mission Bank situation and must practise the same
@@ -18,6 +25,8 @@ import FoundationModels
 
 // MARK: - Generable types
 
+/// The mission AFM writes. `sameSkillReason` comes first so the model explains
+/// its link to the pattern before writing the card (properties are generated in order).
 @Generable
 struct InventedMission {
     @Guide(description: "Max 15 words: how this mission practises the SAME core behavior as the pattern's goal.")
@@ -32,6 +41,7 @@ struct InventedMission {
     var goal: String
 }
 
+/// The reviewer's five yes/no answers about an invented mission.
 @Generable
 struct MissionCheck {
     @Guide(description: "True only if a typical person can complete the goal today in ONE interaction under 10 minutes, with no travel, money, props, planning or special access.")
@@ -69,6 +79,7 @@ enum VarietyPool {
         return (three, tones[(offset + dayNumber) % tones.count])
     }
 
+    /// Turns a seed string into the same number every time (unlike `hashValue`, which changes per launch).
     private static func stableOffset(_ s: String) -> Int {
         s.unicodeScalars.reduce(7) { ($0 * 31 + Int($1.value)) % 10_007 }
     }
@@ -86,6 +97,7 @@ enum MissionValidator {
         "make them", "make him", "make her", "get them to", "get him to", "get her to", "convince", "impress",
         "at night", "late night", "alone with", "drive to", "fly to", "travel to", "go to a party",
     ]
+    /// First words that show a goal is not verb-first ("You ask..." instead of "Ask...").
     private static let notVerbStarts: Set<String> = ["you", "your", "the", "a", "an", "it", "they", "this", "to", "be"]
 
     /// Returns a human-readable failure reason, or nil if the mission passes.
@@ -95,6 +107,7 @@ enum MissionValidator {
         let who = m.who.trimmingCharacters(in: .whitespacesAndNewlines)
         let goal = m.goal.trimmingCharacters(in: .whitespacesAndNewlines)
 
+        // The prompt asks for 2–4 words; up to 6 is accepted so a near miss isn't wasted.
         let titleWords = title.split(separator: " ").count
         guard (2...6).contains(titleWords), title.count <= 40 else { return "Title must be 2-4 words." }
         let known = (recentTitles + [anchor.title]).map { $0.lowercased() }
@@ -109,6 +122,7 @@ enum MissionValidator {
         let first = goal.split(separator: " ").first.map { $0.lowercased() } ?? ""
         guard !notVerbStarts.contains(first) else { return "Goal must start with an action verb." }
 
+        // Whole-word check for blocked words, substring check for blocked phrases.
         let text = "\(title) \(scene) \(who) \(goal)".lowercased()
         let words = Set(text.split(whereSeparator: { !$0.isLetter }).map(String.init))
         if let bad = words.first(where: { blockedWords.contains($0) }) {
@@ -120,6 +134,7 @@ enum MissionValidator {
         return nil
     }
 
+    /// Lists the reviewer's failed checks as one sentence of feedback, or nil if all passed.
     static func failureReason(_ c: MissionCheck) -> String? {
         var problems: [String] = []
         if !c.doableToday    { problems.append("not doable today in one short interaction") }
@@ -161,6 +176,7 @@ enum InventionPrompts {
     → title: "Ask for a Hand" | scene: "A sibling is nearby while you are stuck on an online form." | who: "A sibling and you." | goal: "Ask your sibling for help by saying exactly what you need."
     """
 
+    /// Builds one invention request. `feedback` is the rejection reason from the previous attempt.
     static func prompt(anchor: MissionTemplate, difficulty: Difficulty, formats: [String], tone: String,
                        dayNumber: Int, totalDays: Int, practiceFor: String?,
                        focusStat: Stat? = nil,
@@ -232,8 +248,11 @@ enum MissionInventor {
                        recentTitles: [String]) async -> QuestCard? {
         guard AFM.isAvailable else { return nil }
         let variety = VarietyPool.pick(dayNumber: dayNumber, seed: seed)
-        var feedback: String? = nil
+        // Why the last attempt was rejected; sent back to AFM so the second try can fix it.
+        var feedback: String?
 
+        // Two tries: a creative one (temperature 0.8), then a calmer one (0.5).
+        // `retries: 0` because a rejected prompt must not be re-sent as-is (see MokoAFM.swift).
         for attempt in 0..<2 {
             guard let m = try? await AFM.generate(
                 InventedMission.self,
@@ -248,12 +267,13 @@ enum MissionInventor {
                 retries: 0
             ) else { continue }
 
+            // Step 1: cheap plain-Swift checks.
             if let reason = MissionValidator.validate(m, anchor: anchor, recentTitles: recentTitles) {
                 feedback = reason
                 continue
             }
 
-            // Review pass: if the reviewer errors out we reject (fail closed).
+            // Step 2 — review pass: if the reviewer errors out we reject (fail closed).
             guard let check = try? await AFM.generate(
                 MissionCheck.self,
                 instructions: InventionPrompts.reviewInstructions,
@@ -267,6 +287,7 @@ enum MissionInventor {
                 continue
             }
 
+            // Passed everything: build the card.
             return QuestCard(templateID: anchor.id,
                              category: anchor.category,
                              difficulty: difficulty,

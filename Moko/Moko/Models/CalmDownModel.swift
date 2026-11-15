@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OSLog
 import SwiftData
 
 /// One finished calm down exercise (Box Breathing, Gentle Breathing, Grounding, ...).
@@ -28,10 +29,6 @@ extension ModelContext {
     /// Call this once when a calm down exercise finishes. The Summary screen reads these.
     func logCalmDown(_ title: String, seconds: TimeInterval) {
         insert(CalmDownModel(exerciseTitle: title, exerciseTime: max(0, seconds), date: Date()))
-        do {
-            try save()
-        } catch {
-            print("Calm down save failed:", error)
-        }
+        saveOrLog("calm down session")
     }
 }

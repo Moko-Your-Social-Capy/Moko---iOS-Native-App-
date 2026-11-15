@@ -1,12 +1,12 @@
 # Overview & Debrief — Design Compliance Notes
 
-Audit of the implemented screens against **"Moco Screen Theme" v1.0** (§1 scale → §8 acceptance).
+Audit of the implemented screens against **"Moko Screen Theme" v1.0** (§1 scale → §8 acceptance).
 Scope: `Overview.swift`, `OverviewDebriefDone.swift`, `OverviewResumeScreen.swift`, `Questdebrief.swift`.
 Originally read-only. No source file was modified to produce this.
 
 > **Status — `Overview.swift` has since been migrated.**
-> The theme now lives in code as `MocoScreenTheme` (`Features/DesignSystem/MocoScreenTheme.swift`),
-> with the shared shells in `MocoComponents.swift` (card, backdrop, slide control, radar, bars).
+> The theme now lives in code as `MokoScreenTheme` (`Features/DesignSystem/MokoScreenTheme.swift`),
+> with the shared shells in `MokoComponents.swift` (card, backdrop, slide control, radar, bars).
 > Everything in §2 below that concerns the *done* state is now implemented; the deltas listed there
 > are kept as the record of what was wrong before the migration. §3 (resumed) and §4 (debrief)
 > still describe the current code — those two screens have not been migrated yet.
@@ -22,40 +22,40 @@ Only the tokens and code literals this audit needs.
 
 | Token | Value |
 |---|---|
-| `moco.color.canvas.top` | #F3F8F0 |
-| `moco.color.canvas.bottom` | #E7F0E2 |
-| `moco.color.surface.white` | #FFFFFF |
-| `moco.color.surface.lavender` | #EDEFF8 |
-| `moco.color.stroke.ink` | #17161C |
-| `moco.color.text.title` | #17161C |
-| `moco.color.text.body` | #5E5B6A |
-| `moco.color.text.muted` | #6E6B7A |
-| `moco.color.state.emptyTitle` | #2E5B4D |
-| `moco.color.data.numeral` | #55457F |
-| `moco.color.data.violet` | #8C7CB8 |
-| `moco.color.data.violet.deep` | #55457F |
-| `moco.color.data.grid` | #C9CEDD |
-| `moco.color.data.node` | #2B2440 |
-| `moco.color.accent.blue` | #2168E0 |
-| `moco.color.countdown.value` | #47679B |
-| `moco.color.avatar.fill` | #C9CFE6 |
-| `moco.space.page` | 24 |
-| `moco.space.card` | 18 / 20 |
-| `moco.space.gap` | 16 / 8 |
-| `moco.radius.card` | 22 |
-| `moco.radius.inner` | 14 |
-| `moco.radius.knob` | 23 |
-| `moco.stroke.card` | 2 |
-| `moco.stroke.data` | 1.5 |
-| `moco.type.title1` | 32 / 38 Bold |
-| `moco.type.title2` | 22 / 28 Semibold |
-| `moco.type.section` | 19 / 24 Semibold |
-| `moco.type.cardTitle` | 17 / 22 Semibold |
-| `moco.type.body` | 15 / 22 Regular |
-| `moco.type.caption` | 13 / 18 Medium |
-| `moco.type.numeral` | 44 / 44 Bold |
-| `moco.type.unit` | 15 / 20 Medium |
-| `moco.type.slider` | 15 / 20 Semibold |
+| `moko.color.canvas.top` | #F3F8F0 |
+| `moko.color.canvas.bottom` | #E7F0E2 |
+| `moko.color.surface.white` | #FFFFFF |
+| `moko.color.surface.lavender` | #EDEFF8 |
+| `moko.color.stroke.ink` | #17161C |
+| `moko.color.text.title` | #17161C |
+| `moko.color.text.body` | #5E5B6A |
+| `moko.color.text.muted` | #6E6B7A |
+| `moko.color.state.emptyTitle` | #2E5B4D |
+| `moko.color.data.numeral` | #55457F |
+| `moko.color.data.violet` | #8C7CB8 |
+| `moko.color.data.violet.deep` | #55457F |
+| `moko.color.data.grid` | #C9CEDD |
+| `moko.color.data.node` | #2B2440 |
+| `moko.color.accent.blue` | #2168E0 |
+| `moko.color.countdown.value` | #47679B |
+| `moko.color.avatar.fill` | #C9CFE6 |
+| `moko.space.page` | 24 |
+| `moko.space.card` | 18 / 20 |
+| `moko.space.gap` | 16 / 8 |
+| `moko.radius.card` | 22 |
+| `moko.radius.inner` | 14 |
+| `moko.radius.knob` | 23 |
+| `moko.stroke.card` | 2 |
+| `moko.stroke.data` | 1.5 |
+| `moko.type.title1` | 32 / 38 Bold |
+| `moko.type.title2` | 22 / 28 Semibold |
+| `moko.type.section` | 19 / 24 Semibold |
+| `moko.type.cardTitle` | 17 / 22 Semibold |
+| `moko.type.body` | 15 / 22 Regular |
+| `moko.type.caption` | 13 / 18 Medium |
+| `moko.type.numeral` | 44 / 44 Bold |
+| `moko.type.unit` | 15 / 20 Medium |
+| `moko.type.slider` | 15 / 20 Semibold |
 
 **Code-side literals referenced below** (each appears once):
 
@@ -81,9 +81,9 @@ Only the tokens and code literals this audit needs.
 
 | §8 Acceptance item | Overview `.todo` | Overview `.debriefDone` | Overview `.resume` | Debrief |
 |---|---|---|---|---|
-| 1 · Every card has a `moco.stroke.card` outline of `stroke.ink` | ✗ | ✗ | ✗ | ✗ |
+| 1 · Every card has a `moko.stroke.card` outline of `stroke.ink` | ✗ | ✗ | ✗ | ✗ |
 | 2 · Green canvas + leafy bush/leaf vectors at 15–18% | ✗ | ✗ | ✗ | ✗ |
-| 3 · Type follows `moco.type.*`; nothing below 13 pt except tab | ✗ | ✗ | ✗ | ✗ |
+| 3 · Type follows `moko.type.*`; nothing below 13 pt except tab | ✗ | ✗ | ✗ | ✗ |
 | 4 · Slide implements 5 states + 4 a11y rules | ✗ | n/a | ✗ | ✗ |
 | 5 · Blue only on `Control/Slide` + completion flash | ✗ | ✓ (no blue at all) | ✗ | ✓ |
 | 6 · Green type only on `state.emptyTitle` | ✗ | ✗ | ✗ | ✗ |
@@ -157,7 +157,7 @@ section as the normal Overview.
 
 1. **Add the token layer.** Extend the existing `MokoTheme` (`startScreens/MokoTheme.swift:10`) with the
    §0 names and replace the five `private let` constants in this file. Nothing else is safe to do first.
-2. **Add `moco.stroke.card`.** One `.overlay(RoundedRectangle(cornerRadius: 22).stroke(ink, lineWidth: 2))`
+2. **Add `moko.stroke.card`.** One `.overlay(RoundedRectangle(cornerRadius: 22).stroke(ink, lineWidth: 2))`
    on the card shell — closes acceptance item 1 for all three Overview screens at once.
 3. **Replace the canvas** with a vertical `LinearGradient` of `canvas.top` → `canvas.bottom`.
 4. **Delete `emptyMissionContent`** from `Overview.swift` and fold `State/Empty` into `Card/Mission`
@@ -189,7 +189,7 @@ card variant would remove ~340 lines and fix the deltas once.
 
 | Element | Spec | Code | Line |
 |---|---|---|---|
-| Slide label | `moco.type.slider`, fades 45→60% of travel | "Slide to resume", 15 Medium, always visible | `:219-223` |
+| Slide label | `moko.type.slider`, fades 45→60% of travel | "Slide to resume", 15 Medium, always visible | `:219-223` |
 | Slide state | `Ready` at ≥78% travel | fires at 70% (`maxDrag * 0.7`) | `:247` |
 | Completion | track flash → card crossfade to `State/Empty` | sets `isResumeCompleted`, swaps to "Resume Debrief" + mic | `:250-252` |
 | Header avatar | `Control` opening profile | `NavigationLink` into `ProfileOverView` | `:103-120` |
@@ -266,10 +266,10 @@ Only one of six radii is registered. The card radius is systematically 2 pt larg
 
 ### 4.4 Spacing grid
 
-`moco.scale.base` is 4, so every inset should be a multiple of 4. Observed horizontal/top insets:
+`moko.scale.base` is 4, so every inset should be a multiple of 4. Observed horizontal/top insets:
 `18 (×5), 20, 16, 15, 12, 10, 9, 8, 7, 2`.
 
-`15`, `18`, `9`, `7` and `2` all sit off the grid, and `moco.space.page` (24) never appears. The screen
+`15`, `18`, `9`, `7` and `2` all sit off the grid, and `moko.space.page` (24) never appears. The screen
 is running on a 1–2 pt hand-tuned scale, not the 4 pt base — which is why the debrief and the Overview
 feel like two different products despite sharing a green canvas.
 
@@ -283,11 +283,11 @@ feel like two different products despite sharing a green canvas.
 
 ### 4.6 Fix order
 
-1. Import the `MocoTheme` token layer from §2.5 step 1 and **delete `DebriefStyle`** — map `deepGreen`
+1. Import the `MokoTheme` token layer from §2.5 step 1 and **delete `DebriefStyle`** — map `deepGreen`
    → `text.title`, `subtext` → `text.body`, `border` → `data.grid`, and retire cream/sand/rust/mint.
 2. Raise the ten 12 pt and the one 11 pt sites to `caption` — one mechanical pass, closes item 3.
 3. Snap radii to `radius.card` / `radius.inner` only.
-4. Snap insets to the 4 pt grid; introduce `moco.space.page` for the outer inset.
+4. Snap insets to the 4 pt grid; introduce `moko.space.page` for the outer inset.
 5. Then re-derive the card shell from `Card/Base` §6.2 so the debrief and the Overview inherit the same
    2 pt `stroke.ink` and elevation.
 
@@ -309,7 +309,7 @@ Consequences:
 - The §0 naming law cannot be satisfied by construction — no name exists to reference.
 - Acceptance item 1 (one stroke rule for **all** cards) is unimplementable until cards share a shell.
 
-The first commit of any design work should be `MocoTheme.swift` + `MokoCard` shell, and nothing else.
+The first commit of any design work should be `MokoTheme.swift` + `MokoCard` shell, and nothing else.
 That single change converts ~20 of the deltas above into one-line edits.
 
 ---

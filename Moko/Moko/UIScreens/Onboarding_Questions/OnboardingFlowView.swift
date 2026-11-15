@@ -1,8 +1,19 @@
+//
+//  OnboardingFlowView.swift
+//  Moko
+//
+//  The 8 swipe questions. The header ("x of 8", progress bar, title) stays still;
+//  only the card moves. Swipe right = Yes, swipe left = No, then the next card appears.
+//
+//  The Back button lives in the navigation bar, so this view needs a
+//  NavigationStack somewhere above it.
+//
+//  Debug tip: if swipes stop responding, `isBusy` is probably stuck at true —
+//  every path through `commit` / `goBack` must set it back to false.
+//
+
 import SwiftUI
 
-/// Whole onboarding flow. Header ("x of 8", progress bar, title) is static;
-/// only the card moves. Swipe right = Yes, swipe left = No, then the next card appears.
-/// The back button is the native navigation-bar button (needs a NavigationStack above this view).
 struct OnboardingFlowView: View {
     var questions: [OnboardingCardQuestion]
     var totalSteps: Int
@@ -19,22 +30,33 @@ struct OnboardingFlowView: View {
         self.onFinish = onFinish
     }
 
-    @Environment(\.dismiss) private var dismiss   // back button on the first card
+    /// Closes this screen. Used by Back on the first card.
+    @Environment(\.dismiss) private var dismiss
 
-    @State private var index = 0                  // card currently on screen
-    @State private var step = 0                   // drives counter + progress bar
+    /// Which card is on screen right now.
+    @State private var index = 0
+    /// Drives the counter and progress bar. Kept apart from `index` so the
+    /// bar can animate on its own while the card swaps instantly.
+    @State private var step = 0
+    /// Answers so far, keyed by question id.
     @State private var answers: [Int: OnboardingAnswer] = [:]
+    /// How far the card is dragged sideways (negative = left).
     @State private var dragX: CGFloat = 0
     @State private var cardScale: CGFloat = 1
     @State private var cardOpacity: Double = 1
-    @State private var isBusy = false             // ignore input while a transition runs
-    @State private var hapticTick = 0             // bump to fire a light haptic
-    @State private var screenWidth: CGFloat = 430 // used by the toolbar back button
+    /// True while a card is flying in/out, so extra taps and drags are ignored.
+    @State private var isBusy = false
+    /// Increase by 1 to play a light haptic (see `.sensoryFeedback` below).
+    @State private var hapticTick = 0
+    /// Screen width, saved so the toolbar Back button (outside GeometryReader) can use it.
+    @State private var screenWidth: CGFloat = 430
 
+    /// How far (in points) a drag must travel to count as an answer.
     private let swipeThreshold: CGFloat = 110
     private let exitDuration = 0.22
 
     var body: some View {
+        // GeometryReader gives us the screen width so cards can fly fully off-screen.
         GeometryReader { geo in
             VStack(alignment: .leading, spacing: 0) {
                 header
@@ -55,12 +77,14 @@ struct OnboardingFlowView: View {
                 Spacer(minLength: 0)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .onAppear { screenWidth = geo.size.width }
-            .onChange(of: geo.size.width) { _, newWidth in screenWidth = newWidth }
+            // `initial: true` also runs this once on first show, so we get the starting width too.
+            .onChange(of: geo.size.width, initial: true) { _, newWidth in
+                screenWidth = newWidth
+            }
         }
         .background(MokoTheme.limeBackground.ignoresSafeArea())
         .sensoryFeedback(.impact(weight: .light), trigger: hapticTick)
-        // Native navigation bar + back button
+        // Replace the system Back button with our own, so Back steps through cards first.
         .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -86,7 +110,7 @@ struct OnboardingFlowView: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
                 .padding(.trailing, 53)
 
-            // Figma uses 36pt leading / 52pt trailing for the bar – tweak here if you want it symmetric.
+            // One capsule per question; filled up to the current one.
             HStack(spacing: 4) {
                 ForEach(0..<totalSteps, id: \.self) { i in
                     Capsule()
@@ -100,6 +124,7 @@ struct OnboardingFlowView: View {
         }
     }
 
+    /// "3 of 8"
     private var counter: some View {
         HStack(spacing: 0) {
             Text("\(step + 1)")
@@ -112,6 +137,7 @@ struct OnboardingFlowView: View {
                 .foregroundStyle(OBColor.progressOn)
         }
         .font(.system(size: 15, weight: .semibold))
+        // VoiceOver reads one clear sentence instead of three fragments.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Question \(step + 1) of \(totalSteps)")
     }
@@ -120,13 +146,16 @@ struct OnboardingFlowView: View {
 
     private func card(width: CGFloat) -> some View {
         SwipeQuestionCard(question: questions[index],
+                          // -1...1: how close the drag is to counting as No / Yes.
                           swipeProgress: max(-1, min(1, dragX / (swipeThreshold * 1.5))),
                           onNo: { commit(.no, width: width) },
                           onYes: { commit(.yes, width: width) })
+            // Tilt up to 20° while dragging, pivoting at the bottom like a real card.
             .rotationEffect(.degrees(Double(max(-20, min(20, dragX / 18)))), anchor: .bottom)
             .offset(x: dragX)
             .scaleEffect(cardScale)
             .opacity(cardOpacity)
+            // `simultaneous` so the NO / YES buttons inside still get their taps.
             .simultaneousGesture(dragGesture(width: width))
             .accessibilityAction(named: "Answer yes") { commit(.yes, width: width) }
             .accessibilityAction(named: "Answer no") { commit(.no, width: width) }
@@ -141,12 +170,14 @@ struct OnboardingFlowView: View {
             .onEnded { value in
                 guard !isBusy else { return }
                 let travelled = value.translation.width
+                // Where the finger *would* end up if it kept moving — catches quick flicks.
                 let flick = value.predictedEndTranslation.width
                 if abs(travelled) > swipeThreshold {
                     commit(travelled > 0 ? .yes : .no, width: width)
                 } else if abs(flick) > swipeThreshold * 2.5 {
                     commit(flick > 0 ? .yes : .no, width: width)
                 } else {
+                    // Not far enough: spring back to the middle.
                     withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) { dragX = 0 }
                 }
             }
@@ -154,6 +185,8 @@ struct OnboardingFlowView: View {
 
     // MARK: - Navigation
 
+    /// Saves the answer, flies the card off, then brings in the next one
+    /// (or calls `onFinish` after the last card).
     private func commit(_ answer: OnboardingAnswer, width: CGFloat) {
         guard !isBusy else { return }
         isBusy = true
@@ -162,21 +195,23 @@ struct OnboardingFlowView: View {
         answers[questions[index].id] = answer
         let direction: CGFloat = answer == .yes ? 1 : -1
 
-        // 1. fly the card off screen
-        withAnimation(.easeIn(duration: exitDuration)) { dragX = direction * width * 1.2 }
+        // 1. Fly the card off screen in the swipe direction.
+        withAnimation(.easeOut(duration: exitDuration)) { dragX = direction * width * 1.2 }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + exitDuration) {
+        // `Task` lets us wait between steps without freezing the screen.
+        Task {
+            try? await Task.sleep(for: .seconds(exitDuration))
+
             guard index + 1 < questions.count else {
                 onFinish(answers)
-                // If this view stays in the hierarchy (e.g. pushed screen), bring the last card back quietly.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                    withoutAnimation { dragX = 0 }
-                    isBusy = false
-                }
+                // If this view stays on screen (e.g. it was pushed), quietly bring the last card back.
+                try? await Task.sleep(for: .milliseconds(600))
+                withoutAnimation { dragX = 0 }
+                isBusy = false
                 return
             }
 
-            // 2. swap to the next card (hidden, slightly smaller)…
+            // 2. Swap to the next card while it's hidden and slightly smaller…
             withoutAnimation {
                 index += 1
                 dragX = 0
@@ -185,31 +220,33 @@ struct OnboardingFlowView: View {
             }
             withAnimation(.easeInOut(duration: 0.25)) { step = index }
 
-            // 3. …and spring it in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                    cardScale = 1
-                    cardOpacity = 1
-                }
-                isBusy = false
+            // 3. …then spring it in. The tiny pause lets SwiftUI draw the hidden state first.
+            try? await Task.sleep(for: .milliseconds(30))
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                cardScale = 1
+                cardOpacity = 1
             }
+            isBusy = false
         }
     }
 
+    /// Goes back one card, or leaves the screen if we're on the first card.
     private func goBack(width: CGFloat) {
         guard !isBusy else { return }
         guard index > 0 else { dismiss(); return }
         isBusy = true
         hapticTick += 1
 
-        // 1. current card shrinks away
-        withAnimation(.easeIn(duration: 0.15)) {
+        // 1. Current card shrinks away.
+        withAnimation(.easeOut(duration: 0.15)) {
             cardScale = 0.92
             cardOpacity = 0
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            // 2. previous card waits off-screen on the side it was swiped to…
+        Task {
+            try? await Task.sleep(for: .milliseconds(150))
+
+            // 2. Previous card waits off-screen on the side it was swiped to…
             let previous = questions[index - 1]
             let side: CGFloat = answers[previous.id] == .no ? -1 : 1
             withoutAnimation {
@@ -220,18 +257,19 @@ struct OnboardingFlowView: View {
             }
             withAnimation(.easeInOut(duration: 0.25)) { step = index }
 
-            // 3. …then slides back in
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { dragX = 0 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { isBusy = false }
-            }
+            // 3. …then slides back in.
+            try? await Task.sleep(for: .milliseconds(30))
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) { dragX = 0 }
+            try? await Task.sleep(for: .milliseconds(400))
+            isBusy = false
         }
     }
 
+    /// Changes state instantly, with no animation, even if an animation is already running.
     private func withoutAnimation(_ body: () -> Void) {
-        var t = Transaction(animation: nil)
-        t.disablesAnimations = true
-        withTransaction(t, body)
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction, body)
     }
 }
 

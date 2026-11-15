@@ -35,6 +35,6 @@ extension View {
     }
 
     public func textPrimary() -> some View {
-        return self.foregroundColor(ColorTokens.textPrimary)
+        return self.foregroundStyle(ColorTokens.textPrimary)
     }
 }

@@ -1,24 +1,41 @@
+//
+//  MokoAnimatedMascotView.swift
+//  Moko
+//
+//  The waving mascot. It hops up a little and fades in one time,
+//  then stays still (no looping animation running in the background).
+//
+
 import SwiftUI
 
-/// The supplied mascot, revealed once without a continuously running animation.
 struct MokoAnimatedMascotView: View {
+    /// How wide the mascot is. The height follows the picture's shape.
     var size: CGFloat = 220
 
+    // The phone setting "Reduce Motion". If it is on, we only fade.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    // False at the start, true once the mascot has shown up.
     @State private var appeared = false
 
     var body: some View {
-        Image("MocoMascot")
+        Image("MokoMascot")
             .resizable()
             .scaledToFit()
-            .frame(width: size, height: size * (758.0 / 592.0))
+            .frame(width: size, height: size * MokoScreenTheme.Size.mascotAspect)
+            // Starts a little lower, then springs into place.
             .offset(y: appeared || reduceMotion ? 0 : size * 0.12)
             .opacity(appeared ? 1 : 0)
-            .accessibilityLabel("Moco waves hello")
+            .accessibilityLabel("Moko waves hello")
+            // .onAppear runs when the mascot first shows on screen.
             .onAppear {
-                withAnimation(reduceMotion ? MocoScreenTheme.Motion.crossfade : MocoScreenTheme.Motion.mascotEntrance) {
+                withAnimation(reduceMotion ? MokoScreenTheme.Motion.crossfade : MokoScreenTheme.Motion.mascotEntrance) {
                     appeared = true
                 }
             }
     }
+}
+
+#Preview {
+    MokoAnimatedMascotView()
 }

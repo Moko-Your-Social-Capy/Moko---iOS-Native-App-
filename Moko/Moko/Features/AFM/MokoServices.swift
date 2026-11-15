@@ -1,25 +1,34 @@
-// MokoServices.swift
-// Glue between the app and AFM:
-//   1) Onboarding: deterministic scoring + AFM insight text
-//   2) Quest cards (custom + daily) – AFM writes title/scene/who/goal, app owns difficulty + category image
-//   4) Custom quest → ramp of similar daily missions until the quest date
-//   3) Voice debrief state machine (fixed length, NOT a chatbot)
+//
+//  MokoServices.swift
+//  Moko
+//
+//  Glue between the app and AFM (Apple Foundation Models, the on-device AI):
+//    1) Onboarding: plain-Swift scoring + AFM-written insight text
+//    2) Quest cards (custom + daily): AFM writes title/scene/who/goal,
+//       the app decides difficulty and the category image
+//    3) Mission planner: a custom quest → one practice mission per day until its date
+//    4) Voice debrief: a fixed-length question flow (NOT an open chatbot)
+//
+//  Rule used everywhere: every AFM call has a plain-text fallback, so the app
+//  still works on devices without Apple Intelligence (AFM returns nil there).
+//
 
 import Foundation
 import Observation
 
 // MARK: 1) ONBOARDING
 
+/// One onboarding answer, ready for scoring.
 struct OnboardingScoredAnswer: Codable, Equatable, Sendable {
     let questionID: Int   // 1...8
     let yes: Bool         // every question is phrased so that "yes" = the harder behavior
 }
 
-typealias AFMOnboardingAnswer = OnboardingScoredAnswer
-
+/// The four social stats, each 0–100.
 struct StatScores: Codable, Equatable, Sendable {
     var courage = 0, clarity = 0, presence = 0, warmth = 0
 
+    /// Lets code read or write a stat by name, e.g. `scores[.warmth] = 70`.
     subscript(_ stat: Stat) -> Int {
         get {
             switch stat {
@@ -50,6 +59,7 @@ struct StatScores: Codable, Equatable, Sendable {
         return out
     }
 
+    /// Same as above, for scores keyed by debrief parameter instead of stat.
     func updated(with sessionParameters: [DebriefParameter: Int], weight: Double = 0.3) -> StatScores {
         var dict: [Stat: Int] = [:]
         for (param, val) in sessionParameters {
@@ -65,6 +75,7 @@ struct StatScores: Codable, Equatable, Sendable {
         self.warmth = warmth
     }
 
+    /// Reads the scores out of a saved SwiftData `InsightsModel`.
     init(model: InsightsModel) {
         self.courage = model.courage
         self.clarity = model.clarity
@@ -72,11 +83,13 @@ struct StatScores: Codable, Equatable, Sendable {
         self.warmth = model.warmth
     }
 
+    /// Makes a new `InsightsModel` you can insert into SwiftData.
     func makeInsightsModel(date: Date = .now) -> InsightsModel {
         InsightsModel(courage: courage, clarity: clarity, presence: presence, warmth: warmth, date: date)
     }
 }
 
+/// Which "band" a score falls into: 70+ strength, 50–69 steady, below 50 growth.
 enum Band {
     case strength, steady, growth
     init(score: Int) { self = score >= 70 ? .strength : (score >= 50 ? .steady : .growth) }
@@ -89,7 +102,9 @@ enum Band {
     }
 }
 
+/// Turns the 8 yes/no onboarding answers into starting stat scores. No AI involved.
 enum OnboardingScoring {
+    /// Which stat a question affects, and how much (1.0 = main stat, 0.4 = side stat).
     struct Tag { let stat: Stat; let weight: Double }
 
     /// From "Moko — Onboarding Item Tagging". Primary = 1.0, secondary = 0.4.
@@ -120,6 +135,9 @@ enum OnboardingScoring {
     /// Baseline range: a self-report should never land on a hard 0 or 100.
     static let minScore = 25.0, maxScore = 90.0
 
+    /// For each stat: add up the weight of every question tagged with it (`possible`),
+    /// and the weight of the ones answered "yes" (`lost`). More "yes" → lower score,
+    /// always inside `minScore...maxScore`.
     static func scores(from answers: [OnboardingScoredAnswer]) -> StatScores {
         let yes = Set(answers.filter { $0.yes }.map { $0.questionID })
         var result = StatScores()
@@ -144,6 +162,7 @@ enum OnboardingScoring {
     }
 }
 
+/// What onboarding hands to the Insights screen: scores plus one short text per stat.
 struct OnboardingResult: Sendable {
     let scores: StatScores
     let insights: [Stat: String]   // 1–2 line analysis per stat, shown under each score in Insights
@@ -151,8 +170,11 @@ struct OnboardingResult: Sendable {
 
 @MainActor
 enum OnboardingInsightService {
+    /// Scores the answers, then asks AFM for a 1–2 line insight per stat.
+    /// Any missing, too-short or too-long AFM text is swapped for `OnboardingFallback`.
     static func analyze(_ answers: [OnboardingScoredAnswer]) async -> OnboardingResult {
         let scores = OnboardingScoring.scores(from: answers)
+        // `try?` turns an AFM error into nil, so we simply fall back below.
         let generated = try? await AFM.generate(
             OnboardingInsights.self,
             instructions: OnboardingPrompts.instructions,
@@ -184,6 +206,7 @@ enum OnboardingInsightService {
     }
 }
 
+/// Hand-written insight text, used when AFM is unavailable or returns something unusable.
 enum OnboardingFallback {
     static func text(_ stat: Stat, _ band: Band) -> String {
         let positive = band != .growth
@@ -201,9 +224,10 @@ enum OnboardingFallback {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MARK: 2 & 4) QUEST CARDS + DAILY MISSION PLANNER
+// MARK: 2 & 3) QUEST CARDS + DAILY MISSION PLANNER
 // ═══════════════════════════════════════════════════════════════
 
+/// What the user typed when creating a custom quest.
 struct CustomQuestInput: Sendable {
     var title: String
     var notes: String
@@ -228,6 +252,7 @@ struct CustomQuestInput: Sendable {
     }
 }
 
+/// The text shown on a mission card.
 struct QuestCard: Identifiable, Codable, Hashable, Sendable {
     var id = UUID()
     var templateID: String        // links the card to its Mission Bank entry → follow-up questions at debrief time
@@ -240,6 +265,7 @@ struct QuestCard: Identifiable, Codable, Hashable, Sendable {
     var isInvented = false        // true when AFM wrote a brand-new situation (vs. rewording a bank one)
 }
 
+/// One day in a custom quest's practice plan (before AFM has written its card).
 struct PlannedMission: Identifiable, Sendable {
     let id = UUID()
     let date: Date
@@ -263,6 +289,7 @@ enum MissionPlanner {
         let span = calendar.dateComponents([.day], from: start, to: end).day ?? 0
         guard span > 0 else { return [] }
 
+        // Practice situations: same category, not harder than the user's choice, easiest first.
         var pool = MissionBank.templates(in: matched.category, age: userAge)
             .filter { $0.difficulty.rank <= quest.difficulty.rank && $0.id != matched.id }
             .sorted { $0.tierLow < $1.tierLow }
@@ -274,6 +301,7 @@ enum MissionPlanner {
             if isLast {
                 template = matched
             } else {
+                // 0.0 on day one → 1.0 on the day before the rehearsal, so the pick walks easy → hard.
                 let position = span > 2 ? Double(i) / Double(span - 2) : 0
                 template = pool[Int((position * Double(pool.count - 1)).rounded())]
             }
@@ -286,6 +314,7 @@ enum MissionPlanner {
     }
 }
 
+/// Builds `QuestCard`s. Each card starts from Mission Bank text, then AFM tries to reword it.
 @MainActor
 enum QuestCardService {
 
@@ -331,7 +360,8 @@ enum QuestCardService {
         let options = MissionBank.templates(in: category)
         guard !options.isEmpty else { return MissionBank.all[0] }
 
-        // Content relevance fallback index
+        // Plain-Swift backup pick: the option sharing the most words (3+ letters) with
+        // the user's title and notes. Used only if AFM can't choose.
         var bestIndex = 0
         var bestMatchScore = 0
         let searchTokens = (title + " " + notes).lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init)
@@ -351,19 +381,28 @@ enum QuestCardService {
             temperature: 0.1
         )
         if let choice {
+            // AFM counts from 1; clamp so a bad number can never crash the array lookup.
             let index = min(max(choice.number - 1, 0), options.count - 1)
             return options[index]
         }
         return options[bestIndex]
     }
 
+    /// Builds the card from bank text first (the fallback), then lets AFM overwrite
+    /// each field only if its version passes the length checks.
     private static func makeCard(_ seed: CardSeed) async -> QuestCard {
         let t = seed.template
-        let fallbackTitle = (seed.userTitle?.isEmpty == false) ? seed.userTitle! : t.title
+        // The user's own title if they typed one, otherwise the bank title.
+        let fallbackTitle: String
+        if let userTitle = seed.userTitle, !userTitle.isEmpty {
+            fallbackTitle = userTitle
+        } else {
+            fallbackTitle = t.title
+        }
 
         var fallbackScene = t.scene
         var fallbackWho = t.who
-        var fallbackGoal = t.goal
+        let fallbackGoal = t.goal
 
         let trimmedNotes = seed.userNotes?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         if !trimmedNotes.isEmpty {
@@ -383,6 +422,7 @@ enum QuestCardService {
             temperature: 0.6
         ) else { return card }
 
+        // Returns the trimmed text, or nil if it is empty or longer than `max` characters.
         func ok(_ s: String, max: Int) -> String? {
             let v = s.trimmingCharacters(in: .whitespacesAndNewlines)
             return (!v.isEmpty && v.count <= max) ? v : nil
@@ -396,13 +436,14 @@ enum QuestCardService {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MARK: 3) VOICE DEBRIEF
+// MARK: 4) VOICE DEBRIEF
 // ═══════════════════════════════════════════════════════════════
 // Flow (fixed, so it can't turn into a rumination chatbot):
 //   greeting + main question → user answer (confidence + note; courage & clarity read from it)
 //   → follow-up 1 (Presence) → follow-up 2 (Warmth) → follow-up 3 (stat with the weakest evidence so far)
 //   → closing → finished (input is rejected from here on)
 
+/// Everything the debrief prompts need to know about the mission being talked about.
 struct AFMDebriefContext: Sendable {
     let title: String
     let scene: String
@@ -441,15 +482,15 @@ struct AFMDebriefContext: Sendable {
     }
 }
 
-typealias CardDebriefContext = AFMDebriefContext
-
 extension DebriefContext {
+    /// Converts the debrief screen's context into the one the AFM prompts use.
     var afmContext: AFMDebriefContext {
         let template = MissionBank.templates(in: category).first ?? MissionBank.all[0]
         return AFMDebriefContext(title: questTitle, scene: template.scene, who: template.who, goal: template.goal, template: template, userName: userName)
     }
 }
 
+/// One chat bubble in the debrief (from Moko or from the user).
 struct DebriefTurn: Identifiable, Equatable, Sendable {
     enum Role: Sendable { case moko, user }
     let id = UUID()
@@ -464,9 +505,13 @@ struct DebriefTurn: Identifiable, Equatable, Sendable {
     }
 }
 
+/// Runs the voice debrief one step at a time. Views read `turns`, `phase` and
+/// `isThinking`; `@Observable` redraws them whenever these change.
 @MainActor
 @Observable
 final class DebriefEngine {
+    /// Where the conversation is: not started → waiting for the main answer →
+    /// waiting for follow-up N → done.
     enum Phase: Equatable { case idle, awaitingMain, awaitingFollowUp(Int), finished }
 
     static let followUpCount = 3
@@ -475,11 +520,15 @@ final class DebriefEngine {
     private(set) var phase: Phase = .idle
     private(set) var turns: [DebriefTurn] = []
     private(set) var isThinking = false
-    /// Final per-stat scores. A stat with no usable evidence is ABSENT (never a guessed number).
+    /// Final per-stat scores, filled in when the debrief closes. A stat with no usable
+    /// evidence gets a calm baseline from the average confidence (see `computeFinalScores`).
     private(set) var finalScores: [Stat: Int] = [:]
 
+    /// One AFM score for a stat, plus how strong the evidence behind it was.
     private struct Reading { let score: Int; let evidence: Evidence }
 
+    // `@ObservationIgnored`: internal bookkeeping that no view shows, so changing
+    // it should not redraw anything.
     @ObservationIgnored private let context: AFMDebriefContext
     @ObservationIgnored private var readings: [Stat: [Reading]] = [:]
     @ObservationIgnored private var followUpStats: [Stat] = []
@@ -491,6 +540,7 @@ final class DebriefEngine {
         self.init(context: AFMDebriefContext(card: card))
     }
 
+    /// True only while Moko is waiting for an answer (and not busy thinking).
     var acceptsInput: Bool {
         guard !isThinking else { return false }
         switch phase {
@@ -505,17 +555,13 @@ final class DebriefEngine {
         return nil
     }
 
-    /// Average of per-answer confidence, for a session-level summary if you want one.
-    var sessionConfidence: Int? {
-        let values = turns.compactMap { $0.confidence }
-        return values.isEmpty ? nil : Int((Double(values.reduce(0, +)) / Double(values.count)).rounded())
-    }
-
     // MARK: Public API
 
+    /// Adds Moko's greeting and main question. Safe to call twice; the second call does nothing.
     func start() async {
         guard phase == .idle else { return }
         isThinking = true
+        // `defer` runs when the function ends, so the "thinking" dots always stop.
         defer { isThinking = false }
 
         let generated = try? await AFM.generate(
@@ -542,6 +588,7 @@ final class DebriefEngine {
 
     // MARK: Turn handlers
 
+    /// Main answer: AFM reads Courage and Clarity from it, then follow-up 1 is asked.
     private func handleMain(_ text: String) async {
         let idx = appendUser(text)
         isThinking = true
@@ -562,6 +609,8 @@ final class DebriefEngine {
         await askFollowUp(0)
     }
 
+    /// Follow-up answer: AFM scores the stat that question targeted, then the next
+    /// question (or the closing message) is added.
     private func handleFollowUp(_ text: String, index i: Int) async {
         let idx = appendUser(text)
         isThinking = true
@@ -585,6 +634,8 @@ final class DebriefEngine {
         if i + 1 < Self.followUpCount { await askFollowUp(i + 1) } else { await close() }
     }
 
+    /// Picks the stat for follow-up `i`, starts from the bank's vetted question,
+    /// and lets AFM tailor it. A tailored question that fails `validQuestion` is discarded.
     private func askFollowUp(_ i: Int) async {
         let stat: Stat
         switch i {
@@ -613,6 +664,7 @@ final class DebriefEngine {
         phase = .awaitingFollowUp(i)
     }
 
+    /// Works out the final scores and adds Moko's goodbye message.
     private func close() async {
         finalScores = computeFinalScores()
         let strongest = finalScores.max { $0.value < $1.value }?.key
@@ -629,11 +681,13 @@ final class DebriefEngine {
 
     // MARK: Scoring bookkeeping (plain Swift)
 
+    /// Saves one AFM reading. Scores are kept in 45...100 so one bad day never looks harsh.
     private func record(_ stat: Stat, _ score: Int, _ evidence: Evidence) {
         let validScore = max(45, min(score, 100))
         readings[stat, default: []].append(Reading(score: validScore, evidence: evidence))
     }
 
+    /// How much evidence we have for a stat so far (sum of its readings' weights).
     private func evidenceWeight(_ stat: Stat) -> Double {
         readings[stat, default: []].map { $0.evidence.weight }.reduce(0, +)
     }
@@ -649,6 +703,8 @@ final class DebriefEngine {
         } ?? .courage
     }
 
+    /// Evidence-weighted average per stat. Stats with no evidence get a baseline
+    /// from the average answer confidence (68 if there is none), kept in 48...85.
     private func computeFinalScores() -> [Stat: Int] {
         var out: [Stat: Int] = [:]
         let confidences = turns.compactMap { $0.confidence }
@@ -661,7 +717,6 @@ final class DebriefEngine {
                 let weighted = rs.map { Double($0.score) * $0.evidence.weight }.reduce(0, +)
                 out[stat] = max(45, Int((weighted / totalWeight).rounded()))
             } else {
-                // Ensure no parameter ever gets 0: provide calibrated baseline
                 out[stat] = max(48, min(avgConf - 4, 85))
             }
         }
@@ -670,12 +725,13 @@ final class DebriefEngine {
 
     // MARK: Helpers
 
-    @discardableResult
+    /// Adds the user's bubble and returns its index, so AFM's confidence can be attached later.
     private func appendUser(_ text: String) -> Int {
         turns.append(DebriefTurn(role: .user, text: text))
         return turns.count - 1
     }
 
+    /// The trimmed AFM message if it is 10...maxLength characters, otherwise nil.
     private static func usableMessage(_ s: String?, maxLength: Int) -> String? {
         guard let v = s?.trimmingCharacters(in: .whitespacesAndNewlines),
               v.count >= 10, v.count <= maxLength else { return nil }

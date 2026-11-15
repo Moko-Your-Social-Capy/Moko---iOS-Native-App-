@@ -1,6 +1,17 @@
-// MokoAFM.swift
-// Apple Foundation Models layer for Moko: runtime helper, @Generable output types, prompts.
-// Requires iOS 26+ / Apple Intelligence–capable device.
+//
+//  MokoAFM.swift
+//  Moko
+//
+//  The Apple Foundation Models (AFM) layer: the on-device language model that
+//  writes Moko's text. This file has three parts:
+//    - `AFM.generate`: the ONE function every feature calls to talk to the model
+//    - `@Generable` structs: the exact shape of answer we want back (the model fills them in)
+//    - `...Prompts` enums: the instructions and prompts we send
+//
+//  Needs iOS 26+ and an Apple Intelligence device. Elsewhere `AFM.isAvailable` is false,
+//  `generate` throws, and every caller uses its plain-text fallback.
+//
+//  Debug tip: if AI text never shows up, log `AFM.availabilityDescription`.
 //
 // Design rules used everywhere:
 //  • Deterministic things (score math, weakest-stat choice, scheduling, difficulty, images) stay in plain Swift.
@@ -20,6 +31,7 @@ import FoundationModels
 
 // MARK: - Runtime helper
 
+/// Errors `AFM.generate` can throw itself (the model can throw its own errors too).
 enum AFMError: Error, LocalizedError {
     case unavailable(reason: String?)
     case generationFailed(String)
@@ -82,11 +94,13 @@ enum AFM {
         return Bundle.main.bundlePath.contains("/Previews/")
     }()
 
+    /// True when the on-device model can be used right now.
     static var isAvailable: Bool {
         guard !isPreviewRuntime else { return false }
         return SystemLanguageModel.default.isAvailable
     }
 
+    /// A readable reason for `isAvailable`, handy in logs.
     static var availabilityDescription: String {
         guard !isPreviewRuntime else { return "Apple Intelligence is disabled in SwiftUI Previews" }
         switch SystemLanguageModel.default.availability {
@@ -119,6 +133,8 @@ enum AFM {
                                        retries: Int = 1) async throws -> T {
         guard isAvailable else { throw AFMError.unavailable(reason: availabilityDescription) }
 
+        // Wait our turn. The slot is released on both the success and the error path
+        // below (`defer` can't be used because `release()` needs `await`).
         await AFMGenerationGate.shared.acquire()
         do {
             let content = try await runAttempts(
@@ -146,6 +162,7 @@ enum AFM {
         for attempt in 0..<attempts {
             try Task.checkCancellation()
             do {
+                // A brand-new session each time, so no earlier chat history fills the small context window.
                 let session = LanguageModelSession(instructions: instructions)
                 let response = try await session.respond(
                     to: prompt,
@@ -202,6 +219,7 @@ enum AFM {
             }
         }
 
+        // Not a model error (e.g. a network-style hiccup): one more try is safe.
         return true
     }
 
@@ -222,6 +240,10 @@ extension String {
 
 // MARK: - Shared generable vocab
 
+// `@Generable` lets the model fill in this type directly, instead of us parsing raw text.
+// `@Guide(description:)` tells the model what each property should contain.
+
+/// How strongly an answer shows a stat.
 @Generable
 enum Evidence {
     case missing   // nothing about the user's own behavior for this stat
@@ -230,6 +252,7 @@ enum Evidence {
 }
 
 extension Evidence {
+    /// How much this evidence counts when averaging scores.
     var weight: Double {
         switch self {
         case .missing: return 0
@@ -269,8 +292,9 @@ struct OnboardingInsights {
     var warmth: String
 }
 
-// MARK: - 2 & 4) Quest cards
+// MARK: - 2 & 3) Quest cards
 
+/// AFM's pick of the Mission Bank situation closest to a custom quest.
 @Generable
 struct TemplateChoice {
     @Guide(description: "Max 12 words: why this situation is the closest match to the user's idea.")
@@ -279,6 +303,7 @@ struct TemplateChoice {
     var number: Int
 }
 
+/// AFM's wording for one quest card.
 @Generable
 struct QuestCardText {
     @Guide(description: "Card title, 2–4 words, Title Case, naming the situation or person, e.g. 'Coffee with Arjun'. No emojis, no punctuation.")
@@ -302,14 +327,16 @@ struct CardSeed {
     var totalDays: Int?
 }
 
-// MARK: - 3) Voice debrief
+// MARK: - 4) Voice debrief
 
+/// Moko's first debrief message.
 @Generable
 struct DebriefOpening {
     @Guide(description: "Greeting plus ONE open question about how the mission went. Max 35 words. Ends by inviting them to tell it in their own words.")
     var message: String
 }
 
+/// AFM's reading of the user's main story: Courage, Clarity and confidence.
 @Generable
 struct MainAnswerAnalysis {
     @Guide(description: "One sentence, max 25 words: what the USER specifically did or said, using their details.")
@@ -331,12 +358,14 @@ struct MainAnswerAnalysis {
     var confidenceNote: String
 }
 
+/// One tailored follow-up question.
 @Generable
 struct FollowUpQuestionText {
     @Guide(description: "One short closed-ended question, max 25 words, exactly one question mark, referencing one specific thing the user said.")
     var question: String
 }
 
+/// AFM's reading of one follow-up answer, for the one stat that question targeted.
 @Generable
 struct FollowUpAnalysis {
     @Guide(description: "One sentence, max 25 words: what the USER said they did or noticed in this answer.")
@@ -351,6 +380,7 @@ struct FollowUpAnalysis {
     var confidenceNote: String
 }
 
+/// Moko's goodbye message.
 @Generable
 struct DebriefClosing {
     @Guide(description: "Closing message, exactly 2 sentences, max 45 words. First names one specific thing the user did; second ties it to the goal. No question, no homework, no scores.")
@@ -358,6 +388,9 @@ struct DebriefClosing {
 }
 
 // MARK: - Prompts
+
+// `instructions` = the model's standing role and rules.
+// `prompt(...)`  = this one request's data.
 
 enum OnboardingPrompts {
     static let instructions = """
@@ -488,10 +521,6 @@ enum DebriefPrompts {
         return parts.joined(separator: "\n")
     }
 
-    static func openingPrompt(_ c: DebriefContext) -> String {
-        openingPrompt(c.afmContext)
-    }
-
     // ---- Analysis (main answer and follow-ups) ----
     static let analysisInstructions = """
     You analyze a short voice debrief for Moko, a social-confidence app. The user just tried a real-world social mission and is describing, in their own words, what THEY did.
@@ -530,10 +559,6 @@ enum DebriefPrompts {
         """
     }
 
-    static func mainAnswerPrompt(_ c: DebriefContext, answer: String) -> String {
-        mainAnswerPrompt(c.afmContext, answer: answer)
-    }
-
     static func followUpAnalysisPrompt(_ c: AFMDebriefContext, stat: Stat, question: String,
                                        answer: String, earlier: [String]) -> String {
         let wordCount = answer.split(separator: " ").count
@@ -550,11 +575,6 @@ enum DebriefPrompts {
         </user_said>
         Score ONLY \(stat.title) for the USER, plus confidence. Apply the word-count confidence rules above strictly.
         """
-    }
-
-    static func followUpAnalysisPrompt(_ c: DebriefContext, stat: Stat, question: String,
-                                       answer: String, earlier: [String]) -> String {
-        followUpAnalysisPrompt(c.afmContext, stat: stat, question: question, answer: answer, earlier: earlier)
     }
 
     // ---- Follow-up question writer ----
@@ -589,11 +609,6 @@ enum DebriefPrompts {
         return p
     }
 
-    static func questionPrompt(_ c: DebriefContext, stat: Stat, base: String,
-                               userSaid: String, differentFrom previous: String?) -> String {
-        questionPrompt(c.afmContext, stat: stat, base: base, userSaid: userSaid, differentFrom: previous)
-    }
-
     // ---- Closing ----
     static let closingInstructions = """
     You are Moko, the friendly guide in this social-confidence app. Write the closing message of a short debrief. Exactly 2 sentences, max 45 words.
@@ -609,10 +624,6 @@ enum DebriefPrompts {
         What the user did: \(observations.isEmpty ? "(they completed the debrief)" : observations.joined(separator: " | "))
         Strongest area today: \(strongest?.title ?? "n/a")
         """
-    }
-
-    static func closingPrompt(_ c: DebriefContext, observations: [String], strongest: Stat?) -> String {
-        closingPrompt(c.afmContext, observations: observations, strongest: strongest)
     }
 }
 

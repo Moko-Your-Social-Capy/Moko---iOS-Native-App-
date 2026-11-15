@@ -1,35 +1,47 @@
 //
 //  GuideSessionView.swift
-//  imageryGuide
+//  Moko
 //
-//  Created by user@77 on 26/10/26.
+//  The guided imagery session: a full-screen photo, a card with the current
+//  step, a progress bar and soft looping background music.
+//  When the timer ends it saves a calm-down entry and shows "Continue".
+//
+//  How the timer works: `.task(id: isRunning)` runs `runClock()`, which adds the
+//  real time that passed 10 times a second. Pausing flips `isRunning`, which
+//  cancels the loop.
 //
 
 import SwiftUI
 import SwiftData
-import Combine
+import Combine        // only for the "is the song ready?" listener below
 import AVFoundation
+import OSLog
 
 struct GuideSessionView: View {
     let guide: ImageryGuide
     var onContinue: () -> Void = {}
 
+    // Shared text and settings loaded from Supabase (titles, button labels, …).
     @Environment(ImageryGuideStore.self) private var store
-    @State private var elapsed: TimeInterval = 0
-    @State private var isRunning = true           // starts as soon as the screen opens
-    @State private var lastTick = Date()
-    @State private var audioPlayer: AVPlayer?
-    @State private var loopObserver: NSObjectProtocol?
-    @State private var audioCancellables = Set<AnyCancellable>()
+    // SwiftData's "save box". We use it to record the finished session.
     @Environment(\.modelContext) private var modelContext
 
-    private let ticker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+    // Seconds played so far.
+    @State private var elapsed: TimeInterval = 0
+    // True while the timer is counting. Starts as soon as the screen opens.
+    @State private var isRunning = true
+    // The music player. `nil` until the music is set up.
+    @State private var audioPlayer: AVPlayer?
+    // Listens for "song finished" so we can loop it.
+    @State private var loopObserver: NSObjectProtocol?
+    // Keeps the "is the song ready?" listener alive.
+    @State private var audioCancellables = Set<AnyCancellable>()
 
-    private let accent   = MocoScreenTheme.Colors.dataVioletDeep
-    private let tileFill = MocoScreenTheme.Colors.surfaceLavender
-    private let ink      = MocoScreenTheme.Colors.textTitle
-    private let caption  = MocoScreenTheme.Colors.textBody
-    private let track    = MocoScreenTheme.Colors.surfaceLavender
+    private let accent   = MokoScreenTheme.Colors.dataVioletDeep
+    private let tileFill = MokoScreenTheme.Colors.surfaceLavender
+    private let ink      = MokoScreenTheme.Colors.textTitle
+    private let caption  = MokoScreenTheme.Colors.textBody
+    private let track    = MokoScreenTheme.Colors.surfaceLavender
 
     // MARK: Derived state
 
@@ -38,6 +50,7 @@ struct GuideSessionView: View {
     private var steps: [String] { guide.sessionSteps.isEmpty ? [""] : guide.sessionSteps }
     private var isComplete: Bool { elapsed >= totalSeconds }
 
+    /// Which step to show. The session is split into equal time slices, one per step.
     private var stepIndex: Int {
         let perStep = totalSeconds / Double(steps.count)
         return min(Int(elapsed / perStep), steps.count - 1)
@@ -64,6 +77,7 @@ struct GuideSessionView: View {
         return steps[stepIndex]
     }
 
+    /// Turns seconds into "m:ss", for example 75 → "1:15".
     private func format(_ seconds: Int) -> String {
         String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
@@ -75,32 +89,28 @@ struct GuideSessionView: View {
             background
 
             panel
-                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
                 .padding(.bottom, 22)
         }
         .navigationTitle(guide.title)
         .navigationBarTitleDisplayMode(.inline)
         // Immersive session: give the guidance panel the full screen.
         .toolbar(.hidden, for: .tabBar)
+        // `.task` runs when the screen appears and is cancelled when it goes away.
         .task { await store.loadIfNeeded() }
         .onAppear { setupAmbientAudio() }
+        // Restarts every time the timer is played or paused. See `runClock()`.
+        .task(id: isRunning) { await runClock() }
+        // Play or pause the music whenever the timer is played or paused.
         .onChange(of: isRunning, initial: false) { _, newValue in
             if newValue { playAmbientAudio() } else { pauseAmbientAudio() }
         }
-        .onReceive(ticker) { date in
-            let dt = min(date.timeIntervalSince(lastTick), 0.5)
-            lastTick = date
-            guard isRunning, !isComplete else { return }
-            elapsed = min(totalSeconds, elapsed + dt)
-            if elapsed >= totalSeconds {
-                isRunning = false
-                modelContext.logCalmDown("Imagery Guide", seconds: totalSeconds)
-            }
-        }
+        // Stop the timer and music when the user leaves the screen.
         .onDisappear {
             isRunning = false
             stopAmbientAudio()
         }
+        // A light buzz on every new step, and a success buzz at the end.
         .sensoryFeedback(.impact(weight: .light), trigger: stepIndex)
         .sensoryFeedback(.success, trigger: isComplete)
     }
@@ -116,6 +126,7 @@ struct GuideSessionView: View {
                     tileFill
 
                     if let url = guide.artworkURL {
+                        // AsyncImage downloads the photo. `phase` tells us loading / done / failed.
                         AsyncImage(url: url) { phase in
                             switch phase {
                             case .success(let image):
@@ -155,7 +166,7 @@ struct GuideSessionView: View {
             // Step label + subtle controls
             HStack {
                 Text(headerText)
-                    .mocoText(MocoScreenTheme.Typeface.caption)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
                     .tracking(0.3)
                     .foregroundStyle(caption)
                 Spacer()
@@ -166,7 +177,7 @@ struct GuideSessionView: View {
             // Instruction (cross-fades when it changes)
             ZStack(alignment: .topLeading) {
                 Text(instruction)
-                    .mocoText(MocoScreenTheme.Typeface.section)
+                    .mokoText(MokoScreenTheme.Typeface.section)
                     .lineSpacing(3)
                     .foregroundStyle(ink)
                     .fixedSize(horizontal: false, vertical: true)
@@ -194,7 +205,7 @@ struct GuideSessionView: View {
                 Spacer()
                 Text(remainingLabel)
             }
-            .mocoText(MocoScreenTheme.Typeface.body)
+            .mokoText(MokoScreenTheme.Typeface.body)
             .monospacedDigit()
             .foregroundStyle(caption)
             .padding(.top, 10)
@@ -203,7 +214,7 @@ struct GuideSessionView: View {
             if isComplete {
                 Button(action: onContinue) {
                     Text(screen?.sessionContinueButton ?? "")
-                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
+                        .mokoText(MokoScreenTheme.Typeface.cardTitle)
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 52)
@@ -216,7 +227,7 @@ struct GuideSessionView: View {
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 20)
-        .mocoCard()
+        .mokoCard()
         .animation(.spring(duration: 0.4), value: isComplete)
     }
 
@@ -241,15 +252,13 @@ struct GuideSessionView: View {
             controlButton(icon: screen?.sessionRestartIcon ?? "",
                           label: screen?.sessionRestartLabel ?? "") {
                 elapsed = 0
-                lastTick = Date()
                 // Restart the ambient music from the beginning too.
                 audioPlayer?.seek(to: .zero)
-                if isRunning { playAmbientAudio() } else { pauseAmbientAudio() }
                 isRunning = true
+                playAmbientAudio()
             }
             controlButton(icon: isRunning ? (screen?.sessionPauseIcon ?? "") : (screen?.sessionPlayIcon ?? ""),
                           label: isRunning ? (screen?.sessionPauseLabel ?? "") : (screen?.sessionPlayLabel ?? "")) {
-                lastTick = Date()
                 isRunning.toggle()
             }
         }
@@ -267,6 +276,28 @@ struct GuideSessionView: View {
         .accessibilityLabel(label)
     }
 
+    // MARK: Clock
+
+    /// Runs inside `.task(id: isRunning)`. SwiftUI cancels it when `isRunning` changes.
+    private func runClock() async {
+        guard isRunning else { return }
+        var lastTick = Date()
+        while !Task.isCancelled && !isComplete {
+            try? await Task.sleep(for: .milliseconds(100))
+            // Paused while we slept: do not add that time.
+            guard !Task.isCancelled else { return }
+            let now = Date()
+            // Capped at 0.5 s, so a frozen app cannot jump ahead.
+            elapsed = min(totalSeconds, elapsed + min(now.timeIntervalSince(lastTick), 0.5))
+            lastTick = now
+            if isComplete {
+                isRunning = false
+                // Save the session so it shows up in Insights and achievements.
+                modelContext.logCalmDown("Imagery Guide", seconds: totalSeconds)
+            }
+        }
+    }
+
     // MARK: Ambient background music
 
     /// Creates the AVPlayer for the guide's ambient track and starts it if the
@@ -274,7 +305,7 @@ struct GuideSessionView: View {
     private func setupAmbientAudio() {
         guard audioPlayer == nil else { return }
         guard let audioURL = guide.sessionAudioURL else {
-            print("[ImageryAudio] No audioURL for guide \(guide.title)")
+            Logger.audio.info("No audio URL for guide \(guide.title, privacy: .public)")
             return
         }
 
@@ -287,13 +318,13 @@ struct GuideSessionView: View {
             )
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
-            print("[ImageryAudio] Failed to configure AVAudioSession: \(error)")
+            Logger.audio.error("Failed to configure AVAudioSession: \(error.localizedDescription, privacy: .public)")
         }
 
         let player = AVPlayer(url: audioURL)
+        // Don't stop at the end of the song; we loop it ourselves below.
         player.actionAtItemEnd = .none
         player.volume = 0.5
-        player.actionAtItemEnd = .none
 
         // Loop the ambient track seamlessly.
         loopObserver = NotificationCenter.default.addObserver(
@@ -305,14 +336,16 @@ struct GuideSessionView: View {
             player?.play()
         }
 
-        // Log when the item is ready / fails so we can diagnose URL issues.
+        // Log when the song is ready or fails, so a bad URL is easy to spot in the console.
+        let fileName = audioURL.lastPathComponent
         player.currentItem?.publisher(for: \.status)
-            .sink { status in
+            .sink { [weak player] status in
                 switch status {
                 case .readyToPlay:
-                    print("[ImageryAudio] Ready to play: \(audioURL.lastPathComponent)")
+                    Logger.audio.info("Ready to play: \(fileName, privacy: .public)")
                 case .failed:
-                    print("[ImageryAudio] Failed to load: \(audioURL.lastPathComponent) — \(player.currentItem?.error?.localizedDescription ?? "unknown")")
+                    let reason = player?.currentItem?.error?.localizedDescription ?? "unknown"
+                    Logger.audio.error("Failed to load \(fileName, privacy: .public): \(reason, privacy: .public)")
                 default:
                     break
                 }
@@ -325,14 +358,13 @@ struct GuideSessionView: View {
 
     private func playAmbientAudio() {
         audioPlayer?.play()
-        print("[ImageryAudio] Playing \(guide.sessionAudioURL?.lastPathComponent ?? "audio")")
     }
 
     private func pauseAmbientAudio() {
         audioPlayer?.pause()
-        print("[ImageryAudio] Paused \(guide.sessionAudioURL?.lastPathComponent ?? "audio")")
     }
 
+    /// Stops the music and removes the loop listener so nothing keeps running in the background.
     private func stopAmbientAudio() {
         if let observer = loopObserver {
             NotificationCenter.default.removeObserver(observer)
@@ -341,7 +373,6 @@ struct GuideSessionView: View {
         audioPlayer?.pause()
         audioPlayer?.seek(to: .zero)
         audioPlayer = nil
-        print("[ImageryAudio] Stopped \(guide.sessionAudioURL?.lastPathComponent ?? "audio")")
     }
 }
 

@@ -8,6 +8,7 @@
 
 import AVFoundation
 import Foundation
+import OSLog
 
 /// Shared player for the debrief-completion sound bundled in Assets.xcassets.
 final class DebriefSoundPlayer {
@@ -27,7 +28,7 @@ final class DebriefSoundPlayer {
             player.play()
             self.player = player  // keep it alive until playback finishes
         } catch {
-            print("[DebriefSoundPlayer] Failed to play success sound: \(error)")
+            Logger.audio.error("Failed to play success sound: \(error.localizedDescription, privacy: .public)")
         }
     }
 

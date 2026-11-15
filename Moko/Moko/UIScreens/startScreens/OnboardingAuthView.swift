@@ -87,7 +87,7 @@ struct OnboardingAuthView: View {
                         // Title: Log in or sign up
                         Text("Log in or sign up")
                             .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundColor(MokoTheme.textPrimary)
+                            .foregroundStyle(MokoTheme.textPrimary)
                             .multilineTextAlignment(.center)
                             .opacity(hasAppeared ? 1.0 : 0.0)
                             .offset(y: hasAppeared ? 0 : 10)
@@ -99,12 +99,12 @@ struct OnboardingAuthView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "envelope")
                                     .font(.system(size: 16))
-                                    .foregroundColor(MokoTheme.textSecondary)
+                                    .foregroundStyle(MokoTheme.textSecondary)
                                     .padding(.leading, 18)
                                 
                                 TextField("name@example.com", text: $email)
                                     .font(.system(size: 16, design: .rounded))
-                                    .foregroundColor(MokoTheme.textPrimary)
+                                    .foregroundStyle(MokoTheme.textPrimary)
                                     .keyboardType(.emailAddress)
                                     .textContentType(.emailAddress)
                                     .textInputAutocapitalization(.never)
@@ -117,7 +117,7 @@ struct OnboardingAuthView: View {
                                     }) {
                                         Image(systemName: "xmark.circle.fill")
                                             .font(.system(size: 15))
-                                            .foregroundColor(MokoTheme.textSecondary.opacity(0.6))
+                                            .foregroundStyle(MokoTheme.textSecondary.opacity(0.6))
                                     }
                                     .padding(.trailing, 16)
                                 } else {
@@ -141,12 +141,12 @@ struct OnboardingAuthView: View {
                                 HStack(spacing: 12) {
                                     Image(systemName: "lock")
                                         .font(.system(size: 16))
-                                        .foregroundColor(MokoTheme.textSecondary)
+                                        .foregroundStyle(MokoTheme.textSecondary)
                                         .padding(.leading, 18)
                                     
                                     SecureField("Password (min 6 characters)", text: $password)
                                         .font(.system(size: 16, design: .rounded))
-                                        .foregroundColor(MokoTheme.textPrimary)
+                                        .foregroundStyle(MokoTheme.textPrimary)
                                         .textContentType(.password)
                                 }
                                 .frame(height: 52)
@@ -168,7 +168,7 @@ struct OnboardingAuthView: View {
                                     }) {
                                         Text(isSignUpMode ? "Already have an account? Sign In" : "Need an account? Create one")
                                             .font(.system(size: 13, weight: .medium, design: .rounded))
-                                            .foregroundColor(MokoTheme.textSecondary)
+                                            .foregroundStyle(MokoTheme.textSecondary)
                                             .underline()
                                     }
                                 }
@@ -187,7 +187,7 @@ struct OnboardingAuthView: View {
                                     
                                     Text(showPasswordField ? (isSignUpMode ? "Create Account" : "Sign In") : "Continue")
                                         .font(.system(size: 15, weight: .medium, design: .rounded))
-                                        .foregroundColor(isEmailValid ? MokoTheme.forestGreen : MokoTheme.textSecondary)
+                                        .foregroundStyle(isEmailValid ? MokoTheme.forestGreen : MokoTheme.textSecondary)
                                         .underline(isEmailValid, color: MokoTheme.forestGreen)
                                 }
                                 .padding(.vertical, 4)
@@ -200,7 +200,7 @@ struct OnboardingAuthView: View {
                             if !message.isEmpty {
                                 Text(message)
                                     .font(.system(size: 13, weight: .medium, design: .rounded))
-                                    .foregroundColor(isError ? MokoTheme.primaryText : MokoTheme.forestGreen)
+                                    .foregroundStyle(isError ? MokoTheme.primaryText : MokoTheme.forestGreen)
                                     .multilineTextAlignment(.center)
                                     .padding(.top, 4)
                                     .padding(.horizontal, 16)
@@ -218,7 +218,7 @@ struct OnboardingAuthView: View {
                             
                             Text("or")
                                 .font(.system(size: 13, weight: .regular, design: .rounded))
-                                .foregroundColor(MokoTheme.textTertiary)
+                                .foregroundStyle(MokoTheme.textTertiary)
                             
                             Rectangle()
                                 .fill(MokoTheme.borderLight)
@@ -243,7 +243,7 @@ struct OnboardingAuthView: View {
                                     Text("Continue with Apple")
                                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                                 }
-                                .foregroundColor(MokoTheme.white)
+                                .foregroundStyle(MokoTheme.white)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 54)
                                 .background(
@@ -276,7 +276,7 @@ struct OnboardingAuthView: View {
                                     Text("Continue with Google")
                                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                                 }
-                                .foregroundColor(MokoTheme.white)
+                                .foregroundStyle(MokoTheme.white)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 54)
                                 .background(
@@ -297,7 +297,7 @@ struct OnboardingAuthView: View {
                         VStack(spacing: 2) {
                             Text("By continuing, you agree to Moko's")
                                 .font(.system(size: 12, weight: .regular, design: .rounded))
-                                .foregroundColor(MokoTheme.textSecondary)
+                                .foregroundStyle(MokoTheme.textSecondary)
                             
                             HStack(spacing: 4) {
                                 Button("Terms of Service") {
@@ -306,7 +306,7 @@ struct OnboardingAuthView: View {
                                 .underline()
                                 
                                 Text("and")
-                                    .foregroundColor(MokoTheme.textSecondary)
+                                    .foregroundStyle(MokoTheme.textSecondary)
                                 
                                 Button("Privacy Policy") {
                                     showPrivacySheet = true
@@ -314,7 +314,7 @@ struct OnboardingAuthView: View {
                                 .underline()
                             }
                             .font(.system(size: 12, weight: .regular, design: .rounded))
-                            .foregroundColor(MokoTheme.textPrimary)
+                            .foregroundStyle(MokoTheme.textPrimary)
                         }
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
@@ -338,9 +338,9 @@ struct OnboardingAuthView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Terms of Service")
                                 .font(.title.bold())
-                                .foregroundColor(MokoTheme.textPrimary)
+                                .foregroundStyle(MokoTheme.textPrimary)
                             Text("Welcome to Moko. By using our social habit & capybara companionship service, you agree to treat fellow capybara companions with kindness, honesty, and respect. Small daily nudges, an honest chat after, that's it!")
-                                .foregroundColor(MokoTheme.textSecondary)
+                                .foregroundStyle(MokoTheme.textSecondary)
                         }
                         .padding(24)
                     }
@@ -350,7 +350,7 @@ struct OnboardingAuthView: View {
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") { showTermsSheet = false }
-                                .foregroundColor(MokoTheme.forestGreen)
+                                .foregroundStyle(MokoTheme.forestGreen)
                         }
                     }
                 }
@@ -361,9 +361,9 @@ struct OnboardingAuthView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Privacy Policy")
                                 .font(.title.bold())
-                                .foregroundColor(MokoTheme.textPrimary)
+                                .foregroundStyle(MokoTheme.textPrimary)
                             Text("Your privacy matters to Moko. We keep your chats, nudges, and personal reflections secure and private. We never sell your personal data.")
-                                .foregroundColor(MokoTheme.textSecondary)
+                                .foregroundStyle(MokoTheme.textSecondary)
                         }
                         .padding(24)
                     }
@@ -373,7 +373,7 @@ struct OnboardingAuthView: View {
                     .toolbar {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Done") { showPrivacySheet = false }
-                                .foregroundColor(MokoTheme.forestGreen)
+                                .foregroundStyle(MokoTheme.forestGreen)
                         }
                     }
                 }

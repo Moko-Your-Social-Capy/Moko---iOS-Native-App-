@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OSLog
 import SwiftData
 
 /// The XP and streak that a completed quest contributes.
@@ -132,7 +133,7 @@ enum QuestProgress {
         do {
             try context.save()
         } catch {
-            print("Quest progress save failed:", error)
+            Logger.data.error("Quest progress save failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 }

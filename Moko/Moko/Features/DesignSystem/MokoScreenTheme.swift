@@ -1,27 +1,29 @@
 //
-//  MocoScreenTheme.swift
+//  MokoScreenTheme.swift
 //  Moko
 //
-//  Collection "Moco Screen Theme" v1.0 — iOS 27, 393×852 @3x, 4pt base.
+//  The app's style sheet: every colour, spacing, size, font and animation
+//  lives here once and has a name. Screens use the name, never the raw number.
 //
-//  Naming law (§0): a value is stated once, here, and referred to by name
-//  everywhere else. No screen may restate a hex, a point size or a radius, and
-//  no two names may describe the same value.
+//  Beginner tip: to change how the whole app looks (for example the card
+//  corner radius), change the value here and every screen updates.
 //
-//  Registered names follow the spec's dotted paths:
-//      moco.color.canvas.top      →  MocoScreenTheme.Colors.canvasTop
-//      moco.type.title1           →  MocoScreenTheme.Typeface.title1
-//      moco.space.page            →  MocoScreenTheme.Space.page
-//      moco.radius.card           →  MocoScreenTheme.Radius.card
-//      moco.stroke.card           →  MocoScreenTheme.Line.card
+//  How to find a value:
+//      MokoScreenTheme.Colors.canvasTop     a colour
+//      MokoScreenTheme.Typeface.title1      a text style (use with `.mokoText(...)`)
+//      MokoScreenTheme.Space.page           side padding of a screen
+//      MokoScreenTheme.Radius.card          card corner radius
+//      MokoScreenTheme.Motion.tap           a shared animation
 //
 
 import SwiftUI
 
-enum MocoScreenTheme {
+// An `enum` with no cases is just a named folder for constants; you cannot create one.
+enum MokoScreenTheme {
 
     // MARK: - §2 Color registry
 
+    /// Every colour in the app. `Color(hex:)` turns a web-style hex code into a SwiftUI colour.
     enum Colors {
         static let canvasTop = Color(hex: 0xF3F8F0)
         static let canvasBottom = Color(hex: 0xE7F0E2)
@@ -97,10 +99,22 @@ enum MocoScreenTheme {
         /// Medal metals, used only by the badge artwork.
         static let medalGold = Color(hex: 0xD9A441)
         static let medalSilver = Color(hex: 0xB9C1C3)
+
+        // MARK: Profile bright
+
+        /// Brighter green for the larger profile hero streak tile.
+        static let brightGreen = Color(hex: 0x4A9E7A)
+        /// Bright sun accent used to make the profile section pop.
+        static let brightSun = Color(hex: 0xF2B84B)
+        /// Bright hero gradient top stop for a bigger, brighter profile.
+        static let brightHeroTop = Color(hex: 0x7FBF8E)
+        /// Bright hero gradient bottom stop.
+        static let brightHeroBottom = Color(hex: 0x4A9E7A)
     }
 
     // MARK: - §1 Scale
 
+    /// Spacing steps on a 4-point grid (s1 = 4, s2 = 8, …). Use these for padding and gaps.
     enum Space {
         static let s1: CGFloat = 4
         static let s2: CGFloat = 8
@@ -154,9 +168,17 @@ enum MocoScreenTheme {
 
     /// Fixed component dimensions (§6).
     enum Size {
+        /// Height ÷ width of the `MokoMascot` picture. Keeps the mascot from looking squashed.
+        static let mascotAspect: CGFloat = 758.0 / 592.0
+        /// Size of the Moko flash image on the simulation intro screen.
+        static let mascotFlash: CGFloat = 220
         static let avatar: CGFloat = 44
         static let avatarLarge: CGFloat = 84
+        /// Extra-big avatar for the brighter profile hero.
+        static let avatarExtraLarge: CGFloat = 130
         static let hero: CGFloat = 178
+        /// Taller hero for the bigger, brighter profile section.
+        static let heroLarge: CGFloat = 240
         /// Growth cards keep the taller mass they had before the migration;
         /// 140 read as too short next to the mission card.
         static let progressCard: CGFloat = 172
@@ -164,6 +186,7 @@ enum MocoScreenTheme {
         static let barChart = CGSize(width: 116, height: 72)
     }
 
+    /// Corner radii. `pill` is so large that any shape becomes fully rounded.
     enum Radius {
         static let card: CGFloat = 22
         static let inner: CGFloat = 14
@@ -178,6 +201,7 @@ enum MocoScreenTheme {
         static let hero: CGFloat = 42
     }
 
+    /// Line widths for borders and chart strokes.
     enum Line {
         static let card: CGFloat = 2
         static let hair: CGFloat = 1
@@ -187,10 +211,12 @@ enum MocoScreenTheme {
 
     // MARK: - §6.4 Control/Slide metrics
 
+    /// Sizes for the "slide to finish" control (`MokoSlideControl`).
     enum Control {
         static let trackHeight: CGFloat = 54
         static let knob: CGFloat = 46
         static let knobInset: CGFloat = 4
+        /// How far (0–1) you must slide before letting go counts as "done".
         static let completionThreshold: CGFloat = 0.78
         static let chevronSize: CGFloat = 10
         /// Minimum touch target for the debrief affordance.
@@ -200,7 +226,7 @@ enum MocoScreenTheme {
     // MARK: - §3 Type registry
 
     /// One registered type style. Sizes are scaled by Dynamic Type unless
-    /// `fixed` is set, matching the spec's `moco.type.tab` exception.
+    /// `fixed` is set, matching the spec's `moko.type.tab` exception.
     struct TextStyle {
         let size: CGFloat
         let leading: CGFloat
@@ -214,6 +240,7 @@ enum MocoScreenTheme {
         var extraLineSpacing: CGFloat { max(0, leading - size * 1.2) }
     }
 
+    /// Named text styles. Apply one with `.mokoText(MokoScreenTheme.Typeface.body)`.
     enum Typeface {
         static let title1 = TextStyle(size: 32, leading: 38, weight: .bold,
                                       tracking: -0.4, relativeTo: .largeTitle)
@@ -259,6 +286,7 @@ enum MocoScreenTheme {
 
     // MARK: - §1 Elevation
 
+    /// Shadow settings that make cards look like they float above the background.
     enum Elevation {
         /// Cards float on a tinted two-layer lift: a 1pt contact line plus a wide
         /// ambient shadow. Both are green-black, never pure black.
@@ -283,6 +311,8 @@ enum MocoScreenTheme {
 
     // MARK: - §7 Motion
 
+    /// Shared animations. Use them with `withAnimation(MokoScreenTheme.Motion.tap) { ... }`.
+    /// A "spring" moves like a bouncy spring; `easeInOut` starts and ends slowly.
     enum Motion {
         /// One-shot mascot and achievement entrances.
         static let mascotEntrance = Animation.spring(duration: 0.5, bounce: 0.2)
@@ -305,21 +335,25 @@ enum MocoScreenTheme {
 
 // MARK: - Type application
 
-private struct MocoTextStyleModifier: ViewModifier {
-    private let style: MocoScreenTheme.TextStyle
+/// Turns one of our `TextStyle`s into a real SwiftUI font.
+private struct MokoTextStyleModifier: ViewModifier {
+    private let style: MokoScreenTheme.TextStyle
 
+    // @ScaledMetric grows the size when the user picks bigger text in Settings.
     @ScaledMetric private var size: CGFloat
 
-    init(_ style: MocoScreenTheme.TextStyle) {
+    init(_ style: MokoScreenTheme.TextStyle) {
         self.style = style
         _size = ScaledMetric(wrappedValue: style.size, relativeTo: style.relativeTo)
     }
 
     func body(content: Content) -> some View {
+        // Fixed styles (like tab labels) ignore the text-size setting.
         let resolvedSize = style.fixed ? style.size : size
         let base = Font.system(size: resolvedSize, weight: style.weight)
 
         return content
+            // monospacedDigit makes every number the same width, so counters don't wobble.
             .font(style.tabularFigures ? base.monospacedDigit() : base)
             .tracking(style.tracking)
             .lineSpacing(style.extraLineSpacing)
@@ -327,8 +361,23 @@ private struct MocoTextStyleModifier: ViewModifier {
 }
 
 extension View {
-    /// Applies a registered `moco.type.*` style, including Dynamic Type scaling.
-    func mocoText(_ style: MocoScreenTheme.TextStyle) -> some View {
-        modifier(MocoTextStyleModifier(style))
+    /// Applies a registered `moko.type.*` style, including Dynamic Type scaling.
+    func mokoText(_ style: MokoScreenTheme.TextStyle) -> some View {
+        modifier(MokoTextStyleModifier(style))
+    }
+}
+
+// MARK: - Hex colours
+
+extension Color {
+    /// Makes a colour from a web-style hex code, e.g. `Color(hex: 0x2F6E4A)`.
+    /// `>>` shifts the bits right and `& 0xFF` keeps the last two hex digits,
+    /// which pulls out the red, green and blue parts one by one.
+    init(hex: UInt32, opacity: Double = 1) {
+        self.init(.sRGB,
+                  red: Double((hex >> 16) & 0xFF) / 255,
+                  green: Double((hex >> 8) & 0xFF) / 255,
+                  blue: Double(hex & 0xFF) / 255,
+                  opacity: opacity)
     }
 }

@@ -1,14 +1,18 @@
 //
-//  MocoProfileComponents.swift
+//  MokoProfileComponents.swift
 //  Moko
 //
-//  "Moco Screen Theme" v1.0 — Profile. Every value comes from MocoScreenTheme.
+//  Building blocks used only by the Profile screen:
+//  hero header, avatar, level chip, stat tiles, segmented picker,
+//  weekly bars, achievement chips and settings rows.
+//  Colours and sizes come from `MokoScreenTheme`.
 //
 
 import SwiftUI
 import UIKit
 
-private typealias Theme = MocoScreenTheme
+// A short nickname so we can write `Theme.Colors` instead of `MokoScreenTheme.Colors`.
+private typealias Theme = MokoScreenTheme
 
 /// Component-internal metrics. Not screen tokens: they describe one view's
 /// construction, not a design decision the rest of the app shares.
@@ -37,10 +41,16 @@ private enum Metric {
 
 /// 178pt sage gradient with the bush and leaf strokes, 42pt bottom corners, and
 /// an avatar that overlaps the seam by half its height without being clipped.
-struct MocoProfileHero<Avatar: View>: View {
+struct MokoProfileHero<Avatar: View>: View {
     let title: String
     let onClose: () -> Void
     let onOverflow: () -> Void
+    /// Height of the hero gradient band. Defaults to `Theme.Size.hero`; use
+    /// `heroLarge` for the bigger, brighter profile section.
+    var height: CGFloat = Theme.Size.hero
+    /// Size of the avatar that overlaps the hero's bottom edge.
+    var avatarSize: CGFloat = Theme.Size.avatarLarge
+    // @ViewBuilder lets the caller pass in any view (here, the avatar) using `{ ... }`.
     @ViewBuilder var avatar: () -> Avatar
 
     var body: some View {
@@ -67,7 +77,7 @@ struct MocoProfileHero<Avatar: View>: View {
             .allowsHitTesting(false)
             .accessibilityHidden(true)
         }
-        .frame(height: Theme.Size.hero)
+        .frame(height: height)
         .clipShape(
             UnevenRoundedRectangle(
                 bottomLeadingRadius: Theme.Radius.hero,
@@ -77,8 +87,9 @@ struct MocoProfileHero<Avatar: View>: View {
         )
         .overlay(alignment: .top) { navigationRow }
         .overlay(alignment: .bottom) {
+            // Push the avatar down by half its height so it sits on the hero's bottom edge.
             avatar()
-                .offset(y: Theme.Size.avatarLarge / 2)
+                .offset(y: avatarSize / 2)
         }
     }
 
@@ -89,7 +100,7 @@ struct MocoProfileHero<Avatar: View>: View {
             Spacer(minLength: 0)
 
             Text(title)
-                .mocoText(Theme.Typeface.cardTitle)
+                .mokoText(Theme.Typeface.cardTitle)
                 .foregroundStyle(Theme.Colors.heroInk)
 
             Spacer(minLength: 0)
@@ -117,9 +128,13 @@ struct MocoProfileHero<Avatar: View>: View {
 
 // MARK: - Avatar
 
-struct MocoProfileAvatar: View {
+/// The round profile picture: the user's photo, or Moko wearing the costume for their level.
+struct MokoProfileAvatar: View {
     let level: Int
     let photoData: Data?
+    /// Size of the circle. Defaults to the regular avatar size; use
+    /// `avatarExtraLarge` for the bigger, brighter profile hero.
+    var size: CGFloat = Theme.Size.avatarLarge
 
     var body: some View {
         ZStack {
@@ -130,11 +145,11 @@ struct MocoProfileAvatar: View {
 
             MokoCostumeAvatar(level: level,
                               photoData: photoData,
-                              size: Theme.Size.avatarLarge,
+                              size: size,
                               background: .clear,
                               ring: nil)
         }
-        .frame(width: Theme.Size.avatarLarge, height: Theme.Size.avatarLarge)
+        .frame(width: size, height: size)
         .clipShape(Circle())
         .padding(Theme.Space.s1)
         .background(Circle().fill(Theme.Colors.avatarRing))
@@ -149,7 +164,7 @@ struct MocoProfileAvatar: View {
 /// The level pill under the name: sparkles + short badge label on a floating
 /// white capsule. It is the only element on the canvas allowed to float free of
 /// a card, so its shadow is the near lift rather than the two-layer card lift.
-struct MocoLevelChip: View {
+struct MokoLevelChip: View {
     let level: Int
 
     var body: some View {
@@ -158,7 +173,7 @@ struct MocoLevelChip: View {
                 .font(.system(size: Metric.levelGlyph, weight: .bold))
 
             Text("Level \(level)")
-                .mocoText(Theme.Typeface.badge)
+                .mokoText(Theme.Typeface.badge)
         }
         .foregroundStyle(Theme.Colors.sage)
         .padding(.horizontal, Metric.levelChipInset)
@@ -172,7 +187,8 @@ struct MocoLevelChip: View {
 
 // MARK: - Stats (§5)
 
-struct MocoStat: Identifiable {
+/// The data for one small stat tile (for example "12 Quests").
+struct MokoStat: Identifiable {
     let id: Int
     let symbol: String
     let value: String
@@ -183,20 +199,21 @@ struct MocoStat: Identifiable {
     let fill: Color
 }
 
-struct MocoStatsRow: View {
-    let tiles: [MocoStat]
+/// A row of stat tiles that share the width equally.
+struct MokoStatsRow: View {
+    let tiles: [MokoStat]
 
     var body: some View {
         HStack(spacing: Theme.Space.s2) {
             ForEach(tiles) { tile in
-                MocoStatTile(stat: tile)
+                MokoStatTile(stat: tile)
             }
         }
     }
 }
 
-private struct MocoStatTile: View {
-    let stat: MocoStat
+private struct MokoStatTile: View {
+    let stat: MokoStat
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
@@ -208,18 +225,18 @@ private struct MocoStatTile: View {
                 .padding(.bottom, 5)
 
             Text(stat.value)
-                .mocoText(Theme.Typeface.stat)
+                .mokoText(Theme.Typeface.stat)
                 .foregroundStyle(Theme.Colors.dataVioletDeep)
 
             Text(stat.label)
-                .mocoText(Theme.Typeface.badge)
+                .mokoText(Theme.Typeface.badge)
                 .foregroundStyle(Theme.Colors.textMuted)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Metric.statFill)
-        .mocoCard(fill: stat.fill, radius: Theme.Radius.tile)
+        .mokoCard(fill: stat.fill, radius: Theme.Radius.tile)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(stat.value), \(stat.label)")
     }
@@ -227,9 +244,12 @@ private struct MocoStatTile: View {
 
 // MARK: - Segmented (§6)
 
-struct MocoSegmented: View {
+/// A small pill-style tab picker (for example Week / Month).
+struct MokoSegmented: View {
     let titles: [String]
+    // @Binding means the parent owns `selection`; we only read and change it.
     @Binding var selection: Int
+    // The phone setting "Reduce Motion". If it is on, the switch happens without animation.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -239,7 +259,7 @@ struct MocoSegmented: View {
                     withAnimation(reduceMotion ? nil : .snappy) { selection = index }
                 } label: {
                     Text(title)
-                        .mocoText(Theme.Typeface.badge)
+                        .mokoText(Theme.Typeface.badge)
                         .foregroundStyle(selection == index
                                          ? Theme.Colors.forest
                                          : Theme.Colors.textMuted)
@@ -269,7 +289,7 @@ struct MocoSegmented: View {
 // MARK: - Week bars (§6)
 
 /// Seven bars, diagonal hatch, the peak solid in forest.
-struct MocoWeekBars: View {
+struct MokoWeekBars: View {
     /// The bar gap, exposed so an axis row can align to the same columns.
     static let spacing = Metric.weekBarGap
 
@@ -311,6 +331,7 @@ struct MocoWeekBars: View {
 /// 45° stripes, 2pt wide, 5pt apart. One shape, never a tiled image.
 private struct HatchedFill: View {
     var body: some View {
+        // Canvas draws with code, like a tiny paint program. Here we draw diagonal lines.
         Canvas { context, size in
             var x = -size.height
             while x < size.width + size.height {
@@ -326,7 +347,8 @@ private struct HatchedFill: View {
 
 // MARK: - Achievement chip (§7)
 
-struct MocoAchievementChip: View {
+/// One achievement badge. Locked badges are greyed out and show a lock icon.
+struct MokoAchievementChip: View {
     let symbol: String
     let title: String
     let plate: Color
@@ -342,7 +364,7 @@ struct MocoAchievementChip: View {
                 .background(locked ? Theme.Colors.lockedSurface : plate, in: Circle())
 
             Text(title)
-                .mocoText(Theme.Typeface.badge)
+                .mokoText(Theme.Typeface.badge)
                 .foregroundStyle(locked ? Theme.Colors.lockedInk : Theme.Colors.textTitle)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -351,7 +373,7 @@ struct MocoAchievementChip: View {
         .padding(.horizontal, 9)
         .padding(.top, 5)
         .padding(.bottom, 8)
-        .mocoCard(fill: locked ? Theme.Colors.lockedSurface : Theme.Colors.surfaceWhite,
+        .mokoCard(fill: locked ? Theme.Colors.lockedSurface : Theme.Colors.surfaceWhite,
                   radius: Theme.Radius.chip,
                   lift: !locked)
     }
@@ -359,7 +381,8 @@ struct MocoAchievementChip: View {
 
 // MARK: - Setting row (§8)
 
-struct MocoSettingRow: View {
+/// One tappable settings row: icon, title and a ">" arrow.
+struct MokoSettingRow: View {
     let symbol: String
     let title: String
 
@@ -374,7 +397,7 @@ struct MocoSettingRow: View {
                                                  style: .continuous))
 
             Text(title)
-                .mocoText(Theme.Typeface.rowTitle)
+                .mokoText(Theme.Typeface.rowTitle)
                 .foregroundStyle(Theme.Colors.textTitle)
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)

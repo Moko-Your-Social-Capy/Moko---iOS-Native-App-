@@ -3,16 +3,20 @@
 //  Moko
 //
 //  Opens when a quest card (or its check button) is tapped. A category image, then the
-//  quest's title, category, intensity and XP, then a briefing (scene, who, goal) from a
-//  QuestBriefGenerating object. For now that is a dummy generator; swap in an Apple
-//  Foundation Models one later. Sliding "Slide to debrief" completes the quest and opens
-//  the debrief conversation (QuestDebrief.swift).
+//  quest's title, category, intensity and XP, then a briefing (scene, who, goal).
+//  The briefing comes from `AFMQuestBriefGenerator`, which asks Apple's on-device
+//  model (see Features/AFM). Sliding "Slide to debrief" completes the quest and
+//  swaps this screen for the debrief conversation (QuestDebrief.swift).
+//
+//  Debug tip: if the briefing never appears, look at `QuestCardService.customCard`.
 //
 
 import SwiftUI
 import SwiftData
 
-// MARK: - Briefing (what the on-device model will generate)
+// MARK: - Briefing (what the on-device model generates)
+
+/// The three parts of a quest briefing.
 struct QuestBrief: Equatable {
     var scene: String
     var who: String
@@ -28,11 +32,14 @@ struct QuestBriefRequest {
     var intensity: QuestIntensity
 }
 
+/// Anything that can write a briefing. A protocol, so previews or tests can pass a fake one.
 protocol QuestBriefGenerating {
     func brief(for request: QuestBriefRequest) async -> QuestBrief
 }
 
 // MARK: - AFM Quest Brief Generator
+
+/// Writes the briefing with Apple Foundation Models (falls back to a template inside `QuestCardService`).
 @MainActor
 final class AFMQuestBriefGenerator: QuestBriefGenerating {
     func brief(for request: QuestBriefRequest) async -> QuestBrief {
@@ -43,34 +50,13 @@ final class AFMQuestBriefGenerator: QuestBriefGenerating {
             difficulty: Difficulty(intensity: request.intensity),
             date: .now
         )
+        // `_` ignores the second value (where the card came from), which we don't need here.
         let (card, _) = await QuestCardService.customCard(input)
         return QuestBrief(scene: card.scene, who: card.who, goal: card.goal)
     }
 }
 
-/// Fallback generator pulling vetted context from the Mission Bank.
-struct DummyQuestBriefGenerator: QuestBriefGenerating {
-    func brief(for request: QuestBriefRequest) async -> QuestBrief {
-        let templates = MissionBank.templates(in: request.category)
-        let template = templates.first ?? MissionBank.all[0]
-
-        var scene = template.scene
-        let trimmedNotes = request.notes.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedNotes.isEmpty {
-            scene = "\(trimmedNotes). \(template.scene)"
-        }
-
-        var who = template.who
-        let trimmedTitle = request.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !trimmedTitle.isEmpty {
-            who = "\(trimmedTitle): \(template.who)"
-        }
-
-        return QuestBrief(scene: scene, who: who, goal: template.goal)
-    }
-}
-
-// MARK: - Category image (placeholder until the artwork is added)
+// MARK: - Category image
 extension QuestCategory {
     /// Name of the image in Assets.xcassets. Add one per category and it covers the placeholder:
     /// quest_work, quest_dating, quest_friends, quest_family, quest_others
@@ -79,6 +65,7 @@ extension QuestCategory {
     }
 }
 
+/// Gradient colours and an SF Symbol for the drawn placeholder banner of each category.
 private struct QuestCategoryArt {
     let top: Color
     let bottom: Color
@@ -127,6 +114,7 @@ private struct QuestCategoryArt {
 }
 
 // MARK: - Detail screen
+
 struct QuestDetailScreen: View {
     let quest: Quest
     var generator: any QuestBriefGenerating = AFMQuestBriefGenerator()
@@ -136,28 +124,29 @@ struct QuestDetailScreen: View {
     /// category placeholder. Nil for custom quests opened from the Quests tab.
     var libraryArtworkURL: URL? = nil
 
+    // Pops this screen off the navigation stack.
     @Environment(\.dismiss) private var dismiss
+    // SwiftData's "save box". Completing the quest writes through it.
     @Environment(\.modelContext) private var modelContext
+    // Switches the Overview tab after the debrief. Provided by MokoRootView (see MokoNavigation.swift).
     @Environment(\.openOverview) private var openOverview
 
+    // The generated briefing. nil while it is loading (grey placeholder lines show).
     @State private var brief: QuestBrief?
+    // false = briefing, true = debrief chat. Both live on this one screen.
     @State private var showingDebrief = false
 
-    // Timeline colours: warm sand for the scene, sky blue for who, green for the goal
-    private let sceneTop = MocoScreenTheme.Colors.surfaceLavender
-    private let sceneBottom = MocoScreenTheme.Colors.surfaceLavender
-    private let sceneIcon = MocoScreenTheme.Colors.dataVioletDeep
-
-    private let whoTop = MocoScreenTheme.Colors.accentBlueTint
-    private let whoBottom = MocoScreenTheme.Colors.accentBlueTint
-    private let whoIcon = MocoScreenTheme.Colors.countdownValue
-
-    private let goalTop = MocoScreenTheme.Colors.surfaceLavender
-    private let goalBottom = MocoScreenTheme.Colors.surfaceLavender
-    private let goalIcon = MocoScreenTheme.Colors.dataVioletDeep
+    // Timeline colours: lavender + violet for the scene and goal, blue for who.
+    private let sceneFill = MokoScreenTheme.Colors.surfaceLavender
+    private let sceneIcon = MokoScreenTheme.Colors.dataVioletDeep
+    private let whoFill = MokoScreenTheme.Colors.accentBlueTint
+    private let whoIcon = MokoScreenTheme.Colors.countdownValue
+    private let goalFill = MokoScreenTheme.Colors.surfaceLavender
+    private let goalIcon = MokoScreenTheme.Colors.dataVioletDeep
 
     var body: some View {
         ZStack {
+            // Swap between the briefing and the debrief with a sideways slide.
             if showingDebrief {
                 QuestDebriefScreen(quest: quest) { outcome in
                     finishDebrief(outcome)
@@ -168,15 +157,16 @@ struct QuestDetailScreen: View {
                     .transition(.move(edge: .leading))
             }
         }
-        .background(MocoBackdrop())
+        .background(MokoBackdrop())
         // The NavigationStack supplies the default back button on the detail; the debrief is
         // chat-only, so no bar (and no back button) sits above its conversation.
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(showingDebrief ? .hidden : .visible, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .toolbarBackground(.hidden, for: .navigationBar)
+        // `.task` runs when the screen appears. It loads the briefing from the on-device model.
         .task {
-            // Runs once, not each time you come back from the debrief
+            // Only once: coming back from the debrief must not generate a new briefing.
             guard brief == nil else { return }
             let request = QuestBriefRequest(
                 title: quest.title,
@@ -194,18 +184,18 @@ struct QuestDetailScreen: View {
     // MARK: Detail content
     private var detail: some View {
         ZStack {
-            MocoBackdrop()
+            MokoBackdrop()
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Quest")
-                        .mocoText(MocoScreenTheme.Typeface.title1)
-                        .foregroundColor(MocoScreenTheme.Colors.textTitle)
-                        .padding(.horizontal, MocoScreenTheme.Space.page)
+                        .mokoText(MokoScreenTheme.Typeface.title1)
+                        .foregroundStyle(MokoScreenTheme.Colors.textTitle)
+                        .padding(.horizontal, MokoScreenTheme.Space.page)
                         .padding(.top, 8)
 
                     card
-                        .padding(.horizontal, MocoScreenTheme.Space.page)
+                        .padding(.horizontal, MokoScreenTheme.Space.page)
                         .padding(.top, 20)
                         .padding(.bottom, 24)
                 }
@@ -218,7 +208,7 @@ struct QuestDetailScreen: View {
                     showingDebrief = true
                 }
             }
-            .padding(.horizontal, MocoScreenTheme.Space.page)
+            .padding(.horizontal, MokoScreenTheme.Space.page)
             .padding(.bottom, 12)
         }
     }
@@ -242,7 +232,7 @@ struct QuestDetailScreen: View {
         dismiss()
     }
 
-    /// Sliding to debrief is what completes the quest and awards its XP/streak
+    /// Sliding to debrief is what completes the quest and awards its XP/streak.
     private func markCompleted() {
         QuestProgress.complete(quest, in: modelContext)
     }
@@ -256,8 +246,8 @@ struct QuestDetailScreen: View {
                 // Title + XP
                 HStack(alignment: .top, spacing: 12) {
                     Text(quest.title)
-                        .mocoText(MocoScreenTheme.Typeface.title2)
-                        .foregroundColor(QuestStyle.title)
+                        .mokoText(MokoScreenTheme.Typeface.title2)
+                        .foregroundStyle(QuestStyle.title)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Spacer(minLength: 8)
@@ -266,9 +256,9 @@ struct QuestDetailScreen: View {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 11, weight: .bold))
                         Text("\(quest.awardedXP) XP")
-                            .mocoText(MocoScreenTheme.Typeface.slider)
+                            .mokoText(MokoScreenTheme.Typeface.slider)
                     }
-                    .foregroundColor(QuestStyle.green)
+                    .foregroundStyle(QuestStyle.accent)
                     .padding(.horizontal, 12)
                     .frame(height: 32)
                     .background(Capsule().fill(QuestStyle.chipSelectedFill))
@@ -292,40 +282,40 @@ struct QuestDetailScreen: View {
                     Image(systemName: "sparkles")
                         .font(.system(size: 12, weight: .semibold))
                     Text("Briefing")
-                        .mocoText(MocoScreenTheme.Typeface.caption)
+                        .mokoText(MokoScreenTheme.Typeface.caption)
                 }
-                .foregroundColor(QuestStyle.green)
+                .foregroundStyle(QuestStyle.accent)
                 .padding(.bottom, 18)
 
                 timelineRow(
                     icon: "mappin.and.ellipse",
-                    top: sceneTop, bottom: sceneBottom, iconColor: sceneIcon,
+                    fill: sceneFill, iconColor: sceneIcon,
                     label: "The scene",
-                    lineTo: whoTop,
-                    text: brief?.scene, showLine: true
+                    text: brief?.scene,
+                    lineTo: whoFill
                 )
 
                 timelineRow(
                     icon: "person.2.fill",
-                    top: whoTop, bottom: whoBottom, iconColor: whoIcon,
+                    fill: whoFill, iconColor: whoIcon,
                     label: "Who",
-                    lineTo: goalTop,
-                    text: brief?.who, showLine: true
+                    text: brief?.who,
+                    lineTo: goalFill
                 )
 
                 timelineRow(
                     icon: "target",
-                    top: goalTop, bottom: goalBottom, iconColor: goalIcon,
+                    fill: goalFill, iconColor: goalIcon,
                     label: "Your goal",
-                    lineTo: goalTop,
-                    text: brief?.goal, showLine: false
+                    text: brief?.goal,
+                    lineTo: nil
                 )
             }
             .padding(22)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .clipShape(RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.card, style: .continuous))
-        .mocoCard()
+        .clipShape(RoundedRectangle(cornerRadius: MokoScreenTheme.Radius.card, style: .continuous))
+        .mokoCard()
     }
 
     // MARK: Card artwork
@@ -338,6 +328,7 @@ struct QuestDetailScreen: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 190)
                 .overlay {
+                    // AsyncImage downloads the picture. `phase` tells us loading / done / failed.
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .success(let image):
@@ -377,7 +368,7 @@ struct QuestDetailScreen: View {
             .background {
                 LinearGradient(colors: [art.top, art.bottom], startPoint: .topLeading, endPoint: .bottomTrailing)
             }
-            // Placeholder art, different for each category
+            // Placeholder art, different for each category.
             .overlay {
                 ZStack {
                     Circle()
@@ -402,7 +393,7 @@ struct QuestDetailScreen: View {
                         )
                 }
             }
-            // The real image, once it's in Assets
+            // The real image, once it's in Assets. A missing image draws nothing, so the art above shows.
             .overlay {
                 Image(quest.category.bannerImageName)
                     .resizable()
@@ -413,12 +404,13 @@ struct QuestDetailScreen: View {
 
     private var intensityColor: Color {
         switch quest.intensity {
-        case .easy:   return MocoScreenTheme.Colors.dataViolet
+        case .easy:   return MokoScreenTheme.Colors.dataViolet
         case .medium: return Color(red: 232/255, green: 176/255, blue: 76/255)
         case .hard:   return Color(red: 222/255, green: 108/255, blue: 92/255)
         }
     }
 
+    /// A small capsule label with either an icon or a coloured dot in front.
     private func tag(icon: String?, text: String, dot: Color?) -> some View {
         HStack(spacing: 6) {
             if let icon {
@@ -429,29 +421,29 @@ struct QuestDetailScreen: View {
                 Circle().fill(dot).frame(width: 8, height: 8)
             }
             Text(text)
-                .mocoText(MocoScreenTheme.Typeface.caption)
+                .mokoText(MokoScreenTheme.Typeface.caption)
         }
-        .foregroundColor(QuestStyle.title)
+        .foregroundStyle(QuestStyle.title)
         .padding(.horizontal, 12)
         .frame(height: 30)
         .background(Capsule().fill(QuestStyle.screenBg))
     }
 
-    // One step of the vertical timeline. Shows a shimmering placeholder until the text arrives.
+    /// One step of the vertical timeline: a round icon on the left, text on the right.
+    /// `lineTo` is the next step's colour; pass nil on the last step (no line below).
+    /// Shows grey placeholder lines until the text arrives.
     private func timelineRow(icon: String,
-                             top: Color,
-                             bottom: Color,
+                             fill: Color,
                              iconColor: Color,
                              label: String,
-                             lineTo: Color,
                              text: String?,
-                             showLine: Bool) -> some View {
+                             lineTo nextFill: Color?) -> some View {
         HStack(alignment: .top, spacing: 16) {
             VStack(spacing: 0) {
-                // Gradient node with a soft ring and a depth-shaded symbol
+                // Round node with a soft white ring and a two-tone symbol.
                 ZStack {
                     Circle()
-                        .fill(LinearGradient(colors: [top, bottom], startPoint: .topLeading, endPoint: .bottomTrailing))
+                        .fill(fill)
 
                     Circle()
                         .stroke(Color.white.opacity(0.75), lineWidth: 1.5)
@@ -465,9 +457,10 @@ struct QuestDetailScreen: View {
                 .frame(width: 52, height: 52)
                 .shadow(color: iconColor.opacity(0.2), radius: 7, x: 0, y: 3)
 
-                if showLine {
+                // The line that joins this step to the next one.
+                if let nextFill {
                     Capsule()
-                        .fill(LinearGradient(colors: [bottom, lineTo], startPoint: .top, endPoint: .bottom))
+                        .fill(LinearGradient(colors: [fill, nextFill], startPoint: .top, endPoint: .bottom))
                         .frame(width: 3)
                         .frame(maxHeight: .infinity)
                         .padding(.vertical, 6)
@@ -476,13 +469,13 @@ struct QuestDetailScreen: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(label)
-                    .mocoText(MocoScreenTheme.Typeface.caption)
-                    .foregroundColor(iconColor)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
+                    .foregroundStyle(iconColor)
 
                 if let text {
                     Text(text)
-                        .mocoText(MocoScreenTheme.Typeface.body)
-                        .foregroundColor(QuestStyle.title)
+                        .mokoText(MokoScreenTheme.Typeface.body)
+                        .foregroundStyle(QuestStyle.title)
                         .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
                         .transition(.opacity)
@@ -491,14 +484,19 @@ struct QuestDetailScreen: View {
                 }
             }
             .padding(.top, 6)
-            .padding(.bottom, showLine ? 24 : 0)
+            .padding(.bottom, nextFill == nil ? 0 : 24)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
 
 // MARK: - Loading placeholder
+
+/// Three grey bars that gently pulse while the briefing loads.
 struct QuestSkeletonLines: View {
+    // The phone setting "Reduce Motion". If it is on, the bars stay still.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    // Flipped once on appear. `repeatForever` then fades the bars in and out on its own.
     @State private var dim = false
 
     var body: some View {
@@ -507,9 +505,11 @@ struct QuestSkeletonLines: View {
             RoundedRectangle(cornerRadius: 5).frame(height: 12)
             RoundedRectangle(cornerRadius: 5).frame(width: 120, height: 12)
         }
-        .foregroundColor(Color.black.opacity(0.08))
+        .foregroundStyle(Color.black.opacity(0.08))
         .opacity(dim ? 0.45 : 1)
+        .accessibilityLabel("Loading")
         .onAppear {
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
                 dim = true
             }
@@ -518,45 +518,52 @@ struct QuestSkeletonLines: View {
 }
 
 // MARK: - Slide to confirm
+
+/// A "slide to …" track. Drag the knob past 80% of the way to confirm;
+/// let go earlier and it springs back. VoiceOver users can double-tap instead.
 struct QuestSlideButton: View {
     let title: String
     var onComplete: () -> Void
 
+    // How far the knob has been dragged, in points.
     @State private var drag: CGFloat = 0
+    // True right after a successful slide. Shows a checkmark and plays a success buzz.
     @State private var completed = false
 
-    private let height = MocoScreenTheme.Control.trackHeight
-    private let knob = MocoScreenTheme.Control.knob
-    private let inset = MocoScreenTheme.Control.knobInset
+    private let height = MokoScreenTheme.Control.trackHeight
+    private let knob = MokoScreenTheme.Control.knob
+    private let inset = MokoScreenTheme.Control.knobInset
 
     var body: some View {
+        // GeometryReader tells us the track width, so we know how far the knob can go.
         GeometryReader { geo in
             let maxDrag = max(1, geo.size.width - knob - inset * 2)
             let fraction = min(1, max(0, drag / maxDrag))
 
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(MocoScreenTheme.Colors.accentBlue)
+                    .fill(MokoScreenTheme.Colors.accentBlue)
 
-                // Lighter trail behind the knob
+                // Lighter trail behind the knob.
                 Capsule()
                     .fill(Color.white.opacity(0.12))
                     .frame(width: inset * 2 + knob + drag)
 
+                // The title fades out as the knob moves over it.
                 Text(title)
-                    .mocoText(MocoScreenTheme.Typeface.slider)
-                    .foregroundColor(Color.white.opacity(1 - 0.7 * Double(fraction)))
+                    .mokoText(MokoScreenTheme.Typeface.slider)
+                    .foregroundStyle(Color.white.opacity(1 - 0.7 * Double(fraction)))
                     .frame(maxWidth: .infinity)
                     .padding(.leading, knob * 0.5)
 
                 ZStack {
                     Circle()
-                        .fill(MocoScreenTheme.Colors.surfaceWhite)
-                        .shadow(color: MocoScreenTheme.Elevation.knobColor, radius: MocoScreenTheme.Elevation.knobRadius, x: 0, y: MocoScreenTheme.Elevation.knobOffset)
+                        .fill(MokoScreenTheme.Colors.surfaceWhite)
+                        .shadow(color: MokoScreenTheme.Elevation.knobColor, radius: MokoScreenTheme.Elevation.knobRadius, x: 0, y: MokoScreenTheme.Elevation.knobOffset)
 
                     Image(systemName: completed ? "checkmark" : "arrow.right")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(MocoScreenTheme.Colors.textTitle)
+                        .foregroundStyle(MokoScreenTheme.Colors.textTitle)
                 }
                 .frame(width: knob, height: knob)
                 .offset(x: inset + drag)
@@ -569,18 +576,9 @@ struct QuestSlideButton: View {
                         .onEnded { _ in
                             guard !completed else { return }
                             if drag > maxDrag * 0.8 {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                    drag = maxDrag
-                                    completed = true
-                                }
-                                onComplete()
-
-                                // Reset while the next page is covering the screen
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                                    drag = 0
-                                    completed = false
-                                }
+                                finish(maxDrag: maxDrag)
                             } else {
+                                // Not far enough: spring back to the start.
                                 withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
                                     drag = 0
                                 }
@@ -591,5 +589,27 @@ struct QuestSlideButton: View {
         }
         .frame(height: height)
         .sensoryFeedback(.success, trigger: completed)
+        // VoiceOver can't drag, so read the track as one button and let a double-tap confirm.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { onComplete() }
+    }
+
+    /// Snaps the knob to the end, reports success, then quietly resets.
+    private func finish(maxDrag: CGFloat) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            drag = maxDrag
+            completed = true
+        }
+        onComplete()
+
+        // Reset while the next page is covering the screen.
+        // `Task.sleep` waits 0.8s without freezing the app.
+        Task {
+            try? await Task.sleep(for: .milliseconds(800))
+            drag = 0
+            completed = false
+        }
     }
 }

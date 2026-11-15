@@ -2,14 +2,19 @@
 //  QuestDebrief.swift
 //  Moko
 //
-//  The debrief: a conversation with the on-device coach (Apple Foundation Models later,
-//  dummy values for now). The coach asks about how the quest went, then three follow-up
-//  questions. Each answer (spoken or typed) gets a confidence score, and the follow-ups
-//  also grade one of four parameters: Listening, Curiosity, Warmth and Confidence.
+//  The debrief: a chat with the on-device coach after a quest.
+//  1. The coach asks how the quest went (the "opening story").
+//  2. Then it asks 3 follow-up questions.
+//  Every answer (spoken or typed) gets a confidence score, and each follow-up also
+//  grades one of four parameters: Courage, Clarity, Presence and Warmth.
 //
-//  Screens: the conversation (QuestDebriefScreen), the "Leave debrief early?" sheet, and the
-//  "Debrief Complete" panel with the four scores. To plug in the real model, write a type
-//  that conforms to DebriefCoaching and pass it as QuestDebriefScreen(coach:).
+//  Who does what (good place to start debugging):
+//  - `DebriefSession` (@Observable) holds the whole conversation and drives each step.
+//  - `QuestDebriefScreen` draws it and saves the scores when it finishes.
+//  - The coach is `AFMDebriefCoach` (Apple Foundation Models) when the phone supports it,
+//    otherwise `DummyDebriefCoach` below, which scores answers with simple word rules.
+//  - Voice answers are simulated for now: `startRecording()` "speaks" a sample answer.
+//  - Leaving with "Finish Later" saves a draft (`DebriefDraftStore`) so it can resume.
 //
 
 import SwiftUI
@@ -17,6 +22,7 @@ import SwiftData
 import Observation
 
 // MARK: - Where the user ends up
+
 enum DebriefOutcome {
     case completed      // finished the debrief, tapped Continue
     case finishLater    // stepped away, saved to resume
@@ -24,20 +30,20 @@ enum DebriefOutcome {
 }
 
 // MARK: - Style
+
+/// The debrief's colours, all taken from the shared Moko theme.
 enum DebriefStyle {
-    static let screenBg = MocoScreenTheme.Colors.canvasTop  // #F6FAE8
-    static let green = MocoScreenTheme.Colors.dataVioletDeep        // #365948
-    static let deepGreen = MocoScreenTheme.Colors.dataVioletDeep    // #1B422F
-    static let title = MocoScreenTheme.Colors.textTitle        // #5C4330
-    static let subtext = MocoScreenTheme.Colors.textBody    // #6F6762
-    static let cream = MocoScreenTheme.Colors.surfaceLavender
-    static let border = MocoScreenTheme.Colors.dataGrid
-    static let sand = MocoScreenTheme.Colors.surfaceLavender
-    static let rust = MocoScreenTheme.Colors.error
-    static let mint = MocoScreenTheme.Colors.surfaceLavender
+    static let screenBg = MokoScreenTheme.Colors.canvasTop
+    static let accent   = MokoScreenTheme.Colors.dataVioletDeep   // buttons, scores, icons
+    static let title    = MokoScreenTheme.Colors.textTitle
+    static let subtext  = MokoScreenTheme.Colors.textBody
+    static let soft     = MokoScreenTheme.Colors.surfaceLavender  // tracks, chips, icon tiles
+    static let border   = MokoScreenTheme.Colors.dataGrid
+    static let danger   = MokoScreenTheme.Colors.error            // stop, discard, leave
 }
 
 // MARK: - The four parameters
+
 enum DebriefParameter: String, CaseIterable, Identifiable {
     case courage = "Courage"
     case clarity = "Clarity"
@@ -55,18 +61,20 @@ enum DebriefParameter: String, CaseIterable, Identifiable {
         }
     }
 
-    /// One soft background for every parameter, so the scores read as a set
+    /// One soft background for every parameter, so the scores read as a set.
     var tint: Color {
-        DebriefStyle.mint.opacity(0.55)
+        DebriefStyle.soft.opacity(0.55)
     }
 
-    /// One strong foreground for every parameter, matching the app's green
+    /// One strong foreground for every parameter, matching the app's accent.
     var accent: Color {
-        DebriefStyle.deepGreen
+        DebriefStyle.accent
     }
 }
 
 // MARK: - Coach (plug the real model in here)
+
+/// What the coach knows about the quest being debriefed.
 struct DebriefContext {
     var questTitle: String
     var category: QuestCategory
@@ -75,31 +83,41 @@ struct DebriefContext {
     var userName: String = ""
 }
 
+/// A follow-up question and the parameter it is about.
 struct DebriefQuestion {
     var text: String
     var focus: DebriefParameter
 }
 
+/// The coach's verdict on one answer.
 struct DebriefGrade: Equatable {
-    /// How confident the answer came across, 0...100 (shown on every answer)
+    /// How confident the answer came across, 0...100 (shown on every answer).
     var confidence: Int
-    /// Score for the parameter this answer was about, 0...100
+    /// Score for the parameter this answer was about, 0...100.
     var score: Int
+    /// One kind sentence about the answer, shown when the bubble is expanded.
     var note: String
+    /// The parameter this answer was about. nil for the opening story.
     var focus: DebriefParameter?
+    /// Extra scores the coach gave for other parameters in the same answer.
     var parameterScores: [DebriefParameter: Int] = [:]
 }
 
+/// Anything that can run a debrief. `AFMDebriefCoach` and `DummyDebriefCoach` both follow it.
 protocol DebriefCoaching {
     func greeting(for context: DebriefContext) async -> String
-    /// number is 1...3
+    /// number is 1...3.
     func question(number: Int, context: DebriefContext, previousAnswers: [String]) async -> DebriefQuestion
-    /// focus is nil for the opening story
+    /// focus is nil for the opening story.
     func grade(answer: String, focus: DebriefParameter?, context: DebriefContext) async -> DebriefGrade
     func finalScores(from grades: [DebriefGrade], context: DebriefContext) -> [DebriefParameter: Int]
 }
 
 extension DebriefCoaching {
+    /// Default end-of-debrief scores, used by every coach that doesn't write its own:
+    /// 1. Keep the best score seen for each parameter.
+    /// 2. Courage falls back to the average confidence if no answer scored it.
+    /// 3. Anything still under 40 is lifted to a gentle 48–76, so no score feels harsh.
     func finalScores(from grades: [DebriefGrade], context: DebriefContext) -> [DebriefParameter: Int] {
         var scores: [DebriefParameter: Int] = [:]
         for grade in grades {
@@ -125,11 +143,11 @@ extension DebriefCoaching {
     }
 }
 
-/// Fallback coach using dynamic linguistic evaluation of user responses.
+/// Fallback coach for phones without Apple Intelligence.
+/// Questions come from the Mission Bank; grades come from answer length and a few key words.
 struct DummyDebriefCoach: DebriefCoaching {
     func greeting(for context: DebriefContext) async -> String {
-        let namePrefix = context.userName.isEmpty ? "Hey!" : "Hey \(context.userName)!"
-        return "\(namePrefix) How did it go — did you manage to do it?"
+        DebriefSession.openingGreeting(for: context)
     }
 
     func question(number: Int, context: DebriefContext, previousAnswers: [String]) async -> DebriefQuestion {
@@ -154,7 +172,7 @@ struct DummyDebriefCoach: DebriefCoaching {
         let words = trimmed.split(separator: " ")
         let wordCount = words.count
 
-        // Confidence strictly reflects answer length — short answers can't score high
+        // Confidence strictly reflects answer length — short answers can't score high.
         let confidence: Int
         switch wordCount {
         case 0..<8:   confidence = Int.random(in: 40...50)   // too brief / incomplete
@@ -163,6 +181,7 @@ struct DummyDebriefCoach: DebriefCoaching {
         default:      confidence = Int.random(in: 76...90)   // rich first-person account
         }
 
+        // Simple key-word checks. Each one nudges a score up a little.
         let lower = trimmed.lowercased()
         let hasActionVerb = ["said", "told", "asked", "went", "did", "decided", "started", "spoke"].contains { lower.contains($0) }
         let hasDirectness = ["clear", "direct", "exactly", "honestly", "straight"].contains { lower.contains($0) }
@@ -225,6 +244,8 @@ struct DummyDebriefCoach: DebriefCoaching {
 }
 
 // MARK: - Conversation data
+
+/// One row in the chat: a coach bubble, a user bubble, or a "Question n of 3" header.
 struct DebriefMessage: Identifiable {
     enum Kind {
         case ai(String)
@@ -236,6 +257,7 @@ struct DebriefMessage: Identifiable {
     var kind: Kind
 }
 
+/// What the "Debrief Complete" panel shows.
 struct DebriefResult {
     var scores: [DebriefParameter: Int]
     var xp: Int
@@ -243,6 +265,10 @@ struct DebriefResult {
 }
 
 // MARK: - Session (drives the whole conversation)
+
+/// The "brain" of the debrief. The screen only reads these values and calls
+/// `start()`, `submit(_:)` and the recording functions.
+/// `@Observable` makes every view that reads a property redraw when it changes.
 @MainActor
 @Observable
 final class DebriefSession {
@@ -251,44 +277,53 @@ final class DebriefSession {
     var context: DebriefContext
     private let coach: any DebriefCoaching
 
+    // The chat rows, oldest first.
     var messages: [DebriefMessage] = []
+    // Shows the three bouncing dots while the coach writes a question.
     var isCoachTyping = false
+    // True while the newest answer is being scored. Answers are blocked until it's done.
     var isGrading = false
+    // True while the (simulated) microphone is "listening".
     var isRecording = false
+    // True once all answers are in. Shows the "Debrief Complete" panel.
     var isComplete = false
-    /// True while the "Leave early?" sheet is open
+    /// True while the "Leave early?" sheet is open. Pauses the recording.
     var isPaused = false
 
+    // Recording display: seconds, the words heard so far, waveform bars and orb size (0...1).
     var elapsed = 0
     var transcript = ""
     var levels: [Double] = Array(repeating: 0.08, count: 34)
     var orbLevel: Double = 0
 
-    /// What the current question is about (nil for the opening story)
+    /// What the current question is about (nil for the opening story).
     var focus: DebriefParameter?
-    /// 0 = the opening story, 1...3 = follow-ups
+    /// 0 = the opening story, 1...3 = follow-ups.
     var questionNumber = 0
     var result: DebriefResult?
-    /// XP and streak to show when the debrief finishes
+    /// XP and streak to show when the debrief finishes.
     var reward = QuestReward(xp: 0, streak: 0)
 
     /// The quest this debrief belongs to. When set, every change is also written to
     /// `DebriefDraftStore` so an interrupted debrief can be picked up later.
     var questID: UUID?
 
+    // Everything said and scored so far (also saved in the draft).
     private var answers: [String] = []
     private var grades: [DebriefGrade] = []
+    // Guards so `start()` runs once, and knows whether we're resuming a saved draft.
     private var started = false
     private var isRestored = false
     private var resumeStep: ResumeStep = .none
 
-    /// What a restored debrief does before it accepts an answer again
+    /// What a restored debrief does before it accepts an answer again.
     private enum ResumeStep: Equatable {
         case none
         /// Ask follow-up `number`; `divider` adds the "Question n of 3" header when the
         /// saved conversation stopped before it.
         case ask(number: Int, divider: Bool)
     }
+    // Running background jobs. Kept so `cancelAll()` can stop them when the screen closes.
     private var recordingTask: Task<Void, Never>?
     private var flowTask: Task<Void, Never>?
 
@@ -297,20 +332,24 @@ final class DebriefSession {
         self.coach = coach
     }
 
+    /// True when the user may send an answer right now.
     var canAnswer: Bool {
         !messages.isEmpty && !isCoachTyping && !isGrading && !isComplete
     }
 
+    /// Recording time as "m:ss".
     var timeText: String {
         String(format: "%d:%02d", elapsed / 60, elapsed % 60)
     }
 
     // MARK: Start
+
+    /// Shows the first question (or picks up a saved draft). Safe to call more than once.
     func start() async {
         guard !started else { return }
         started = true
 
-        // A saved debrief continues mid-conversation: no greeting and no replay
+        // A saved debrief continues mid-conversation: no greeting and no replay.
         if isRestored {
             switch resumeStep {
             case .none:
@@ -332,6 +371,7 @@ final class DebriefSession {
         append(.ai(Self.openingGreeting(for: context)))
 
         let text = await coach.greeting(for: context)
+        // `case .ai = first.kind` checks the first row is still the coach's greeting.
         guard !Task.isCancelled,
               answers.isEmpty,
               let first = messages.first,
@@ -344,13 +384,16 @@ final class DebriefSession {
         persist()
     }
 
-    private static func openingGreeting(for context: DebriefContext) -> String {
+    /// The instant greeting, also used by `DummyDebriefCoach`.
+    static func openingGreeting(for context: DebriefContext) -> String {
         context.userName.isEmpty
             ? "Hey! How did it go — did you manage to do it?"
             : "Hey \(context.userName)! How did it go — did you manage to do it?"
     }
 
     // MARK: Voice (simulated)
+
+    // Sample answers "spoken" by the fake microphone, one per question.
     private static let spokenAnswers = [
         "I asked him about his new internship first, and he asked about my semester. It got quiet for a bit, but I kept going.",
         "Mostly listening, I think. When it went quiet I started planning what to say next, but then I caught myself and tried to tune back into what he was saying about his project.",
@@ -358,6 +401,8 @@ final class DebriefSession {
         "I told him I was really glad we caught up and that I missed our school days. He smiled and said the same."
     ]
 
+    /// Pretends to listen: every 90 ms it moves the waveform, and every 4th tick it
+    /// "hears" one more word. When the words run out it waits a moment and sends.
     func startRecording() {
         guard canAnswer, !isRecording else { return }
 
@@ -368,6 +413,7 @@ final class DebriefSession {
         let script = Self.spokenAnswers[min(questionNumber, Self.spokenAnswers.count - 1)]
         let words = script.split(separator: " ").map(String.init)
 
+        // `[weak self]` stops this loop from keeping the session alive after the screen closes.
         recordingTask = Task { [weak self] in
             var tick = 0
             var spoken = 0
@@ -382,6 +428,7 @@ final class DebriefSession {
                 let speaking = spoken < words.count
                 self.pushLevel(speaking: speaking)
 
+                // 11 ticks × 90 ms ≈ 1 second.
                 if tick % 11 == 0 { self.elapsed += 1 }
 
                 if speaking {
@@ -390,7 +437,7 @@ final class DebriefSession {
                         self.transcript = words[0..<spoken].joined(separator: " ")
                     }
                 } else {
-                    // Finished speaking: pause for a beat, then send automatically
+                    // Finished speaking: pause for a beat, then send automatically.
                     quietTicks += 1
                     if quietTicks > 14 {
                         self.finishRecording()
@@ -401,7 +448,7 @@ final class DebriefSession {
         }
     }
 
-    /// Stop and send what was heard
+    /// Stop and send what was heard.
     func finishRecording() {
         guard isRecording else { return }
         let text = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -411,7 +458,7 @@ final class DebriefSession {
         }
     }
 
-    /// Stop and throw the recording away
+    /// Stop and throw the recording away.
     func cancelRecording() {
         stopRecording()
     }
@@ -426,6 +473,7 @@ final class DebriefSession {
         levels = Array(repeating: 0.08, count: levels.count)
     }
 
+    /// Adds one fake loudness value. The old value is blended in so the bars move smoothly.
     private func pushLevel(speaking: Bool) {
         let target = speaking ? Double.random(in: 0.25...1.0) : Double.random(in: 0.05...0.2)
         orbLevel = orbLevel * 0.5 + target * 0.5
@@ -434,6 +482,8 @@ final class DebriefSession {
     }
 
     // MARK: Answering
+
+    /// Adds the user's answer, scores it, then asks the next question (or finishes).
     func submit(_ rawText: String) {
         let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, canAnswer else { return }
@@ -478,6 +528,7 @@ final class DebriefSession {
         append(.ai(next.text))
     }
 
+    /// Saves the grade and shows it on the answer bubble with the matching `id`.
     private func apply(_ grade: DebriefGrade, to id: UUID?) {
         grades.append(grade)
         persist()
@@ -490,6 +541,7 @@ final class DebriefSession {
         }
     }
 
+    /// Works out the final scores and shows the "Debrief Complete" panel.
     private func finish() {
         let scores = coach.finalScores(from: grades, context: context)
 
@@ -502,11 +554,13 @@ final class DebriefSession {
         persist()
     }
 
+    /// Stops every background job. Called when the screen goes away.
     func cancelAll() {
         recordingTask?.cancel()
         flowTask?.cancel()
     }
 
+    /// Adds a chat row with a little spring, and saves the draft.
     private func append(_ kind: DebriefMessage.Kind) {
         withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
             messages.append(DebriefMessage(kind: kind))
@@ -542,15 +596,15 @@ final class DebriefSession {
         isRestored = true
 
         if answers.count > DebriefSession.followUpCount {
-            // Every answer was in before the debrief was left: show the scores
+            // Every answer was in before the debrief was left: show the scores.
             finish()
         } else if let last = messages.last {
             switch last.kind {
             case .divider:
-                // The coach was still thinking about this follow-up
+                // The coach was still thinking about this follow-up.
                 resumeStep = .ask(number: questionNumber, divider: false)
             case .user:
-                // The answer landed but its follow-up never started
+                // The answer landed but its follow-up never started.
                 resumeStep = .ask(number: questionNumber + 1, divider: true)
             case .ai:
                 resumeStep = .none
@@ -558,11 +612,13 @@ final class DebriefSession {
         }
     }
 
+    /// Saves the current conversation for this quest (only when `questID` is set).
     private func persist() {
         guard let questID else { return }
         DebriefDraftStore.save(snapshot(), for: questID)
     }
 
+    /// Turns the live conversation into plain, saveable values.
     private func snapshot() -> DebriefDraft {
         DebriefDraft(
             messages: messages.map { message in
@@ -588,31 +644,44 @@ final class DebriefSession {
 }
 
 // MARK: - The screen
+
 struct QuestDebriefScreen: View {
     var onExit: (DebriefOutcome) -> Void
 
+    // SwiftData's "save box". Used to store the scores, XP and streak.
     @Environment(\.modelContext) private var modelContext
+    // The user's profile (name, streak). @Query keeps it up to date.
     @Query private var profiles: [Profile]
 
+    // nil in the preview; set when debriefing a real quest.
     private let quest: Quest?
+    // The conversation. @State keeps the same session alive while the screen is open.
     @State private var session: DebriefSession
+    // Text typed in the answer box but not sent yet.
     @State private var draft = ""
+    // Opens the "Leave debrief early?" sheet.
     @State private var showLeave = false
+    // True while the keyboard is up for the answer box.
     @FocusState private var isTyping: Bool
 
+    /// The real coach when Apple Intelligence is available, otherwise the simple fallback.
+    private static func defaultCoach() -> any DebriefCoaching {
+        AFM.isAvailable ? AFMDebriefCoach() : DummyDebriefCoach()
+    }
+
+    /// For previews: a debrief without a saved quest.
     init(context: DebriefContext,
          coach: (any DebriefCoaching)? = nil,
          onExit: @escaping (DebriefOutcome) -> Void) {
-        let activeCoach = coach ?? (AFM.isAvailable ? AFMDebriefCoach() : DummyDebriefCoach())
         self.quest = nil
-        _session = State(initialValue: DebriefSession(context: context, coach: activeCoach))
+        _session = State(initialValue: DebriefSession(context: context, coach: coach ?? Self.defaultCoach()))
         self.onExit = onExit
     }
 
+    /// For a real quest. Resumes a saved draft if there is one.
     init(quest: Quest,
          coach: (any DebriefCoaching)? = nil,
          onExit: @escaping (DebriefOutcome) -> Void) {
-        let activeCoach = coach ?? (AFM.isAvailable ? AFMDebriefCoach() : DummyDebriefCoach())
         self.quest = quest
 
         let session = DebriefSession(
@@ -620,11 +689,11 @@ struct QuestDebriefScreen: View {
                 questTitle: quest.title,
                 category: quest.category,
                 intensity: quest.intensity
-                // userName is injected via .task once profiles load
+                // userName is filled in by `.task` once profiles load
             ),
-            coach: activeCoach
+            coach: coach ?? Self.defaultCoach()
         )
-        // Pick up an unfinished debrief where the user left it
+        // Pick up an unfinished debrief where the user left it.
         session.questID = quest.id
         if let draft = DebriefDraftStore.load(for: quest.id) {
             session.restore(from: draft)
@@ -634,6 +703,7 @@ struct QuestDebriefScreen: View {
         self.onExit = onExit
     }
 
+    /// Warning shown in the leave sheet when something would be lost.
     private var unsentText: String? {
         if session.isRecording { return "Unsent audio (\(session.timeText)) will be discarded" }
         if !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "Your unsent answer will be discarded" }
@@ -642,8 +712,9 @@ struct QuestDebriefScreen: View {
 
     var body: some View {
         ZStack {
-            MocoBackdrop()
+            MokoBackdrop()
 
+            // ScrollViewReader lets us scroll to the invisible "bottom" marker from code.
             ScrollViewReader { proxy in
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
@@ -652,6 +723,7 @@ struct QuestDebriefScreen: View {
                     }
                 }
                 .scrollDismissesKeyboard(.interactively)
+                // Keep the newest message in view whenever the chat changes.
                 .onChange(of: session.messages.count) { _, _ in scrollToBottom(proxy) }
                 .onChange(of: session.isCoachTyping) { _, _ in scrollToBottom(proxy) }
                 .onChange(of: session.isRecording) { _, _ in scrollToBottom(proxy) }
@@ -670,8 +742,9 @@ struct QuestDebriefScreen: View {
                 onLeave: { exit(.leave) }
             )
         }
+        // `.task` runs when the screen appears and is cancelled when it goes away.
         .task {
-            // Inject first name so the coach can greet the user personally
+            // Give the coach the user's first name so it can greet them personally.
             if let name = profiles.first?.username, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 let firstName = name.split(separator: " ").first.map(String.init) ?? name
                 session.context.userName = firstName
@@ -679,22 +752,25 @@ struct QuestDebriefScreen: View {
             syncReward()
             await session.start()
 
-            // A debrief that was already finished when it was saved still needs its scores stored
+            // A debrief that was already finished when it was saved still needs its scores stored.
             if session.isComplete {
                 recordDebrief()
             }
         }
+        // Save the scores as soon as the last answer is graded.
         .onChange(of: session.isComplete) { _, isComplete in
             if isComplete {
                 recordDebrief()
             }
         }
+        // Pause the recording while the leave sheet is open.
         .onChange(of: showLeave) { _, isShown in
             session.isPaused = isShown
         }
         .onDisappear {
             session.cancelAll()
         }
+        // Haptics: a tap for each new message, a thump when recording starts/stops, success at the end.
         .sensoryFeedback(.impact(weight: .light), trigger: session.messages.count)
         .sensoryFeedback(.impact(weight: .medium), trigger: session.isRecording)
         .sensoryFeedback(.success, trigger: session.isComplete)
@@ -726,7 +802,7 @@ struct QuestDebriefScreen: View {
 
         let reward = QuestProgress.saveDebrief(result, for: quest, in: modelContext)
         session.reward = reward
-        // The debrief is behind us: the saved draft has done its job
+        // The debrief is behind us: the saved draft has done its job.
         DebriefDraftStore.clear(for: quest.id)
 
         if var updated = session.result {
@@ -751,6 +827,7 @@ struct QuestDebriefScreen: View {
     }
 
     // MARK: Conversation
+
     private var conversation: some View {
         VStack(alignment: .leading, spacing: 14) {
             ForEach(session.messages) { message in
@@ -773,13 +850,14 @@ struct QuestDebriefScreen: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .padding(.horizontal, MocoScreenTheme.Space.page)
+        .padding(.horizontal, MokoScreenTheme.Space.page)
         .padding(.top, 16)
         .padding(.bottom, 20)
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: session.isCoachTyping)
         .animation(.spring(response: 0.45, dampingFraction: 0.85), value: session.isRecording)
     }
 
+    /// Picks the right bubble for one chat row.
     @ViewBuilder
     private func messageView(_ message: DebriefMessage) -> some View {
         switch message.kind {
@@ -793,6 +871,8 @@ struct QuestDebriefScreen: View {
     }
 
     // MARK: Bottom area
+
+    /// The answer box (plus the orb while recording), or the results panel at the end.
     private var bottomArea: some View {
         VStack(spacing: 10) {
             if session.isComplete, let result = session.result {
@@ -810,7 +890,7 @@ struct QuestDebriefScreen: View {
                 composer
             }
         }
-        .padding(.horizontal, MocoScreenTheme.Space.page)
+        .padding(.horizontal, MokoScreenTheme.Space.page)
         .padding(.top, 10)
         .padding(.bottom, 8)
         .background(
@@ -830,10 +910,11 @@ struct QuestDebriefScreen: View {
         return session.canAnswer ? "Speak, or type instead" : "Your coach is thinking…"
     }
 
+    /// Text field + mic/send button + close button.
     private var composer: some View {
         HStack(spacing: 8) {
             TextField(placeholder, text: $draft, axis: .vertical)
-                .mocoText(MocoScreenTheme.Typeface.body)
+                .mokoText(MokoScreenTheme.Typeface.body)
                 .lineLimit(1...4)
                 .focused($isTyping)
                 .disabled(!session.canAnswer || session.isRecording)
@@ -847,9 +928,9 @@ struct QuestDebriefScreen: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
-                    .background(Circle().fill(DebriefStyle.deepGreen))
+                    .background(Circle().fill(DebriefStyle.accent))
                     .contentShape(Circle())
             }
             .buttonStyle(DebriefPressStyle())
@@ -859,10 +940,10 @@ struct QuestDebriefScreen: View {
         .padding(.trailing, 7)
         .padding(.vertical, 7)
         .frame(minHeight: 58)
-        .mocoCard()
+        .mokoCard()
     }
 
-    /// Send (when there's text), cancel (while recording) or start the mic
+    /// Send (when there's text), discard (while recording) or start the mic.
     @ViewBuilder
     private var inputButton: some View {
         let hasText = !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -876,9 +957,9 @@ struct QuestDebriefScreen: View {
             } label: {
                 Image(systemName: "arrow.up")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
-                    .background(Circle().fill(DebriefStyle.green))
+                    .background(Circle().fill(DebriefStyle.accent))
                     .contentShape(Circle())
             }
             .buttonStyle(DebriefPressStyle())
@@ -890,9 +971,9 @@ struct QuestDebriefScreen: View {
             } label: {
                 Image(systemName: "mic.slash.fill")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(DebriefStyle.rust)
+                    .foregroundStyle(DebriefStyle.danger)
                     .frame(width: 44, height: 44)
-                    .background(Circle().fill(DebriefStyle.rust.opacity(0.12)))
+                    .background(Circle().fill(DebriefStyle.danger.opacity(0.12)))
                     .contentShape(Circle())
             }
             .buttonStyle(DebriefPressStyle())
@@ -904,9 +985,9 @@ struct QuestDebriefScreen: View {
             } label: {
                 Image(systemName: "mic.fill")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(DebriefStyle.green)
+                    .foregroundStyle(DebriefStyle.accent)
                     .frame(width: 44, height: 44)
-                    .background(Circle().fill(DebriefStyle.mint.opacity(0.7)))
+                    .background(Circle().fill(DebriefStyle.soft.opacity(0.7)))
                     .contentShape(Circle())
             }
             .buttonStyle(DebriefPressStyle())
@@ -918,6 +999,8 @@ struct QuestDebriefScreen: View {
 }
 
 // MARK: - Shared button feel
+
+/// Shrinks a button slightly while it is pressed.
 struct DebriefPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -927,11 +1010,16 @@ struct DebriefPressStyle: ButtonStyle {
 }
 
 // MARK: - Bubbles
-/// The coach's message. The words type in.
+
+/// The coach's message. The letters type in one by one (all at once with Reduce Motion).
 struct DebriefCoachBubble: View {
     let text: String
 
+    // The phone setting "Reduce Motion". If it is on, the text appears instantly.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    // How many letters are visible so far.
     @State private var shownCount = 0
+    // True after the first text has been typed, so a replacement greeting appears instantly.
     @State private var hasTyped = false
 
     var body: some View {
@@ -940,22 +1028,24 @@ struct DebriefCoachBubble: View {
                 Text(text).opacity(0) // reserves the final size so the bubble doesn't jump
                 Text(String(text.prefix(shownCount)))
             }
-            .mocoText(MocoScreenTheme.Typeface.body)
-            .foregroundColor(DebriefStyle.title)
+            .mokoText(MokoScreenTheme.Typeface.body)
+            .foregroundStyle(DebriefStyle.title)
             .lineSpacing(3)
             .padding(.horizontal, 18)
             .padding(.vertical, 15)
-            .mocoCard()
+            .mokoCard()
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(text)
 
             Spacer(minLength: 44)
         }
+        // Restarts whenever `text` changes. Adds one letter every 14 ms.
         .task(id: text) {
             // The coach's personalised opening replaces the instant fallback.
             // Show the replacement in full instead of typing it out again.
-            if hasTyped {
+            if hasTyped || reduceMotion {
                 shownCount = text.count
+                hasTyped = true
                 return
             }
             hasTyped = true
@@ -974,8 +1064,11 @@ struct DebriefUserBubble: View {
     let text: String
     let grade: DebriefGrade?
 
+    // True when the user has tapped to see the coach's note.
     @State private var expanded = false
+    // How full the confidence bar is, 0...1. Animated up when the grade arrives.
     @State private var meter: Double = 0
+    // True until the grade arrives. Dims the bar.
     @State private var waiting = false
 
     var body: some View {
@@ -984,8 +1077,8 @@ struct DebriefUserBubble: View {
 
             VStack(alignment: .leading, spacing: 0) {
                 Text(text)
-                    .mocoText(MocoScreenTheme.Typeface.body)
-                    .foregroundColor(DebriefStyle.title)
+                    .mokoText(MokoScreenTheme.Typeface.body)
+                    .foregroundStyle(DebriefStyle.title)
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 18)
@@ -1002,12 +1095,13 @@ struct DebriefUserBubble: View {
                         .transition(.opacity.combined(with: .move(edge: .top)))
                 }
             }
-            .mocoCard(fill: MocoScreenTheme.Colors.surfaceLavender)
+            .mokoCard(fill: MokoScreenTheme.Colors.surfaceLavender)
         }
-        .onAppear { syncMeter() }
-        .onChange(of: grade) { _, _ in syncMeter() }
+        // `initial: true` also runs this once when the bubble first appears.
+        .onChange(of: grade, initial: true) { _, _ in syncMeter() }
     }
 
+    /// Fills the bar to the grade's confidence, or marks it as waiting.
     private func syncMeter() {
         if let grade {
             waiting = false
@@ -1019,6 +1113,7 @@ struct DebriefUserBubble: View {
         }
     }
 
+    /// "Confidence" + bar + number. Tapping it shows or hides the details.
     private var footer: some View {
         Button {
             guard grade != nil else { return }
@@ -1028,15 +1123,15 @@ struct DebriefUserBubble: View {
         } label: {
             HStack(spacing: 12) {
                 Text("Confidence")
-                    .mocoText(MocoScreenTheme.Typeface.caption)
-                    .foregroundColor(DebriefStyle.subtext)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
+                    .foregroundStyle(DebriefStyle.subtext)
 
                 meterBar
 
                 if let grade {
                     Text("\(grade.confidence)")
-                        .mocoText(MocoScreenTheme.Typeface.slider)
-                        .foregroundColor(DebriefStyle.green)
+                        .mokoText(MokoScreenTheme.Typeface.slider)
+                        .foregroundStyle(DebriefStyle.accent)
                         .monospacedDigit()
                 } else {
                     MokoFlossLoadingView(size: 28)
@@ -1045,7 +1140,7 @@ struct DebriefUserBubble: View {
 
                 Image(systemName: "chevron.down")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(DebriefStyle.title)
+                    .foregroundStyle(DebriefStyle.title)
                     .rotationEffect(.degrees(expanded ? 180 : 0))
                     .opacity(grade == nil ? 0.3 : 1)
             }
@@ -1060,12 +1155,12 @@ struct DebriefUserBubble: View {
     private var meterBar: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                Capsule().fill(DebriefStyle.sand.opacity(0.9))
+                Capsule().fill(DebriefStyle.soft.opacity(0.9))
 
                 Capsule()
                     .fill(
                         LinearGradient(
-                            colors: [DebriefStyle.mint, DebriefStyle.green],
+                            colors: [DebriefStyle.soft, DebriefStyle.accent],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
@@ -1077,11 +1172,12 @@ struct DebriefUserBubble: View {
         .frame(height: 6)
     }
 
+    /// The coach's note and the parameter chip, shown when expanded.
     private func details(_ grade: DebriefGrade) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(grade.note)
-                .mocoText(MocoScreenTheme.Typeface.caption)
-                .foregroundColor(DebriefStyle.subtext)
+                .mokoText(MokoScreenTheme.Typeface.caption)
+                .foregroundStyle(DebriefStyle.subtext)
                 .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -1091,19 +1187,19 @@ struct DebriefUserBubble: View {
                         Image(systemName: focus.symbol)
                             .font(.system(size: 11, weight: .semibold))
                         Text("\(focus.rawValue) \(grade.score)")
-                            .mocoText(MocoScreenTheme.Typeface.caption)
+                            .mokoText(MokoScreenTheme.Typeface.caption)
                     }
-                    .foregroundColor(focus.accent)
+                    .foregroundStyle(focus.accent)
                     .padding(.horizontal, 10)
                     .frame(height: 26)
                     .background(Capsule().fill(focus.tint))
                 } else {
                     Text("Your story")
-                        .mocoText(MocoScreenTheme.Typeface.caption)
-                        .foregroundColor(DebriefStyle.green)
+                        .mokoText(MokoScreenTheme.Typeface.caption)
+                        .foregroundStyle(DebriefStyle.accent)
                         .padding(.horizontal, 10)
                         .frame(height: 26)
-                        .background(Capsule().fill(DebriefStyle.mint.opacity(0.7)))
+                        .background(Capsule().fill(DebriefStyle.soft.opacity(0.7)))
                 }
             }
         }
@@ -1114,6 +1210,7 @@ struct DebriefUserBubble: View {
     }
 }
 
+/// "Follow-up questions … Question 2 of 3" row between questions.
 struct DebriefQuestionHeader: View {
     let number: Int
     let total: Int
@@ -1121,17 +1218,17 @@ struct DebriefQuestionHeader: View {
     var body: some View {
         HStack {
             Text("Follow-up questions")
-                .mocoText(MocoScreenTheme.Typeface.caption)
-                .foregroundColor(MocoScreenTheme.Colors.textBody)
+                .mokoText(MokoScreenTheme.Typeface.caption)
+                .foregroundStyle(MokoScreenTheme.Colors.textBody)
 
             Spacer()
 
             Text("Question \(number) of \(total)")
-                .mocoText(MocoScreenTheme.Typeface.caption)
-                .foregroundColor(DebriefStyle.title)
+                .mokoText(MokoScreenTheme.Typeface.caption)
+                .foregroundStyle(DebriefStyle.title)
                 .padding(.horizontal, 12)
                 .frame(height: 28)
-                .background(Capsule().fill(DebriefStyle.sand))
+                .background(Capsule().fill(DebriefStyle.soft))
         }
         .padding(.horizontal, 4)
         .padding(.top, 10)
@@ -1139,11 +1236,15 @@ struct DebriefQuestionHeader: View {
     }
 }
 
-/// Three bouncing dots while the coach is thinking
+/// Three bouncing dots while the coach is thinking.
 struct DebriefTypingIndicator: View {
+    // The phone setting "Reduce Motion". If it is on, the dots stay still.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         HStack(spacing: 0) {
-            TimelineView(.animation) { timeline in
+            // TimelineView redraws every frame; each dot follows a sine wave, a little behind the last.
+            TimelineView(.animation(paused: reduceMotion)) { timeline in
                 let t = timeline.date.timeIntervalSinceReferenceDate
 
                 HStack(spacing: 6) {
@@ -1151,7 +1252,7 @@ struct DebriefTypingIndicator: View {
                         let wave = sin(t * 6 + Double(index) * 0.9)
 
                         Circle()
-                            .fill(DebriefStyle.green.opacity(0.55 + 0.35 * (wave + 1) / 2))
+                            .fill(DebriefStyle.accent.opacity(0.55 + 0.35 * (wave + 1) / 2))
                             .frame(width: 8, height: 8)
                             .offset(y: CGFloat(wave) * -3)
                     }
@@ -1159,7 +1260,7 @@ struct DebriefTypingIndicator: View {
             }
             .padding(.horizontal, 18)
             .frame(height: 44)
-            .mocoCard(radius: MocoScreenTheme.Radius.pill)
+            .mokoCard(radius: MokoScreenTheme.Radius.pill)
 
             Spacer()
         }
@@ -1168,6 +1269,8 @@ struct DebriefTypingIndicator: View {
 }
 
 // MARK: - Recording
+
+/// The card in the chat while recording: stop button, waveform, timer and live words.
 struct DebriefRecordingCard: View {
     let levels: [Double]
     let elapsed: String
@@ -1179,8 +1282,8 @@ struct DebriefRecordingCard: View {
             HStack(spacing: 12) {
                 Button(action: onStop) {
                     ZStack {
-                        Circle().fill(DebriefStyle.rust.opacity(0.14))
-                        Circle().fill(DebriefStyle.rust).frame(width: 26, height: 26)
+                        Circle().fill(DebriefStyle.danger.opacity(0.14))
+                        Circle().fill(DebriefStyle.danger).frame(width: 26, height: 26)
                         RoundedRectangle(cornerRadius: 2.5, style: .continuous)
                             .fill(Color.white)
                             .frame(width: 10, height: 10)
@@ -1194,35 +1297,37 @@ struct DebriefRecordingCard: View {
                 waveform
 
                 Text(elapsed)
-                    .mocoText(MocoScreenTheme.Typeface.caption)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
                     .monospacedDigit()
-                    .foregroundColor(DebriefStyle.subtext)
+                    .foregroundStyle(DebriefStyle.subtext)
             }
 
-            // Live transcript with a blinking caret
+            // Live transcript with a caret that blinks twice a second.
             TimelineView(.periodic(from: .now, by: 0.5)) { timeline in
                 let caretOn = Int(timeline.date.timeIntervalSinceReferenceDate * 2) % 2 == 0
+                let words = Text(transcript.isEmpty ? "Listening…" : transcript)
+                    .foregroundStyle(transcript.isEmpty ? DebriefStyle.subtext : DebriefStyle.title)
+                let caret = Text(" ▏").foregroundStyle(caretOn ? DebriefStyle.accent : Color.clear)
 
-                (Text(transcript.isEmpty ? "Listening…" : transcript)
-                    .foregroundColor(transcript.isEmpty ? DebriefStyle.subtext : DebriefStyle.title)
-                 + Text(" ▏").foregroundColor(caretOn ? DebriefStyle.green : Color.clear))
-                    .mocoText(MocoScreenTheme.Typeface.body)
+                // Putting one Text inside another keeps both colours in a single line of text.
+                Text("\(words)\(caret)")
+                    .mokoText(MokoScreenTheme.Typeface.body)
                     .lineSpacing(3)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(16)
-        .mocoCard(fill: MocoScreenTheme.Colors.surfaceLavender)
+        .mokoCard(fill: MokoScreenTheme.Colors.surfaceLavender)
     }
 
-    /// Newest sound on the right, older sound fading to sand on the left
+    /// Newest sound on the right, older sound fading out on the left.
     private var waveform: some View {
         HStack(spacing: 3) {
             ForEach(levels.indices, id: \.self) { index in
                 let age = Double(index) / Double(max(levels.count - 1, 1))
 
                 Capsule()
-                    .fill(age > 0.6 ? DebriefStyle.green : MocoScreenTheme.Colors.dataViolet)
+                    .fill(age > 0.6 ? DebriefStyle.accent : MokoScreenTheme.Colors.dataViolet)
                     .opacity(0.35 + 0.65 * age)
                     .frame(width: 3, height: 5 + CGFloat(levels[index]) * 26)
             }
@@ -1238,21 +1343,24 @@ struct DebriefRecordingCard: View {
 struct DebriefOrb: View {
     var level: Double
 
+    // The phone setting "Reduce Motion". If it is on, the rings don't spin.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    // Flipped once on appear. `repeatForever` then keeps the rings turning on their own.
     @State private var spin = false
 
     var body: some View {
         ZStack {
-            DebriefDottedRing(count: 30, radius: 60, color: DebriefStyle.green)
+            DebriefDottedRing(count: 30, radius: 60, color: DebriefStyle.accent)
                 .rotationEffect(.degrees(spin ? 360 : 0))
 
-            DebriefDottedRing(count: 18, radius: 47, color: MocoScreenTheme.Colors.dataViolet)
+            DebriefDottedRing(count: 18, radius: 47, color: MokoScreenTheme.Colors.dataViolet)
                 .rotationEffect(.degrees(spin ? -360 : 0))
 
             // Glow that follows the voice
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [DebriefStyle.green.opacity(0.35), DebriefStyle.green.opacity(0)],
+                        colors: [DebriefStyle.accent.opacity(0.35), DebriefStyle.accent.opacity(0)],
                         center: .center,
                         startRadius: 8,
                         endRadius: 62
@@ -1263,7 +1371,7 @@ struct DebriefOrb: View {
                 .animation(.easeOut(duration: 0.12), value: level)
 
             Circle()
-                .fill(DebriefStyle.mint.opacity(0.8))
+                .fill(DebriefStyle.soft.opacity(0.8))
                 .frame(width: 78, height: 78)
                 .scaleEffect(1 + 0.12 * level)
                 .animation(.easeOut(duration: 0.12), value: level)
@@ -1272,7 +1380,7 @@ struct DebriefOrb: View {
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [MocoScreenTheme.Colors.dataViolet, DebriefStyle.deepGreen],
+                        colors: [MokoScreenTheme.Colors.dataViolet, DebriefStyle.accent],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -1286,12 +1394,13 @@ struct DebriefOrb: View {
                         .blur(radius: 1)
                         .offset(x: -11, y: -12)
                 )
-                .shadow(color: DebriefStyle.deepGreen.opacity(0.35), radius: 12, x: 0, y: 6)
+                .shadow(color: DebriefStyle.accent.opacity(0.35), radius: 12, x: 0, y: 6)
                 .scaleEffect(1 + 0.08 * level)
                 .animation(.easeOut(duration: 0.12), value: level)
         }
         .frame(width: 132, height: 132)
         .onAppear {
+            guard !reduceMotion else { return }
             withAnimation(.linear(duration: 24).repeatForever(autoreverses: false)) {
                 spin = true
             }
@@ -1300,6 +1409,7 @@ struct DebriefOrb: View {
     }
 }
 
+/// `count` dots spaced evenly round a circle of `radius`. Every 3rd dot is bigger.
 struct DebriefDottedRing: View {
     let count: Int
     let radius: CGFloat
@@ -1321,12 +1431,15 @@ struct DebriefDottedRing: View {
 }
 
 // MARK: - Leave early?
+
+/// The sheet behind the close button: Keep Going, Finish Later or Leave Progress.
 struct DebriefLeaveSheet: View {
     var unsentText: String?
     var onKeepGoing: () -> Void
     var onFinishLater: () -> Void
     var onLeave: () -> Void
 
+    // The measured height of the content. The sheet is sized to fit it exactly.
     @State private var contentHeight: CGFloat = 280
 
     var body: some View {
@@ -1334,22 +1447,23 @@ struct DebriefLeaveSheet: View {
             HStack(spacing: 12) {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 17, weight: .medium))
-                    .foregroundColor(DebriefStyle.rust)
+                    .foregroundStyle(DebriefStyle.danger)
                     .frame(width: 44, height: 44)
-                    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(DebriefStyle.cream))
+                    .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(DebriefStyle.soft))
                     .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(DebriefStyle.border, lineWidth: 1))
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Leave debrief early?")
-                        .mocoText(MocoScreenTheme.Typeface.section)
-                        .foregroundColor(DebriefStyle.title)
+                        .mokoText(MokoScreenTheme.Typeface.section)
+                        .foregroundStyle(DebriefStyle.title)
 
                     Text("Take a breath. No penalty for stepping away.")
-                        .mocoText(MocoScreenTheme.Typeface.caption)
-                        .foregroundColor(DebriefStyle.subtext)
+                        .mokoText(MokoScreenTheme.Typeface.caption)
+                        .foregroundStyle(DebriefStyle.subtext)
                 }
             }
 
+            // Orange warning pill: something unsent would be lost.
             if let unsentText {
                 HStack(spacing: 8) {
                     Circle()
@@ -1357,8 +1471,8 @@ struct DebriefLeaveSheet: View {
                         .frame(width: 6, height: 6)
 
                     Text(unsentText)
-                        .mocoText(MocoScreenTheme.Typeface.caption)
-                        .foregroundColor(Color(red: 170/255, green: 90/255, blue: 40/255))
+                        .mokoText(MokoScreenTheme.Typeface.caption)
+                        .foregroundStyle(Color(red: 170/255, green: 90/255, blue: 40/255))
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 32)
@@ -1397,6 +1511,7 @@ struct DebriefLeaveSheet: View {
         .padding(.bottom, 18)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .fixedSize(horizontal: false, vertical: true)
+        // Reads the content's real height and stores it, so the sheet below can match it.
         .onGeometryChange(for: CGFloat.self) { proxy in
             proxy.size.height
         } action: { height in
@@ -1405,10 +1520,11 @@ struct DebriefLeaveSheet: View {
         .presentationDetents([.height(contentHeight)])
         .presentationDragIndicator(.visible)
         .presentationCornerRadius(28)
-        .presentationBackground { MocoBackdrop() }
+        .presentationBackground { MokoBackdrop() }
     }
 }
 
+/// One big option row in the leave sheet.
 struct DebriefLeaveOption: View {
     enum Style {
         case primary, plain, danger
@@ -1421,7 +1537,7 @@ struct DebriefLeaveOption: View {
     var action: () -> Void
 
     private var background: Color {
-        style == .primary ? DebriefStyle.deepGreen : Color.white
+        style == .primary ? DebriefStyle.accent : Color.white
     }
 
     private var titleColor: Color {
@@ -1435,16 +1551,16 @@ struct DebriefLeaveOption: View {
     private var iconBackground: Color {
         switch style {
         case .primary: return Color.white.opacity(0.14)
-        case .plain:   return DebriefStyle.cream
-        case .danger:  return DebriefStyle.rust.opacity(0.10)
+        case .plain:   return DebriefStyle.soft
+        case .danger:  return DebriefStyle.danger.opacity(0.10)
         }
     }
 
     private var iconColor: Color {
         switch style {
         case .primary: return Color.white
-        case .plain:   return DebriefStyle.green
-        case .danger:  return DebriefStyle.rust
+        case .plain:   return DebriefStyle.accent
+        case .danger:  return DebriefStyle.danger
         }
     }
 
@@ -1453,46 +1569,49 @@ struct DebriefLeaveOption: View {
             HStack(spacing: 12) {
                 Image(systemName: symbol)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(iconColor)
+                    .foregroundStyle(iconColor)
                     .frame(width: 40, height: 40)
                     .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(iconBackground))
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
-                        .mocoText(MocoScreenTheme.Typeface.slider)
-                        .foregroundColor(titleColor)
+                        .mokoText(MokoScreenTheme.Typeface.slider)
+                        .foregroundStyle(titleColor)
 
                     Text(subtitle)
-                        .mocoText(MocoScreenTheme.Typeface.caption)
-                        .foregroundColor(subtitleColor)
+                        .mokoText(MokoScreenTheme.Typeface.caption)
+                        .foregroundStyle(subtitleColor)
                 }
 
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .mocoCard(fill: background)
+            .mokoCard(fill: background)
         }
         .buttonStyle(DebriefPressStyle())
     }
 }
 
 // MARK: - Debrief Complete
+
+/// The results panel: check mark, XP, streak and the four score bars.
 struct DebriefCompletionPanel: View {
     let result: DebriefResult
     var onContinue: () -> Void
 
+    // Flipped on appear: pops the check mark in and fills the score bars one by one.
     @State private var animate = false
 
     var body: some View {
         VStack(spacing: 16) {
             HStack(spacing: 14) {
                 ZStack {
-                    Circle().fill(DebriefStyle.mint.opacity(0.7)).frame(width: 58, height: 58)
-                    Circle().fill(DebriefStyle.deepGreen).frame(width: 46, height: 46)
+                    Circle().fill(DebriefStyle.soft.opacity(0.7)).frame(width: 58, height: 58)
+                    Circle().fill(DebriefStyle.accent).frame(width: 46, height: 46)
                     Image(systemName: "checkmark")
                         .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                         .symbolEffect(.bounce, value: animate)
                 }
                 .scaleEffect(animate ? 1 : 0.5)
@@ -1501,21 +1620,21 @@ struct DebriefCompletionPanel: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
                         Text("Debrief Complete")
-                            .mocoText(MocoScreenTheme.Typeface.cardTitle)
-                            .foregroundColor(DebriefStyle.title)
+                            .mokoText(MokoScreenTheme.Typeface.cardTitle)
+                            .foregroundStyle(DebriefStyle.title)
 
                         Text("+\(result.xp) XP")
-                            .mocoText(MocoScreenTheme.Typeface.caption)
-                            .foregroundColor(DebriefStyle.green)
+                            .mokoText(MokoScreenTheme.Typeface.caption)
+                            .foregroundStyle(DebriefStyle.accent)
                             .padding(.horizontal, 9)
                             .frame(height: 24)
-                            .background(Capsule().fill(DebriefStyle.mint.opacity(0.7)))
+                            .background(Capsule().fill(DebriefStyle.soft.opacity(0.7)))
                     }
 
                     if result.streak > 0 {
                         Text("\(result.streak)-day streak")
-                            .mocoText(MocoScreenTheme.Typeface.caption)
-                            .foregroundColor(DebriefStyle.subtext)
+                            .mokoText(MokoScreenTheme.Typeface.caption)
+                            .foregroundStyle(DebriefStyle.subtext)
                     }
                 }
 
@@ -1534,41 +1653,42 @@ struct DebriefCompletionPanel: View {
 
             Button(action: onContinue) {
                 Text("Continue")
-                    .mocoText(MocoScreenTheme.Typeface.cardTitle)
-                    .foregroundColor(.white)
+                    .mokoText(MokoScreenTheme.Typeface.cardTitle)
+                    .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 58)
-                    .background(Capsule().fill(DebriefStyle.deepGreen))
-                    .shadow(color: DebriefStyle.deepGreen.opacity(0.25), radius: 10, x: 0, y: 5)
+                    .background(Capsule().fill(DebriefStyle.accent))
+                    .shadow(color: DebriefStyle.accent.opacity(0.25), radius: 10, x: 0, y: 5)
             }
             .buttonStyle(DebriefPressStyle())
         }
         .padding(18)
-        .mocoCard(fill: MocoScreenTheme.Colors.surfaceLavender)
+        .mokoCard(fill: MokoScreenTheme.Colors.surfaceLavender)
         .animation(.spring(response: 0.55, dampingFraction: 0.7), value: animate)
         .onAppear {
             animate = true
         }
     }
 
+    /// One score row. `index` staggers the bar animations so they fill one after another.
     private func scoreRow(_ parameter: DebriefParameter, index: Int) -> some View {
         let value = result.scores[parameter] ?? 0
 
         return HStack(spacing: 10) {
             Image(systemName: parameter.symbol)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(parameter.accent)
+                .foregroundStyle(parameter.accent)
                 .frame(width: 28, height: 28)
                 .background(Circle().fill(parameter.tint))
 
             Text(parameter.rawValue)
-                .mocoText(MocoScreenTheme.Typeface.caption)
-                .foregroundColor(DebriefStyle.title)
+                .mokoText(MokoScreenTheme.Typeface.caption)
+                .foregroundStyle(DebriefStyle.title)
                 .frame(width: 80, alignment: .leading)
 
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(DebriefStyle.sand.opacity(0.9))
+                    Capsule().fill(DebriefStyle.soft.opacity(0.9))
 
                     Capsule()
                         .fill(
@@ -1585,9 +1705,9 @@ struct DebriefCompletionPanel: View {
             .frame(height: 7)
 
             Text("\(value)")
-                .mocoText(MocoScreenTheme.Typeface.slider)
+                .mokoText(MokoScreenTheme.Typeface.slider)
                 .monospacedDigit()
-                .foregroundColor(DebriefStyle.green)
+                .foregroundStyle(DebriefStyle.accent)
                 .frame(width: 30, alignment: .trailing)
         }
     }
@@ -1613,7 +1733,7 @@ struct DebriefCompletionPanel: View {
 
 #Preview("Complete") {
     ZStack(alignment: .bottom) {
-        MocoBackdrop()
+        MokoBackdrop()
 
         DebriefCompletionPanel(
             result: DebriefResult(

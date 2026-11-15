@@ -1,21 +1,31 @@
+//
+//  ImageryGuideListView.swift
+//  Moko
+//
+//  Relax → Imagery: filter chips on top and a list of big photo cards.
+//  Tapping a card calls `onSelect`, and RelaxFlow pushes the session screen.
+//
+
 import SwiftUI
 
 struct ImageryGuideListView: View {
+    // What to do when a card is tapped. RelaxFlow passes this in.
     var onSelect: (ImageryGuide) -> Void = { _ in }
 
+    // The shared store that RelaxFlow put in the environment.
     @Environment(ImageryGuideStore.self) private var store
-    @State private var selectedTag: String? = nil      // nil = "All"
+    // The chip the user picked. `nil` means "All".
+    @State private var selectedTag: String? = nil
+    // @ScaledMetric makes the card taller when the user picks a bigger text size.
     @ScaledMetric(relativeTo: .title2) private var cardHeight: CGFloat = 240
 
-    private let sage      = MocoScreenTheme.Colors.dataVioletDeep
-    private let deepGreen = MocoScreenTheme.Colors.dataVioletDeep
-    private let ink       = MocoScreenTheme.Colors.textTitle
-    private let bodyText  = MocoScreenTheme.Colors.textBody
-    private let muted     = MocoScreenTheme.Colors.textBody
-    private let mint      = MocoScreenTheme.Colors.surfaceLavender
+    private let accent = MokoScreenTheme.Colors.dataVioletDeep
+    private let ink = MokoScreenTheme.Colors.textTitle
+    private let lavender = MokoScreenTheme.Colors.surfaceLavender
 
     private var screen: ImageryGuideScreenContent? { store.screen }
 
+    /// The guides that match the selected chip.
     private var visibleGuides: [ImageryGuide] {
         guard let selectedTag else { return store.guides }
         return store.guides.filter { $0.tag == selectedTag }
@@ -24,7 +34,7 @@ struct ImageryGuideListView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
                 .padding(.top, 18)
 
             chips
@@ -33,24 +43,27 @@ struct ImageryGuideListView: View {
             guideContent
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background { MocoBackdrop() }
+        .background { MokoBackdrop() }
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if let screen {
                     Text(screen.format(screen.guidesCountFormat, ["count": "\(store.guides.count)"]))
-                        .mocoText(MocoScreenTheme.Typeface.caption)
+                        .mokoText(MokoScreenTheme.Typeface.caption)
                         .tracking(0.7)
-                        .foregroundStyle(sage)
+                        .foregroundStyle(accent)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 7)
-                        .background(Capsule().fill(mint))
+                        .background(Capsule().fill(lavender))
                 }
             }
         }
+        // `.task` runs when the screen appears: download the guides the first time.
         .task { await store.loadIfNeeded() }
+        // Animate the list whenever the selected chip changes.
         .animation(.spring(response: 0.38, dampingFraction: 0.86), value: selectedTag)
+        // A light tap on the phone (haptic) when a chip is picked.
         .sensoryFeedback(.selection, trigger: selectedTag)
     }
 
@@ -61,12 +74,12 @@ struct ImageryGuideListView: View {
         if let screen {
             VStack(alignment: .leading, spacing: 7) {
                 Text(screen.eyebrow)
-                    .mocoText(MocoScreenTheme.Typeface.caption)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
                     .tracking(1.6)
-                    .foregroundStyle(sage)
+                    .foregroundStyle(accent)
 
                 Text(screen.title)
-                    .mocoText(MocoScreenTheme.Typeface.title1)
+                    .mokoText(MokoScreenTheme.Typeface.title1)
                     .tracking(-0.7)
                     .foregroundStyle(ink)
             }
@@ -92,12 +105,13 @@ struct ImageryGuideListView: View {
                         }
                     }
                 }
-                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
             }
             .scrollClipDisabled()
         }
     }
 
+    /// One filter chip. The picked chip is lavender, the others white.
     private func chip(title: String, symbol: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 6) {
@@ -105,22 +119,13 @@ struct ImageryGuideListView: View {
                     .font(.system(size: 11, weight: .semibold))
 
                 Text(title)
-                    .mocoText(MocoScreenTheme.Typeface.caption)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
             }
-            .foregroundStyle(MocoScreenTheme.Colors.textTitle)
+            .foregroundStyle(MokoScreenTheme.Colors.textTitle)
             .padding(.horizontal, 14)
             .frame(minHeight: 44)
-            .background {
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: isSelected ? [MocoScreenTheme.Colors.surfaceLavender, MocoScreenTheme.Colors.surfaceLavender] : [Color.white, Color.white],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            }
-            .overlay(Capsule().stroke(isSelected ? sage.opacity(0.22) : Color.black.opacity(0.06), lineWidth: 1))
+            .background(Capsule().fill(isSelected ? lavender : Color.white))
+            .overlay(Capsule().stroke(isSelected ? accent.opacity(0.22) : Color.black.opacity(0.06), lineWidth: 1))
             .shadow(color: Color.black.opacity(isSelected ? 0.08 : 0.03), radius: 7, x: 0, y: 3)
             .contentShape(Capsule())
         }
@@ -129,11 +134,12 @@ struct ImageryGuideListView: View {
 
     // MARK: Content
 
+    /// Four states: loading, error, no guides, or the list of cards.
     @ViewBuilder
     private var guideContent: some View {
         if store.isLoading && store.guides.isEmpty {
             ProgressView(screen?.loadingText ?? "")
-                .tint(sage)
+                .tint(accent)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.top, 40)
         } else if store.guides.isEmpty, let error = store.errorMessage {
@@ -146,7 +152,7 @@ struct ImageryGuideListView: View {
                     Task { await store.load() }
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(sage)
+                .tint(accent)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.top, 40)
@@ -168,6 +174,7 @@ struct ImageryGuideListView: View {
                             card(for: guide)
                         }
                         .buttonStyle(ImageryGuidePressStyle())
+                        // Cards shrink and fade a little as they scroll off the edge.
                         .scrollTransition(.interactive, axis: .vertical) { content, phase in
                             content
                                 .scaleEffect(phase.isIdentity ? 1 : 0.97)
@@ -177,15 +184,17 @@ struct ImageryGuideListView: View {
                         .accessibilityHint(screen?.listAccessibilityHint ?? "")
                     }
                 }
-                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
                 .padding(.top, 18)
                 .padding(.bottom, 28)
             }
             .padding(.top, 12)
+            // Pull down on the list to download the guides again.
             .refreshable { await store.load() }
         }
     }
 
+    /// What VoiceOver reads for a card, e.g. "A Cozy Room, Cozy, 2 min".
     private func accessibilityLabel(for guide: ImageryGuide) -> String {
         guard let screen else {
             return "\(guide.title), \(guide.tag), \(guide.durationLabel)"
@@ -199,6 +208,7 @@ struct ImageryGuideListView: View {
 
     // MARK: Guide card
 
+    /// One big card: photo, dark fade at the bottom, title, and two pills on top.
     private func card(for guide: ImageryGuide) -> some View {
         Color.clear
             .frame(maxWidth: .infinity)
@@ -211,8 +221,8 @@ struct ImageryGuideListView: View {
                     stops: [
                         .init(color: Color.black.opacity(0.12), location: 0),
                         .init(color: Color.clear, location: 0.28),
-                        .init(color: deepGreen.opacity(0.18), location: 0.58),
-                        .init(color: MocoScreenTheme.Colors.dataNode.opacity(0.95), location: 1)
+                        .init(color: accent.opacity(0.18), location: 0.58),
+                        .init(color: MokoScreenTheme.Colors.dataNode.opacity(0.95), location: 1)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
@@ -229,10 +239,12 @@ struct ImageryGuideListView: View {
                 durationPill(for: guide)
                     .padding(14)
             }
-            .clipShape(RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.card, style: .continuous))
-            .mocoCard()
+            .clipShape(RoundedRectangle(cornerRadius: MokoScreenTheme.Radius.card, style: .continuous))
+            .mokoCard()
     }
 
+    /// The card photo. AsyncImage downloads it and gives us a `phase`:
+    /// `.empty` = still loading, `.success` = got it, `.failure` = could not load.
     @ViewBuilder
     private func cardImage(for guide: ImageryGuide) -> some View {
         if let url = guide.artworkURL {
@@ -245,13 +257,13 @@ struct ImageryGuideListView: View {
                 case .empty:
                     ZStack {
                         LinearGradient(
-                            colors: [mint, sage.opacity(0.35)],
+                            colors: [lavender, accent.opacity(0.35)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
 
                         ProgressView()
-                            .tint(sage)
+                            .tint(accent)
                     }
                 case .failure:
                     iconFallback(for: guide)
@@ -264,17 +276,18 @@ struct ImageryGuideListView: View {
         }
     }
 
+    /// Shown when a guide has no photo: a soft gradient with its SF Symbol.
     private func iconFallback(for guide: ImageryGuide) -> some View {
         ZStack {
             LinearGradient(
-                colors: [mint, sage.opacity(0.35)],
+                colors: [lavender, accent.opacity(0.35)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
             Image(systemName: guide.icon)
                 .font(.system(size: 64, weight: .semibold))
-                .foregroundStyle(sage.opacity(0.6))
+                .foregroundStyle(accent.opacity(0.6))
         }
     }
 
@@ -282,14 +295,14 @@ struct ImageryGuideListView: View {
         HStack(alignment: .bottom, spacing: 12) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(guide.title)
-                    .mocoText(MocoScreenTheme.Typeface.title2)
+                    .mokoText(MokoScreenTheme.Typeface.title2)
                     .tracking(-0.3)
                     .foregroundStyle(.white)
                     .lineLimit(2)
                     .minimumScaleFactor(0.85)
 
                 Text(guide.description)
-                    .mocoText(MocoScreenTheme.Typeface.caption)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
                     .foregroundStyle(.white.opacity(0.78))
                     .lineSpacing(2)
                     .lineLimit(2)
@@ -316,6 +329,7 @@ struct ImageryGuideListView: View {
     }
 
     private func tagPill(for guide: ImageryGuide) -> some View {
+        // Use the chip's icon for this tag, or the guide's own icon if the tag is unknown.
         let symbol = store.tags.first(where: { $0.title == guide.tag })?.icon ?? guide.icon
 
         return HStack(spacing: 5) {
@@ -323,12 +337,12 @@ struct ImageryGuideListView: View {
                 .font(.system(size: 10, weight: .semibold))
 
             Text(guide.tag)
-                .mocoText(MocoScreenTheme.Typeface.caption)
+                .mokoText(MokoScreenTheme.Typeface.caption)
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(Capsule().fill(MocoScreenTheme.Colors.dataNode))
+        .background(Capsule().fill(MokoScreenTheme.Colors.dataNode))
     }
 
     private func durationPill(for guide: ImageryGuide) -> some View {
@@ -337,16 +351,16 @@ struct ImageryGuideListView: View {
                 .font(.system(size: 10, weight: .semibold))
 
             Text(guide.durationLabel)
-                .mocoText(MocoScreenTheme.Typeface.caption)
+                .mokoText(MokoScreenTheme.Typeface.caption)
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(Capsule().fill(MocoScreenTheme.Colors.dataNode))
+        .background(Capsule().fill(MokoScreenTheme.Colors.dataNode))
     }
-
 }
 
+/// Makes a button shrink slightly while a finger is on it.
 private struct ImageryGuidePressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

@@ -1,6 +1,17 @@
+//
+//  DeleteAccountConfirm.swift
+//  Moko
+//
+//  Delete account, steps 1 and 2:
+//  1. `ProfileOverViewDeleteAccountConfirm` lists what will be deleted.
+//  2. `ProfileOverViewDeleteReauthentication` asks for the password again.
+//  Step 3 is `ProfileOverViewDeleteFinalConfirmation` (DeleteAccountFinalConfirm.swift).
+//
+
 import SwiftUI
 import Auth
 
+/// Step 1: explains what will be deleted.
 struct ProfileOverViewDeleteAccountConfirm: View {
     var body: some View {
         List {
@@ -35,11 +46,16 @@ struct ProfileOverViewDeleteAccountConfirm: View {
     }
 }
 
+/// Step 2: the user signs in again so nobody else can delete their account.
 struct ProfileOverViewDeleteReauthentication: View {
+    // What the user types in the two fields.
     @State private var email = ""
     @State private var password = ""
+    // A red message under the fields when sign-in fails. `nil` means no message.
     @State private var error: String?
+    // True while we wait for Supabase, so the button shows a spinner.
     @State private var isLoading = false
+    // Becomes true after a correct password and opens step 3.
     @State private var isVerified = false
 
     var body: some View {
@@ -81,15 +97,18 @@ struct ProfileOverViewDeleteReauthentication: View {
         .background(ProfilePalette.background)
         .navigationTitle("Verify identity")
         .navigationBarTitleDisplayMode(.inline)
+        // When `isVerified` turns true, push the final step onto the navigation stack.
         .navigationDestination(isPresented: $isVerified) {
             ProfileOverViewDeleteFinalConfirmation()
         }
+        // `.task` runs when the screen appears: fill in the email for the user.
         .task {
             if let user = try? await AuthService().getCurrentUser() { email = user.email ?? "" }
         }
         .tint(ProfilePalette.accent)
     }
 
+    /// Signs in with the typed details. Success opens the final step.
     @MainActor private func reauthenticate() async {
         isLoading = true
         defer { isLoading = false }

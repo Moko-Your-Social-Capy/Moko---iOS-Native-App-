@@ -1,14 +1,17 @@
 //
 //  OnboardingDoneView.swift
-//  Onboarding_Questions
+//  Moko
 //
-//  Created by user@14 on 23/10/26.
+//  The "You rock!!!" celebration after the last swipe question.
+//  Shows two status rows, then sends the user on to ReflectionView.
 //
+
 import SwiftUI
 
 struct OnboardingDoneView: View {
     var completed: Int
     var total: Int
+    /// Called when the user taps "Continue to your strengths".
     var onContinue: () -> Void
 
     init(
@@ -63,7 +66,11 @@ struct OnboardingDoneView: View {
     }
 }
 
+// MARK: - Status row
+
+/// Icon in a colored circle, a title, and a short status on the right ("100%", "READY").
 private struct StatusRow: View {
+    /// SF Symbol name.
     let icon: String
     let iconBackground: Color
     let title: String
@@ -79,12 +86,13 @@ private struct StatusRow: View {
                     .foregroundStyle(MokoTheme.titleBrown)
             }
             .frame(width: 32, height: 32)
+            .accessibilityHidden(true)
 
             Text(title)
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(RColor.text)
                 .lineLimit(1)
-                .minimumScaleFactor(0.85)
+                .minimumScaleFactor(0.85)                // shrink slightly rather than cut off
 
             Spacer(minLength: 8)
 
@@ -100,6 +108,8 @@ private struct StatusRow: View {
                 .fill(OBColor.cardFill)
         )
         .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+        // VoiceOver reads the row as one item: "Baseline calculated, READY".
+        .accessibilityElement(children: .combine)
     }
 }
 

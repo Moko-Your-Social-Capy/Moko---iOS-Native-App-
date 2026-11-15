@@ -2,155 +2,128 @@
 //  MirrorFlow.swift
 //  Moko
 //
-//  The full Mirror Reflection practice:
-//  landing -> prep screen (4 bullet points) -> 2:00 affirmation timer -> "You did it!"
-//  The timer walks eight editable lines, 15 seconds each (see MirrorAffirmations.swift).
+//  The Mirror Reflection screens after the user picks "mirror" or "camera":
+//  prep checklist → 2:00 affirmation timer → "You did it!".
+//  RelaxScreen pushes them one by one (see `RelaxRoute`).
 //
-//  Present MirrorFlowView full screen. onExit fires if the user backs out of the
-//  landing screen; onFinish fires when they tap Done at the end.
+//  This file also holds the parts both the mirror and camera versions share:
+//  colours, header, buttons, and `MirrorSessionClock` (the 2:00 timer).
+//  The affirmation lines come from MirrorAffirmations.swift (8 lines, 15 s each).
 //
 
 import SwiftUI
 import SwiftData
-import Combine
 
 // MARK: - Shared palette
+
 enum MirrorPalette {
-    static let screenBg = MocoScreenTheme.Colors.canvasTop // pale lime
-    static let green = MocoScreenTheme.Colors.dataVioletDeep        // #365948
-    static let deepGreen = MocoScreenTheme.Colors.dataVioletDeep    // #1B422F
-    static let softGreen = MocoScreenTheme.Colors.dataViolet
-    static let mint = MocoScreenTheme.Colors.surfaceLavender
-    static let doneGreen = MocoScreenTheme.Colors.dataViolet
-    static let title = MocoScreenTheme.Colors.textTitle       // warm brown
-    static let subtext = MocoScreenTheme.Colors.textBody    // #6F6762
-    static let chip = MocoScreenTheme.Colors.surfaceLavender      // #EDEDED
-    static let cream = MocoScreenTheme.Colors.surfaceWhite
+    static let accent = MokoScreenTheme.Colors.dataVioletDeep     // buttons, ring, icons
+    static let accentSoft = MokoScreenTheme.Colors.dataViolet     // start of the ring gradient
+    static let track = MokoScreenTheme.Colors.surfaceLavender     // empty ring, chips, soft fills
+    static let title = MokoScreenTheme.Colors.textTitle
+    static let subtext = MokoScreenTheme.Colors.textBody
 }
 
-// MARK: - Flow container
-struct MirrorFlowView: View {
+// MARK: - Shared 2:00 clock
 
-    var onExit: () -> Void = {}
-    var onFinish: () -> Void = {}
-
-    enum Step {
-        case landing, checklist, timer, done, cameraChecklist, cameraTimer
+/// The 2-minute timer used by both `MirrorTimerScreen` and `CameraTimerScreen`.
+///
+/// How it works (good place to start debugging):
+/// - The screen keeps one clock in `@State` and calls `run()` from `.task(id: clock.runState)`.
+/// - `run()` adds the real time that passed about 30 times a second, but only while running.
+/// - Pausing changes `runState`, which cancels the task, so time stops being added.
+@Observable
+final class MirrorSessionClock {
+    enum RunState {
+        case idle, running, paused, completed
     }
 
-    @State private var step: Step = .landing
-    @State private var forward = true
+    /// The session is always 2 minutes: 8 affirmations × 15 seconds.
+    static let total: TimeInterval = 120
 
-    private var slide: AnyTransition {
-        .asymmetric(
-            insertion: .move(edge: forward ? .trailing : .leading),
-            removal: .move(edge: forward ? .leading : .trailing)
-        )
+    private(set) var runState: RunState = .idle
+    private(set) var elapsed: TimeInterval = 0
+
+    /// 0 at the start, 1 at the end. Drives the ring / card outline.
+    var progress: Double { min(1, elapsed / Self.total) }
+
+    /// Time left, e.g. "1:45".
+    var timeText: String {
+        let remaining = max(0, Int(ceil(Self.total - elapsed)))
+        return String(format: "%d:%02d", remaining / 60, remaining % 60)
     }
 
-    var body: some View {
-        ZStack {
-            MocoBackdrop()
-
-            switch step {
-            case .landing:
-                MirrorReflectionScreen(
-                    onSelectOption: { option in
-                        switch option {
-                        case .mirror: go(.checklist, forward: true)
-                        case .camera: go(.cameraChecklist, forward: true)
-                        }
-                    }
-                )
-                .transition(slide)
-
-            case .cameraChecklist:
-                MirrorPrepScreen(
-                    title: "Get ready with your iPhone",
-                    listTitle: "Your setup",
-                    items: [
-                        "Find a comfortable spot",
-                        "Hold your phone comfortably",
-                        "Look at yourself gently",
-                        "Let go of judgement"
-                    ],
-                    onBack: { go(.landing, forward: false) },
-                    onContinue: { go(.cameraTimer, forward: true) }
-                ) { level in
-                    CameraPhoneHero(level: level)
-                        .scaleEffect(0.72)
-                        .frame(height: 230)
-                }
-                .transition(slide)
-
-            case .cameraTimer:
-                CameraTimerScreen(
-                    onBack: { go(.cameraChecklist, forward: false) },
-                    onContinue: { go(.done, forward: true) }
-                )
-                .transition(slide)
-
-            case .checklist:
-                MirrorPrepScreen(
-                    title: "Arrive in Front of Your Mirror",
-                    items: [
-                        "Find a comfortable spot",
-                        "Take a gentle breath",
-                        "Look at yourself kindly",
-                        "Let go of judgement"
-                    ],
-                    onBack: { go(.landing, forward: false) },
-                    onContinue: { go(.timer, forward: true) }
-                ) { level in
-                    MirrorHero(showCaption: false, level: level)
-                        .scaleEffect(0.72)
-                        .frame(height: 220)
-                }
-                .transition(slide)
-
-            case .timer:
-                MirrorTimerScreen(
-                    onBack: { go(.checklist, forward: false) },
-                    onContinue: { go(.done, forward: true) }
-                )
-                .transition(slide)
-
-            case .done:
-                MirrorCompletionScreen(onDone: { onFinish() })
-                    .transition(slide)
-            }
+    /// Short status for the title / chip.
+    var statusText: String {
+        switch runState {
+        case .idle:              return "Let’s Start"
+        case .running, .paused:  return "Keep Going!"
+        case .completed:         return "Well done"
         }
     }
 
-    private func go(_ next: Step, forward isForward: Bool) {
-        // Set the direction first so the outgoing screen uses the right transition
-        forward = isForward
-        DispatchQueue.main.async {
-            withAnimation(.easeInOut(duration: 0.35)) {
-                step = next
+    /// Which affirmation to show: a new one every 15 seconds.
+    func lineIndex(count: Int) -> Int {
+        max(0, min(count - 1, Int(elapsed / MirrorAffirmationStore.slotDuration)))
+    }
+
+    func start() {
+        elapsed = 0
+        runState = .running
+    }
+
+    func togglePause() {
+        runState = (runState == .running) ? .paused : .running
+    }
+
+    func reset() {
+        elapsed = 0
+        runState = .idle
+    }
+
+    /// Call from `.task(id: clock.runState)`.
+    /// Returns `true` only when the 2 minutes have just finished, so the screen can save the session.
+    func run() async -> Bool {
+        guard runState == .running else { return false }
+        var lastTick = Date()
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .milliseconds(33))
+            // Paused or reset while we slept: do not add that time.
+            guard !Task.isCancelled else { return false }
+            let now = Date()
+            elapsed += now.timeIntervalSince(lastTick)
+            lastTick = now
+            if elapsed >= Self.total {
+                elapsed = Self.total
+                runState = .completed
+                return true
             }
         }
+        return false
     }
 }
 
-// MARK: - Shared bits
+// MARK: - Shared views
+
+/// "Mirror Reflection" title with its subtitle.
 struct MirrorHeader: View {
     var centered = false
 
     var body: some View {
         VStack(alignment: centered ? .center : .leading, spacing: 4) {
             Text("Mirror Reflection")
-                .mocoText(MocoScreenTheme.Typeface.title1)
-                .foregroundColor(MirrorPalette.title)
+                .mokoText(MokoScreenTheme.Typeface.title1)
+                .foregroundStyle(MirrorPalette.title)
 
             Text("A self-reflective confidence practice")
-                .mocoText(MocoScreenTheme.Typeface.body)
-                .foregroundColor(MirrorPalette.subtext)
+                .mokoText(MokoScreenTheme.Typeface.body)
+                .foregroundStyle(MirrorPalette.subtext)
         }
         .frame(maxWidth: .infinity, alignment: centered ? .center : .leading)
     }
 }
 
+/// The big rounded button ("Start", "Continue", "Done").
 struct MirrorPrimaryButton: View {
     let title: String
     var action: () -> Void
@@ -158,94 +131,143 @@ struct MirrorPrimaryButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .mocoText(MocoScreenTheme.Typeface.cardTitle)
-                .foregroundColor(.white)
+                .mokoText(MokoScreenTheme.Typeface.cardTitle)
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
-                .background(Capsule().fill(MirrorPalette.green))
+                .background(Capsule().fill(MirrorPalette.accent))
         }
         .buttonStyle(.plain)
     }
 }
 
+/// A round icon button (pause, play, reset).
 struct MirrorCircleButton: View {
     let systemName: String
+    let label: String
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundStyle(.white)
                 .frame(width: 60, height: 60)
-                .background(Circle().fill(MirrorPalette.green))
+                .background(Circle().fill(MirrorPalette.accent))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        // VoiceOver reads this instead of the icon name.
+        .accessibilityLabel(label)
     }
 }
 
-// MARK: - Step 2: prepare (four bullet points, then Continue)
+/// The timer buttons, shared by both timer screens:
+/// Start → Pause/Play + Reset → Continue + Reset.
+struct MirrorTimerControls: View {
+    let clock: MirrorSessionClock
+    var onContinue: () -> Void
+    // The camera screen also restarts the camera on reset, so the caller decides.
+    var onReset: () -> Void
+
+    var body: some View {
+        Group {
+            switch clock.runState {
+            case .idle:
+                MirrorPrimaryButton(title: "Start", action: clock.start)
+
+            case .running, .paused:
+                HStack {
+                    MirrorCircleButton(
+                        systemName: clock.runState == .running ? "pause.fill" : "play.fill",
+                        label: clock.runState == .running ? "Pause" : "Resume",
+                        action: clock.togglePause
+                    )
+                    Spacer()
+                    MirrorCircleButton(systemName: "arrow.counterclockwise", label: "Reset", action: onReset)
+                }
+                .padding(.horizontal, 8)
+
+            case .completed:
+                HStack(spacing: 16) {
+                    MirrorPrimaryButton(title: "Continue", action: onContinue)
+                    MirrorCircleButton(systemName: "arrow.counterclockwise", label: "Reset", action: onReset)
+                }
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: clock.runState)
+        // A buzz on start, pause/resume, and a "success" buzz when done.
+        .sensoryFeedback(trigger: clock.runState) { oldState, newState in
+            switch (oldState, newState) {
+            case (_, .completed):    return .success
+            case (.idle, .running):  return .impact(weight: .medium)
+            default:                 return .impact(weight: .light)
+            }
+        }
+    }
+}
+
+// MARK: - Prep screen (four points, then Continue)
+
+/// "Get ready" checklist. The points fade in one by one, and the picture
+/// (`hero`) glows a little brighter with each one.
 struct MirrorPrepScreen<Hero: View>: View {
     let title: String
     let listTitle: String
     let items: [String]
-    var onBack: () -> Void
     var onContinue: () -> Void
-    /// Illustration; receives 0...1, how many points have appeared so far.
+    /// The picture at the top. It gets 0...1: how many points have appeared so far.
     private let hero: (Double) -> Hero
 
+    // How many points are visible right now.
     @State private var revealed = 0
 
     init(title: String,
          listTitle: String = "Before you begin",
          items: [String],
-         onBack: @escaping () -> Void,
          onContinue: @escaping () -> Void,
          @ViewBuilder hero: @escaping (Double) -> Hero) {
         self.title = title
         self.listTitle = listTitle
         self.items = items
-        self.onBack = onBack
         self.onContinue = onContinue
         self.hero = hero
     }
 
     var body: some View {
         ZStack {
-            MocoBackdrop()
+            MokoBackdrop()
 
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(spacing: 0) {
                     MirrorHeader()
-                        .padding(.horizontal, MocoScreenTheme.Space.page)
+                        .padding(.horizontal, MokoScreenTheme.Space.page)
                         .padding(.top, 18)
 
-                    // The illustration glows a little brighter as each point appears
                     hero(Double(revealed) / Double(max(items.count, 1)))
                         .padding(.top, 8)
 
                     Text(title)
-                        .mocoText(MocoScreenTheme.Typeface.title2)
-                        .foregroundColor(MirrorPalette.title)
+                        .mokoText(MokoScreenTheme.Typeface.title2)
+                        .foregroundStyle(MirrorPalette.title)
                         .multilineTextAlignment(.center)
                         .padding(.top, 10)
-                        .padding(.horizontal, MocoScreenTheme.Space.page)
+                        .padding(.horizontal, MokoScreenTheme.Space.page)
 
                     Text(listTitle)
-                        .mocoText(MocoScreenTheme.Typeface.body)
-                        .foregroundColor(MirrorPalette.subtext)
+                        .mokoText(MokoScreenTheme.Typeface.body)
+                        .foregroundStyle(MirrorPalette.subtext)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, MocoScreenTheme.Space.page)
+                        .padding(.horizontal, MokoScreenTheme.Space.page)
                         .padding(.top, 24)
 
                     bulletCard
-                        .padding(.horizontal, MocoScreenTheme.Space.page)
+                        .padding(.horizontal, MokoScreenTheme.Space.page)
                         .padding(.top, 10)
 
                     Text("Take your time. Continue when you’re ready.")
-                        .mocoText(MocoScreenTheme.Typeface.body)
-                        .foregroundColor(MirrorPalette.subtext)
+                        .mokoText(MokoScreenTheme.Typeface.body)
+                        .foregroundStyle(MirrorPalette.subtext)
                         .multilineTextAlignment(.center)
                         .padding(.top, 16)
                         .padding(.bottom, 24)
@@ -253,22 +275,26 @@ struct MirrorPrepScreen<Hero: View>: View {
                 }
             }
         }
+        // Pins the Continue button to the bottom, above the home indicator.
         .safeAreaInset(edge: .bottom) {
             MirrorPrimaryButton(title: "Continue", action: onContinue)
-                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
                 .padding(.bottom, 12)
         }
-        .onAppear {
-            revealPoints()
+        // `.task` runs when the screen appears and stops by itself if the user leaves early.
+        .task {
+            await revealPoints()
         }
     }
 
     // MARK: Bullet points
+
     private var bulletCard: some View {
         VStack(spacing: 0) {
             ForEach(items.indices, id: \.self) { index in
                 bulletRow(items[index], index: index)
 
+                // Thin divider between rows (not after the last one).
                 if index < items.count - 1 {
                     Rectangle()
                         .fill(Color.black.opacity(0.06))
@@ -279,8 +305,8 @@ struct MirrorPrepScreen<Hero: View>: View {
             }
         }
         .padding(.vertical, 4)
-        .clipShape(RoundedRectangle(cornerRadius: MocoScreenTheme.Radius.card, style: .continuous))
-        .mocoCard()
+        .clipShape(RoundedRectangle(cornerRadius: MokoScreenTheme.Radius.card, style: .continuous))
+        .mokoCard()
     }
 
     private func bulletRow(_ text: String, index: Int) -> some View {
@@ -289,125 +315,104 @@ struct MirrorPrepScreen<Hero: View>: View {
         return HStack(spacing: 14) {
             ZStack {
                 Circle()
-                    .fill(MirrorPalette.mint.opacity(0.8))
+                    .fill(MirrorPalette.track.opacity(0.8))
                     .frame(width: 30, height: 30)
 
                 Circle()
-                    .fill(MirrorPalette.green)
+                    .fill(MirrorPalette.accent)
                     .frame(width: 10, height: 10)
             }
 
             Text(text)
-                .mocoText(MocoScreenTheme.Typeface.body)
-                .foregroundColor(MirrorPalette.title)
+                .mokoText(MokoScreenTheme.Typeface.body)
+                .foregroundStyle(MirrorPalette.title)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 16)
+        // Hidden rows sit 10 pt lower, so they slide up a little as they fade in.
         .opacity(isVisible ? 1 : 0)
         .offset(y: isVisible ? 0 : 10)
+        // VoiceOver reads the row as one item.
         .accessibilityElement(children: .combine)
     }
 
-    /// Points fade in one after another so each gets a moment of attention
-    private func revealPoints() {
+    /// Shows the points one after another so each gets a moment of attention.
+    private func revealPoints() async {
         guard revealed == 0 else { return }
 
+        // Short pause before the first point, then 0.22 s between points.
+        try? await Task.sleep(for: .milliseconds(250))
         for index in items.indices {
-            let delay = 0.25 + Double(index) * 0.22
-            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
-                    revealed = index + 1
-                }
+            if index > 0 {
+                try? await Task.sleep(for: .milliseconds(220))
+            }
+            // Stop if the user already left this screen.
+            guard !Task.isCancelled else { return }
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                revealed = index + 1
             }
         }
     }
 }
 
-// MARK: - Step 3: affirmation timer (fixed 2:00)
+// MARK: - Mirror timer screen (fixed 2:00)
+
+/// The timer for the "real mirror" version: affirmations on top, a ring in the middle.
 struct MirrorTimerScreen: View {
-    var onBack: () -> Void
     var onContinue: () -> Void
 
-    private enum RunState {
-        case idle, running, paused, completed
-    }
-
-    @State private var runState: RunState = .idle
-    @State private var elapsed: TimeInterval = 0
-    @State private var lastTick: Date?
+    // The 2:00 clock. See `MirrorSessionClock`.
+    @State private var clock = MirrorSessionClock()
+    // Opens the "edit affirmations" sheet.
     @State private var isEditingAffirmations = false
+    // The SwiftData database. Used to save the finished session.
     @Environment(\.modelContext) private var modelContext
 
-    private let total: TimeInterval = 120 // fixed, not customisable
-    private let ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
+    // The shared affirmation lines. It is @Observable, so this screen redraws when they are edited.
+    private let affirmationStore = MirrorAffirmationStore.shared
 
-    /// Shared with the camera flow and the editor sheet.
-    @ObservedObject private var affirmationStore = MirrorAffirmationStore.shared
-
-    private var progress: Double { min(1, elapsed / total) }
-    private var remainingSeconds: Int { max(0, Int(ceil(total - elapsed))) }
-    private var timeText: String {
-        String(format: "%d:%02d", remainingSeconds / 60, remainingSeconds % 60)
-    }
-
-    /// Idle shows the four-row preview; from the moment Start is tapped (and until the
-    /// user resets) only the current line is on screen.
-    private var showsCurrentLine: Bool { runState != .idle }
-
-    /// Which affirmation is highlighted: one slot per 15 seconds, so eight lines
-    /// fill the fixed 2:00 exactly.
-    private var activeIndex: Int {
-        min(affirmationStore.quotes.count - 1,
-            Int(elapsed / MirrorAffirmationStore.slotDuration))
-    }
-
-    private var titleText: String {
-        switch runState {
-        case .idle:               return "Let’s Start"
-        case .running, .paused:   return "Keep Going!"
-        case .completed:          return "Well done"
-        }
-    }
+    /// Before Start: a preview of the lines. After Start: only the current line.
+    private var showsCurrentLine: Bool { clock.runState != .idle }
 
     var body: some View {
         ZStack {
-            MocoBackdrop()
+            MokoBackdrop()
 
             VStack(spacing: 0) {
                 MirrorHeader()
                     .overlay(alignment: .topTrailing) {
-                        // Hidden mid-session: the ticker keeps running behind a sheet.
-                        if runState != .running {
+                        // Hidden while running: the timer would keep going behind the sheet.
+                        if clock.runState != .running {
                             MirrorEditAffirmationsButton {
                                 isEditingAffirmations = true
                             }
                         }
                     }
-                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.horizontal, MokoScreenTheme.Space.page)
                     .padding(.top, 18)
 
                 affirmationsArea
                     .padding(.top, 22)
-                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.horizontal, MokoScreenTheme.Space.page)
 
-                Text(titleText)
-                    .mocoText(MocoScreenTheme.Typeface.title2)
-                    .foregroundColor(MirrorPalette.title)
+                Text(clock.statusText)
+                    .mokoText(MokoScreenTheme.Typeface.title2)
+                    .foregroundStyle(MirrorPalette.title)
                     .padding(.top, 22)
 
                 MirrorTimerRing(
-                    progress: progress,
-                    isRunning: runState == .running,
-                    isCompleted: runState == .completed
+                    progress: clock.progress,
+                    isRunning: clock.runState == .running,
+                    isCompleted: clock.runState == .completed
                 )
                 .frame(width: 230, height: 230)
                 .padding(.top, 10)
 
-                Text(timeText)
-                    .mocoText(MocoScreenTheme.Typeface.numeral)
-                    .monospacedDigit()
-                    .foregroundColor(MirrorPalette.green)
+                Text(clock.timeText)
+                    .mokoText(MokoScreenTheme.Typeface.numeral)
+                    .monospacedDigit()   // digits all the same width, so the text does not jump
+                    .foregroundStyle(MirrorPalette.accent)
                     .padding(.top, 4)
                     .padding(.bottom, 16)
 
@@ -415,18 +420,17 @@ struct MirrorTimerScreen: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            controls
+            MirrorTimerControls(clock: clock, onContinue: onContinue, onReset: clock.reset)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
+                .padding(.bottom, 12)
         }
         // Immersive session: keep the tab bar out of the way.
         .toolbar(.hidden, for: .tabBar)
-        .onReceive(ticker) { now in
-            tick(now)
-        }
-        .sensoryFeedback(trigger: runState) { oldState, newState in
-            switch (oldState, newState) {
-            case (_, .completed):    return .success
-            case (.idle, .running):  return .impact(weight: .medium)
-            default:                 return .impact(weight: .light)
+        // Restarts every time the run state changes. See `MirrorSessionClock.run()`.
+        .task(id: clock.runState) {
+            if await clock.run() {
+                // Save the session so it shows up in Insights and achievements.
+                modelContext.logCalmDown("Mirror Reflection", seconds: MirrorSessionClock.total)
             }
         }
         .sheet(isPresented: $isEditingAffirmations) {
@@ -436,8 +440,6 @@ struct MirrorTimerScreen: View {
 
     // MARK: Affirmations
 
-    /// Before the session the user previews the next four lines; from Start onwards
-    /// only the current line stays on screen, so nothing competes with it.
     private var affirmationsArea: some View {
         ZStack {
             if showsCurrentLine {
@@ -448,38 +450,38 @@ struct MirrorTimerScreen: View {
                     .transition(.opacity)
             }
         }
-        // Fixed height so the window -> single line swap doesn't move the ring.
+        // Fixed height, so swapping the list for one line does not move the ring.
         .frame(height: MirrorAffirmationsWindow.height)
         .animation(.easeInOut(duration: 0.35), value: showsCurrentLine)
     }
 
-    /// The one line that owns the 15 seconds it is up: large, semibold, crossfading
-    /// into the next one instead of shrinking back into a list.
+    /// The current line, big. It crossfades into the next one every 15 seconds.
     private var currentAffirmation: some View {
-        ZStack {
-            Text(affirmationStore.quotes[min(activeIndex, affirmationStore.quotes.count - 1)])
-                .mocoText(MocoScreenTheme.Typeface.title2)
-                .foregroundColor(MirrorPalette.title)
+        let index = clock.lineIndex(count: affirmationStore.quotes.count)
+
+        return ZStack {
+            Text(affirmationStore.quotes[index])
+                .mokoText(MokoScreenTheme.Typeface.title2)
+                .foregroundStyle(MirrorPalette.title)
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.7)
                 .lineLimit(4)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .id(activeIndex)
+                // A new `id` makes SwiftUI treat it as a new view, so the transition plays.
+                .id(index)
                 .transition(.opacity)
         }
-        .animation(.easeInOut(duration: 0.3), value: activeIndex)
+        .animation(.easeInOut(duration: 0.3), value: index)
     }
 
-    /// A four-row scrolling window, shown before the session starts (and again once
-    /// the user resets it) instead of all eight lines, so the ring and the clock stay
-    /// on screen.
+    /// All lines in a small scrolling window, shown before Start.
     private var affirmationWindow: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 10) {
                 ForEach(affirmationStore.quotes.indices, id: \.self) { index in
                     Text(affirmationStore.quotes[index])
-                        .mocoText(MocoScreenTheme.Typeface.body)
-                        .foregroundColor(MirrorPalette.subtext)
+                        .mokoText(MokoScreenTheme.Typeface.body)
+                        .foregroundStyle(MirrorPalette.subtext)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
                 }
@@ -488,99 +490,36 @@ struct MirrorTimerScreen: View {
         }
         .defaultScrollAnchor(.top)
     }
-
-    // MARK: Controls
-    @ViewBuilder
-    private var controls: some View {
-        Group {
-            switch runState {
-            case .idle:
-                MirrorPrimaryButton(title: "Start") { start() }
-
-            case .running, .paused:
-                HStack {
-                    MirrorCircleButton(systemName: runState == .running ? "pause.fill" : "play.fill") {
-                        togglePause()
-                    }
-                    Spacer()
-                    MirrorCircleButton(systemName: "arrow.counterclockwise") { reset() }
-                }
-                .padding(.horizontal, 8)
-
-            case .completed:
-                HStack(spacing: 16) {
-                    MirrorPrimaryButton(title: "Continue", action: onContinue)
-                    MirrorCircleButton(systemName: "arrow.counterclockwise") { reset() }
-                }
-            }
-        }
-        .padding(.horizontal, MocoScreenTheme.Space.page)
-        .padding(.bottom, 12)
-        .animation(.easeInOut(duration: 0.2), value: runState)
-    }
-
-    // MARK: Timer logic
-    private func tick(_ now: Date) {
-        guard runState == .running else {
-            lastTick = nil
-            return
-        }
-
-        if let last = lastTick {
-            elapsed += now.timeIntervalSince(last)
-        }
-        lastTick = now
-
-        if elapsed >= total {
-            elapsed = total
-            lastTick = nil
-            runState = .completed
-            modelContext.logCalmDown("Mirror Reflection", seconds: total)
-        }
-    }
-
-    private func start() {
-        elapsed = 0
-        lastTick = nil
-        runState = .running
-    }
-
-    private func togglePause() {
-        lastTick = nil
-        runState = (runState == .running) ? .paused : .running
-    }
-
-    private func reset() {
-        elapsed = 0
-        lastTick = nil
-        runState = .idle
-    }
 }
 
-/// Progress ring: gradient stroke with a glowing end cap, a breathing face in the middle,
-/// and the completion badge once the time is up.
+/// Progress ring with a glowing end dot and a breathing face in the middle.
+/// When the time is up, the face is replaced by the completion animation.
 struct MirrorTimerRing: View {
     var progress: Double
     var isRunning: Bool
     var isCompleted: Bool
 
+    // The phone setting "Reduce Motion". If it is on, the glow and face stay still.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    // Flipped once on appear. `repeatForever` then animates it back and forth on its own.
     @State private var pulse = false
 
     private let diameter: CGFloat = 206
     private let lineWidth: CGFloat = 16
 
+    /// Where the end dot sits, in radians. -π/2 is 12 o'clock.
     private var endAngle: Double {
         -Double.pi / 2 + 2 * Double.pi * progress
     }
 
     var body: some View {
         ZStack {
-            // Soft halo
+            // Soft glow, stronger while running.
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [MirrorPalette.green.opacity(isRunning ? 0.22 : 0.10),
-                                 MirrorPalette.green.opacity(0)],
+                        colors: [MirrorPalette.accent.opacity(isRunning ? 0.22 : 0.10),
+                                 MirrorPalette.accent.opacity(0)],
                         center: .center,
                         startRadius: 40,
                         endRadius: 150
@@ -589,17 +528,17 @@ struct MirrorTimerRing: View {
                 .frame(width: 300, height: 300)
                 .scaleEffect(isRunning ? (pulse ? 1.06 : 0.94) : 1)
 
-            // Track
+            // Empty track
             Circle()
-                .stroke(MirrorPalette.mint, lineWidth: lineWidth)
+                .stroke(MirrorPalette.track, lineWidth: lineWidth)
                 .frame(width: diameter, height: diameter)
 
-            // Progress
+            // Filled part. The -90° turn makes it start at 12 o'clock.
             Circle()
                 .trim(from: 0, to: isCompleted ? 1 : CGFloat(progress))
                 .stroke(
                     AngularGradient(
-                        colors: [MirrorPalette.softGreen, MirrorPalette.deepGreen],
+                        colors: [MirrorPalette.accentSoft, MirrorPalette.accent],
                         center: .center,
                         startAngle: .degrees(0),
                         endAngle: .degrees(isCompleted ? 360 : max(1, 360 * progress))
@@ -609,20 +548,20 @@ struct MirrorTimerRing: View {
                 .rotationEffect(.degrees(-90))
                 .frame(width: diameter, height: diameter)
 
-            // Glowing end cap
+            // White dot at the end of the filled part.
             if !isCompleted && progress > 0.005 {
                 Circle()
                     .fill(Color.white)
                     .frame(width: lineWidth * 0.95, height: lineWidth * 0.95)
-                    .overlay(Circle().stroke(MirrorPalette.deepGreen, lineWidth: 3))
-                    .shadow(color: MirrorPalette.green.opacity(0.4), radius: 6)
+                    .overlay(Circle().stroke(MirrorPalette.accent, lineWidth: 3))
+                    .shadow(color: MirrorPalette.accent.opacity(0.4), radius: 6)
                     .offset(
                         x: CGFloat(cos(endAngle)) * diameter / 2,
                         y: CGFloat(sin(endAngle)) * diameter / 2
                     )
             }
 
-            // Center
+            // Middle
             if isCompleted {
                 MokoCompletionAnimation(ringDiameter: 140)
                     .transition(.scale(scale: 0.7).combined(with: .opacity))
@@ -635,6 +574,7 @@ struct MirrorTimerRing: View {
         }
         .animation(.spring(response: 0.5, dampingFraction: 0.75), value: isCompleted)
         .onAppear {
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
                 pulse = true
             }
@@ -642,17 +582,18 @@ struct MirrorTimerRing: View {
     }
 }
 
-// MARK: - Step 4: "You did it!"
+// MARK: - Done screen
+
 struct MirrorCompletionScreen: View {
     var onDone: () -> Void
 
     var body: some View {
         ZStack {
-            MocoBackdrop()
+            MokoBackdrop()
 
             VStack(spacing: 0) {
                 MirrorHeader(centered: true)
-                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.horizontal, MokoScreenTheme.Space.page)
                     .padding(.top, 26)
 
                 Spacer(minLength: 12)
@@ -660,13 +601,13 @@ struct MirrorCompletionScreen: View {
                 MokoCompletionAnimation(ringDiameter: 190)
 
                 Text("You did it!")
-                    .mocoText(MocoScreenTheme.Typeface.title1)
-                    .foregroundColor(MirrorPalette.title)
+                    .mokoText(MokoScreenTheme.Typeface.title1)
+                    .foregroundStyle(MirrorPalette.title)
                     .padding(.top, 8)
 
                 Text("You took a moment to look at yourself with kindness and appreciate the person you are.")
-                    .mocoText(MocoScreenTheme.Typeface.body)
-                    .foregroundColor(MirrorPalette.subtext)
+                    .mokoText(MokoScreenTheme.Typeface.body)
+                    .foregroundStyle(MirrorPalette.subtext)
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
                     .padding(.top, 12)
@@ -675,85 +616,19 @@ struct MirrorCompletionScreen: View {
                 Spacer(minLength: 12)
 
                 MirrorPrimaryButton(title: "Done", action: onDone)
-                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.horizontal, MokoScreenTheme.Space.page)
                     .padding(.bottom, 12)
             }
         }
-        // Stays immersive until Done returns to the mirror landing.
+        // Stays immersive until Done returns to the Mirror landing screen.
         .toolbar(.hidden, for: .tabBar)
     }
 }
 
-let mirrorConfettiColors: [Color] = [
-    MirrorPalette.green,
-    MirrorPalette.softGreen,
-    Color(red: 244/255, green: 190/255, blue: 70/255),   // yellow
-    Color(red: 230/255, green: 110/255, blue: 90/255),   // coral
-    Color(red: 130/255, green: 185/255, blue: 175/255),  // teal
-    Color(red: 140/255, green: 175/255, blue: 200/255)   // blue
-]
-
-/// Leaves and petals that burst outward once, in the same palette as the other illustrations.
-struct MirrorConfettiBurst: View {
-    var radius: CGFloat
-
-    @State private var burst: CGFloat = 0
-
-    private struct Piece {
-        let angle: Double
-        let distance: CGFloat
-        let size: CGFloat
-        let color: Color
-        let isLeaf: Bool
-    }
-
-    private let pieces: [Piece] = (0..<16).map { index in
-        let jitter: Double = index % 2 == 0 ? 0.1 : -0.1
-        let angle = Double(index) / 16 * 2 * Double.pi + jitter
-        let distances: [CGFloat] = [1.0, 0.8, 0.92]
-        let sizes: [CGFloat] = [20, 13, 16]
-        return Piece(
-            angle: angle,
-            distance: distances[index % 3],
-            size: sizes[(index + 1) % 3],
-            color: mirrorConfettiColors[index % mirrorConfettiColors.count],
-            isLeaf: index % 2 == 0
-        )
-    }
-
-    var body: some View {
-        ZStack {
-            ForEach(pieces.indices, id: \.self) { index in
-                let piece = pieces[index]
-
-                Group {
-                    if piece.isLeaf {
-                        Capsule()
-                            .fill(piece.color)
-                            .frame(width: piece.size * 0.5, height: piece.size)
-                            .rotationEffect(.radians(piece.angle + Double.pi / 2))
-                    } else {
-                        Circle()
-                            .fill(piece.color)
-                            .frame(width: piece.size * 0.7, height: piece.size * 0.7)
-                    }
-                }
-                .offset(
-                    x: CGFloat(cos(piece.angle)) * radius * piece.distance * burst,
-                    y: CGFloat(sin(piece.angle)) * radius * piece.distance * burst
-                )
-                .scaleEffect(0.3 + 0.7 * burst)
-                .opacity(Double(min(1, burst * 2)))
-            }
-        }
-        .onAppear {
-            withAnimation(.spring(response: 0.9, dampingFraction: 0.65).delay(0.25)) {
-                burst = 1
-            }
-        }
-    }
+#Preview("Mirror timer") {
+    MirrorTimerScreen(onContinue: {})
 }
 
-#Preview("Full flow") {
-    MirrorFlowView()
+#Preview("Done") {
+    MirrorCompletionScreen(onDone: {})
 }

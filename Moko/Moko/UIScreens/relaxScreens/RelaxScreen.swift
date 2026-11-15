@@ -2,13 +2,20 @@
 //  RelaxScreen.swift
 //  Moko
 //
-//  Relax tab: breathing timer card + guided sessions grid.
-//  Session cards open a 75%-height detail sheet; Continue dismisses the sheet and pushes
-//  the selected exercise onto the Relax navigation stack.
+//  The Relax tab: a "Breathing" timer card on top and a grid of guided sessions.
+//
+//  How navigation works here (good place to start debugging):
+//  1. Tapping a card sets `activeSheet`, which opens a bottom sheet.
+//  2. Tapping Continue/Start in the sheet remembers what to open next
+//     (`pendingBreathing` / `pendingSessionNavigation`) and closes the sheet.
+//  3. When the sheet has fully closed, `onDismiss` pushes that screen onto
+//     `navigationPath`. Pushing while the sheet is still open would glitch.
+//  4. `routeDestination(_:)` turns each `RelaxRoute` into a real screen.
 //
 
 import SwiftUI
 
+/// The four guided sessions shown in the grid.
 enum RelaxSession: String, CaseIterable, Identifiable {
     case boxBreathing
     case grounding
@@ -26,6 +33,7 @@ enum RelaxSession: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Short text on the grid card.
     var cardDescription: String {
         switch self {
         case .boxBreathing: return "Breathe in, hold, breathe out, and repeat slowly."
@@ -35,7 +43,7 @@ enum RelaxSession: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Paragraph shown in the full-height sheet. Box Breathing matches the design; the rest is placeholder copy.
+    /// Longer text shown in the session sheet.
     var detailText: String {
         switch self {
         case .boxBreathing:
@@ -49,7 +57,7 @@ enum RelaxSession: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Name of the illustration in Assets.xcassets (falls back to a placeholder if missing).
+    /// Illustration name in Assets.xcassets. If it is missing, the icon behind it shows instead.
     var bannerImageName: String {
         switch self {
         case .boxBreathing: return "relax_box_breathing"
@@ -59,21 +67,22 @@ enum RelaxSession: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Banner background gradient for the sheet. Change these per session.
+    /// Top and bottom colours of the sheet banner gradient.
     var bannerColors: (top: Color, bottom: Color) {
         switch self {
         case .boxBreathing:
-            return (MocoScreenTheme.Colors.accentBlueTint, MocoScreenTheme.Colors.surfaceLavender) // blue
+            return (MokoScreenTheme.Colors.accentBlueTint, MokoScreenTheme.Colors.surfaceLavender)
         case .grounding:
-            return (MocoScreenTheme.Colors.canvasTop, MocoScreenTheme.Colors.canvasBottom) // green
+            return (MokoScreenTheme.Colors.canvasTop, MokoScreenTheme.Colors.canvasBottom)
         case .imagery:
-            return (MocoScreenTheme.Colors.surfaceWhite, MocoScreenTheme.Colors.canvasBottom) // peach
+            return (MokoScreenTheme.Colors.surfaceWhite, MokoScreenTheme.Colors.canvasBottom)
         case .mirror:
-            return (MocoScreenTheme.Colors.surfaceLavender, MocoScreenTheme.Colors.avatarFill) // lavender
+            return (MokoScreenTheme.Colors.surfaceLavender, MokoScreenTheme.Colors.avatarFill)
         }
     }
 }
 
+/// Which bottom sheet is open. `Identifiable` lets us use `.sheet(item:)`.
 private enum ActiveRelaxSheet: Identifiable {
     case breathing
     case session(RelaxSession)
@@ -86,93 +95,78 @@ private enum ActiveRelaxSheet: Identifiable {
     }
 }
 
-/// All destinations in the Relax and imagery journey share one NavigationStack.
+/// Every screen you can push from the Relax tab. They all share one NavigationStack.
 enum RelaxRoute: Hashable {
-    case breathing(Int)
+    case breathing(Int)                 // minutes
     case session(RelaxSession)
     case guideSession(ImageryGuide)
     case guideComplete(ImageryGuide)
-    case mirrorPrep(camera: Bool)
+    case mirrorPrep(camera: Bool)       // camera: true = front camera, false = real mirror
     case mirrorTimer(camera: Bool)
     case mirrorComplete(camera: Bool)
 }
 
 struct RelaxScreen: View {
-    // Optional callbacks fired when the user opens a session
-    var onStartBreathing: ((Int) -> Void)? = nil          // chosen minutes
-    var onStartSession: ((RelaxSession) -> Void)? = nil
-
-    @Binding var selectedTab: MokoTab
-
-    init(selectedTab: Binding<MokoTab> = .constant(.relax), onStartBreathing: ((Int) -> Void)? = nil, onStartSession: ((RelaxSession) -> Void)? = nil) {
-        self._selectedTab = selectedTab
-        self.onStartBreathing = onStartBreathing
-        self.onStartSession = onStartSession
-    }
-
+    // Minutes for the Breathing timer (1–60).
     @State private var minutes: Int = 1
+    // Cycles for Box Breathing, picked in its info sheet.
     @State private var boxBreathingCycles: Int = 2
+    // The open bottom sheet, or nil when none is open.
     @State private var activeSheet: ActiveRelaxSheet?
-    @State private var pendingBreathing = false   // push the timer only after the sheet has closed
+    // Screens to push once the sheet has finished closing (see step 3 at the top).
+    @State private var pendingBreathing = false
     @State private var pendingSessionNavigation: RelaxSession?
+    // The stack of pushed screens. Appending pushes, removing pops.
     @State private var navigationPath: [RelaxRoute] = []
+    // Imagery guides store. Created here and shared below with `.environment`.
     @State private var imageryStore = ImageryGuideStore()
 
-    // Palette matching design specifications
-    private let screenBg = MocoScreenTheme.Colors.canvasTop // pale lime
-    private let cardGreen = MocoScreenTheme.Colors.dataVioletDeep   // #365948
-    private let titleBrown = MocoScreenTheme.Colors.textTitle
-    private let subtextGray = MocoScreenTheme.Colors.textBody // #6F6762
-    private let stepperBg = MocoScreenTheme.Colors.surfaceLavender  // #EDEDED
-
+    // Reads the user's text size so the grid can drop to one column for very large text.
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private let accent = MokoScreenTheme.Colors.dataVioletDeep
+    private let ink = MokoScreenTheme.Colors.textTitle
+    private let bodyText = MokoScreenTheme.Colors.textBody
+    private let stepperFill = MokoScreenTheme.Colors.surfaceLavender
 
     private var gridColumns: [GridItem] {
         Array(
-            repeating: GridItem(.flexible(), spacing: MocoScreenTheme.Space.gapCard),
+            repeating: GridItem(.flexible(), spacing: MokoScreenTheme.Space.gapCard),
             count: dynamicTypeSize.isAccessibilitySize ? 1 : 2
         )
     }
 
     var body: some View {
+        // `path:` lets us push and pop screens from code by editing `navigationPath`.
         NavigationStack(path: $navigationPath) {
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
-
                     headerSection
 
                     breathingCard
-                        .padding(.horizontal, MocoScreenTheme.Space.page)
+                        .padding(.horizontal, MokoScreenTheme.Space.page)
 
                     VStack(alignment: .leading, spacing: 14) {
                         Text("Guided Sessions")
-                            .mocoText(MocoScreenTheme.Typeface.title2)
-                            .foregroundColor(titleBrown)
+                            .mokoText(MokoScreenTheme.Typeface.title2)
+                            .foregroundStyle(ink)
 
-                        LazyVGrid(columns: gridColumns, spacing: MocoScreenTheme.Space.gapCard) {
+                        LazyVGrid(columns: gridColumns, spacing: MokoScreenTheme.Space.gapCard) {
                             ForEach(RelaxSession.allCases) { session in
                                 sessionCard(session)
                             }
                         }
                     }
-                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.horizontal, MokoScreenTheme.Space.page)
                 }
                 .padding(.bottom, 24)
             }
-            .background { MocoBackdrop() }
-            // Matches the other tab headers (Overview, Quests and Quest Library).
+            .background { MokoBackdrop() }
+            // Same header style as the Overview, Quests and Quest Library tabs.
             .navigationTitle("Relax")
             .toolbar(.hidden, for: .navigationBar)
-            .sheet(item: $activeSheet, onDismiss: {
-                if pendingBreathing {
-                    pendingBreathing = false
-                    navigationPath.append(.breathing(minutes))
-                }
-                if let session = pendingSessionNavigation {
-                    pendingSessionNavigation = nil
-                    navigationPath.append(.session(session))
-                }
-            }) { sheet in
+            // Opens whenever `activeSheet` is set. `onDismiss` runs after it has fully closed.
+            .sheet(item: $activeSheet, onDismiss: pushPendingScreen) { sheet in
                 Group {
                     switch sheet {
                     case .breathing:
@@ -188,18 +182,35 @@ struct RelaxScreen: View {
                         )
                     }
                 }
-                .presentationDetents([.fraction(0.80)])
+                .presentationDetents([.fraction(0.80)])   // sheet covers 80% of the screen
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(28)
             }
+            // Tells the stack which screen to build for each `RelaxRoute`.
             .navigationDestination(for: RelaxRoute.self) { route in
                 routeDestination(route)
             }
         }
-        .tint(cardGreen)
+        .tint(accent)
+        // Lets every Imagery screen read the same store with `@Environment(ImageryGuideStore.self)`.
         .environment(imageryStore)
     }
 
+    // MARK: - Navigation
+
+    /// Runs after a sheet closes. Pushes the screen the user asked for, if any.
+    private func pushPendingScreen() {
+        if pendingBreathing {
+            pendingBreathing = false
+            navigationPath.append(.breathing(minutes))
+        }
+        if let session = pendingSessionNavigation {
+            pendingSessionNavigation = nil
+            navigationPath.append(.session(session))
+        }
+    }
+
+    /// Builds the screen for one route.
     @ViewBuilder
     private func routeDestination(_ route: RelaxRoute) -> some View {
         switch route {
@@ -220,10 +231,7 @@ struct RelaxScreen: View {
                 )
 
             case .grounding:
-                GroundingExerciseScreen(
-                    onExit: { popRelaxRoute() },
-                    onContinue: { popRelaxRoute() }
-                )
+                GroundingExerciseScreen(onContinue: { popRelaxRoute() })
 
             case .mirror:
                 MirrorReflectionScreen(onSelectOption: { option in
@@ -241,12 +249,8 @@ struct RelaxScreen: View {
 
         case .guideComplete(let guide):
             SessionCompleteView(message: guide.completionMessage) {
-                // Keep the imagery gallery on the stack and return to it.
-                if navigationPath.count >= 2 {
-                    navigationPath.removeLast(2)
-                } else {
-                    navigationPath.removeAll()
-                }
+                // Pop the "complete" and "session" screens to land back on the Imagery list.
+                popRelaxRoutes(2)
             }
             .navigationTitle(imageryStore.screen?.sessionCompleteNavigationTitle ?? "")
             .navigationBarTitleDisplayMode(.inline)
@@ -256,30 +260,30 @@ struct RelaxScreen: View {
                 .navigationBarTitleDisplayMode(.inline)
 
         case .mirrorTimer(let camera):
-            if camera {
-                CameraTimerScreen(
-                    onBack: {},
-                    onContinue: { navigationPath.append(.mirrorComplete(camera: true)) }
-                )
-                .navigationBarTitleDisplayMode(.inline)
-            } else {
-                MirrorTimerScreen(
-                    onBack: {},
-                    onContinue: { navigationPath.append(.mirrorComplete(camera: false)) }
-                )
-                .navigationBarTitleDisplayMode(.inline)
+            Group {
+                if camera {
+                    CameraTimerScreen(
+                        onContinue: { navigationPath.append(.mirrorComplete(camera: true)) }
+                    )
+                } else {
+                    MirrorTimerScreen(
+                        onContinue: { navigationPath.append(.mirrorComplete(camera: false)) }
+                    )
+                }
             }
+            .navigationBarTitleDisplayMode(.inline)
 
-        case .mirrorComplete(_):
+        case .mirrorComplete:
             MirrorCompletionScreen(onDone: {
-                if navigationPath.count >= 3 { navigationPath.removeLast(3) }
-                else { navigationPath.removeAll() }
+                // Pop complete, timer and prep to land back on the Mirror options screen.
+                popRelaxRoutes(3)
             })
-                .navigationTitle("Completed")
-                .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Completed")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 
+    /// The "get ready" checklist before the mirror timer. Text depends on camera vs mirror.
     @ViewBuilder
     private func mirrorPrepDestination(camera: Bool) -> some View {
         if camera {
@@ -292,7 +296,6 @@ struct RelaxScreen: View {
                     "Look at yourself gently",
                     "Let go of judgement"
                 ],
-                onBack: {},
                 onContinue: { navigationPath.append(.mirrorTimer(camera: true)) }
             ) { level in
                 CameraPhoneHero(level: level)
@@ -308,99 +311,114 @@ struct RelaxScreen: View {
                     "Look at yourself kindly",
                     "Let go of judgement"
                 ],
-                onBack: {},
                 onContinue: { navigationPath.append(.mirrorTimer(camera: false)) }
             ) { level in
-                MirrorHero(showCaption: false, level: level)
+                MirrorHero(level: level)
                     .scaleEffect(0.72)
                     .frame(height: 220)
             }
         }
     }
 
+    /// Goes back one screen.
     private func popRelaxRoute() {
-        guard !navigationPath.isEmpty else { return }
-        navigationPath.removeLast()
+        popRelaxRoutes(1)
+    }
+
+    /// Goes back `count` screens. If there are fewer, goes back to the Relax tab itself.
+    private func popRelaxRoutes(_ count: Int) {
+        if navigationPath.count >= count {
+            navigationPath.removeLast(count)
+        } else {
+            navigationPath.removeAll()
+        }
     }
 
     // MARK: - Header
+
     private var headerSection: some View {
         Text("Relax")
-            .mocoText(MocoScreenTheme.Typeface.title1)
-            .foregroundColor(MocoScreenTheme.Colors.textTitle)
-            .padding(.horizontal, MocoScreenTheme.Space.page)
+            .mokoText(MokoScreenTheme.Typeface.title1)
+            .foregroundStyle(ink)
+            .padding(.horizontal, MokoScreenTheme.Space.page)
             .padding(.top, 14)
     }
 
-    // MARK: - Breathing Card
+    // MARK: - Breathing card
+
     private var breathingCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-
-            // Tapping the title / text area opens the breathing sheet
+            // Tapping the title or text opens the breathing sheet.
             Button {
                 activeSheet = .breathing
             } label: {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack(alignment: .top) {
                         Text("Breathing")
-                            .mocoText(MocoScreenTheme.Typeface.section)
-                            .foregroundColor(cardGreen)
+                            .mokoText(MokoScreenTheme.Typeface.section)
+                            .foregroundStyle(accent)
 
                         Spacer()
 
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(MocoScreenTheme.Colors.textTitle)
+                            .foregroundStyle(ink)
                     }
 
                     Text("Set your own meditation timer for a calmer mind")
-                        .mocoText(MocoScreenTheme.Typeface.body)
-                        .foregroundColor(subtextGray)
+                        .mokoText(MokoScreenTheme.Typeface.body)
+                        .foregroundStyle(bodyText)
                         .lineSpacing(3)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: 240, alignment: .leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                // Makes the empty space inside the label tappable too.
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
 
-            // Minutes stepper (outside the link, so +/- never navigate)
-            HStack(spacing: 18) {
-                stepperButton(systemName: "minus", enabled: minutes > 1) {
-                    minutes = max(1, minutes - 1)
-                }
-
-                Text("\(minutes) min")
-                    .mocoText(MocoScreenTheme.Typeface.slider)
-                    .foregroundColor(MocoScreenTheme.Colors.textTitle)
-                    .monospacedDigit()
-                    .frame(minWidth: 44)
-
-                stepperButton(systemName: "plus", enabled: minutes < 60) {
-                    minutes = min(60, minutes + 1)
-                }
-            }
-            .padding(.top, 20)
+            // The stepper sits outside the button above, so tapping + or − never opens the sheet.
+            minutesStepper(style: MokoScreenTheme.Typeface.slider, labelWidth: 44)
+                .padding(.top, 20)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .bottomTrailing) {
-            BreathingDotsIcon(color: cardGreen)
+            BreathingDotsIcon(color: accent)
                 .frame(width: 56, height: 56)
                 .padding(20)
-                .allowsHitTesting(false)
+                .allowsHitTesting(false)   // decoration only: taps pass through it
         }
-        .mocoCard()
+        .mokoCard()
+    }
+
+    /// The "−  5 min  +" control. Used on the card and in the breathing sheet.
+    private func minutesStepper(style: MokoScreenTheme.TextStyle, labelWidth: CGFloat) -> some View {
+        HStack(spacing: 18) {
+            stepperButton(systemName: "minus", enabled: minutes > 1) {
+                minutes = max(1, minutes - 1)
+            }
+
+            Text("\(minutes) min")
+                .mokoText(style)
+                .foregroundStyle(ink)
+                .monospacedDigit()   // digits all the same width, so the text does not jump
+                .frame(minWidth: labelWidth)
+
+            stepperButton(systemName: "plus", enabled: minutes < 60) {
+                minutes = min(60, minutes + 1)
+            }
+        }
     }
 
     private func stepperButton(systemName: String, enabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 15, weight: .bold))
-                .foregroundColor(enabled ? MocoScreenTheme.Colors.textTitle : MocoScreenTheme.Colors.textMuted)
+                .foregroundStyle(enabled ? ink : MokoScreenTheme.Colors.textMuted)
                 .frame(width: 44, height: 44)
-                .background(Circle().fill(stepperBg))
+                .background(Circle().fill(stepperFill))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
@@ -408,7 +426,8 @@ struct RelaxScreen: View {
         .accessibilityLabel(systemName == "minus" ? "Decrease minutes" : "Increase minutes")
     }
 
-    // MARK: - Session Card
+    // MARK: - Session card
+
     private func sessionCard(_ session: RelaxSession) -> some View {
         Button {
             activeSheet = .session(session)
@@ -416,46 +435,43 @@ struct RelaxScreen: View {
             VStack(spacing: 0) {
                 HStack {
                     Text(session.title)
-                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
-                        .foregroundColor(cardGreen)
+                        .mokoText(MokoScreenTheme.Typeface.cardTitle)
+                        .foregroundStyle(accent)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Spacer(minLength: 4)
 
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(MocoScreenTheme.Colors.textTitle)
+                        .foregroundStyle(ink)
                 }
 
                 Spacer(minLength: 8)
 
-                sessionIcon(session)
+                RelaxSessionIcon(session: session, color: accent)
                     .frame(height: 44)
 
                 Spacer(minLength: 8)
 
                 Text(session.cardDescription)
-                    .mocoText(MocoScreenTheme.Typeface.body)
-                    .foregroundColor(subtextGray)
+                    .mokoText(MokoScreenTheme.Typeface.body)
+                    .foregroundStyle(bodyText)
                     .multilineTextAlignment(.center)
                     .lineSpacing(2)
+                    // Lets the text wrap onto more lines instead of being cut off with "…".
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 16)
             .padding(.top, 18)
             .padding(.bottom, 16)
             .frame(maxWidth: .infinity, minHeight: 190)
-            .mocoCard()
+            .mokoCard()
         }
         .buttonStyle(.plain)
     }
 
-    private func sessionIcon(_ session: RelaxSession) -> some View {
-        RelaxSessionIcon(session: session, color: cardGreen)
-    }
-
-
     // MARK: - Breathing sheet
+
     private var breathingSheet: some View {
         RelaxDetailSheet(
             title: "Breathing",
@@ -464,30 +480,17 @@ struct RelaxScreen: View {
                     "Breathe in slowly through your nose",
                     "Breathe out gently and let go of tension"],
             buttonTitle: "Start",
-            onStart: {
-                pendingBreathing = true
-                onStartBreathing?(minutes)
-            },
-            icon: { BreathingDotsIcon(color: cardGreen).frame(width: 64, height: 64) },
-            extra: {
-                HStack(spacing: 18) {
-                    stepperButton(systemName: "minus", enabled: minutes > 1) {
-                        minutes = max(1, minutes - 1)
-                    }
-                    Text("\(minutes) min")
-                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
-                        .monospacedDigit()
-                        .frame(minWidth: 60)
-                    stepperButton(systemName: "plus", enabled: minutes < 60) {
-                        minutes = min(60, minutes + 1)
-                    }
-                }
-            }
+            onStart: { pendingBreathing = true },
+            icon: { BreathingDotsIcon(color: accent).frame(width: 64, height: 64) },
+            extra: { minutesStepper(style: MokoScreenTheme.Typeface.cardTitle, labelWidth: 60) }
         )
     }
 }
 
-// MARK: - Bottom sheet content
+// MARK: - Breathing sheet layout
+
+/// A sheet with an icon, title, subtitle, a custom `extra` view, numbered steps and a button.
+/// `Icon` and `Extra` are generic, so the caller can pass any view without `AnyView`.
 struct RelaxDetailSheet<Icon: View, Extra: View>: View {
     let title: String
     let subtitle: String
@@ -497,12 +500,10 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
     private let icon: Icon
     private let extra: Extra
 
+    // Closes this sheet.
     @Environment(\.dismiss) private var dismiss
 
-    private let cardGreen = MocoScreenTheme.Colors.dataVioletDeep
-    private let primaryGreen = MocoScreenTheme.Colors.dataVioletDeep
-    private let titleBrown = MocoScreenTheme.Colors.textTitle
-    private let subtextGray = MocoScreenTheme.Colors.textBody
+    private let accent = MokoScreenTheme.Colors.dataVioletDeep
 
     init(title: String,
          subtitle: String,
@@ -528,37 +529,38 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
                     .padding(.top, 28)
 
                 Text(title)
-                    .mocoText(MocoScreenTheme.Typeface.title2)
-                    .foregroundColor(titleBrown)
+                    .mokoText(MokoScreenTheme.Typeface.title2)
+                    .foregroundStyle(MokoScreenTheme.Colors.textTitle)
                     .padding(.top, 14)
 
                 Text(subtitle)
-                    .mocoText(MocoScreenTheme.Typeface.body)
-                    .foregroundColor(subtextGray)
+                    .mokoText(MokoScreenTheme.Typeface.body)
+                    .foregroundStyle(MokoScreenTheme.Colors.textBody)
                     .multilineTextAlignment(.center)
                     .padding(.top, 6)
-                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.horizontal, MokoScreenTheme.Space.page)
 
                 extra
                     .padding(.top, 16)
 
+                // Numbered steps: a small filled circle with the number, then the text.
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
                         HStack(alignment: .top, spacing: 12) {
                             Text("\(index + 1)")
-                                .mocoText(MocoScreenTheme.Typeface.caption)
-                                .foregroundColor(.white)
+                                .mokoText(MokoScreenTheme.Typeface.caption)
+                                .foregroundStyle(.white)
                                 .frame(width: 22, height: 22)
-                                .background(Circle().fill(cardGreen))
+                                .background(Circle().fill(accent))
                             Text(step)
-                                .mocoText(MocoScreenTheme.Typeface.body)
-                                .foregroundColor(MocoScreenTheme.Colors.textTitle)
+                                .mokoText(MokoScreenTheme.Typeface.body)
+                                .foregroundStyle(MokoScreenTheme.Colors.textTitle)
                         }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.top, 20)
-                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
 
                 Spacer(minLength: 12)
 
@@ -567,33 +569,35 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
                     dismiss()
                 } label: {
                     Text(buttonTitle)
-                        .mocoText(MocoScreenTheme.Typeface.slider)
-                        .foregroundColor(.white)
+                        .mokoText(MokoScreenTheme.Typeface.slider)
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
-                        .frame(minHeight: MocoScreenTheme.Control.trackHeight)
-                        .background(Capsule().fill(primaryGreen))
+                        .frame(minHeight: MokoScreenTheme.Control.trackHeight)
+                        .background(Capsule().fill(accent))
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, MocoScreenTheme.Space.page)
+                .padding(.horizontal, MokoScreenTheme.Space.page)
                 .padding(.bottom, 20)
             }
             .frame(maxWidth: .infinity)
         }
-        .background { MocoBackdrop() }
+        .background { MokoBackdrop() }
     }
 }
 
-// MARK: - Session detail sheet (illustration, text, Continue / Not now)
+// MARK: - Session sheet (illustration, text, Continue / Not now)
 
+/// The sheet for a guided session. Box Breathing has its own sheet with a cycle picker.
 struct RelaxSessionSheet: View {
     let session: RelaxSession
+    // @Binding: the cycle count lives in RelaxScreen, so it survives the sheet closing.
     @Binding var boxBreathingCycles: Int
     var onContinue: () -> Void = {}
 
+    // Closes this sheet.
     @Environment(\.dismiss) private var dismiss
 
-    private let primaryGreen = MocoScreenTheme.Colors.dataVioletDeep
-    private let subtextGray = MocoScreenTheme.Colors.textBody
+    private let accent = MokoScreenTheme.Colors.dataVioletDeep
 
     var body: some View {
         Group {
@@ -616,27 +620,25 @@ struct RelaxSessionSheet: View {
                 banner
 
                 Text(session.title)
-                    .mocoText(MocoScreenTheme.Typeface.title2)
-                    .foregroundColor(MocoScreenTheme.Colors.textTitle)
+                    .mokoText(MokoScreenTheme.Typeface.title2)
+                    .foregroundStyle(MokoScreenTheme.Colors.textTitle)
                     .padding(.top, 24)
 
                 Text(session.detailText)
-                    .mocoText(MocoScreenTheme.Typeface.body)
-                    .foregroundColor(subtextGray)
+                    .mokoText(MokoScreenTheme.Typeface.body)
+                    .foregroundStyle(MokoScreenTheme.Colors.textBody)
                     .multilineTextAlignment(.center)
                     .lineSpacing(5)
                     .padding(.top, 14)
                     .padding(.horizontal, 28)
 
-                Button {
-                    onContinue()
-                } label: {
+                Button(action: onContinue) {
                     Text("Continue")
-                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
-                        .foregroundColor(.white)
+                        .mokoText(MokoScreenTheme.Typeface.cardTitle)
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(Capsule().fill(primaryGreen))
+                        .background(Capsule().fill(accent))
                 }
                 .buttonStyle(.plain)
                 .padding(.top, 32)
@@ -646,8 +648,8 @@ struct RelaxSessionSheet: View {
                     dismiss()
                 } label: {
                     Text("Not now")
-                        .mocoText(MocoScreenTheme.Typeface.cardTitle)
-                        .foregroundColor(primaryGreen)
+                        .mokoText(MokoScreenTheme.Typeface.cardTitle)
+                        .foregroundStyle(accent)
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
                         .contentShape(Rectangle())
@@ -657,11 +659,14 @@ struct RelaxSessionSheet: View {
                 .padding(.bottom, 24)
             }
         }
+        // Only bounce when the content is taller than the sheet.
         .scrollBounceBehavior(.basedOnSize)
-        .background { MocoBackdrop() }
-        .ignoresSafeArea(edges: .top)      // banner runs under the transparent back-button bar
+        .background { MokoBackdrop() }
+        // Let the banner run up to the very top edge of the sheet.
+        .ignoresSafeArea(edges: .top)
     }
 
+    /// Gradient + icon, with the illustration on top. If the image is missing, the icon shows through.
     private var banner: some View {
         Color.clear
             .frame(maxWidth: .infinity)
@@ -674,7 +679,7 @@ struct RelaxSessionSheet: View {
                 )
             }
             .overlay {
-                RelaxSessionIcon(session: session, color: primaryGreen.opacity(0.6), size: 96)
+                RelaxSessionIcon(session: session, color: accent.opacity(0.6), size: 96)
             }
             .overlay {
                 Image(session.bannerImageName)
@@ -684,7 +689,10 @@ struct RelaxSessionSheet: View {
             .clipped()
     }
 }
-// MARK: - Icon for each session (used by the card and the sheet banner)
+
+// MARK: - Session icons
+
+/// The icon for each session. Used on the grid card and in the sheet banner.
 struct RelaxSessionIcon: View {
     let session: RelaxSession
     var color: Color
@@ -694,24 +702,24 @@ struct RelaxSessionIcon: View {
         switch session {
         case .boxBreathing:
             BoxBreathingIcon(color: color)
-                .scaleEffect(size / 38)
+                .scaleEffect(size / 38)   // the icon is drawn at 38 pt, so scale it to `size`
         case .grounding:
-            Image(systemName: "5.square")
-                .font(.system(size: size, weight: .regular))
-                .foregroundColor(color)
+            symbol("5.square")
         case .imagery:
-            Image(systemName: "photo.tv")
-                .font(.system(size: size, weight: .regular))
-                .foregroundColor(color)
+            symbol("photo.tv")
         case .mirror:
-            Image(systemName: "person.crop.square")
-                .font(.system(size: size, weight: .regular))
-                .foregroundColor(color)
+            symbol("person.crop.square")
         }
+    }
+
+    private func symbol(_ name: String) -> some View {
+        Image(systemName: name)
+            .font(.system(size: size, weight: .regular))
+            .foregroundStyle(color)
     }
 }
 
-// MARK: - Box Breathing Icon (rounded square inside corner brackets)
+/// A small rounded square inside corner brackets.
 struct BoxBreathingIcon: View {
     var color: Color
 
@@ -719,7 +727,7 @@ struct BoxBreathingIcon: View {
         ZStack {
             Image(systemName: "viewfinder")
                 .font(.system(size: 42, weight: .semibold))
-                .foregroundColor(color)
+                .foregroundStyle(color)
 
             RoundedRectangle(cornerRadius: 4, style: .continuous)
                 .stroke(color, lineWidth: 3)
@@ -728,37 +736,40 @@ struct BoxBreathingIcon: View {
     }
 }
 
-// MARK: - Breathing Dot Pattern (concentric rings of dots)
+/// One dot in the middle, a ring of 6 dots and an outer ring of 12 dots.
 struct BreathingDotsIcon: View {
     var color: Color
 
     var body: some View {
+        // GeometryReader gives us the space we have, so the pattern scales to any frame.
         GeometryReader { geo in
-            let c = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+            // The pattern was designed on an 80 x 80 grid. `unit` scales it to the real size.
             let unit = min(geo.size.width, geo.size.height) / 80
 
             ZStack {
-                dot(size: 11 * unit, at: c)
+                dot(size: 11 * unit, at: center)
 
-                ForEach(Array(0..<6), id: \.self) { i in
-                    dot(size: 9 * unit, at: point(center: c, radius: 17 * unit, index: i, count: 6))
+                ForEach(0..<6, id: \.self) { i in
+                    dot(size: 9 * unit, at: point(center: center, radius: 17 * unit, index: i, count: 6))
                 }
 
-                ForEach(Array(0..<12), id: \.self) { i in
+                ForEach(0..<12, id: \.self) { i in
                     dot(size: (i % 2 == 0 ? 6.5 : 4.5) * unit,
-                        at: point(center: c, radius: 33 * unit, index: i, count: 12))
+                        at: point(center: center, radius: 33 * unit, index: i, count: 12))
                 }
             }
         }
     }
 
-    private func dot(size: CGFloat, at p: CGPoint) -> some View {
+    private func dot(size: CGFloat, at position: CGPoint) -> some View {
         Circle()
             .fill(color)
             .frame(width: size, height: size)
-            .position(p)
+            .position(position)
     }
 
+    /// Point number `index` of `count` points spaced evenly on a circle, starting at the top.
     private func point(center: CGPoint, radius: CGFloat, index: Int, count: Int) -> CGPoint {
         let angle = (Double(index) / Double(count)) * 2 * .pi - .pi / 2
         return CGPoint(

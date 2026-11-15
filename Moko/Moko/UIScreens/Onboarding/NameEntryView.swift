@@ -1,14 +1,27 @@
+//
+//  NameEntryView.swift
+//  Moko
+//
+//  Intro step 2: the user types the name Moko should call them.
+//  Continue stays disabled until the name has at least one non-space letter.
+//
+
 import SwiftUI
 
 struct NameEntryView: View {
+    /// How full the top progress bar is (0...1).
     var progress: CGFloat = 0.677
+    /// Called with the cleaned-up name when the user continues.
     var onContinue: (String) -> Void = { _ in }
 
+    /// What the user has typed so far.
     @State private var name = ""
+    /// True while the keyboard is up for the name field.
     @FocusState private var isFocused: Bool
 
     private let placeholderColor = Color(hex: 0xD2C6B3)
 
+    /// The name without leading/trailing spaces or new lines.
     private var trimmedName: String {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -16,7 +29,8 @@ struct NameEntryView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            OnboardingProgressBar(progress: progress)
+                .padding(.horizontal, 20)
 
             Text("What should we call you?")
                 .font(.system(size: 30, weight: .bold))
@@ -32,27 +46,13 @@ struct NameEntryView: View {
 
             Spacer()
 
-            continueButton
+            OnboardingContinueButton(isEnabled: canContinue, action: submit)
                 .padding(.horizontal, 20)
                 .padding(.bottom, 38)
         }
         .background(MokoTheme.limeBackground.ignoresSafeArea())
-        .contentShape(Rectangle())
+        // Runs once when the screen appears: open the keyboard straight away.
         .task { isFocused = true }
-    }
-
-    // MARK: Header (progress bar)
-
-    private var header: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.track)
-                Capsule().fill(Color.forestLight)
-                    .frame(width: geo.size.width * progress)
-            }
-        }
-        .frame(height: 3)
-        .padding(.horizontal, 20)
     }
 
     // MARK: Name field
@@ -70,35 +70,20 @@ struct NameEntryView: View {
             )
             .font(.system(size: 22, weight: .semibold))
             .foregroundStyle(Color.ink)
-            .tint(Color.forest)
+            .tint(Color.forest)                          // cursor color
             .focused($isFocused)
             .textInputAutocapitalization(.words)
             .autocorrectionDisabled()
-            .submitLabel(.continue)
+            .submitLabel(.continue)                      // keyboard's return key says "continue"
             .onSubmit(submit)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        // Make the whole area (not just the text) tappable to bring the keyboard back.
         .contentShape(Rectangle())
         .onTapGesture { isFocused = true }
     }
 
-    // MARK: Continue button
-
-    private var continueButton: some View {
-        Button(action: submit) {
-            HStack(spacing: 8) {
-                Text("Continue")
-            }
-            .font(.system(size: 17))
-            .foregroundStyle(Color.cream)
-            .frame(maxWidth: .infinity)
-            .frame(height: 50.5)
-            .background(Color.forest, in: Capsule())
-            .opacity(canContinue ? 1 : 0.4)
-        }
-        .disabled(!canContinue)
-        .animation(.easeInOut(duration: 0.15), value: canContinue)
-    }
+    // MARK: Actions
 
     private func submit() {
         guard canContinue else { return }
@@ -107,5 +92,5 @@ struct NameEntryView: View {
 }
 
 #Preview {
-    NameEntryView(onContinue: { print("Name:", $0) })
+    NameEntryView(onContinue: { _ in })
 }

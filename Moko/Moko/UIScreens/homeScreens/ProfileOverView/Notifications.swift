@@ -1,16 +1,15 @@
 //
-//  ProfileOverViewNotifications.swift
+//  Notifications.swift
 //  Moko
 //
-//  Notifications screen (matches the "Notifications · Light" prototype).
-//  Push it from Settings with:
-//      NavigationLink("Notifications") { ProfileOverViewNotifications() }
-//  The NavigationStack gives the default back button, so none is drawn here.
+//  Settings → Reminders and Notifications.
+//  Each switch is saved on the phone, but it can only be ON if iOS allows
+//  notifications for Moko. The first time, we show a friendly explanation
+//  sheet before iOS shows its own permission pop-up.
 //
 
 import SwiftUI
 import UserNotifications
-import UIKit
 
 struct ProfileOverViewNotifications: View {
 
@@ -24,13 +23,20 @@ struct ProfileOverViewNotifications: View {
     @AppStorage("notifyQuests") private var newQuests = false
     @AppStorage("notifyCooldown") private var cooldownBreathing = false
 
+    // Tells us if the app is on screen (`.active`) or in the background.
     @Environment(\.scenePhase) private var scenePhase
+    // Opens the iPhone Settings app.
     @Environment(\.openURL) private var openURL
 
+    // What iOS currently allows: not asked yet, allowed, or denied.
     @State private var authorizationStatus: UNAuthorizationStatus = .notDetermined
+    // The "Notifications are off" alert.
     @State private var showPermissionAlert = false
+    // Stops a second permission request while the first one is still running.
     @State private var isRequestingPermission = false
+    // Our explanation sheet, shown before the iOS pop-up.
     @State private var showPreprompt = false
+    // Which switch the user tapped while we were asking permission ("daily", "streak", ...).
     @State private var pendingReminder: String?
 
     var body: some View {
@@ -38,7 +44,7 @@ struct ProfileOverViewNotifications: View {
             if authorizationStatus == .denied {
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("Notifications are off for MOKO", systemImage: "bell.slash")
+                        Label("Notifications are off for Moko", systemImage: "bell.slash")
                             .font(.headline)
                             .foregroundStyle(.primary)
 
@@ -71,7 +77,7 @@ struct ProfileOverViewNotifications: View {
             } header: {
                 Text("Reminders")
             } footer: {
-                Text("Turning on a reminder asks iOS for notification permission. If notifications are off for MOKO, these switches stay off until you allow them in Settings.")
+                Text("Turning on a reminder asks iOS for notification permission. If notifications are off for Moko, these switches stay off until you allow them in Settings.")
             }
         }
         .tint(deepGreen)
@@ -79,14 +85,11 @@ struct ProfileOverViewNotifications: View {
         .background(screenBg)
         .navigationTitle("Notifications")
         .navigationBarTitleDisplayMode(.large)
-        .task {
+        // `.task(id:)` runs when the screen opens and again whenever `scenePhase` changes.
+        // So if the user comes back from the Settings app, we re-check the permission.
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
             await refreshAuthorizationStatus()
-        }
-        .onChange(of: scenePhase) { _, newPhase in
-            guard newPhase == .active else { return }
-            Task {
-                await refreshAuthorizationStatus()
-            }
         }
         .alert("Notifications are off", isPresented: $showPermissionAlert) {
             Button("Open Settings") {
@@ -94,7 +97,7 @@ struct ProfileOverViewNotifications: View {
             }
             Button("Not now", role: .cancel) { }
         } message: {
-            Text("Allow notifications for MOKO in iOS Settings to use reminders.")
+            Text("Allow notifications for Moko in iOS Settings to use reminders.")
         }
         .sheet(isPresented: $showPreprompt) {
             NotificationPermissionPreprompt(
@@ -108,6 +111,8 @@ struct ProfileOverViewNotifications: View {
 
     // MARK: - Permission-aware toggle
 
+    /// A custom binding for a Toggle. Turning OFF works straight away.
+    /// Turning ON first checks the iOS permission (that is async, so it runs in a Task).
     private func permissionBinding(_ value: Binding<Bool>, key: String) -> Binding<Bool> {
         Binding(
             get: { value.wrappedValue },
@@ -123,25 +128,31 @@ struct ProfileOverViewNotifications: View {
         )
     }
 
+    /// Decides what happens when a switch is turned on, based on the iOS permission.
     @MainActor
     private func enableReminder(_ value: Binding<Bool>, key: String) async {
         guard !isRequestingPermission else { return }
         isRequestingPermission = true
+        // `defer` runs when the function ends, whichever way it ends.
         defer { isRequestingPermission = false }
 
+        // Ask iOS what the user has allowed for this app.
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         authorizationStatus = settings.authorizationStatus
 
         switch settings.authorizationStatus {
         case .authorized, .provisional, .ephemeral:
+            // Already allowed: just turn the switch on.
             value.wrappedValue = true
 
         case .denied:
+            // The user said no before. Only the Settings app can change that.
             value.wrappedValue = false
             showPermissionAlert = true
 
         case .notDetermined:
+            // Never asked: show our explanation first, and remember which switch it was.
             pendingReminder = key
             showPreprompt = true
 
@@ -150,6 +161,7 @@ struct ProfileOverViewNotifications: View {
         }
     }
 
+    /// Called from "Allow reminders" on our sheet: shows the real iOS permission pop-up.
     @MainActor
     private func requestPendingReminder() async {
         guard !isRequestingPermission else { return }
@@ -157,10 +169,12 @@ struct ProfileOverViewNotifications: View {
         defer { isRequestingPermission = false }
         showPreprompt = false
         do {
+            // iOS shows its pop-up here. `granted` is true if the user taps Allow.
             let granted = try await UNUserNotificationCenter.current()
                 .requestAuthorization(options: [.alert, .sound, .badge])
             authorizationStatus = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
             if granted {
+                // Turn on the switch the user originally tapped.
                 switch pendingReminder {
                 case "daily": dailyReminder = true
                 case "streak": streakAtRisk = true
@@ -177,9 +191,9 @@ struct ProfileOverViewNotifications: View {
         pendingReminder = nil
     }
 
-
     // MARK: - System status
 
+    /// Reads the current permission. If notifications are not allowed, turns every switch off.
     @MainActor
     private func refreshAuthorizationStatus() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
@@ -203,12 +217,15 @@ struct ProfileOverViewNotifications: View {
         }
     }
 
+    /// Opens Moko's page in the iPhone Settings app.
     private func openSystemSettings() {
-        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        guard let url = mokoOpenAppSettingsURL() else { return }
         openURL(url)
     }
 }
 
+/// Our own explanation sheet, shown before the iOS permission pop-up.
+/// iOS only lets an app ask once, so we explain why first.
 private struct NotificationPermissionPreprompt: View {
     let onAllow: () -> Void
     let onNotNow: () -> Void

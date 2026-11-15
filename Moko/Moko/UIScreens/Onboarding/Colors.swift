@@ -1,29 +1,32 @@
 //
 //  Colors.swift
-//  Onboarding
+//  Moko
 //
 //  Created by user@77 on 22/10/26.
+//
+//  Colours for the onboarding info screens (carousel, name, age, welcome).
+//  Use them as `Color.ink`, `Color.forest`, ...
+//  `Color(hex:)` lives in MokoScreenTheme.swift.
 //
 
 import SwiftUI
 
 extension Color {
+    /// Titles and body text.
     static let ink         = MokoTheme.titleBrown
+    /// Button fill.
     static let forest      = Color(hex: 0x1B422F)
+    /// Filled part of the progress bar.
     static let forestLight = Color(hex: 0x26533D)
+    /// Button text.
     static let cream       = MokoTheme.limeBackground
-    static let cardFill    = Color(red: 250.0 / 255.0, green: 253.0 / 255.0, blue: 241.0 / 255.0)
+    /// Card background.
+    static let cardFill    = MokoTheme.cardBackground
+    /// Card border.
     static let cardStroke  = Color(hex: 0xDED6C7)
+    /// Empty part of the progress bar.
     static let track       = MokoTheme.limeSelected.opacity(0.55)
+    /// Carousel page dots: inactive and active.
     static let dotInactive = MokoTheme.limeSelected.opacity(0.45)
     static let terracotta  = Color(hex: 0x9A442D)
-
-    init(hex: UInt32) {
-        self.init(
-            .sRGB,
-            red:   Double((hex >> 16) & 0xFF) / 255,
-            green: Double((hex >> 8)  & 0xFF) / 255,
-            blue:  Double( hex        & 0xFF) / 255
-        )
-    }
 }

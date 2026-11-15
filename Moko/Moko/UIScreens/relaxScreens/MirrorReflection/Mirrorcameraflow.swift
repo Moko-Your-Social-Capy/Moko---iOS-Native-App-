@@ -2,24 +2,31 @@
 //  MirrorCameraFlow.swift
 //  Moko
 //
-//  Camera version of Mirror Reflection: phone-themed illustration for the setup
-//  checklist, then a 2:00 timer with your front camera live in the card and the
-//  affirmations over it. The lines come from MirrorAffirmationStore (eight slots,
-//  15 s each, editable). Plugged into MirrorFlowView.
+//  Camera version of Mirror Reflection:
+//  - `CameraPhoneHero`: the iPhone picture on the prep checklist.
+//  - `CameraTimerScreen`: the 2:00 timer with the front camera live in a card
+//    and the affirmations on top of it.
+//  The timer itself is `MirrorSessionClock` (in MirrorFlow.swift), shared with
+//  the mirror version. The camera is `FrontCameraModel` (in Frontcamera.swift).
 //
 
 import SwiftUI
 import SwiftData
-import Combine
 
 // MARK: - Checklist illustration: an iPhone framing your face
+
+/// A tilted phone showing a face in a viewfinder. It floats gently up and down.
 struct CameraPhoneHero: View {
-    /// 0...1: how bright the halo glows.
+    /// 0...1: how bright the glow is. The prep screen raises it as points appear.
     var level: Double
 
+    // The phone setting "Reduce Motion". If it is on, the phone stays still.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    // Flipped once on appear. `repeatForever` then moves the phone up and down on its own.
     @State private var float = false
 
-    private let green = MirrorPalette.green
+    private let green = MirrorPalette.accent
+    private let phoneEdge = Color(red: 40/255, green: 50/255, blue: 45/255)
 
     var body: some View {
         ZStack {
@@ -38,9 +45,9 @@ struct CameraPhoneHero: View {
             // Phone
             ZStack {
                 // Side buttons
-                Capsule().fill(Color(red: 40/255, green: 50/255, blue: 45/255))
+                Capsule().fill(phoneEdge)
                     .frame(width: 4, height: 34).offset(x: -75, y: -62)
-                Capsule().fill(Color(red: 40/255, green: 50/255, blue: 45/255))
+                Capsule().fill(phoneEdge)
                     .frame(width: 4, height: 54).offset(x: 75, y: -40)
 
                 // Body
@@ -61,14 +68,14 @@ struct CameraPhoneHero: View {
                     .fill(
                         LinearGradient(
                             colors: [Color(red: 240/255, green: 248/255, blue: 243/255),
-                                     MirrorPalette.mint],
+                                     MirrorPalette.track],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
                     .frame(width: 134, height: 264)
 
-                // Glare
+                // Glare, cut to the screen shape.
                 Capsule()
                     .fill(Color.white.opacity(0.35))
                     .frame(width: 22, height: 250)
@@ -111,15 +118,17 @@ struct CameraPhoneHero: View {
             // Twinkles
             Image(systemName: "sparkle")
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(green.opacity(0.55))
+                .foregroundStyle(green.opacity(0.55))
                 .offset(x: 108, y: -108)
             Image(systemName: "sparkle")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(green.opacity(0.45))
+                .foregroundStyle(green.opacity(0.45))
                 .offset(x: -112, y: 80)
         }
         .frame(height: 320)
+        .accessibilityHidden(true)   // decoration only
         .onAppear {
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 3).repeatForever(autoreverses: true)) {
                 float = true
             }
@@ -128,6 +137,7 @@ struct CameraPhoneHero: View {
 }
 
 /// Four rounded corner brackets, like a camera viewfinder.
+/// Each corner: a short line, a small curve round the corner, then another short line.
 struct ViewfinderCorners: Shape {
     var length: CGFloat = 18
     var radius: CGFloat = 8
@@ -168,99 +178,76 @@ struct ViewfinderCorners: Shape {
 }
 
 // MARK: - Timer screen with live camera (fixed 2:00)
+
 struct CameraTimerScreen: View {
-    var onBack: () -> Void
     var onContinue: () -> Void
 
-    private enum RunState {
-        case idle, running, paused, completed
-    }
-
-    @StateObject private var camera = FrontCameraModel()
+    // Owns the camera and its permission state. @State keeps it alive while this screen is open.
+    @State private var camera = FrontCameraModel()
+    // The 2:00 clock. See `MirrorSessionClock` in MirrorFlow.swift.
+    @State private var clock = MirrorSessionClock()
+    // Opens the "edit affirmations" sheet.
+    @State private var isEditingAffirmations = false
+    // Opens links such as the Settings app.
     @Environment(\.openURL) private var openURL
+    // The SwiftData database. Used to save the finished session.
     @Environment(\.modelContext) private var modelContext
 
-    @State private var runState: RunState = .idle
-    @State private var elapsed: TimeInterval = 0
-    @State private var lastTick: Date?
-    @State private var isEditingAffirmations = false
+    private let cardRadius = MokoScreenTheme.Radius.card
 
-    private let total: TimeInterval = 120 // fixed, not customisable
-    private let cardRadius = MocoScreenTheme.Radius.card
-    private let ticker = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
+    // The shared affirmation lines. It is @Observable, so this screen redraws when they are edited.
+    private let affirmationStore = MirrorAffirmationStore.shared
 
-    /// Shared with the mirror flow and the editor sheet.
-    @ObservedObject private var affirmationStore = MirrorAffirmationStore.shared
-
-    private var progress: Double { min(1, elapsed / total) }
-    private var remainingSeconds: Int { max(0, Int(ceil(total - elapsed))) }
-    private var timeText: String {
-        String(format: "%d:%02d", remainingSeconds / 60, remainingSeconds % 60)
-    }
-
-    /// Idle shows the four-row preview; from the moment Start is tapped (and until the
-    /// user resets) only the current line is on screen.
-    private var showsCurrentLine: Bool { runState != .idle }
+    /// Before Start: a preview of the lines. After Start: only the current line.
+    private var showsCurrentLine: Bool { clock.runState != .idle }
+    /// True when the live camera picture is showing. Text turns white to stay readable on it.
     private var hasFeed: Bool { camera.status == .running }
-
-    /// One slot per 15 seconds, so eight lines fill the fixed 2:00 exactly.
-    private var activeIndex: Int {
-        min(affirmationStore.quotes.count - 1,
-            Int(elapsed / MirrorAffirmationStore.slotDuration))
-    }
-
-    private var chipText: String {
-        switch runState {
-        case .idle:              return "Let’s Start"
-        case .running, .paused:  return "Keep Going!"
-        case .completed:         return "Well done"
-        }
-    }
 
     var body: some View {
         ZStack {
-            MocoBackdrop()
+            MokoBackdrop()
 
             VStack(spacing: 0) {
                 MirrorHeader()
                     .overlay(alignment: .topTrailing) {
-                        // Hidden mid-session: the ticker keeps running behind a sheet.
-                        if runState != .running {
+                        // Hidden while running: the timer would keep going behind the sheet.
+                        if clock.runState != .running {
                             MirrorEditAffirmationsButton {
                                 isEditingAffirmations = true
                             }
                         }
                     }
-                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.horizontal, MokoScreenTheme.Space.page)
                     .padding(.top, 18)
 
                 cameraCard
-                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.horizontal, MokoScreenTheme.Space.page)
                     .padding(.top, 18)
 
-                Text(timeText)
-                    .mocoText(MocoScreenTheme.Typeface.numeral)
-                    .monospacedDigit()
-                    .foregroundColor(MirrorPalette.green)
+                Text(clock.timeText)
+                    .mokoText(MokoScreenTheme.Typeface.numeral)
+                    .monospacedDigit()   // digits all the same width, so the text does not jump
+                    .foregroundStyle(MirrorPalette.accent)
                     .padding(.top, 12)
                     .padding(.bottom, 8)
             }
         }
         .safeAreaInset(edge: .bottom) {
-            controls
+            MirrorTimerControls(clock: clock, onContinue: onContinue, onReset: reset)
+                .padding(.horizontal, 28)
+                .padding(.bottom, 12)
         }
         // Immersive session: keep the tab bar out of the way.
         .toolbar(.hidden, for: .tabBar)
+        // Turn the camera on while this screen is visible, and off when it goes away.
         .onAppear { camera.start() }
         .onDisappear { camera.stop() }
-        .onReceive(ticker) { now in
-            tick(now)
-        }
-        .sensoryFeedback(trigger: runState) { oldState, newState in
-            switch (oldState, newState) {
-            case (_, .completed):    return .success
-            case (.idle, .running):  return .impact(weight: .medium)
-            default:                 return .impact(weight: .light)
+        // Restarts every time the run state changes. See `MirrorSessionClock.run()`.
+        .task(id: clock.runState) {
+            if await clock.run() {
+                camera.stop()
+                // Save the session so it shows up in Insights and achievements.
+                modelContext.logCalmDown("Mirror Reflection", seconds: MirrorSessionClock.total)
             }
         }
         .sheet(isPresented: $isEditingAffirmations) {
@@ -269,18 +256,21 @@ struct CameraTimerScreen: View {
     }
 
     // MARK: Camera card
+
+    /// The big card: camera picture (or a message), affirmations at the bottom,
+    /// a status chip top-left, and the progress drawn around the edge.
     private var cameraCard: some View {
         ZStack(alignment: .bottom) {
             RoundedRectangle(cornerRadius: cardRadius, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [MirrorPalette.mint.opacity(0.55), Color.white],
+                        colors: [MirrorPalette.track.opacity(0.55), Color.white],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                 )
 
-            if runState == .completed {
+            if clock.runState == .completed {
                 MokoCompletionAnimation(ringDiameter: 150)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -304,32 +294,33 @@ struct CameraTimerScreen: View {
             }
         }
         .overlay(alignment: .topLeading) {
-            Text(chipText)
-                .mocoText(MocoScreenTheme.Typeface.caption)
-                .foregroundColor(MocoScreenTheme.Colors.dataVioletDeep)
+            Text(clock.statusText)
+                .mokoText(MokoScreenTheme.Typeface.caption)
+                .foregroundStyle(MokoScreenTheme.Colors.dataVioletDeep)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(MocoScreenTheme.Colors.surfaceLavender, in: Capsule())
+                .background(MokoScreenTheme.Colors.surfaceLavender, in: Capsule())
                 .padding(14)
         }
         .clipShape(RoundedRectangle(cornerRadius: cardRadius, style: .continuous))
         .overlay { progressOutline }
-        .mocoCard()
+        .mokoCard()
         .frame(maxHeight: .infinity)
     }
 
-    /// Track + progress drawn around the card's edge
+    /// Track + progress drawn around the card's edge. `.trim` draws only part of the outline.
     private var progressOutline: some View {
         ZStack {
             RoundedRectangle(cornerRadius: cardRadius, style: .continuous)
-                .stroke(MirrorPalette.mint, lineWidth: 6)
+                .stroke(MirrorPalette.track, lineWidth: 6)
 
             RoundedRectangle(cornerRadius: cardRadius, style: .continuous)
-                .trim(from: 0, to: runState == .completed ? 1 : CGFloat(progress))
-                .stroke(MirrorPalette.green, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .trim(from: 0, to: clock.runState == .completed ? 1 : CGFloat(clock.progress))
+                .stroke(MirrorPalette.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
         }
     }
 
+    /// What fills the card: the live camera, a loader, or a "camera is off" message.
     @ViewBuilder
     private var cameraLayer: some View {
         switch camera.status {
@@ -344,19 +335,19 @@ struct CameraTimerScreen: View {
             VStack(spacing: 10) {
                 Image(systemName: "video.slash")
                     .font(.system(size: 34, weight: .regular))
-                    .foregroundColor(MirrorPalette.green)
+                    .foregroundStyle(MirrorPalette.accent)
 
                 Text(camera.status == .denied ? "Camera access is off" : "Camera isn’t available here")
-                    .mocoText(MocoScreenTheme.Typeface.cardTitle)
-                    .foregroundColor(MirrorPalette.title)
+                    .mokoText(MokoScreenTheme.Typeface.cardTitle)
+                    .foregroundStyle(MirrorPalette.title)
 
                 Text(camera.status == .denied
                      ? "Turn it on in Settings to see yourself during the practice. You can still continue without it."
                      : "Try this on an iPhone to see yourself here. You can still continue without it.")
-                    .mocoText(MocoScreenTheme.Typeface.body)
-                    .foregroundColor(MirrorPalette.subtext)
+                    .mokoText(MokoScreenTheme.Typeface.body)
+                    .foregroundStyle(MirrorPalette.subtext)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, MocoScreenTheme.Space.page)
+                    .padding(.horizontal, MokoScreenTheme.Space.page)
 
                 if camera.status == .denied {
                     Button {
@@ -365,11 +356,11 @@ struct CameraTimerScreen: View {
                         }
                     } label: {
                         Text("Open Settings")
-                            .mocoText(MocoScreenTheme.Typeface.slider)
-                            .foregroundColor(.white)
+                            .mokoText(MokoScreenTheme.Typeface.slider)
+                            .foregroundStyle(.white)
                             .padding(.horizontal, 18)
                             .frame(height: 36)
-                            .background(Capsule().fill(MirrorPalette.green))
+                            .background(Capsule().fill(MirrorPalette.accent))
                     }
                     .buttonStyle(.plain)
                     .padding(.top, 4)
@@ -379,8 +370,7 @@ struct CameraTimerScreen: View {
         }
     }
 
-    /// Same split as the mirror flow: a four-row preview before the session, then
-    /// only the current line while it runs.
+    /// Same as the mirror version: a preview of the lines before Start, then only the current line.
     private var affirmationsArea: some View {
         ZStack {
             if showsCurrentLine {
@@ -395,31 +385,34 @@ struct CameraTimerScreen: View {
         .animation(.easeInOut(duration: 0.35), value: showsCurrentLine)
     }
 
+    /// The current line, big. It crossfades into the next one every 15 seconds.
     private var currentAffirmation: some View {
-        ZStack {
-            Text(affirmationStore.quotes[min(activeIndex, affirmationStore.quotes.count - 1)])
-                .mocoText(MocoScreenTheme.Typeface.title2)
-                .foregroundColor(hasFeed ? Color.white : MirrorPalette.title)
+        let index = clock.lineIndex(count: affirmationStore.quotes.count)
+
+        return ZStack {
+            Text(affirmationStore.quotes[index])
+                .mokoText(MokoScreenTheme.Typeface.title2)
+                .foregroundStyle(hasFeed ? Color.white : MirrorPalette.title)
                 .shadow(color: hasFeed ? Color.black.opacity(0.55) : Color.clear, radius: 4, y: 1)
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.7)
                 .lineLimit(4)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .id(activeIndex)
+                // A new `id` makes SwiftUI treat it as a new view, so the transition plays.
+                .id(index)
                 .transition(.opacity)
         }
-        .animation(.easeInOut(duration: 0.3), value: activeIndex)
+        .animation(.easeInOut(duration: 0.3), value: index)
     }
 
-    /// Same four-row window as the mirror flow, only before the session: the feed
-    /// stays visible and no line is squeezed out of sight.
+    /// All lines in a small scrolling window, shown before Start.
     private var affirmationWindow: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(spacing: 8) {
                 ForEach(affirmationStore.quotes.indices, id: \.self) { index in
                     Text(affirmationStore.quotes[index])
-                        .mocoText(MocoScreenTheme.Typeface.body)
-                        .foregroundColor(hasFeed ? Color.white : MirrorPalette.subtext)
+                        .mokoText(MokoScreenTheme.Typeface.body)
+                        .foregroundStyle(hasFeed ? Color.white : MirrorPalette.subtext)
                         .shadow(color: hasFeed ? Color.black.opacity(0.5) : Color.clear, radius: 3, y: 1)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: .infinity)
@@ -430,82 +423,20 @@ struct CameraTimerScreen: View {
         .defaultScrollAnchor(.top)
     }
 
-    // MARK: Controls
-    @ViewBuilder
-    private var controls: some View {
-        Group {
-            switch runState {
-            case .idle:
-                MirrorPrimaryButton(title: "Start") { start() }
-
-            case .running, .paused:
-                HStack {
-                    MirrorCircleButton(systemName: runState == .running ? "pause.fill" : "play.fill") {
-                        togglePause()
-                    }
-                    Spacer()
-                    MirrorCircleButton(systemName: "arrow.counterclockwise") { reset() }
-                }
-                .padding(.horizontal, 8)
-
-            case .completed:
-                HStack(spacing: 16) {
-                    MirrorPrimaryButton(title: "Continue", action: onContinue)
-                    MirrorCircleButton(systemName: "arrow.counterclockwise") { reset() }
-                }
-            }
-        }
-        .padding(.horizontal, 28)
-        .padding(.bottom, 12)
-        .animation(.easeInOut(duration: 0.2), value: runState)
-    }
-
-    // MARK: Timer logic
-    private func tick(_ now: Date) {
-        guard runState == .running else {
-            lastTick = nil
-            return
-        }
-
-        if let last = lastTick {
-            elapsed += now.timeIntervalSince(last)
-        }
-        lastTick = now
-
-        if elapsed >= total {
-            elapsed = total
-            lastTick = nil
-            runState = .completed
-            camera.stop()
-            modelContext.logCalmDown("Mirror Reflection", seconds: total)
-        }
-    }
-
-    private func start() {
-        elapsed = 0
-        lastTick = nil
-        runState = .running
-    }
-
-    private func togglePause() {
-        lastTick = nil
-        runState = (runState == .running) ? .paused : .running
-    }
+    // MARK: Actions
 
     private func reset() {
-        elapsed = 0
-        lastTick = nil
-        runState = .idle
-        camera.start() // bring the preview back after a completed run
+        clock.reset()
+        camera.start() // the camera was stopped when the session finished, so turn it back on
     }
 }
 
 #Preview("Camera timer") {
-    CameraTimerScreen(onBack: {}, onContinue: {})
+    CameraTimerScreen(onContinue: {})
 }
 
 #Preview("Phone hero") {
     CameraPhoneHero(level: 0.5)
         .padding()
-        .background { MocoBackdrop() }
+        .background { MokoBackdrop() }
 }

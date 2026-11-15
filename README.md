@@ -110,7 +110,7 @@ The breathing timer is independent of the animation. The mascot is purely presen
 
 ## The mascot and animations
 
-Moco uses the supplied capybara artwork in `MocoMascot` and the supplied app logo in `MocoLogo` and `AppIcon`. Animation is native SwiftUI, with no third-party animation runtime.
+Moko uses the supplied capybara artwork in `MokoMascot` and the supplied app logo in `MokoLogo` and `AppIcon`. Animation is native SwiftUI, with no third-party animation runtime.
 
 - Splash: the mascot rises from below with a 0.5-second spring on a lavender background.
 - Welcome and earned badges: one-shot entrances.

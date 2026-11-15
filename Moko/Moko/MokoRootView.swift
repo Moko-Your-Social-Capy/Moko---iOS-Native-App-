@@ -1,14 +1,31 @@
+//
+//  MokoRootView.swift
+//  Moko
+//
+//  The main app after onboarding: the four tabs (Overview, Quests, Relax, Explore)
+//  and the full-screen quest debrief.
+//
+//  The Overview tab has three versions (`OverviewMode`):
+//  - .todo        today's mission card
+//  - .resume      "finish your debrief" (a debrief was saved for later)
+//  - .debriefDone the celebration after a finished debrief
+//
 
 import SwiftUI
 import SwiftData
 
 struct MokoRootView: View {
 
+    // SwiftData's "save box", passed to the daily mission service.
     @Environment(\.modelContext) private var modelContext
+    // Every saved quest, newest first. Redraws when a quest is added or changed.
     @Query(sort: \Quest.date, order: .reverse) private var quests: [Quest]
 
+    // Which tab is showing.
     @State private var selectedTab: MokoTab = .overview
+    // Which version of the Overview tab is showing.
     @State private var overviewMode: OverviewMode = .todo
+    // Setting this opens the debrief full screen; nil closes it.
     @State private var debriefQuest: Quest?
 
     var body: some View {
@@ -62,16 +79,17 @@ struct MokoRootView: View {
         // iOS 27 otherwise keeps the .search tab glued to the other tabs.
         // This restores the default 3-tabs + detached search button.
         .tabViewSearchActivation(.searchTabSelection)
-        .foregroundStyle(MocoScreenTheme.Colors.textTitle)
+        .foregroundStyle(MokoScreenTheme.Colors.textTitle)
 
-        // MOKO Forest Green
-        .tint(MocoScreenTheme.Colors.tabActiveGlyph)
+        // Colour of the selected tab icon.
+        .tint(MokoScreenTheme.Colors.tabActiveGlyph)
 
         // Lets the quest debrief send the user back to a specific Overview state
         .environment(\.openOverview) { mode in
             selectedTab = .overview
             overviewMode = mode
         }
+        // Opens the debrief over everything whenever `debriefQuest` is set.
         .fullScreenCover(item: $debriefQuest) { quest in
             QuestDebriefScreen(quest: quest) { outcome in
                 handleDebriefOutcome(outcome, for: quest)
@@ -84,17 +102,18 @@ struct MokoRootView: View {
                 overviewMode = .todo
             }
         }
-        .onAppear {
-            // Pick up a debrief that was left unfinished in an earlier session
-            guard let id = PendingDebriefStore.questID else { return }
-            if quests.contains(where: { $0.id == id }) {
-                overviewMode = .resume
-            } else {
-                PendingDebriefStore.clear()
-            }
-        }
+        // `.task` runs once when the tabs first appear.
         .task {
-            // Pre-populate today's daily mission via AFM or Mission Bank
+            // 1. Pick up a debrief that was left unfinished in an earlier session.
+            if let id = PendingDebriefStore.questID {
+                if quests.contains(where: { $0.id == id }) {
+                    overviewMode = .resume
+                } else {
+                    PendingDebriefStore.clear()   // that quest no longer exists
+                }
+            }
+
+            // 2. Create today's daily mission (Apple Intelligence or the Mission Bank).
             await DailyMissionService.ensureDailyMission(in: modelContext, existingQuests: quests)
         }
     }
@@ -106,13 +125,9 @@ struct MokoRootView: View {
         switch overviewMode {
         case .todo:
             Overview(
-                selectedTab: $selectedTab,
-                mission: todaysMission,
+                mission: Quest.todaysMission(from: quests),
+                // Overview has already saved the quest, so this only opens the debrief.
                 onStartDebrief: { quest in
-                    if quest.modelContext == nil {
-                        modelContext.insert(quest)
-                        try? modelContext.save()
-                    }
                     debriefQuest = quest
                 }
             )
@@ -130,17 +145,6 @@ struct MokoRootView: View {
     /// the Quests tab or the Overview mission.
     private var customQuestCount: Int {
         quests.filter { !$0.isFromLibrary }.count
-    }
-
-    /// The quest Overview shows as today's mission. Always guarantees a fresh daily mission.
-    private var todaysMission: Quest? {
-        if let mission = Quest.overviewMission(from: quests) {
-            return mission
-        }
-        if let todayQuest = quests.first(where: { Calendar.current.isDateInToday($0.date) && !$0.isFromLibrary }) {
-            return todayQuest
-        }
-        return DailyMissionService.todayFallbackQuest(existingQuests: quests)
     }
 
     /// The quest whose debrief was saved for later.

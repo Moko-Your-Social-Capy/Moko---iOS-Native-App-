@@ -1,11 +1,22 @@
+//
+//  ReflectionView.swift
+//  Moko
+//
+//  "This is you" — shown after the swipe questions. Lists the user's strengths
+//  and weak spots as rows that open and close when tapped.
+//
+
 import SwiftUI
 
 // MARK: - Content
 
+/// One expandable row (a strength or a weak spot).
 struct ReflectionItem: Identifiable {
+    /// Unique key, also used to remember whether the row is open.
     let id: String
     let title: String
-    let icon: String          // SF Symbol name
+    /// SF Symbol name.
+    let icon: String
     let detail: String
     var tint: Color = RColor.green
 }
@@ -50,9 +61,11 @@ extension ReflectionItem {
 // MARK: - Screen
 
 struct ReflectionView: View {
+    /// The name saved during onboarding; used when no name is passed in.
     @AppStorage("userName") private var storedUserName: String = ""
 
     var userName: String?
+    /// Called when the user taps "Overview".
     var onOverview: () -> Void
 
     init(
@@ -63,18 +76,15 @@ struct ReflectionView: View {
         self.onOverview = onOverview
     }
 
+    /// Passed-in name first, then the saved one, else "" (title drops the name).
     private var displayName: String {
-        if let userName = userName?.trimmingCharacters(in: .whitespacesAndNewlines), !userName.isEmpty {
-            return userName
-        }
-        let stored = storedUserName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !stored.isEmpty {
-            return stored
-        }
-        return ""
+        let candidates = [userName ?? "", storedUserName]
+        return candidates
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first { !$0.isEmpty } ?? ""
     }
 
-    /// Rows that start open. Use `[]` to start with everything collapsed.
+    /// Ids of the rows that are open. Use `[]` to start with everything collapsed.
     @State private var expanded: Set<String> = ["presence", "loyalty"]
 
     var body: some View {
@@ -109,6 +119,7 @@ struct ReflectionView: View {
         }
         .scrollIndicators(.hidden)
         .background(MokoTheme.limeBackground.ignoresSafeArea())
+        // Pins the button to the bottom; the scroll content stops above it instead of under it.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             PillButton(title: "Overview", action: onOverview)
                 .padding(.horizontal, 36)
@@ -123,6 +134,7 @@ struct ReflectionView: View {
             .font(.system(size: 22, weight: .medium))
             .tracking(-0.4)
             .foregroundStyle(RColor.text)
+            .accessibilityAddTraits(.isHeader)
     }
 
     // MARK: Expandable row
@@ -150,12 +162,13 @@ struct ReflectionView: View {
 
                     Spacer(minLength: 8)
 
-                    // Points down when closed, rotates to point up when open
+                    // Points down when closed, rotates to point up when open.
                     Image(systemName: "chevron.down")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(RColor.chevron)
                         .rotationEffect(.degrees(isOpen ? 180 : 0))
                 }
+                // Makes the empty space in the row tappable too.
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -166,13 +179,15 @@ struct ReflectionView: View {
                     .font(.system(size: 16))
                     .lineSpacing(3.5)
                     .foregroundStyle(RColor.body)
+                    // Let the text wrap onto as many lines as it needs.
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.leading, 43)          // lines up with the title text
+                    .padding(.leading, 43)               // lines up with the title text
                     .transition(.opacity)
             }
         }
     }
 
+    /// Opens the row if closed, closes it if open.
     private func toggle(_ id: String) {
         if expanded.contains(id) {
             expanded.remove(id)
