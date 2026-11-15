@@ -212,19 +212,7 @@ nonisolated enum QuestFormat {
         return calendar.date(bySettingHour: 9, minute: 30, second: 0, of: tomorrow) ?? tomorrow
     }
 
-    /// "Tomorrow, Oct 15".
-    static func dateText(_ date: Date) -> String {
-        let calendar = Calendar.current
-        let short = date.formatted(.dateTime.month(.abbreviated).day())
-
-        if calendar.isDateInToday(date) { return "Today, \(short)" }
-        if calendar.isDateInTomorrow(date) { return "Tomorrow, \(short)" }
-
-        let weekday = date.formatted(.dateTime.weekday(.abbreviated))
-        return "\(weekday), \(short)"
-    }
-
-    /// "9:30 AM".
+    /// "9:30 AM"
     static func timeText(_ date: Date) -> String {
         date.formatted(date: .omitted, time: .shortened)
     }

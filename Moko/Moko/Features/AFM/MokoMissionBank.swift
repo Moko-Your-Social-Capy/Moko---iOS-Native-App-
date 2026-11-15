@@ -40,15 +40,6 @@ enum Stat: String, CaseIterable, Codable, Hashable, Sendable {
 /// How hard a mission is. Mirrors `QuestIntensity` (the SwiftData side).
 enum Difficulty: String, CaseIterable, Codable, Hashable, Sendable {
     case easy, medium, hard
-
-    /// 0, 1, 2 — lets code compare difficulties with `<`.
-    var rank: Int {
-        switch self {
-        case .easy: return 0
-        case .medium: return 1
-        case .hard: return 2
-        }
-    }
 }
 
 // Convert between `Difficulty` (AFM side) and `QuestIntensity` (saved on `Quest`).

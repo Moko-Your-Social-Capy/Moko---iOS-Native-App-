@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-11-15 — Merge `origin/main` into `mj/fix`: Kept the branch's renamed types, accessibility fixes, and shared Overview; integrated upstream removal of unused AFM helpers and obsolete assets. Preserved local Xcode state outside source control.
 - 2026-11-15 — `welcome_moko.imageset/Contents.json`: Removed a reference to a nonexistent 3× image while preserving the available artwork.
 - 2026-11-15 — `DailyMissionService.swift`, `QuestLibraryService.swift`, `ImageryGuideStore.swift`: Share a persistent ID instead of a non-Sendable quest between tasks and keep store initialization on the main actor to resolve concurrency warnings.
 - 2026-11-15 — `SimulationScreen.swift`: Compute dialogue after the quest title is available, use an opacity transition, and make line/popup delays cancellable so automatic progress and Next taps share one timer.

@@ -38,7 +38,6 @@ nonisolated struct ImageryGuide: Identifiable, Hashable, Decodable {
     /// Short duration shown on the card, for example "2 min".
     let durationLabel: String
 
-    var detailDescription: String { detailText }
     var completionMessage: String { completionText }
     var sessionSteps: [String] { steps }
 

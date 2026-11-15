@@ -1,11 +1,13 @@
 Secrets.xcconfig
 .DS_Store
 supabase/.temp/
+
+# Build output (SwiftPM/npm style .build trees are never source)
+**/.build/
+
 # Xcode Derived Data
 DerivedData/
 **/DerivedData/
-# Local build output and scratch files
-Moko/.build/
 
 # Xcode user-specific files
 *.xcuserstate

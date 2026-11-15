@@ -3,12 +3,9 @@
 //  Moko
 //
 //  Opens when a quest card (or its check button) is tapped. A category image, then the
-//  quest's title, category, intensity and XP, then a briefing (scene, who, goal).
-//  The briefing comes from `AFMQuestBriefGenerator`, which asks Apple's on-device
-//  model (see Features/AFM). Sliding "Slide to debrief" completes the quest and
-//  swaps this screen for the debrief conversation (QuestDebrief.swift).
-//
-//  Debug tip: if the briefing never appears, look at `QuestCardService.customCard`.
+//  quest's title, category, intensity and XP, then a briefing (scene, who, goal) generated
+//  on-device through `QuestBriefGenerating` (backed by the AFM quest-card service). Sliding
+//  "Slide to debrief" completes the quest and opens the debrief conversation (Questdebrief.swift).
 //
 
 import SwiftUI

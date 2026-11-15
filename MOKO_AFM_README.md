@@ -7,8 +7,8 @@ Requires iOS 26+ and a device with Apple Intelligence.
 | File | What it holds |
 |---|---|
 | `MokoMissionBank.swift` | Shared types (`Stat`, `Difficulty`, `MissionTemplate`) and the 20-situation Mission Bank (scene, who, goal, age range, four per-stat follow-up questions). |
-| `MokoAFM.swift` | `AFM.generate` helper (fresh session per call, retry, availability check), the `@Generable` output types, and all prompts for onboarding, quest cards and debrief. |
-| `MokoServices.swift` | Onboarding scoring and insights, quest card service, daily mission planner, and the `DebriefEngine` state machine. |
+| `MokoAFM.swift` | `AFM.generate` helper (fresh session per call, retry, availability check), the `@Generable` output types, and all prompts for quest cards and the debrief. |
+| `MokoServices.swift` | Onboarding scoring (`OnboardingScoring`), the quest card service (custom + library cards), and the debrief context bridge used by `AFMDebriefCoach`. |
 | `MokoMissionInvention.swift` | Invents fresh daily missions with variety seeds, a Swift validator and an AFM review pass; falls back safely. |
 | `AFMDebriefCoach.swift` | Bridge between AFM debrief intelligence and the existing `QuestDebriefScreen` UI via `DebriefCoaching`. |
 
@@ -24,9 +24,9 @@ All AFM files are located in `Moko/Features/AFM/`.
 
 ## The five tasks
 
-### 1. Onboarding insights
+### 1. Onboarding
 - `OnboardingScoring.scores(from:)` maps the 8 yes/no answers to the four stats, using the tags from the tagging PDF. Primary = 1.0, secondary = 0.4, Q8 for Presence = 0.6 (the PDF flags it as tentative). "Yes" always means the harder behaviour. Scores land between 25 and 90.
-- `OnboardingInsightService.analyze(_:)` asks AFM for a 1–2 line note per stat: encouraging for strengths, gentle and specific for growth areas. Static fallback text is used if AFM fails.
+- The reflection copy that follows is static in the onboarding UI (`ReflectionView`); no model call is made.
 
 ### 2. Quest cards
 - AFM writes the title, scene, who and goal.
@@ -34,19 +34,19 @@ All AFM files are located in `Moko/Features/AFM/`.
 - For custom quests, AFM first picks the closest of the bank situations in the user's category (`TemplateChoice`), then writes the card from the user's title and notes.
 
 ### 3. Voice debrief
-`DebriefEngine` runs a fixed sequence and ignores input after `.finished`:
+`AFMDebriefCoach` runs a fixed sequence and ignores input after `.finished`:
 
 1. Greeting and main question.
 2. User answers. AFM returns a confidence score and note, plus Courage and Clarity.
 3. Follow-up 1 (Presence), then follow-up 2 (Warmth). Both come from the bank question, reworded around something the user said.
 4. Follow-up 3 targets whichever stat has the weakest evidence so far.
-5. Closing message tied to the event and goal. Final scores are an evidence-weighted average per stat.
+5. Closing state, then `.finished` (input is rejected from there on). Final scores are an evidence-weighted average per stat.
 
 Confidence means how well an answer matches the goal or question and shows the user really did it. Hedging lowers it slightly and assured, specific language raises it slightly. Change the rubric in `DebriefPrompts.analysisInstructions` if you want something else.
 
 ### 4. Daily missions from a custom quest
-- `MissionPlanner.plan` gives one mission per day until the quest date. It ramps from easy up to the user's chosen difficulty inside the matched category. The last day rehearses the matched situation.
-- `QuestCardService.dailyCard` turns each planned day into a card, generated when that day opens.
+- `DailyMissionService` keeps one mission available for the day and steps it up toward an upcoming custom quest, ramping from easy to the user's chosen difficulty inside the matched category. The last day rehearses the matched situation.
+- `QuestCardService.freshDailyCard` turns a bank template into that day's card, generated when the day opens.
 - Ramp days try `MissionInventor` first. If invention fails any check, they fall back to a reworded bank situation. The rehearsal day is never invented.
 
 ### 5. Mission bank

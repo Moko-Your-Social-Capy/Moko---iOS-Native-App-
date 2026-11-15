@@ -8,6 +8,7 @@
 
 import SwiftUI
 
+/// Native loading indicator; larger placements include the Moko mascot.
 struct MokoFlossLoadingView: View {
     /// Width and height of the whole loader.
     var size: CGFloat = 112

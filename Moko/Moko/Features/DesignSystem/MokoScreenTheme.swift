@@ -37,8 +37,6 @@ enum MokoScreenTheme {
         static let textBody = Color(hex: 0x5E5B6A)
         static let textMuted = Color(hex: 0x6E6B7A)
 
-        static let stateEmptyTitle = Color(hex: 0x2E5B4D)
-
         static let dataNumeral = Color(hex: 0x55457F)
         static let dataViolet = Color(hex: 0x8C7CB8)
         static let dataVioletDeep = Color(hex: 0x55457F)
@@ -57,9 +55,7 @@ enum MokoScreenTheme {
         static let vectorBush = Color(hex: 0x7FAF79).opacity(0.15)
         static let vectorLeaf = Color(hex: 0x8FB98A).opacity(0.18)
 
-        static let tabActiveBackground = Color(hex: 0xEDE6F7)
         static let tabActiveGlyph = Color(hex: 0x2F6B4F)
-        static let tabInactive = Color(hex: 0x1E1C26)
 
         // MARK: Profile
 
@@ -93,7 +89,6 @@ enum MokoScreenTheme {
         static let lockedInk = Color(hex: 0x9A94A4)
         static let chevron = Color(hex: 0xA6A2B0)
         static let axisLabel = Color(hex: 0x8E8778)
-        static let ringTrack = Color(hex: 0xD6D8E8)
         static let error = Color(hex: 0xB9583F)
 
         /// Medal metals, used only by the badge artwork.
@@ -123,7 +118,6 @@ enum MokoScreenTheme {
         static let s5: CGFloat = 20
         static let s6: CGFloat = 24
         static let s7: CGFloat = 32
-        static let s8: CGFloat = 40
 
         /// Page gutter.
         static let page = s6
@@ -142,8 +136,6 @@ enum MokoScreenTheme {
         /// Between two sibling cards.
         static let gapCard = s4
 
-        static let safeTop: CGFloat = 59
-        static let safeBottom: CGFloat = 34
         /// Floating tab capsule band, measured from the bottom edge.
         static let tabBand: CGFloat = 96
     }

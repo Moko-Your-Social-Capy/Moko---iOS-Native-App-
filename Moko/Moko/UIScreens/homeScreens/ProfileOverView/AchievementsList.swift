@@ -253,7 +253,6 @@ private enum BadgePalette {
     static let gold = Theme.Colors.medalGold
     static let silver = Theme.Colors.medalSilver
     static let locked = Theme.Colors.lockedInk
-    static let lockedFace = Theme.Colors.ringTrack
 }
 
 /// Draws the outline for each badge family with `Path` (a list of points and curves).
