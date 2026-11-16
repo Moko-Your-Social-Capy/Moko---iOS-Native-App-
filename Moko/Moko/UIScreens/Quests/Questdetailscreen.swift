@@ -286,7 +286,7 @@ struct QuestDetailScreen: View {
                         Text("\(quest.awardedXP) XP")
                             .mokoText(MokoScreenTheme.Typeface.slider)
                     }
-                    .foregroundStyle(QuestStyle.accent)
+                    .foregroundStyle(QuestStyle.xpColor(for: quest.awardedXP))
                     .padding(.horizontal, 12)
                     .frame(height: 32)
                     .background(Capsule().fill(QuestStyle.chipSelectedFill))

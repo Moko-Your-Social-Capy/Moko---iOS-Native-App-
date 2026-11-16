@@ -247,7 +247,7 @@ struct QuestsScreen: View {
                 HStack(spacing: 6) {
                     Text("\(quest.awardedXP) XP")
                         .mokoText(MokoScreenTheme.Typeface.caption)
-                        .foregroundStyle(isDebriefed ? QuestStyle.subtext : QuestStyle.accent)
+                        .foregroundStyle(isDebriefed ? QuestStyle.subtext : QuestStyle.xpColor(for: quest.awardedXP))
 
                     if quest.debriefRecorded {
                         Text("· Debrief done")
