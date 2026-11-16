@@ -82,7 +82,7 @@ struct OnboardingFlowView: View {
                 screenWidth = newWidth
             }
         }
-        .background(MokoTheme.limeBackground.ignoresSafeArea())
+        .background(MokoBackdrop())
         .sensoryFeedback(.impact(weight: .light), trigger: hapticTick)
         // Replace the system Back button with our own, so Back steps through cards first.
         .navigationBarBackButtonHidden(true)

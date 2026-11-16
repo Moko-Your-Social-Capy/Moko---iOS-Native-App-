@@ -21,7 +21,6 @@ private enum Nudge {
     static let journeyValueGap: CGFloat = 7
     static let journeyBarsTop: CGFloat = 11
     static let journeyAxisTop: CGFloat = 6
-    static let chipGap: CGFloat = 7
     static let sectionHeadGap: CGFloat = 10
 }
 
@@ -46,6 +45,8 @@ struct ProfileOverView: View {
     @State private var journeySelection = JourneyRange.week.rawValue
     // The sheet that is open (edit profile or a badge). `nil` means none.
     @State private var activeSheet: ProfileSheet?
+    // Accessibility text gets full-width badges so titles never need to shrink.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     // MARK: - Model
 
@@ -87,10 +88,7 @@ struct ProfileOverView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                LinearGradient(colors: [Theme.Colors.canvasTop, Theme.Colors.canvasBottom],
-                               startPoint: .top,
-                               endPoint: .bottom)
-                    .ignoresSafeArea()
+                MokoBackdrop()
 
                 ScrollView(.vertical) {
                     VStack(spacing: 0) {
@@ -136,7 +134,7 @@ struct ProfileOverView: View {
 
     /// Bigger avatar for the brighter profile section.
     private var avatar: some View {
-        MokoProfileAvatar(level: level, photoData: profile?.profileImageData)
+        MokoProfileAvatar(level: level, photoData: profile?.profileImageData, size: Theme.Size.avatarExtraLarge)
     }
 
     // MARK: - §3 Hero
@@ -159,8 +157,7 @@ struct ProfileOverView: View {
                 .mokoText(Theme.Typeface.profileName)
                 .foregroundStyle(Theme.Colors.textTitle)
                 .multilineTextAlignment(.center)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(handle.map { "@\($0)" } ?? "\(animated(levelXP)) XP to level \(level + 1)")
                 .mokoText(Theme.Typeface.caption)
@@ -214,14 +211,10 @@ struct ProfileOverView: View {
         let total = buckets.reduce(0) { $0 + $1.xp }
 
         return VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: Theme.Space.s2) {
+            VStack(alignment: .leading, spacing: Theme.Space.s3) {
                 Text("My Journey")
-                    .mokoText(Theme.Typeface.title2)
+                    .font(.title2.weight(.bold))
                     .foregroundStyle(Theme.Colors.textTitle)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-
-                Spacer(minLength: Theme.Space.s2)
 
                 MokoSegmented(titles: JourneyRange.allCases.map(\.title),
                               selection: $journeySelection)
@@ -291,6 +284,12 @@ struct ProfileOverView: View {
 
     // MARK: - §7 Achievements
 
+    private var badgeColumns: [GridItem] {
+        dynamicTypeSize.isAccessibilitySize
+            ? [GridItem(.flexible())]
+            : [GridItem(.adaptive(minimum: 140), spacing: Theme.Space.s3)]
+    }
+
     private var achievementsSection: some View {
         VStack(alignment: .leading, spacing: Nudge.sectionHeadGap) {
             HStack(spacing: Theme.Space.s2) {
@@ -314,7 +313,8 @@ struct ProfileOverView: View {
                 .accessibilityLabel("View all achievements")
             }
 
-            HStack(spacing: Nudge.chipGap) {
+            // Let larger cards wrap instead of squeezing four badge names into one row.
+            LazyVGrid(columns: badgeColumns, spacing: Theme.Space.s3) {
                 ForEach(chips) { chip in
                     Button {
                         activeSheet = .badge(chip.achievement)
@@ -357,7 +357,7 @@ struct ProfileOverView: View {
     // MARK: - §8 Settings
 
     private var settingsSection: some View {
-        VStack(spacing: Theme.Space.s2) {
+        VStack(spacing: Theme.Space.s3) {
             settingsRow("Moko’s wardrobe", symbol: "tshirt") {
                 MokoWardrobeView(level: level)
             }
@@ -379,6 +379,8 @@ struct ProfileOverView: View {
     ) -> some View {
         NavigationLink {
             destination()
+                // Profile hides its own bar, but its detail screens need a Back button.
+                .toolbar(.visible, for: .navigationBar)
         } label: {
             MokoSettingRow(symbol: symbol, title: title)
                 .mokoCard(fill: Theme.Card.fill, radius: Theme.Radius.chip)
@@ -492,5 +494,11 @@ enum ProfilePalette {
 
 #Preview {
     ProfileOverView()
+        .modelContainer(for: [Profile.self, Quest.self, CalmDownModel.self, InsightsModel.self, OnboardingState.self], inMemory: true)
+}
+
+#Preview("Profile — Larger Text") {
+    ProfileOverView()
+        .environment(\.dynamicTypeSize, .accessibility3)
         .modelContainer(for: [Profile.self, Quest.self, CalmDownModel.self, InsightsModel.self, OnboardingState.self], inMemory: true)
 }

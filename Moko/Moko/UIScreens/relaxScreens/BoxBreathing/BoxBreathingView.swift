@@ -152,6 +152,8 @@ struct BoxBreathingView: View {
                 }
             }
         }
+        // The panels open only after the final breathing cycle finishes.
+        .mokoCompletionReveal(isPresented: state == .complete)
         .navigationBarTitleDisplayMode(.inline)
         // Immersive session: keep the tab bar out of the way.
         .toolbar(.hidden, for: .tabBar)

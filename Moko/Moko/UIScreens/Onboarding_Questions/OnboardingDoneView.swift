@@ -62,7 +62,9 @@ struct OnboardingDoneView: View {
                 .padding(.bottom, 55)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(MokoTheme.limeBackground.ignoresSafeArea())
+        .background(MokoBackdrop())
+        // Open the mint panels once to celebrate finishing the questions.
+        .mokoCompletionReveal()
     }
 }
 

@@ -25,11 +25,12 @@ enum MokoScreenTheme {
 
     /// Every colour in the app. `Color(hex:)` turns a web-style hex code into a SwiftUI colour.
     enum Colors {
-        static let canvasTop = Color(hex: 0xF3F8F0)
-        static let canvasBottom = Color(hex: 0xE7F0E2)
+        static let canvasTop = Color(hex: 0xE3F1DF)
+        static let canvasBottom = Color(hex: 0xFFFFFF)
 
         static let surfaceWhite = Color(hex: 0xFFFFFF)
-        static let surfaceLavender = Color(hex: 0xEDEFF8)
+        // Keep the existing names so every screen picks up the green palette.
+        static let surfaceLavender = Color(hex: 0xEDF5E9)
 
         static let strokeInk = Color(hex: 0x17161C)
 
@@ -37,9 +38,9 @@ enum MokoScreenTheme {
         static let textBody = Color(hex: 0x5E5B6A)
         static let textMuted = Color(hex: 0x6E6B7A)
 
-        static let dataNumeral = Color(hex: 0x55457F)
-        static let dataViolet = Color(hex: 0x8C7CB8)
-        static let dataVioletDeep = Color(hex: 0x55457F)
+        static let dataNumeral = forest
+        static let dataViolet = sage
+        static let dataVioletDeep = forest
         static let dataGrid = Color(hex: 0xC9CEDD)
         static let dataNode = Color(hex: 0x2B2440)
 
@@ -81,7 +82,7 @@ enum MokoScreenTheme {
 
         /// Icon plate tints, cycled by stat / chip position.
         static let tileSage = Color(hex: 0xE2EFDD)
-        static let tileLilac = Color(hex: 0xE5E1F1)
+        static let tileLilac = canvasTop
         static let tileCream = Color(hex: 0xE9EFE2)
 
         static let trackCream = Color(hex: 0xEFE8D8)
@@ -317,6 +318,8 @@ enum MokoScreenTheme {
         static let snapToEnd = Animation.spring(response: 0.24, dampingFraction: 0.9)
         /// Card state crossfade.
         static let crossfade = Animation.easeInOut(duration: 0.24)
+        /// Two panels part once to reveal a finished session.
+        static let completionReveal = Animation.timingCurve(0.23, 1, 0.32, 1, duration: 0.28)
         /// Knob glyph swap.
         static let glyphSwap = Animation.easeInOut(duration: 0.18)
         /// Idle knob breath.

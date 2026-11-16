@@ -79,7 +79,7 @@ struct FamiliarCarouselView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 38)
         }
-        .background(MokoTheme.limeBackground.ignoresSafeArea())
+        .background(MokoBackdrop())
     }
 
     // MARK: Swipeable cards

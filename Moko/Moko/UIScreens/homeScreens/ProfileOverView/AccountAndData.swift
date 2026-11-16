@@ -80,6 +80,7 @@ struct ProfileOverViewAccountAndData: View {
                     Label("Edit Profile", systemImage: "person")
                 }
             }
+            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
             Section {
                 // ShareLink opens Apple's share sheet (AirDrop, Files, Mail…) with the JSON text.
                 ShareLink(item: exportJSON) {
@@ -88,27 +89,33 @@ struct ProfileOverViewAccountAndData: View {
             } footer: {
                 Text("Your export contains your profile, quests, scores, calm sessions and onboarding answers.")
             }
+            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
             Section {
                 Button(role: .destructive) { showSignOut = true } label: {
                     Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
-                        .frame(minHeight: 44)
+                        .labelStyle(MokoSettingsLabelStyle(isDestructive: true))
                 }
                 NavigationLink {
                     ProfileOverViewDeleteAccountConfirm()
                 } label: {
                     Label("Delete Account", systemImage: "trash")
-                        .foregroundStyle(ProfilePalette.error)
-                        .frame(minHeight: 44)
+                        .labelStyle(MokoSettingsLabelStyle(isDestructive: true))
                 }
             } footer: {
                 Text("Deleting your account removes your data from the service and this device.")
             }
+            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
         }
         .listStyle(.insetGrouped)
+        .labelStyle(MokoSettingsLabelStyle())
+        // Keep account actions as easy to read and tap as the main Settings rows.
+        .environment(\.defaultMinListRowHeight, 72)
+        .foregroundStyle(ProfilePalette.text)
         .scrollContentBackground(.hidden)
-        .background(ProfilePalette.background)
-        .navigationTitle("Account Info")
+        .background(MokoBackdrop())
+        .navigationTitle("Account & Data")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar(.visible, for: .navigationBar)
         // `.task` runs when the screen appears: ask Supabase who is signed in.
         .task {
             // `defer` runs at the very end, even if the lookup fails, so the spinner always stops.

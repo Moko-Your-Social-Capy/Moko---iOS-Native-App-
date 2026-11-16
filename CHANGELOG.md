@@ -1,5 +1,13 @@
 # Changelog
 
+- 2026-11-16 — `MokoProfileComponents.swift`, `ProfileOverView.swift`: Enlarged Profile icons, avatar, stat/badge cards and settings rows; added wrapping layouts for accessibility text and visible navigation on detail screens.
+- 2026-11-16 — `SettingsOverview.swift`, `AccountAndData.swift`: Shared larger icon labels, 72-point minimum rows and white card surfaces; clarified account deletion and added a microphone information entry without requesting access.
+- 2026-11-16 — `MicrophonePermissionView.swift`, `ContentView.swift`: Replaced the separate teal/brown palette with app theme colors, made microphone information scrollable, and removed the unnecessary onboarding permission request because voice recording is not implemented.
+- 2026-11-16 — `Notifications.swift`, `SettingsInfoScreens.swift`: Removed inactive reminder switches and notification permission prompts, preserved saved preferences, and corrected availability/help text until a real delivery service exists.
+- 2026-11-15 — `MokoScreenTheme.swift`, `MokoComponents.swift`, `MokoLaunchBackground.colorset/Contents.json`: Added a shared mint/white vector backdrop and green accents, with a matching launch color to keep the app visually consistent.
+- 2026-11-15 — `ContentView.swift`, onboarding, splash, authentication, profile and Settings screens: Adopted the shared backdrop while preserving card fills and full-screen imagery-session photos.
+- 2026-11-15 — `MokoCompletionReveal.swift`, `MokoCompletionAnimation.swift`, `OnboardingDoneView.swift`, `Breathingsessionscreen.swift`, `BoxBreathingView.swift`, `GroundingExerciseScreen.swift`, `SessionCompleteView.swift`, `Mirrorflow.swift`: Added a short center-opening completion reveal and finite vector celebration; Reduce Motion uses a fade and still badge, and decoration never blocks controls. Simulator build passed; device visual testing remains pending.
+- 2026-11-15 — `Questdetailscreen.swift`, `SimulationScreen.swift`: Added Practice with Moko from quest briefings, self-paced rehearsal, replay and close controls; practice never completes a real quest or awards XP.
 - 2026-11-15 — Merge `origin/main` into `mj/fix`: Kept the branch's renamed types, accessibility fixes, and shared Overview; integrated upstream removal of unused AFM helpers and obsolete assets. Preserved local Xcode state outside source control.
 - 2026-11-15 — `welcome_moko.imageset/Contents.json`: Removed a reference to a nonexistent 3× image while preserving the available artwork.
 - 2026-11-15 — `DailyMissionService.swift`, `QuestLibraryService.swift`, `ImageryGuideStore.swift`: Share a persistent ID instead of a non-Sendable quest between tasks and keep store initialization on the main actor to resolve concurrency warnings.

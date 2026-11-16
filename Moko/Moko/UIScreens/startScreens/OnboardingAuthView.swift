@@ -49,8 +49,7 @@ struct OnboardingAuthView: View {
         GeometryReader { geometry in
             ZStack {
                 // Background
-                MokoTheme.background
-                    .ignoresSafeArea()
+                MokoBackdrop()
                 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
@@ -344,7 +343,7 @@ struct OnboardingAuthView: View {
                         }
                         .padding(24)
                     }
-                    .background(MokoTheme.background.ignoresSafeArea())
+                    .background(MokoBackdrop())
                     .navigationTitle("Terms")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
@@ -367,7 +366,7 @@ struct OnboardingAuthView: View {
                         }
                         .padding(24)
                     }
-                    .background(MokoTheme.background.ignoresSafeArea())
+                    .background(MokoBackdrop())
                     .navigationTitle("Privacy")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {

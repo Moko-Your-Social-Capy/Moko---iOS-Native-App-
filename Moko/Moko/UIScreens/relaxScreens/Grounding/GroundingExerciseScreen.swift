@@ -125,6 +125,8 @@ struct GroundingExerciseScreen: View {
                     .transition(.opacity)
             }
         }
+        // Open the panels once after all five senses are finished.
+        .mokoCompletionReveal(isPresented: isCompleted)
         .navigationBarTitleDisplayMode(.inline)
         // Immersive session: keep the tab bar out of the way.
         .toolbar(.hidden, for: .tabBar)
@@ -352,7 +354,7 @@ struct GroundingExerciseScreen: View {
             Spacer(minLength: 16)
 
             MokoCompletionAnimation(ringDiameter: 190)
-                .transition(.scale(scale: 0.6).combined(with: .opacity))
+                .transition(.opacity)
 
             VStack(spacing: 8) {
                 Text("Well done")

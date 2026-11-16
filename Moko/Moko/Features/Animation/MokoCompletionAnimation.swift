@@ -5,7 +5,11 @@ import SwiftUI
 struct MokoCompletionAnimation: View {
     var ringDiameter: CGFloat = 210
 
+    // The phone's motion setting keeps the finished badge still.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    // The celebration has one start time and stops redrawing once it finishes.
     @State private var startedAt = Date()
+    @State private var animationFinished = false
 
     private let duration: TimeInterval = 3.6
     private let lemonDelays: [Double] = [0, 0.45, 0.9, 1.35, 1.8, 2.25, 2.7, 3.15]
@@ -15,24 +19,28 @@ struct MokoCompletionAnimation: View {
     private var canvasSide: CGFloat { ringDiameter * 1.55 }
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { timeline in
-            let elapsed = max(0, timeline.date.timeIntervalSince(startedAt))
-            let time = elapsed.truncatingRemainder(dividingBy: duration)
-            let checkCycle = elapsed.truncatingRemainder(dividingBy: 1.8)
-            let checkProgress = CGFloat(min(1, checkCycle / 0.27))
+        // Redraw only during the one-shot celebration, never while it sits idle.
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: reduceMotion || animationFinished)) { timeline in
+            let elapsed = reduceMotion || animationFinished ? duration : max(0, timeline.date.timeIntervalSince(startedAt))
+            let time = min(elapsed, duration)
+            let checkProgress = CGFloat(min(1, elapsed / 0.27))
             let entrance = min(1, elapsed / 0.44)
             let easedEntrance = entrance * entrance * (3 - 2 * entrance)
             let overshoot = 1 + 0.055 * exp(-7 * elapsed) * sin(15 * elapsed)
             let breathing = 1 + 0.018 * sin(elapsed * .pi * 2 / 2.4)
-            let badgeScale = CGFloat((0.78 + 0.22 * easedEntrance) * overshoot * breathing)
+            let badgeScale: CGFloat = reduceMotion || animationFinished
+                ? 1 : CGFloat((0.95 + 0.05 * easedEntrance) * overshoot * breathing)
 
             ZStack {
+                // Canvas draws sharp vector artwork without a large image file.
                 Canvas { context, canvasSize in
                     let center = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
                     let radius = ringDiameter / 2
 
-                    drawFallingLemons(in: &context, size: canvasSize, time: time)
-                    drawRipples(in: &context, center: center, radius: radius, time: time)
+                    if !reduceMotion && !animationFinished && elapsed < duration {
+                        drawFallingLemons(in: &context, size: canvasSize, time: time)
+                        drawRipples(in: &context, center: center, radius: radius, time: time)
+                    }
                     context.translateBy(x: center.x, y: center.y)
                     context.scaleBy(x: badgeScale, y: badgeScale)
                     context.translateBy(x: -center.x, y: -center.y)
@@ -52,9 +60,17 @@ struct MokoCompletionAnimation: View {
             .frame(width: canvasSide, height: canvasSide)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Session complete. A check mark appears as green rings pulse and lemons fall.")
-        .onAppear {
-            startedAt = Date()
+        .accessibilityLabel("Session complete")
+        // Leaving the screen cancels the wait; the final badge remains still.
+        .task {
+            guard !animationFinished else { return }
+            startedAt = .now
+            do {
+                if !reduceMotion { try await Task.sleep(for: .seconds(duration)) }
+                animationFinished = true
+            } catch {
+                return
+            }
         }
     }
 
@@ -97,8 +113,8 @@ struct MokoCompletionAnimation: View {
     private func drawFallingLemons(in context: inout GraphicsContext, size: CGSize, time: Double) {
         let scale = ringDiameter / 286
         for index in lemonDelays.indices {
-            let p = (time - lemonDelays[index] + duration)
-                .truncatingRemainder(dividingBy: duration) / duration
+            let p = (time - lemonDelays[index]) / 0.45
+            guard p >= 0 && p <= 1 else { continue }
             let eased = p * p * (3 - 2 * p)
             let y = -ringDiameter * 0.25 + CGFloat(eased) * (size.height + ringDiameter * 0.5)
             let x = size.width * lemonPositions[index] + CGFloat(sin(p * .pi * 2) * ringDiameter * 0.035)

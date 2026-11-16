@@ -38,7 +38,7 @@ private struct InfoScrollView<Content: View>: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
-        .background(InfoTheme.screenBg)
+        .background(MokoBackdrop())
     }
 }
 
@@ -186,7 +186,7 @@ struct ProfileOverViewPrivacy: View {
                 InfoPoint(
                     symbol: "hand.raised",
                     title: "Microphone and reminders",
-                    text: "Voice reflection recording is not available in this build. Microphone access is optional. Reminder settings stay on your device."
+                    text: "Voice recording and reminder delivery are not available in this build. Moko does not request microphone or notification access for these features. Text reflections need neither permission."
                 )
             }
 
@@ -210,7 +210,7 @@ struct ProfileOverViewPrivacy: View {
                 NavigationLink {
                     ProfileOverViewNotifications()
                 } label: {
-                    InfoLinkRow(title: "Notification permissions", symbol: "bell")
+                    InfoLinkRow(title: "Reminders & Notifications", symbol: "bell")
                 }
             }
             .padding(.horizontal, 16)
@@ -271,7 +271,7 @@ struct ProfileOverViewPrivacyPolicy: View {
             InfoCard {
                 InfoSection(
                     title: "Your choices",
-                    text: "Export your local data or delete your account from Account Info. You can manage microphone and notification access in iOS Settings. You can skip microphone access and use text reflections."
+                    text: "Export your local data or delete your account from Account & Data. Manage existing permissions through Settings → Manage Permissions. Text reflections do not require microphone access."
                 )
             }
 
@@ -420,7 +420,7 @@ struct ProfileOverViewHelpSupport: View {
                     Divider()
                     FAQItem(
                         question: "Why aren’t reminders appearing?",
-                        answer: "Notifications need permission from iOS. Open Settings → Notifications in Moko, turn a reminder on and allow notifications when asked. If permission was declined, use Open Settings to enable it in iOS Settings."
+                        answer: "Reminder delivery is not available in this build. Changing notification permissions will not enable it. Moko will request access only when reminders can actually be delivered."
                     )
                     Divider()
                     FAQItem(

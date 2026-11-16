@@ -135,7 +135,7 @@ struct ProfileOverViewEditProfile: View {
             }
             .listStyle(.insetGrouped)
             .scrollContentBackground(.hidden)
-            .background(ProfilePalette.background)
+            .background(MokoBackdrop())
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

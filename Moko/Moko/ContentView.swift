@@ -93,8 +93,7 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            MokoTheme.background
-                .ignoresSafeArea()
+            MokoBackdrop()
 
             switch currentScreen {
 
@@ -159,7 +158,8 @@ struct ContentView: View {
 
             case .reflection:
                 ReflectionView(userName: currentUserName) {
-                    show(.home, duration: 0.2)
+                    // Text reflections need no microphone access or extra permission step.
+                    show(.home)
                 }
                 .transition(.opacity)
 

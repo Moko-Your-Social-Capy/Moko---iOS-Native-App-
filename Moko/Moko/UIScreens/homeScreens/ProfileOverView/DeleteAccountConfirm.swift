@@ -39,7 +39,7 @@ struct ProfileOverViewDeleteAccountConfirm: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(ProfilePalette.background)
+        .background(MokoBackdrop())
         .navigationTitle("Delete account")
         .navigationBarTitleDisplayMode(.large)
         .tint(ProfilePalette.accent)
@@ -94,7 +94,7 @@ struct ProfileOverViewDeleteReauthentication: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(ProfilePalette.background)
+        .background(MokoBackdrop())
         .navigationTitle("Verify identity")
         .navigationBarTitleDisplayMode(.inline)
         // When `isVerified` turns true, push the final step onto the navigation stack.

@@ -47,6 +47,8 @@ struct SessionCompleteView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(MokoBackdrop())
+        // Celebrate only when the goodbye text is ready, never over an error.
+        .mokoCompletionReveal(isPresented: store.screen != nil)
         // Stays immersive until Done returns to the guide list.
         .toolbar(.hidden, for: .tabBar)
         // `.task` runs when the screen appears. Loads the text only if it is not loaded yet.

@@ -49,7 +49,7 @@ struct SplashScreenView: View {
     /// Plays the entrance, waits a moment, then moves on.
     private func playEntranceThenFinish() async {
         do {
-            // A tiny pause so the first frame is a clean lilac screen.
+            // A tiny pause so the first frame is a clean mint screen.
             try await Task.sleep(for: .milliseconds(80))
 
             withAnimation(reduceMotion ? MokoScreenTheme.Motion.crossfade : MokoScreenTheme.Motion.mascotEntrance) {
@@ -90,7 +90,7 @@ private struct SplashLayout: View {
 
     var body: some View {
         ZStack {
-            MokoScreenTheme.Colors.tileLilac
+            MokoBackdrop()
 
             // The app name. A fixed size on purpose: it is the logo, not reading text.
             Text("Moko")

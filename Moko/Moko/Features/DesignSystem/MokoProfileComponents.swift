@@ -17,21 +17,15 @@ private typealias Theme = MokoScreenTheme
 /// Component-internal metrics. Not screen tokens: they describe one view's
 /// construction, not a design decision the rest of the app shares.
 private enum Metric {
-    static let navButton: CGFloat = 36
-    static let navGlyph: CGFloat = 17
+    static let navButton: CGFloat = 48
     static let navInset: CGFloat = 18
-    static let levelChipHeight: CGFloat = 26
-    static let levelChipInset: CGFloat = 11
-    static let levelGlyph: CGFloat = 9.5
-    static let statPlate: CGFloat = 24
-    static let statGlyph: CGFloat = 13
-    static let statFill: CGFloat = 10
-    static let chipPlate: CGFloat = 26
-    static let chipGlyph: CGFloat = 14
-    static let settingPlate: CGFloat = 28
-    static let settingPlateRadius: CGFloat = 9
-    static let settingGlyph: CGFloat = 14
-    static let chevronGlyph: CGFloat = 13
+    static let levelChipHeight: CGFloat = 32
+    static let levelChipInset: CGFloat = 14
+    static let statPlate: CGFloat = 36
+    static let statFill: CGFloat = 14
+    static let chipPlate: CGFloat = 40
+    static let settingPlate: CGFloat = 40
+    static let settingPlateRadius: CGFloat = 12
     static let weekBarHeight: CGFloat = 66
     static let weekBarRadius: CGFloat = 5
     static let weekBarGap: CGFloat = 9
@@ -116,7 +110,7 @@ struct MokoProfileHero<Avatar: View>: View {
                               label: String) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: Metric.navGlyph, weight: .semibold))
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(Theme.Colors.surfaceWhite)
                 .frame(width: Metric.navButton, height: Metric.navButton)
                 .background(Theme.Colors.heroButtonSurface, in: Circle())
@@ -170,14 +164,14 @@ struct MokoLevelChip: View {
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "sparkles")
-                .font(.system(size: Metric.levelGlyph, weight: .bold))
+                .font(.caption.weight(.bold))
 
             Text("Level \(level)")
-                .mokoText(Theme.Typeface.badge)
+                .font(.subheadline.weight(.semibold))
         }
         .foregroundStyle(Theme.Colors.sage)
         .padding(.horizontal, Metric.levelChipInset)
-        .frame(height: Metric.levelChipHeight)
+        .frame(minHeight: Metric.levelChipHeight)
         .background(Theme.Colors.surfaceWhite, in: Capsule())
         .shadow(color: Theme.Elevation.nearColor, radius: 4, y: 2)
         .accessibilityElement(children: .combine)
@@ -199,12 +193,20 @@ struct MokoStat: Identifiable {
     let fill: Color
 }
 
-/// A row of stat tiles that share the width equally.
+/// Stat tiles wrap onto another row when larger text needs more room.
 struct MokoStatsRow: View {
     let tiles: [MokoStat]
+    // Accessibility text gets a full-width card rather than a squeezed column.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var columns: [GridItem] {
+        dynamicTypeSize.isAccessibilitySize
+            ? [GridItem(.flexible())]
+            : [GridItem(.adaptive(minimum: 104), spacing: Theme.Space.s3)]
+    }
 
     var body: some View {
-        HStack(spacing: Theme.Space.s2) {
+        LazyVGrid(columns: columns, spacing: Theme.Space.s3) {
             ForEach(tiles) { tile in
                 MokoStatTile(stat: tile)
             }
@@ -214,27 +216,29 @@ struct MokoStatsRow: View {
 
 private struct MokoStatTile: View {
     let stat: MokoStat
+    // The icon's backing grows with its symbol when larger text is selected.
+    @ScaledMetric(relativeTo: .body) private var iconSize = Metric.statPlate
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 1) {
+        VStack(alignment: .leading, spacing: Theme.Space.s1) {
             Image(systemName: stat.symbol)
-                .font(.system(size: Metric.statGlyph, weight: .semibold))
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(stat.tint)
-                .frame(width: Metric.statPlate, height: Metric.statPlate)
+                .frame(width: iconSize, height: iconSize)
                 .background(stat.plate, in: Circle())
                 .padding(.bottom, 5)
 
             Text(stat.value)
-                .mokoText(Theme.Typeface.stat)
+                .font(.title2.weight(.bold))
                 .foregroundStyle(Theme.Colors.dataVioletDeep)
+                .fixedSize(horizontal: false, vertical: true)
 
             Text(stat.label)
-                .mokoText(Theme.Typeface.badge)
-                .foregroundStyle(Theme.Colors.textMuted)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .font(.footnote)
+                .foregroundStyle(Theme.Colors.textBody)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
         .padding(Metric.statFill)
         .mokoCard(fill: stat.fill, radius: Theme.Radius.tile)
         .accessibilityElement(children: .combine)
@@ -259,12 +263,13 @@ struct MokoSegmented: View {
                     withAnimation(reduceMotion ? nil : .snappy) { selection = index }
                 } label: {
                     Text(title)
-                        .mokoText(Theme.Typeface.badge)
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(selection == index
                                          ? Theme.Colors.forest
                                          : Theme.Colors.textMuted)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 4)
+                        .frame(maxWidth: .infinity, minHeight: 44)
                         .background {
                             if selection == index {
                                 Capsule()
@@ -354,28 +359,55 @@ struct MokoAchievementChip: View {
     let plate: Color
     let tint: Color
     let locked: Bool
+    // Keep the badge symbol and its backing in step with the text size.
+    @ScaledMetric(relativeTo: .body) private var iconSize = Metric.chipPlate
 
     var body: some View {
-        VStack(spacing: 5) {
+        VStack(spacing: Theme.Space.s2) {
             Image(systemName: locked ? "lock" : symbol)
-                .font(.system(size: Metric.chipGlyph, weight: .semibold))
-                .foregroundStyle(locked ? Theme.Colors.lockedInk : tint)
-                .frame(width: Metric.chipPlate, height: Metric.chipPlate)
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(locked ? Theme.Colors.textBody : tint)
+                .frame(width: iconSize, height: iconSize)
                 .background(locked ? Theme.Colors.lockedSurface : plate, in: Circle())
 
             Text(title)
-                .mokoText(Theme.Typeface.badge)
-                .foregroundStyle(locked ? Theme.Colors.lockedInk : Theme.Colors.textTitle)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(locked ? Theme.Colors.textBody : Theme.Colors.textTitle)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 9)
-        .padding(.top, 5)
-        .padding(.bottom, 8)
+        .frame(maxWidth: .infinity, minHeight: 88)
+        .padding(Theme.Space.s3)
         .mokoCard(fill: locked ? Theme.Colors.lockedSurface : Theme.Colors.surfaceWhite,
                   radius: Theme.Radius.chip,
                   lift: !locked)
+    }
+}
+
+/// One readable icon-and-title style for Profile cards and native Settings rows.
+struct MokoSettingsLabelStyle: LabelStyle {
+    var isDestructive = false
+    // Larger text gets a larger icon plate without squeezing the label.
+    @ScaledMetric(relativeTo: .body) private var iconSize = Metric.settingPlate
+
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: Theme.Space.s4) {
+            configuration.icon
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(isDestructive ? Theme.Colors.error : Theme.Colors.forest)
+                .frame(width: iconSize, height: iconSize)
+                .background(
+                    isDestructive ? Theme.Colors.error.opacity(0.1) : Theme.Colors.surfaceLavender,
+                    in: RoundedRectangle(cornerRadius: Metric.settingPlateRadius, style: .continuous)
+                )
+                .accessibilityHidden(true)
+
+            configuration.title
+                .font(.headline)
+                .foregroundStyle(isDestructive ? Theme.Colors.error : Theme.Colors.textTitle)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.vertical, Theme.Space.s1)
     }
 }
 
@@ -387,29 +419,20 @@ struct MokoSettingRow: View {
     let title: String
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: symbol)
-                .font(.system(size: Metric.settingGlyph, weight: .semibold))
-                .foregroundStyle(Theme.Colors.dataVioletDeep)
-                .frame(width: Metric.settingPlate, height: Metric.settingPlate)
-                .background(Theme.Colors.surfaceLavender,
-                            in: RoundedRectangle(cornerRadius: Metric.settingPlateRadius,
-                                                 style: .continuous))
-
-            Text(title)
-                .mokoText(Theme.Typeface.rowTitle)
-                .foregroundStyle(Theme.Colors.textTitle)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
+        HStack(spacing: Theme.Space.s3) {
+            Label(title, systemImage: symbol)
+                .labelStyle(MokoSettingsLabelStyle())
 
             Spacer(minLength: Theme.Space.s2)
 
             Image(systemName: "chevron.right")
-                .font(.system(size: Metric.chevronGlyph, weight: .semibold))
-                .foregroundStyle(Theme.Colors.chevron)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Theme.Colors.textBody)
+                .accessibilityHidden(true)
         }
-        .padding(.horizontal, 14)
-        .frame(minHeight: 50)
+        .padding(.horizontal, Theme.Space.s4)
+        .padding(.vertical, Theme.Space.s2)
+        .frame(minHeight: 72)
         .contentShape(Rectangle())
     }
 }

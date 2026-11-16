@@ -66,7 +66,7 @@ struct AgeEntryView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
         }
-        .background(MokoTheme.limeBackground.ignoresSafeArea())
+        .background(MokoBackdrop())
         // A small haptic "tick" every time the selected age changes.
         .sensoryFeedback(.selection, trigger: selected)
     }

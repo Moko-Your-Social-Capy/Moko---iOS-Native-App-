@@ -51,7 +51,7 @@ struct ProfileOverViewAchievementDetailUnlocked: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 24)
-        .background(ProfilePalette.background.ignoresSafeArea())
+        .background(MokoBackdrop())
         .navigationBarTitleDisplayMode(.inline)
     }
 }
