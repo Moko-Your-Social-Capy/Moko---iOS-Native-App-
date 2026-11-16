@@ -44,6 +44,8 @@ struct OnboardingFlowView: View {
     @State private var answers: [Int: OnboardingAnswer] = [:]
     /// How far the card is dragged sideways (negative = left).
     @State private var dragX: CGFloat = 0
+    // Moves the card up into the air while the swipe hint is showing.
+    @State private var hintOffsetY: CGFloat = 0
     @State private var cardScale: CGFloat = 1
     @State private var cardOpacity: Double = 1
     /// True while a card is flying in/out, so extra taps and drags are ignored.
@@ -161,7 +163,8 @@ struct OnboardingFlowView: View {
                           onYes: { commit(.yes, width: width) })
             // Tilt up to 20° while dragging, pivoting at the bottom like a real card.
             .rotationEffect(.degrees(Double(max(-20, min(20, dragX / 18)))), anchor: .bottom)
-            .offset(x: dragX)
+            // Offset sideways when dragged, and upwards when the hint lifts the card.
+            .offset(x: dragX, y: hintOffsetY)
             .scaleEffect(cardScale)
             .opacity(cardOpacity)
             // `simultaneous` so the NO / YES buttons inside still get their taps.
@@ -224,6 +227,7 @@ struct OnboardingFlowView: View {
             withoutAnimation {
                 index += 1
                 dragX = 0
+                hintOffsetY = 0
                 cardScale = 0.92
                 cardOpacity = 0
             }
@@ -262,6 +266,7 @@ struct OnboardingFlowView: View {
             withoutAnimation {
                 index -= 1
                 dragX = side * width * 1.2
+                hintOffsetY = 0
                 cardScale = 1
                 cardOpacity = 1
             }
@@ -277,7 +282,7 @@ struct OnboardingFlowView: View {
 
     // MARK: - First-card swipe hint
 
-    /// Gently tilts the first card left then right once, teaching the user how to swipe.
+    /// Gently lifts the first card and tilts it left and right twice to teach swiping.
     /// Does nothing if the card has already been answered or the hint already played.
     @MainActor
     private func playSwipeHintIfNeeded() async {
@@ -294,24 +299,43 @@ struct OnboardingFlowView: View {
         isBusy = true
         hintPlayed = true
 
+        // 1. Lift the card up into the air for the duration of the tutorial hint.
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) {
+            hintOffsetY = -20
+        }
+        try? await Task.sleep(for: .milliseconds(300))
+
         // The nudge distance – enough to show visible tilt but nowhere near the commit threshold.
         let nudge: CGFloat = 42
 
-        // 1. Tilt left (swipe-No side) so the user sees "you can go this way".
-        withAnimation(.easeInOut(duration: 0.35)) { dragX = -nudge }
+        // Run the swipe animation for two complete cycles.
+        for _ in 0..<2 {
+            guard index == 0 else { break }
+
+            // Tilt left (swipe-No side) so the user sees "you can swipe left for no".
+            withAnimation(.easeInOut(duration: 0.32)) { dragX = -nudge }
+            try? await Task.sleep(for: .milliseconds(340))
+
+            // Spring back to centre.
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) { dragX = 0 }
+            try? await Task.sleep(for: .milliseconds(280))
+
+            guard index == 0 else { break }
+
+            // Tilt right (swipe-Yes side) so the user sees "you can swipe right for yes".
+            withAnimation(.easeInOut(duration: 0.32)) { dragX = nudge }
+            try? await Task.sleep(for: .milliseconds(340))
+
+            // Spring back to centre.
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) { dragX = 0 }
+            try? await Task.sleep(for: .milliseconds(280))
+        }
+
+        // 2. Put the card back down into its resting place.
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) {
+            hintOffsetY = 0
+        }
         try? await Task.sleep(for: .milliseconds(380))
-
-        // 2. Spring back to centre.
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) { dragX = 0 }
-        try? await Task.sleep(for: .milliseconds(320))
-
-        // 3. Tilt right (swipe-Yes side).
-        withAnimation(.easeInOut(duration: 0.35)) { dragX = nudge }
-        try? await Task.sleep(for: .milliseconds(380))
-
-        // 4. Spring back to centre. Card is now resting naturally again.
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) { dragX = 0 }
-        try? await Task.sleep(for: .milliseconds(350))
 
         // Unlock: the user can now swipe freely.
         isBusy = false

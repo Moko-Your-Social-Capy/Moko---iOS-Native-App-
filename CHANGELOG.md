@@ -1,6 +1,6 @@
 # Changelog
 
-- 2026-11-16 — `OnboardingFlowView.swift`: Added a one-time swipe-hint animation on the first onboarding question card. After the card springs in (~900 ms), it gently tilts left then right (±42 pt, well below the 110 pt commit threshold) to show the user they can swipe. `hintPlayed` flag prevents it repeating. If the user starts swiping mid-hint, the Task exits cleanly via guards on `index == 0` and `isBusy`.
+- 2026-11-16 — `OnboardingFlowView.swift`: Enhanced the first-card swipe-hint animation. The first card now lifts upward (`hintOffsetY = -20`) into the air for the duration of the tutorial hint, performs two full cycles of tilting left and right (demonstrating swiping left for No and right for Yes), and smoothly descends back to its resting position (`hintOffsetY = 0`) before unlocking user interaction.
 
 - 2026-11-16 — `RelaxCompletionScreen.swift`, `SessionCompleteView.swift`: Moved GPay success sound from screen-appear to button tap. `RelaxCompletionScreen` now plays `DebriefSoundPlayer.shared.playSuccess()` inside the Continue button's action (covers Grounding, Box Breathing, Breathing, Mirror). `SessionCompleteView` (Imagery Guide) now plays it inside the Done button's action; removed the previous `.onChange(of: store.screen != nil)` trigger. Sound no longer fires on appear — it fires exactly when the user taps the button.
 
