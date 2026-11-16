@@ -52,7 +52,8 @@ struct OverviewDebriefDone: View {
 
     // MARK: - Countdown
 
-    /// "New quests in 5 hr, 12 min". `TimelineView(.everyMinute)` redraws it once a minute.
+    /// Dynamic countdown to midnight when the next daily quest drops.
+    /// `TimelineView(.everyMinute)` recalculates the remaining time every minute.
     private var countdown: some View {
         TimelineView(.everyMinute) { context in
             HStack(spacing: 7) {
@@ -60,7 +61,7 @@ struct OverviewDebriefDone: View {
                     .font(.system(size: 14, weight: .medium))
                     .accessibilityHidden(true)
 
-                Text("New quests in")
+                Text("New quest in")
                     .mokoText(Theme.Typeface.body)
 
                 Text(Self.timeUntilTomorrow(from: context.date))
@@ -78,12 +79,19 @@ struct OverviewDebriefDone: View {
         }
     }
 
-    /// Time left until midnight, e.g. "5 hr, 12 min" (formatted in the user's language).
+    /// Actual time left until midnight (next daily mission boundary), e.g. "12 hrs 48 mins" or "45 mins".
     static func timeUntilTomorrow(from now: Date) -> String {
         let calendar = Calendar.current
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) ?? now
         let seconds = max(0, Int(tomorrow.timeIntervalSince(now)))
-        return Duration.seconds(seconds).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))
+        let hours = seconds / 3600
+        let minutes = (seconds % 3600) / 60
+
+        if hours > 0 {
+            return "\(hours) hr\(hours == 1 ? "" : "s") \(minutes) min\(minutes == 1 ? "" : "s")"
+        } else {
+            return "\(max(1, minutes)) min\(minutes == 1 ? "" : "s")"
+        }
     }
 }
 

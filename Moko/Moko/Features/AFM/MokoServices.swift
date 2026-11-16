@@ -273,10 +273,22 @@ struct AFMDebriefContext: Sendable {
 
     init(quest: Quest, userName: String = "") {
         title = quest.title
-        let matched = MissionBank.templates(in: quest.category).first ?? MissionBank.all[0]
-        scene = matched.scene
-        who = matched.who
-        goal = quest.notes.isEmpty ? matched.goal : quest.notes
+        let titleLower = quest.title.lowercased()
+        let matched = MissionBank.all.first {
+            $0.title.lowercased() == titleLower ||
+            titleLower.contains($0.title.lowercased()) ||
+            $0.title.lowercased().contains(titleLower)
+        } ?? MissionBank.templates(in: quest.category).first ?? MissionBank.all[0]
+
+        if !quest.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            scene = quest.notes
+            goal = quest.title
+            who = matched.who
+        } else {
+            scene = matched.scene
+            who = matched.who
+            goal = matched.goal
+        }
         template = matched
         self.userName = userName
     }
@@ -294,7 +306,38 @@ struct AFMDebriefContext: Sendable {
 extension DebriefContext {
     /// Converts the debrief screen's context into the one the AFM prompts use.
     var afmContext: AFMDebriefContext {
-        let template = MissionBank.templates(in: category).first ?? MissionBank.all[0]
-        return AFMDebriefContext(title: questTitle, scene: template.scene, who: template.who, goal: template.goal, template: template, userName: userName)
+        let titleLower = questTitle.lowercased()
+        let matched = MissionBank.all.first {
+            $0.title.lowercased() == titleLower ||
+            titleLower.contains($0.title.lowercased()) ||
+            $0.title.lowercased().contains(titleLower)
+        } ?? MissionBank.templates(in: category).first ?? MissionBank.all[0]
+
+        let scene: String
+        let goal: String
+        let who: String
+
+        if !questNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            scene = questNotes
+            goal = questTitle
+            who = matched.who
+        } else if matched.title.lowercased() == titleLower || titleLower.contains(matched.title.lowercased()) {
+            scene = matched.scene
+            goal = matched.goal
+            who = matched.who
+        } else {
+            scene = "\(questTitle) in a \(category.rawValue.lowercased()) situation"
+            goal = questTitle
+            who = matched.who
+        }
+
+        return AFMDebriefContext(
+            title: questTitle,
+            scene: scene,
+            who: who,
+            goal: goal,
+            template: matched,
+            userName: userName
+        )
     }
 }

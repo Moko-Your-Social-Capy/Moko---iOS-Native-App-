@@ -318,7 +318,14 @@ struct CardSeed {
 /// Moko's first debrief message.
 @Generable
 struct DebriefOpening {
-    @Guide(description: "Greeting plus ONE open question about how the mission went. Max 35 words. Ends by inviting them to tell it in their own words.")
+    @Guide(description: "A casual, friendly opening question (max 25 words). Sound like a supportive friend texting, never an exam proctor or formal questionnaire. Exactly ONE natural question. No essay prompts, no multi-part questions, no 'in your own words', no 'how it unfolded', no emojis.")
+    var message: String
+}
+
+/// Moko's closing message after the user finishes all debrief questions.
+@Generable
+struct DebriefClosing {
+    @Guide(description: "A warm, natural, encouraging closing message (1-2 sentences, max 35 words). Acknowledge their effort in this specific mission and provide a supportive conclusion. No questions, no emojis.")
     var message: String
 }
 
@@ -440,25 +447,65 @@ enum QuestPrompts {
 enum DebriefPrompts {
     // ---- Opening ----
     static let openingInstructions = """
-    You are Moko, the friendly guide in a social-confidence app. After a user completes a real-life social mission, you open a short debrief chat.
+    You are Moko, the warm, supportive companion in a social-confidence app.
+    The user just completed a real-world social mission or custom quest and came to debrief with you.
 
-    Write ONE warm, casual opening message. Max 30 words.
-    - If a user name is given, start with "Hey [Name]!" — otherwise just "Hey!"
-    - Ask ONE simple, natural question about how the mission went. Sound like a curious friend texting them, not a formal interviewer.
-    - Do NOT copy or echo the mission title or goal back word-for-word.
-    - Do NOT ask about feelings, what it "taught" them, or what they "learned". Stick to what happened.
-    - Do NOT ask two questions. ONE question only.
-    - No emojis, no advice.
+    Write ONE casual, warm opening message that immediately jumps into their specific situation. Max 25 words.
 
-    Examples:
-    (Name = Aayush, mission = Bring Up the Distance): "Hey Aayush! Did you end up having that conversation — how did it go?"
-    (No name, mission = Speak Up in a Meeting): "Hey! Did you get a chance to share your idea in the meeting?"
-    (Name = Sara, mission = Send the First Message): "Hey Sara! Did you send it — what happened?"
+    RULES:
+    - If user name is provided, address them warmly by name (e.g. "Hey Ankit!", "Hey Leo!").
+    - Talk like a supportive friend having a casual chat — NOT an essay exam, questionnaire, or interrogation.
+    - Ask ONE simple, conversational question about what happened in that specific moment.
+    - FORBIDDEN — NEVER use formal questionnaire, essay, or exam phrasing such as:
+      * "tell me how it unfolded"
+      * "in your own words"
+      * "what were the exact words you used and why"
+      * "describe the situation"
+      * "elaborate on"
+      * "did you manage to do it"
+    - Keep it natural, punchy, and conversational (ONE question only):
+      * For declining/saying no: "When your friend invited you out, how did you turn them down?"
+      * For correcting a name: "When they introduced you by the wrong name, how did you correct them?"
+      * For declining extra work: "When your manager asked you to stay late, what did you tell them?"
+      * For speaking up: "When everyone was discussing ideas, how did you chime in?"
+      * For catching up: "When you two met up, what was the first thing you talked about?"
+    - No emojis. No preachy advice.
     """
 
     static func openingPrompt(_ c: AFMDebriefContext) -> String {
+        var parts: [String] = []
+        if !c.userName.isEmpty { parts.append("User's name: \(c.userName)") }
+        parts.append("Mission / Quest: \(c.title)")
+        if !c.goal.isEmpty { parts.append("Goal: \(c.goal)") }
+        if !c.scene.isEmpty { parts.append("Specific situation: \(c.scene)") }
+        if !c.who.isEmpty { parts.append("Who was involved: \(c.who)") }
+        parts.append("Ask ONE natural, conversational question about this specific moment (like a friend texting, strictly no essay or exam phrasing).")
+        return parts.joined(separator: "\n")
+    }
+
+    // ---- Closing ----
+    static let closingInstructions = """
+    You are Moko, the warm, supportive guide and companion in a social-confidence app.
+    The user has just finished answering the debrief questions about their mission.
+
+    Write ONE warm, natural closing message (1–2 sentences, max 30 words) that brings the conversation to a reassuring end.
+
+    RULES:
+    - Address the user by name if available (e.g. "Leo, ...", "Glad you made it, Leo.").
+    - Directly acknowledge what they did in THIS specific scenario (e.g., "Owning your name like that in front of everyone takes real presence.", "Setting that boundary with your manager wasn't easy, but you stood your ground calmly.").
+    - Give a clear, warm sense of closure and encouragement for their day ahead (e.g. "Enjoy the rest of your day, and I'll catch you on the next one!").
+    - Do NOT ask another question.
+    - No emojis.
+    """
+
+    static func closingPrompt(_ c: AFMDebriefContext, answers: [String], observations: [String]) -> String {
         var parts = ["Mission: \(c.title)", "Goal: \(c.goal)"]
         if !c.userName.isEmpty { parts.insert("User's name: \(c.userName)", at: 0) }
+        if !observations.isEmpty {
+            parts.append("What the user did: \(observations.joined(separator: " | "))")
+        } else if !answers.isEmpty {
+            parts.append("User's reflections: \(answers.joined(separator: " | "))")
+        }
         return parts.joined(separator: "\n")
     }
 
@@ -491,7 +538,7 @@ enum DebriefPrompts {
         return """
         MISSION: \(c.title)
         GOAL: \(c.goal)
-        The app asked: "How did it go? Tell me what happened, in your own words."
+        The coach asked a situational opening question about what happened.
         ANSWER WORD COUNT: \(wordCount) words
         <user_said>
         \(answer)
