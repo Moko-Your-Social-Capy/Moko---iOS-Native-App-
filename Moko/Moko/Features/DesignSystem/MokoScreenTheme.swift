@@ -5,15 +5,9 @@
 //  The app's style sheet: every colour, spacing, size, font and animation
 //  lives here once and has a name. Screens use the name, never the raw number.
 //
-//  Beginner tip: to change how the whole app looks (for example the card
-//  corner radius), change the value here and every screen updates.
-//
-//  How to find a value:
-//      MokoScreenTheme.Colors.canvasTop     a colour
-//      MokoScreenTheme.Typeface.title1      a text style (use with `.mokoText(...)`)
-//      MokoScreenTheme.Space.page           side padding of a screen
-//      MokoScreenTheme.Radius.card          card corner radius
-//      MokoScreenTheme.Motion.tap           a shared animation
+//  Updated with centralized color system: all UI colors referenced from here.
+//  Mission card (white), Progress cards (#ECEFF8), Purple accents, Charts,
+//  Avatar, Tab bar, and Shadow tokens.
 //
 
 import SwiftUI
@@ -25,41 +19,59 @@ enum MokoScreenTheme {
 
     /// Every colour in the app. `Color(hex:)` turns a web-style hex code into a SwiftUI colour.
     enum Colors {
-        static let canvasTop = Color(hex: 0xE3F1DF)
+        // MARK: Background (preserved)
+        static let canvasTop = Color(hex: 0xE8F0E3)
         static let canvasBottom = Color(hex: 0xFFFFFF)
 
+        // MARK: Card Surfaces
+        /// Mission card background (white)
         static let surfaceWhite = Color(hex: 0xFFFFFF)
-        // Keep the existing names so every screen picks up the green palette.
-        static let surfaceLavender = Color(hex: 0xEDF5E9)
+        /// Progress cards (Insights and Calm Down) background (#ECEFF8)
+        static let surfaceLavender = Color(hex: 0xECEFF8)
 
         static let strokeInk = Color(hex: 0x17161C)
 
-        static let textTitle = Color(hex: 0x17161C)
-        static let textBody = Color(hex: 0x5E5B6A)
-        static let textMuted = Color(hex: 0x6E6B7A)
+        // MARK: Text Colors
+        /// Primary text color (dark purple-gray) – Overview titles, "Mission", "Growth"
+        static let textTitle = Color(hex: 0x211F2C)
+        /// Mission card title (teal-green)
+        static let textMissionTitle = Color(hex: 0x2F4C43)
+        /// Body and secondary text (muted gray)
+        static let textBody = Color(hex: 0x737078)
+        /// Countdown label and date labels (muted gray)
+        static let textMuted = Color(hex: 0x5E5D65)
+        /// Countdown value color (blue-purple)
+        static let countdownValue = Color(hex: 0x55749F)
 
-        static let dataNumeral = forest
-        static let dataViolet = sage
-        static let dataVioletDeep = forest
-        static let dataGrid = Color(hex: 0xC9CEDD)
-        static let dataNode = Color(hex: 0x2B2440)
+        // MARK: Data Visualization
+        /// Radar fill (light purple)
+        static let dataViolet = Color(hex: 0xC4C1DC)
+        /// Radar nodes and bars deep color (dark purple)
+        static let dataVioletDeep = Color(hex: 0x54457E)
+        /// Metric numbers (purple accent)
+        static let dataNumeral = Color(hex: 0x54457E)
+        /// Grid lines and vectors (light purple)
+        static let dataGrid = Color(hex: 0xC4C1DC)
+        /// Radar node dots (dark teal)
+        static let dataNode = Color(hex: 0x314C43)
 
         static let accentBlue = Color(hex: 0x2168E0)
         static let accentBlueTint = Color(hex: 0xE8F1FF)
 
-        static let countdownValue = Color(hex: 0x47679B)
-
-        static let avatarFill = Color(hex: 0xC9CFE6)
-        static let avatarText = Color(hex: 0x2F3346)
+        // MARK: Avatar
+        /// Avatar background (light purple)
+        static let avatarFill = Color(hex: 0xB8A3E4)
+        /// Avatar text/icon (dark purple-gray)
+        static let avatarText = Color(hex: 0x211F2C)
 
         /// Vector strokes carry their registration opacity with them.
         static let vectorBush = Color(hex: 0x7FAF79).opacity(0.15)
         static let vectorLeaf = Color(hex: 0x8FB98A).opacity(0.18)
 
-        static let tabActiveGlyph = Color(hex: 0x2F6B4F)
+        /// Tab bar selected color (purple accent)
+        static let tabActiveGlyph = Color(hex: 0x54457E)
 
         // MARK: Profile
-
         static let cream = Color(hex: 0xFBF6EA)
         static let forest = Color(hex: 0x254C3C)
         static let sage = Color(hex: 0x3F6B54)
@@ -82,7 +94,7 @@ enum MokoScreenTheme {
 
         /// Icon plate tints, cycled by stat / chip position.
         static let tileSage = Color(hex: 0xE2EFDD)
-        static let tileLilac = canvasTop
+        static let tileLilac = Color(hex: 0xE3F1DF)
         static let tileCream = Color(hex: 0xE9EFE2)
 
         static let trackCream = Color(hex: 0xEFE8D8)
@@ -97,14 +109,9 @@ enum MokoScreenTheme {
         static let medalSilver = Color(hex: 0xB9C1C3)
 
         // MARK: Profile bright
-
-        /// Brighter green for the larger profile hero streak tile.
         static let brightGreen = Color(hex: 0x4A9E7A)
-        /// Bright sun accent used to make the profile section pop.
         static let brightSun = Color(hex: 0xF2B84B)
-        /// Bright hero gradient top stop for a bigger, brighter profile.
         static let brightHeroTop = Color(hex: 0x7FBF8E)
-        /// Bright hero gradient bottom stop.
         static let brightHeroBottom = Color(hex: 0x4A9E7A)
     }
 
@@ -142,9 +149,13 @@ enum MokoScreenTheme {
         static let tabBand: CGFloat = 96
     }
 
-    /// The card surface. One fill for every card on the screen, so the mission
-    /// card and the two growth cards can never drift apart.
+    /// The card surface. Mission card is white, progress cards are light lavender-blue.
     enum Card {
+        /// Mission card fill (white background)
+        static let missionFill = Colors.surfaceWhite
+        /// Progress cards fill (Insights and Calm Down – light lavender-blue)
+        static let progressFill = Colors.surfaceLavender
+        /// Default/standard card fill
         static let fill = Colors.surfaceWhite
         /// §1 registers a 2pt ink outline. It is suppressed: cards separate by
         /// lift instead of line. Raise this to bring the outline back.
