@@ -98,6 +98,7 @@ private enum ActiveRelaxSheet: Identifiable {
 /// Every screen you can push from the Relax tab. They all share one NavigationStack.
 enum RelaxRoute: Hashable {
     case breathing(Int)                 // minutes
+    case boxBreathing(cycles: Int)      // cycles picked in the sheet, carried on the route
     case session(RelaxSession)
     case guideSession(ImageryGuide)
     case guideComplete(ImageryGuide)
@@ -206,7 +207,13 @@ struct RelaxScreen: View {
         }
         if let session = pendingSessionNavigation {
             pendingSessionNavigation = nil
-            navigationPath.append(.session(session))
+            if session == .boxBreathing {
+                // The picked cycle count travels on the route itself, so the session
+                // always starts with exactly the number the sheet showed.
+                navigationPath.append(.boxBreathing(cycles: boxBreathingCycles))
+            } else {
+                navigationPath.append(.session(session))
+            }
         }
     }
 
@@ -217,6 +224,12 @@ struct RelaxScreen: View {
         case .breathing(let duration):
             BreathingSessionScreen(minutes: duration, onFinish: { popRelaxRoute() })
 
+        case .boxBreathing(let cycles):
+            BoxBreathingView(
+                initialCycles: cycles,
+                onComplete: { popRelaxRoute() }
+            )
+
         case .session(let session):
             switch session {
             case .imagery:
@@ -225,6 +238,8 @@ struct RelaxScreen: View {
                 }
 
             case .boxBreathing:
+                // Box breathing is pushed via `.boxBreathing(cycles:)` above; kept only
+                // so the switch stays exhaustive.
                 BoxBreathingView(
                     initialCycles: boxBreathingCycles,
                     onComplete: { popRelaxRoute() }

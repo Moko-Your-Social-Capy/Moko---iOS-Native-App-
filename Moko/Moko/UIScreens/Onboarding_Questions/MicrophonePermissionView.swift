@@ -13,14 +13,8 @@
 import SwiftUI
 import AVFoundation
 
-/// Colors shared by the two screens in this file.
-private enum PermissionPalette {
-    static let teal       = Color(hex: 0x1F7488)
-    static let brown      = Color(hex: 0x4A3826)
-    static let background = Color(hex: 0xF7F5F2)
-    static let error      = Color(hex: 0xB9583F)
-    static let success    = Color(hex: 0x2F6E4A)
-}
+// The two screens in this file share the app's theme, like every other screen.
+private typealias Theme = MokoScreenTheme
 
 // MARK: - Microphone permission
 
@@ -46,9 +40,9 @@ struct MicrophonePermissionView: View {
                 .overlay(alignment: .topTrailing) {
                     Image(systemName: "headphones")
                         .font(.system(size: 28, weight: .semibold))
-                        .foregroundStyle(PermissionPalette.teal)
+                        .foregroundStyle(Theme.Colors.dataVioletDeep)
                         .padding(12)
-                        .background(PermissionPalette.background, in: Circle())
+                        .background(Theme.Colors.surfaceWhite, in: Circle())
                 }
                 .frame(maxWidth: .infinity)
                 .accessibilityElement(children: .ignore)
@@ -56,24 +50,24 @@ struct MicrophonePermissionView: View {
 
             Text("Let Moko listen")
                 .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(PermissionPalette.brown)
+                .foregroundStyle(Theme.Colors.textTitle)
                 .padding(.top, 28)
 
             Text(reason)
                 .font(.body)
-                .foregroundStyle(PermissionPalette.brown.opacity(0.78))
+                .foregroundStyle(Theme.Colors.textBody)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 10)
 
             Text("You can also use text reflections. Moko works without microphone access.")
                 .font(.subheadline)
-                .foregroundStyle(PermissionPalette.brown.opacity(0.72))
+                .foregroundStyle(Theme.Colors.textMuted)
                 .padding(.top, 14)
 
             if let permissionMessage {
                 Text(permissionMessage)
                     .font(.footnote)
-                    .foregroundStyle(PermissionPalette.error)
+                    .foregroundStyle(Theme.Colors.error)
                     .padding(.top, 10)
             }
 
@@ -92,20 +86,20 @@ struct MicrophonePermissionView: View {
                 .frame(maxWidth: .infinity, minHeight: 52)
             }
             .buttonStyle(.borderedProminent)
-            .tint(PermissionPalette.teal)
+            .tint(Theme.Colors.dataVioletDeep)
             .buttonBorderShape(.capsule)
             .disabled(isRequesting)
 
             Button("Skip for now", action: onContinue)
                 .font(.body.weight(.semibold))
-                .foregroundStyle(PermissionPalette.brown)
+                .foregroundStyle(Theme.Colors.textBody)
                 .frame(maxWidth: .infinity, minHeight: 50)
                 .contentShape(Rectangle())
                 .padding(.top, 8)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(PermissionPalette.background.ignoresSafeArea())
+        .background(MokoBackdrop())
     }
 
     private func requestMicrophone() {
@@ -137,16 +131,16 @@ struct AccountDeletedConfirmation: View {
 
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 56))
-                .foregroundStyle(PermissionPalette.success)
+                .foregroundStyle(Theme.Colors.tabActiveGlyph)
                 .accessibilityHidden(true)
 
             Text("Your account was deleted")
                 .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(PermissionPalette.brown)
+                .foregroundStyle(Theme.Colors.textTitle)
 
             Text("Your account and local Moko data have been removed.")
                 .font(.body)
-                .foregroundStyle(PermissionPalette.brown.opacity(0.78))
+                .foregroundStyle(Theme.Colors.textBody)
 
             Spacer()
 
@@ -156,12 +150,12 @@ struct AccountDeletedConfirmation: View {
                     .frame(maxWidth: .infinity, minHeight: 52)
             }
             .buttonStyle(.borderedProminent)
-            .tint(PermissionPalette.teal)
+            .tint(Theme.Colors.dataVioletDeep)
             .buttonBorderShape(.capsule)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(PermissionPalette.background.ignoresSafeArea())
+        .background(MokoBackdrop())
     }
 }
 

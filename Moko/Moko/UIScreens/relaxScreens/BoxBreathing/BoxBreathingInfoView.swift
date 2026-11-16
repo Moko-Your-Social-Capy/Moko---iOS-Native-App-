@@ -113,5 +113,5 @@ struct BoxBreathingInfoView: View {
 }
 
 #Preview {
-    BoxBreathingInfoView(cycles: .constant(2))
+    BoxBreathingInfoView(cycles: .constant(1))
 }
