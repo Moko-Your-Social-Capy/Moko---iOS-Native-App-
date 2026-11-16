@@ -20,6 +20,7 @@
 import SwiftUI
 import SwiftData
 import Observation
+import AVFoundation
 
 // MARK: - Where the user ends up
 
@@ -661,6 +662,8 @@ struct QuestDebriefScreen: View {
     @State private var draft = ""
     // Opens the "Leave debrief early?" sheet.
     @State private var showLeave = false
+    // Shows an alert if microphone permission was denied.
+    @State private var showMicSettingsAlert = false
     // True while the keyboard is up for the answer box.
     @FocusState private var isTyping: Bool
 
@@ -774,6 +777,16 @@ struct QuestDebriefScreen: View {
         .sensoryFeedback(.impact(weight: .light), trigger: session.messages.count)
         .sensoryFeedback(.impact(weight: .medium), trigger: session.isRecording)
         .sensoryFeedback(.success, trigger: session.isComplete)
+        .alert("Microphone Access Needed", isPresented: $showMicSettingsAlert) {
+            Button("Open Settings") {
+                if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsURL)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("To answer by voice, please allow microphone access in Settings. You can also type your reflections.")
+        }
     }
 
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
@@ -980,8 +993,7 @@ struct QuestDebriefScreen: View {
             .accessibilityLabel("Discard recording")
         } else {
             Button {
-                isTyping = false
-                session.startRecording()
+                handleMicTap()
             } label: {
                 Image(systemName: "mic.fill")
                     .font(.system(size: 16, weight: .semibold))
@@ -994,6 +1006,34 @@ struct QuestDebriefScreen: View {
             .disabled(!session.canAnswer)
             .opacity(session.canAnswer ? 1 : 0.4)
             .accessibilityLabel("Answer by voice")
+        }
+    }
+
+    /// Handles mic button tap: requests microphone permission on first use,
+    /// or alerts the user if microphone access was previously denied.
+    private func handleMicTap() {
+        isTyping = false
+        Task {
+            // Checks if the phone already allowed or denied the microphone.
+            let permission = AVAudioSession.sharedInstance().recordPermission
+            switch permission {
+            case .granted:
+                session.startRecording()
+            case .undetermined:
+                // First time: iOS displays the system permission dialog.
+                let granted = await AVAudioApplication.requestRecordPermission()
+                if granted {
+                    session.startRecording()
+                }
+            case .denied:
+                // User previously denied access; guide them to Settings.
+                showMicSettingsAlert = true
+            @unknown default:
+                let granted = await AVAudioApplication.requestRecordPermission()
+                if granted {
+                    session.startRecording()
+                }
+            }
         }
     }
 }
