@@ -102,23 +102,14 @@ struct EnhancedInsightsRadar: View {
             StatPolygon(values: [1, 1, 1, 1])
                 .stroke(MokoScreenTheme.Colors.dataViolet.opacity(0.2), lineWidth: 2)
 
-            // User's data shape (gradient fill + crisp border)
+            // User's data shape - solid fill (no gradient)
             StatPolygon(values: values, progress: progress)
-                .fill(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            MokoScreenTheme.Colors.dataViolet.opacity(0.35),
-                            MokoScreenTheme.Colors.surfaceLavender.opacity(0.25)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(MokoScreenTheme.Colors.dataViolet.opacity(0.2))
 
             StatPolygon(values: values, progress: progress)
                 .stroke(MokoScreenTheme.Colors.dataVioletDeep, lineWidth: 2)
 
-            // Color-coded vertex nodes and labels
+            // Color-coded vertex nodes and directional axis labels
             Canvas { ctx, size in
                 let rect = CGRect(origin: .zero, size: size)
                 let center = CGPoint(x: rect.midX, y: rect.midY)
@@ -144,15 +135,15 @@ struct EnhancedInsightsRadar: View {
 
                     ctx.fill(circlePath, with: .color(color))
 
-                    // Draw label outside the radar
-                    let labelDist = radius + 36
+                    // Draw axis labels - larger, bolder, more prominent (like directional labels)
+                    let labelDist = radius + 40
                     let labelPoint = CGPoint(
                         x: center.x + cos(angle) * labelDist,
                         y: center.y + sin(angle) * labelDist
                     )
 
                     let text = Text(labels[i])
-                        .font(.caption2.weight(.semibold))
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
                         .foregroundStyle(color)
 
                     ctx.draw(text, at: labelPoint, anchor: .center)

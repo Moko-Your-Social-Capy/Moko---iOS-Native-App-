@@ -216,12 +216,14 @@ struct InsightsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    // MARK: - Range Picker (Clean, no shadow/gradient)
                     Picker("Range", selection: $range) {
                         ForEach(InsightsRange.allCases) { item in
                             Text(item.rawValue).tag(item)
                         }
                     }
                     .pickerStyle(.segmented)
+                    .tint(Color(red: 0.8, green: 0.7, blue: 1.0)) // Light purple
 
                     radar
 
@@ -337,9 +339,10 @@ struct InsightsView: View {
             // Header: name + score + band badge
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
+                    // Color-coded title based on parameter
                     Text(parameter.name)
                         .mokoText(MokoScreenTheme.Typeface.section)
-                        .foregroundStyle(titleDark)
+                        .foregroundStyle(colorForParameter(parameter.name))
                     Text(parameter.bandTitle)
                         .mokoText(MokoScreenTheme.Typeface.caption)
                         .foregroundStyle(parameter.badgeColor)
@@ -375,20 +378,25 @@ struct InsightsView: View {
                     .foregroundStyle(gray)
                     .fixedSize(horizontal: false, vertical: true)
             }
-
-            // Supported-by tag
-            HStack(spacing: 4) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(accent)
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .accessibilityHidden(true)
-                Text("Supported by \(parameter.supportedBy)")
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .foregroundStyle(gray)
-            }
         }
         .padding(20)
         .mokoCard()
+    }
+    
+    /// Returns color-coded tint for each parameter
+    private func colorForParameter(_ name: String) -> Color {
+        switch name {
+        case "Courage":
+            return Color(red: 0.486, green: 0.227, blue: 0.933) // Violet #7C3AED
+        case "Clarity":
+            return Color(red: 0.063, green: 0.725, blue: 0.510) // Emerald #10B981
+        case "Presence":
+            return Color(red: 0.310, green: 0.278, blue: 0.902) // Indigo #4F46E5
+        case "Warmth":
+            return Color(red: 0.078, green: 0.722, blue: 0.651) // Teal #14B8A6
+        default:
+            return accent
+        }
     }
 }
 

@@ -2,7 +2,7 @@
 //  OnboardingAuthView.swift
 //  Moko
 //
-//  Start Screen 3: Log in or sign up with Supabase and Google Sign-In.
+//  Start Screen: Log in or sign up with Supabase and Google Sign-In.
 //
 
 import SwiftUI
@@ -22,313 +22,221 @@ struct OnboardingAuthView: View {
     // Input Fields
     @State private var email: String = ""
     @State private var password: String = ""
-    @State private var isSignUpMode: Bool = false
-    @State private var showPasswordField: Bool = false
-    
-    // Status & Loading
-    @State private var message: String = ""
-    @State private var isError: Bool = false
-    @State private var isLoading: Bool = false
-    @State private var isGoogleLoading: Bool = false
     
     // Animation & Presentation States
     @State private var hasAppeared = false
     @State private var showTermsSheet = false
     @State private var showPrivacySheet = false
-    @State private var avatarBobOffset: CGFloat = 0.0
-    
-    private var cleanEmail: String {
-        email.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-    
-    private var isEmailValid: Bool {
-        cleanEmail.contains("@") && cleanEmail.contains(".") && cleanEmail.count >= 5
-    }
+    @State private var showEmailInput = false
     
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                // Background
-                MokoBackdrop()
+        ZStack {
+            // MARK: - Background (same as other auth screens)
+            MokoBackdrop()
+            
+            VStack(spacing: 0) {
+                Spacer()
                 
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        // Top Avatar Area: Sitting Capybara with Orange & Sprout
-                        ZStack {
-                            // Soft ambient halo glow
-                            Circle()
-                                .fill(
-                                    RadialGradient(
-                                        gradient: Gradient(colors: [
-                                            MokoTheme.warmNeutral.opacity(0.9),
-                                            MokoTheme.background.opacity(0.0)
-                                        ]),
-                                        center: .center,
-                                        startRadius: 40,
-                                        endRadius: 90
-                                    )
-                                )
-                                .frame(width: 170, height: 170)
-                            
-                            // Sitting Moko Badge Illustration
-                            Image("moko_sitting_raw")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .frame(width: 130, height: 130)
-                                .offset(y: avatarBobOffset)
-                        }
-                        .frame(height: 150)
-                        .scaleEffect(hasAppeared ? 1.0 : 0.88)
-                        .opacity(hasAppeared ? 1.0 : 0.0)
-                        .padding(.top, 8)
-                        .padding(.bottom, 20)
-                        
-                        // Title: Log in or sign up
-                        Text("Log in or sign up")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
-                            .foregroundStyle(MokoTheme.textPrimary)
-                            .multilineTextAlignment(.center)
-                            .opacity(hasAppeared ? 1.0 : 0.0)
-                            .offset(y: hasAppeared ? 0 : 10)
-                            .padding(.bottom, 24)
-                        
-                        // Email & Password Fields Container
-                        VStack(spacing: 12) {
-                            // Email Input Field
-                            HStack(spacing: 12) {
-                                Image(systemName: "envelope")
-                                    .font(.system(size: 16))
-                                    .foregroundStyle(MokoTheme.textSecondary)
-                                    .padding(.leading, 18)
-                                
-                                TextField("name@example.com", text: $email)
-                                    .font(.system(size: 16, design: .rounded))
-                                    .foregroundStyle(MokoTheme.textPrimary)
-                                    .keyboardType(.emailAddress)
-                                    .textContentType(.emailAddress)
-                                    .textInputAutocapitalization(.never)
-                                    .autocorrectionDisabled()
-                                
-                                if !email.isEmpty {
-                                    Button(action: {
-                                        email = ""
-                                        message = ""
-                                    }) {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .font(.system(size: 15))
-                                            .foregroundStyle(MokoTheme.textSecondary.opacity(0.6))
-                                    }
-                                    .padding(.trailing, 16)
-                                } else {
-                                    Color.clear
-                                        .frame(width: 16, height: 1)
-                                }
-                            }
-                            .frame(height: 52)
-                            .background(
-                                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                    .fill(MokoTheme.cardBackground)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                            .stroke(MokoTheme.borderLight, lineWidth: 1.0)
-                                    )
-                                    .shadow(color: MokoTheme.primaryText.opacity(0.03), radius: 6, x: 0, y: 2)
-                            )
-                            
-                            // Optional Password Field (revealed when entering credentials)
-                            if showPasswordField {
-                                HStack(spacing: 12) {
-                                    Image(systemName: "lock")
-                                        .font(.system(size: 16))
-                                        .foregroundStyle(MokoTheme.textSecondary)
-                                        .padding(.leading, 18)
-                                    
-                                    SecureField("Password (min 6 characters)", text: $password)
-                                        .font(.system(size: 16, design: .rounded))
-                                        .foregroundStyle(MokoTheme.textPrimary)
-                                        .textContentType(.password)
-                                }
-                                .frame(height: 52)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                        .fill(MokoTheme.cardBackground)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                                .stroke(MokoTheme.borderLight, lineWidth: 1.0)
-                                        )
-                                        .shadow(color: MokoTheme.primaryText.opacity(0.03), radius: 6, x: 0, y: 2)
-                                )
-                                .transition(.opacity.combined(with: .move(edge: .top)))
-                                
-                                // Mode Toggle: Sign In vs Create Account
-                                HStack(spacing: 8) {
-                                    Button(action: {
-                                        withAnimation { isSignUpMode.toggle() }
-                                    }) {
-                                        Text(isSignUpMode ? "Already have an account? Sign In" : "Need an account? Create one")
-                                            .font(.system(size: 13, weight: .medium, design: .rounded))
-                                            .foregroundStyle(MokoTheme.textSecondary)
-                                            .underline()
-                                    }
-                                }
-                                .padding(.top, 4)
-                            }
-                            
-                            // "Continue" Action Button
-                            Button(action: {
-                                handleContinueAction()
-                            }) {
-                                HStack(spacing: 8) {
-                                    if isLoading {
-                                        MokoFlossLoadingView(size: 28)
-                                            .frame(width: 28, height: 28)
-                                    }
-                                    
-                                    Text(showPasswordField ? (isSignUpMode ? "Create Account" : "Sign In") : "Continue")
-                                        .font(.system(size: 15, weight: .medium, design: .rounded))
-                                        .foregroundStyle(isEmailValid ? MokoTheme.forestGreen : MokoTheme.textSecondary)
-                                        .underline(isEmailValid, color: MokoTheme.forestGreen)
-                                }
-                                .padding(.vertical, 4)
-                            }
-                            .disabled(email.isEmpty || isLoading)
-                            .opacity(email.isEmpty ? 0.6 : 1.0)
-                            .animation(.easeInOut(duration: 0.2), value: isEmailValid)
-                            
-                            // Feedback / Status Message
-                            if !message.isEmpty {
-                                Text(message)
-                                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                                    .foregroundStyle(isError ? MokoTheme.primaryText : MokoTheme.forestGreen)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.top, 4)
-                                    .padding(.horizontal, 16)
-                                    .transition(.opacity)
-                            }
-                        }
-                        .padding(.horizontal, 24)
-                        .opacity(hasAppeared ? 1.0 : 0.0)
-                        
-                        // Divider with "or"
-                        HStack(spacing: 16) {
-                            Rectangle()
-                                .fill(MokoTheme.borderLight)
-                                .frame(height: 1)
-                            
-                            Text("or")
-                                .font(.system(size: 13, weight: .regular, design: .rounded))
-                                .foregroundStyle(MokoTheme.textTertiary)
-                            
-                            Rectangle()
-                                .fill(MokoTheme.borderLight)
-                                .frame(height: 1)
-                        }
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 20)
-                        .opacity(hasAppeared ? 1.0 : 0.0)
-                        
-                        // Social Sign In Buttons Stack
-                        VStack(spacing: 14) {
-                            // Apple Sign In Button
-                            Button(action: {
-                                MokoTheme.playFeedback(.medium)
-                                onContinueWithApple?()
-                            }) {
-                                HStack(spacing: 10) {
-                                    Image(systemName: "apple.logo")
-                                        .font(.system(size: 18))
-                                        .offset(y: -1)
-                                    
-                                    Text("Continue with Apple")
-                                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                }
-                                .foregroundStyle(MokoTheme.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 54)
-                                .background(
-                                    Capsule()
-                                        .fill(MokoTheme.forestGreen)
-                                        .shadow(color: MokoTheme.forestGreen.opacity(0.2), radius: 10, x: 0, y: 5)
-                                )
-                            }
-                            .buttonStyle(MokoPrimaryButtonStyle())
-                            .disabled(isLoading || isGoogleLoading)
-                            
-                            // Google Sign In Button (Connected to Supabase via GoogleAuthService)
-                            Button(action: {
-                                MokoTheme.playFeedback(.medium)
-                                Task {
-                                    await signInWithGoogle()
-                                }
-                            }) {
-                                HStack(spacing: 12) {
-                                    if isGoogleLoading {
-                                        MokoFlossLoadingView(size: 30)
-                                            .frame(width: 30, height: 30)
-                                    } else {
-                                        Image("google_logo")
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fit)
-                                            .frame(width: 18, height: 18)
-                                    }
-                                    
-                                    Text("Continue with Google")
-                                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                }
-                                .foregroundStyle(MokoTheme.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 54)
-                                .background(
-                                    Capsule()
-                                        .fill(MokoTheme.forestGreen)
-                                        .shadow(color: MokoTheme.forestGreen.opacity(0.2), radius: 10, x: 0, y: 5)
-                                )
-                            }
-                            .buttonStyle(MokoPrimaryButtonStyle())
-                            .disabled(isLoading || isGoogleLoading)
-                        }
-                        .padding(.horizontal, 24)
-                        .opacity(hasAppeared ? 1.0 : 0.0)
-                        
-                        Spacer(minLength: 32)
-                        
-                        // Legal Disclaimer Footer
-                        VStack(spacing: 2) {
-                            Text("By continuing, you agree to Moko's")
-                                .font(.system(size: 12, weight: .regular, design: .rounded))
-                                .foregroundStyle(MokoTheme.textSecondary)
-                            
-                            HStack(spacing: 4) {
-                                Button("Terms of Service") {
-                                    showTermsSheet = true
-                                }
-                                .underline()
-                                
-                                Text("and")
-                                    .foregroundStyle(MokoTheme.textSecondary)
-                                
-                                Button("Privacy Policy") {
-                                    showPrivacySheet = true
-                                }
-                                .underline()
-                            }
-                            .font(.system(size: 12, weight: .regular, design: .rounded))
-                            .foregroundStyle(MokoTheme.textPrimary)
-                        }
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                        .padding(.bottom, 24)
-                        .opacity(hasAppeared ? 1.0 : 0.0)
-                    }
-                    .frame(minHeight: geometry.size.height)
+                // MARK: - Capybara Collection Image with Circles
+                ZStack {
+                    // Outer circle (cream/beige)
+                    Circle()
+                        .fill(Color(red: 0.98, green: 0.96, blue: 0.92))
+                        .frame(width: 280, height: 280)
+                    
+                    // Middle circle (light purple)
+                    Circle()
+                        .fill(Color(red: 0.88, green: 0.82, blue: 0.98))
+                        .frame(width: 220, height: 220)
+                    
+                    // Inner circle (cream)
+                    Circle()
+                        .fill(Color(red: 0.98, green: 0.96, blue: 0.92))
+                        .frame(width: 160, height: 160)
+                    
+                    // Capybara image (centered)
+                    Image("moko_sitting_raw")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 120, height: 120)
                 }
+                .frame(height: 300)
+                .scaleEffect(hasAppeared ? 1.0 : 0.85)
+                .opacity(hasAppeared ? 1.0 : 0.0)
+                
+                Spacer()
+                
+                // MARK: - Title
+                Text("Your Social Quest\nStarts Here")
+                    .font(.system(size: 32, weight: .bold, design: .default))
+                    .foregroundStyle(MokoTheme.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(3)
+                    .opacity(hasAppeared ? 1.0 : 0.0)
+                    .padding(.bottom, 40)
+                
+                // MARK: - Email/Password Input (shown when toggled)
+                if showEmailInput {
+                    VStack(spacing: 12) {
+                        // Email Input Field
+                        HStack(spacing: 12) {
+                            Image(systemName: "envelope.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(MokoTheme.forestGreen)
+                            
+                            TextField("name@example.com", text: $email)
+                                .font(.system(size: 16, design: .rounded))
+                                .foregroundStyle(MokoTheme.textPrimary)
+                                .keyboardType(.emailAddress)
+                                .textContentType(.emailAddress)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                        }
+                        .frame(height: 54)
+                        .padding(.horizontal, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 27, style: .continuous)
+                                .fill(Color.white)
+                        )
+                        
+                        // Password Field
+                        HStack(spacing: 12) {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(MokoTheme.forestGreen)
+                            
+                            SecureField("Password (min 6)", text: $password)
+                                .font(.system(size: 16, design: .rounded))
+                                .foregroundStyle(MokoTheme.textPrimary)
+                                .textContentType(.password)
+                        }
+                        .frame(height: 54)
+                        .padding(.horizontal, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 27, style: .continuous)
+                                .fill(Color.white)
+                        )
+                        
+                        // Sign In Button
+                        Button(action: {
+                            onContinueWithEmail?("")
+                        }) {
+                            Text("Sign In")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                                .foregroundStyle(Color.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 54)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 27, style: .continuous)
+                                        .fill(Color(red: 0.2, green: 0.2, blue: 0.2))
+                                )
+                        }
+                        
+                        // Back Button
+                        Button(action: {
+                            withAnimation {
+                                showEmailInput = false
+                            }
+                        }) {
+                            Text("Back")
+                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .foregroundStyle(MokoTheme.textSecondary)
+                        }
+                    }
+                    .opacity(hasAppeared ? 1.0 : 0.0)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 24)
+                    .transition(.opacity)
+                } else {
+                    // MARK: - Continue with Email Button (Dark)
+                    Button(action: {
+                        withAnimation {
+                            showEmailInput = true
+                        }
+                    }) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "envelope.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                            
+                            Text("Continue with Email")
+                                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        }
+                        .foregroundStyle(Color.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(
+                            RoundedRectangle(cornerRadius: 27, style: .continuous)
+                                .fill(Color(red: 0.2, green: 0.2, blue: 0.2))
+                        )
+                    }
+                    .opacity(hasAppeared ? 1.0 : 0.0)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 24)
+                }
+                
+                // MARK: - Divider "OR"
+                HStack(spacing: 12) {
+                    Rectangle()
+                        .fill(MokoTheme.borderLight)
+                        .frame(height: 1)
+                    
+                    Text("OR")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundStyle(MokoTheme.textSecondary)
+                    
+                    Rectangle()
+                        .fill(MokoTheme.borderLight)
+                        .frame(height: 1)
+                }
+                .opacity(hasAppeared ? 1.0 : 0.0)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
+                
+                // MARK: - Apple & Google Icons
+                HStack(spacing: 16) {
+                    // Apple
+                    Button(action: {
+                        MokoTheme.playFeedback(.medium)
+                        onContinueWithApple?()
+                    }) {
+                        Image(systemName: "apple.logo")
+                            .font(.system(size: 28, weight: .semibold))
+                            .foregroundStyle(Color.black)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
+                            .background(
+                                RoundedRectangle(cornerRadius: 27, style: .continuous)
+                                    .fill(Color(red: 0.95, green: 0.95, blue: 0.95))
+                            )
+                    }
+                    
+                    // Google
+                    Button(action: {
+                        MokoTheme.playFeedback(.medium)
+                        Task {
+                            await signInWithGoogle()
+                        }
+                    }) {
+                        Image("google_logo")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 24, height: 24)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
+                            .background(
+                                RoundedRectangle(cornerRadius: 27, style: .continuous)
+                                    .fill(Color(red: 0.95, green: 0.95, blue: 0.95))
+                            )
+                    }
+                }
+                .opacity(hasAppeared ? 1.0 : 0.0)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
             }
+            
             .onAppear {
                 withAnimation(.spring(response: 0.6, dampingFraction: 0.72)) {
                     hasAppeared = true
-                }
-                withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) {
-                    avatarBobOffset = -3
                 }
             }
             .sheet(isPresented: $showTermsSheet) {
@@ -380,68 +288,10 @@ struct OnboardingAuthView: View {
         }
     }
     
-    // MARK: - Email Continue & Supabase Authentication Flow
-    
-    private func handleContinueAction() {
-        guard isEmailValid else {
-            isError = true
-            message = "Please enter a valid email address."
-            MokoTheme.playFeedback(.rigid)
-            return
-        }
-        
-        // If password is not yet shown, reveal password field smoothly
-        if !showPasswordField {
-            MokoTheme.playFeedback(.light)
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
-                showPasswordField = true
-                message = ""
-            }
-            return
-        }
-        
-        // Execute Supabase Auth with email & password
-        Task {
-            await authenticateWithSupabase()
-        }
-    }
-    
-    @MainActor
-    private func authenticateWithSupabase() async {
-        guard !cleanEmail.isEmpty else {
-            isError = true
-            message = "Please enter your email address."
-            MokoTheme.playFeedback(.rigid)
-            return
-        }
-        
-        isLoading = true
-        message = ""
-        isError = false
-        defer { isLoading = false }
-        
-        if isSignUpMode && !password.isEmpty {
-            try? await auth.signUp(email: cleanEmail, password: password)
-        } else if !password.isEmpty {
-            try? await auth.signIn(email: cleanEmail, password: password)
-        }
-        let user = try? await auth.getCurrentUser()
-        MokoTheme.playNotificationFeedback(.success)
-        if let user = user {
-            onAuthenticated?(user)
-        }
-        onContinueWithEmail?(cleanEmail)
-    }
-    
     // MARK: - Supabase Google Sign In Flow
     
     @MainActor
     private func signInWithGoogle() async {
-        isGoogleLoading = true
-        message = ""
-        isError = false
-        defer { isGoogleLoading = false }
-        
         do {
             try await googleAuth.signIn()
             let user = try? await auth.getCurrentUser()
