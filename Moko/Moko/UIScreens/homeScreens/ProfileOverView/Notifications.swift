@@ -82,7 +82,7 @@ struct ProfileOverViewNotifications: View {
         }
         .tint(deepGreen)
         .scrollContentBackground(.hidden)
-        .background(screenBg)
+        .background(MokoBackdrop())
         .navigationTitle("Notifications")
         .navigationBarTitleDisplayMode(.large)
         // `.task(id:)` runs when the screen opens and again whenever `scenePhase` changes.
@@ -254,7 +254,7 @@ private struct NotificationPermissionPreprompt: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(ProfilePalette.background.ignoresSafeArea())
+        .background(MokoBackdrop())
     }
 }
 

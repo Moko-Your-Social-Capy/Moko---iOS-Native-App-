@@ -120,6 +120,8 @@ struct BreathingSessionScreen: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomPanel
         }
+        // Reveal the finished session once, without interrupting breathing cues.
+        .mokoCompletionReveal(isPresented: runState == .completed)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         // Immersive session: keep the tab bar out of the way.
@@ -142,7 +144,7 @@ struct BreathingSessionScreen: View {
             ZStack {
                 if runState == .completed {
                     MokoCompletionAnimation(ringDiameter: 190)
-                        .transition(.scale(scale: 0.92).combined(with: .opacity))
+                        .transition(.opacity)
                 } else {
                     // Soft disc behind the mascot.
                     Circle()

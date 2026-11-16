@@ -94,8 +94,7 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            MokoTheme.background
-                .ignoresSafeArea()
+            MokoBackdrop()
 
             switch currentScreen {
 

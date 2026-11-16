@@ -164,7 +164,7 @@ struct MokoWardrobeView: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(ProfilePalette.background)
+        .background(MokoBackdrop())
         .navigationTitle("Moko’s wardrobe")
         .navigationBarTitleDisplayMode(.large)
         .tint(ProfilePalette.accent)

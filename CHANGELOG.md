@@ -1,5 +1,8 @@
 # Changelog
 
+- 2026-11-15 — `MokoScreenTheme.swift`, `MokoComponents.swift`, `MokoLaunchBackground.colorset/Contents.json`: Added a shared mint/white vector backdrop and green accents, with a matching launch color to keep the app visually consistent.
+- 2026-11-15 — `ContentView.swift`, onboarding, splash, authentication, profile and Settings screens: Adopted the shared backdrop while preserving card fills and full-screen imagery-session photos.
+- 2026-11-15 — `MokoCompletionReveal.swift`, `MokoCompletionAnimation.swift`, `OnboardingDoneView.swift`, `Breathingsessionscreen.swift`, `BoxBreathingView.swift`, `GroundingExerciseScreen.swift`, `SessionCompleteView.swift`, `Mirrorflow.swift`: Added a short center-opening completion reveal and finite vector celebration; Reduce Motion uses a fade and still badge, and decoration never blocks controls. Simulator build passed; device visual testing remains pending.
 - 2026-11-15 — `Questdetailscreen.swift`, `SimulationScreen.swift`: Added Practice with Moko from quest briefings, self-paced rehearsal, replay and close controls; practice never completes a real quest or awards XP.
 - 2026-11-15 — Merge `origin/main` into `mj/fix`: Kept the branch's renamed types, accessibility fixes, and shared Overview; integrated upstream removal of unused AFM helpers and obsolete assets. Preserved local Xcode state outside source control.
 - 2026-11-15 — `welcome_moko.imageset/Contents.json`: Removed a reference to a nonexistent 3× image while preserving the available artwork.

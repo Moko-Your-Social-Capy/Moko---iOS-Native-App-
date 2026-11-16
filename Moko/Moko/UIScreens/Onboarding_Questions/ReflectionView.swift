@@ -118,14 +118,14 @@ struct ReflectionView: View {
             .padding(.bottom, 24)
         }
         .scrollIndicators(.hidden)
-        .background(MokoTheme.limeBackground.ignoresSafeArea())
+        .background(MokoBackdrop())
         // Pins the button to the bottom; the scroll content stops above it instead of under it.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             PillButton(title: "Overview", action: onOverview)
                 .padding(.horizontal, 36)
                 .padding(.top, 12)
                 .padding(.bottom, 34)
-                .background(MokoTheme.limeBackground.ignoresSafeArea(edges: .bottom))
+                .background(MokoScreenTheme.Colors.surfaceWhite.ignoresSafeArea(edges: .bottom))
         }
     }
 

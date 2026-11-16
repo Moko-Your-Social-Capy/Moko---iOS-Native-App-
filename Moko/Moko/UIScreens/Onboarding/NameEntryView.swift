@@ -50,7 +50,7 @@ struct NameEntryView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 38)
         }
-        .background(MokoTheme.limeBackground.ignoresSafeArea())
+        .background(MokoBackdrop())
         // Runs once when the screen appears: open the keyboard straight away.
         .task { isFocused = true }
     }

@@ -364,7 +364,7 @@ struct ProfileOverViewAchievementsList: View {
             }
             .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 24)
         }
-        .background(ProfilePalette.background.ignoresSafeArea())
+        .background(MokoBackdrop())
         .navigationTitle("Achievements")
         .navigationBarTitleDisplayMode(.large)
         // `.sheet(item:)` opens when `selectedAchievement` gets a value, and passes it in.

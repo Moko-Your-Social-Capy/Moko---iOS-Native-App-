@@ -35,7 +35,7 @@ struct ProfileOverViewDeleteFinalConfirmation: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(ProfilePalette.background)
+        .background(MokoBackdrop())
         .navigationTitle("Delete permanently")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {

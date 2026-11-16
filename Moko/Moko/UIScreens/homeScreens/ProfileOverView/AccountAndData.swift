@@ -106,7 +106,7 @@ struct ProfileOverViewAccountAndData: View {
         }
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
-        .background(ProfilePalette.background)
+        .background(MokoBackdrop())
         .navigationTitle("Account Info")
         .navigationBarTitleDisplayMode(.large)
         // `.task` runs when the screen appears: ask Supabase who is signed in.

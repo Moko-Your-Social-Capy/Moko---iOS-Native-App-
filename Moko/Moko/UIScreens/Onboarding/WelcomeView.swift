@@ -56,7 +56,7 @@ struct WelcomeView: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 36)
         }
-        .background(MokoTheme.limeBackground.ignoresSafeArea())
+        .background(MokoBackdrop())
     }
 }
 

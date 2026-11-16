@@ -53,7 +53,7 @@ struct OnboardingIntroView: View {
             .padding(.top, geometry.safeAreaInsets.top > 0 ? 0 : 16)
             .padding(.bottom, geometry.safeAreaInsets.bottom > 0 ? 0 : 16)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(MokoScreenTheme.Colors.tileLilac.ignoresSafeArea())
+            .background(MokoBackdrop())
             // .onAppear runs when the screen first shows. It starts the fade-in.
             .onAppear {
                 withAnimation(MokoScreenTheme.Motion.crossfade) {

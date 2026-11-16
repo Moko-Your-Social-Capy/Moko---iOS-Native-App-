@@ -87,10 +87,7 @@ struct ProfileOverView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
-                LinearGradient(colors: [Theme.Colors.canvasTop, Theme.Colors.canvasBottom],
-                               startPoint: .top,
-                               endPoint: .bottom)
-                    .ignoresSafeArea()
+                MokoBackdrop()
 
                 ScrollView(.vertical) {
                     VStack(spacing: 0) {

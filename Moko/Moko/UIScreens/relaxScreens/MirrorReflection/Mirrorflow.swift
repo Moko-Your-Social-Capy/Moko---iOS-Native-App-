@@ -564,7 +564,7 @@ struct MirrorTimerRing: View {
             // Middle
             if isCompleted {
                 MokoCompletionAnimation(ringDiameter: 140)
-                    .transition(.scale(scale: 0.7).combined(with: .opacity))
+                    .transition(.opacity)
             } else {
                 MirrorFaceIcon()
                     .frame(width: 72, height: 72)
@@ -620,6 +620,8 @@ struct MirrorCompletionScreen: View {
                     .padding(.bottom, 12)
             }
         }
+        // Open the mint panels once to mark this moment of kindness.
+        .mokoCompletionReveal()
         // Stays immersive until Done returns to the Mirror landing screen.
         .toolbar(.hidden, for: .tabBar)
     }

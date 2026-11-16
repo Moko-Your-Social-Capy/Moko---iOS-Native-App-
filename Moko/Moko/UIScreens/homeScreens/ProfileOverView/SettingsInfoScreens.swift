@@ -38,7 +38,7 @@ private struct InfoScrollView<Content: View>: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
-        .background(InfoTheme.screenBg)
+        .background(MokoBackdrop())
     }
 }
 

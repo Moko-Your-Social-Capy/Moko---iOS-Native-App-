@@ -105,7 +105,7 @@ struct MicrophonePermissionView: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(PermissionPalette.background.ignoresSafeArea())
+        .background(MokoBackdrop())
     }
 
     private func requestMicrophone() {
@@ -161,7 +161,7 @@ struct AccountDeletedConfirmation: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(PermissionPalette.background.ignoresSafeArea())
+        .background(MokoBackdrop())
     }
 }
 
