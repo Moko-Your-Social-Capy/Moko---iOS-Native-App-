@@ -293,6 +293,7 @@
 				INFOPLIST_FILE = Moko/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Moko uses the front camera only during the Mirror Reflection exercise. Nothing is recorded or saved.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Moko uses your mic only when you record a voice reflection. You choose when it starts and you can delete recordings any time.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Moko uses speech recognition only when you answer a debrief question by voice. Recognition happens on-device when possible.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -328,6 +329,7 @@
 				INFOPLIST_FILE = Moko/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Moko uses the front camera only during the Mirror Reflection exercise. Nothing is recorded or saved.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Moko uses your mic only when you record a voice reflection. You choose when it starts and you can delete recordings any time.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Moko uses speech recognition only when you answer a debrief question by voice. Recognition happens on-device when possible.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";

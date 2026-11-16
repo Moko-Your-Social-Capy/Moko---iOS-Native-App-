@@ -1,5 +1,7 @@
 # Changelog
 
+- 2026-11-16 — `AudioTranscriber.swift`, `Questdebrief.swift`: Fixed real-time transcription and audio metering pipeline; throttled RMS waveform updates to prevent MainActor overload; ensured `finishRecording()` submits transcribed speech to chat for confidence grading and follow-up scoring; added Simulator fallback handling.
+
 - 2026-11-16 — `MokoProfileComponents.swift`, `ProfileOverView.swift`: Enlarged Profile icons, avatar, stat/badge cards and settings rows; added wrapping layouts for accessibility text and visible navigation on detail screens.
 - 2026-11-16 — `SettingsOverview.swift`, `AccountAndData.swift`: Shared larger icon labels, 72-point minimum rows and white card surfaces; clarified account deletion and added a microphone information entry without requesting access.
 - 2026-11-16 — `MicrophonePermissionView.swift`, `ContentView.swift`: Replaced the separate teal/brown palette with app theme colors, made microphone information scrollable, and removed the unnecessary onboarding permission request because voice recording is not implemented.
