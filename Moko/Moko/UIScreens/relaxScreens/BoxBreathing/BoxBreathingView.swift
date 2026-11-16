@@ -320,44 +320,15 @@ struct BoxBreathingView: View {
         }
     }
 
+    // The shared completion screen with box-breathing-specific content.
+    // RelaxCompletionScreen plays the GPay sound automatically on appear.
     private var completeContent: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                Text(cyclesText)
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .foregroundStyle(BBColor.muted)
-            }
-            .padding(.trailing, 39)
-            .padding(.top, 40)
-
-            MokoCompletionAnimation(ringDiameter: 190)
-
-            Text("You did it!")
-                .mokoText(MokoScreenTheme.Typeface.title2)
-                .foregroundStyle(BBColor.titleBrown)
-                .padding(.top, 8)
-
-            Text("You took a moment to pause, breathe, and find your calm. Be proud of yourself for showing up!")
-                .mokoText(MokoScreenTheme.Typeface.body)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(BBColor.titleBrown)
-                .padding(.horizontal, 34)
-                .padding(.top, 12)
-
-            Spacer(minLength: 16)
-
-            HStack(spacing: 25) {
-                BreathingPillButton(title: "Complete") {
-                    onComplete()
-                }
-                .frame(width: 192)
-
-                RoundIconButton(systemName: "clock.arrow.circlepath", label: "Reset", action: reset)
-            }
-            .padding(.bottom, 19)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        RelaxCompletionScreen(
+            title: "You did it!",
+            subtitle: "You took a moment to pause, breathe, and find your calm. Be proud of yourself for showing up!",
+            accent: BBColor.button,
+            onContinue: onComplete
+        )
     }
 
     // MARK: Clock

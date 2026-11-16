@@ -341,50 +341,15 @@ struct GroundingExerciseScreen: View {
 
     // MARK: - Done screen
 
+    // The shared completion screen with grounding-specific content.
+    // RelaxCompletionScreen plays the GPay sound automatically on appear.
     private var completionScreen: some View {
-        VStack(spacing: 0) {
-            pill("Complete")
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-
-            header
-                .padding(.horizontal, MokoScreenTheme.Space.page)
-                .padding(.top, 18)
-
-            Spacer(minLength: 16)
-
-            MokoCompletionAnimation(ringDiameter: 190)
-                .transition(.opacity)
-
-            VStack(spacing: 8) {
-                Text("Well done")
-                    .mokoText(MokoScreenTheme.Typeface.title2)
-                    .foregroundStyle(ink)
-
-                Text("You completed the 5-4-3-2-1 sensory reset")
-                    .mokoText(MokoScreenTheme.Typeface.body)
-                    .foregroundStyle(bodyText)
-                    .multilineTextAlignment(.center)
-                    .frame(height: 40, alignment: .top)
-                    .padding(.horizontal, 40)
-            }
-            .padding(.top, 36)
-
-            Spacer(minLength: 16)
-
-            // RelaxScreen pops this screen and shows the Relax tab again.
-            Button(action: onContinue) {
-                Text("Complete")
-                    .mokoText(MokoScreenTheme.Typeface.cardTitle)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Capsule().fill(accent))
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, MokoScreenTheme.Space.page)
-            .padding(.bottom, 28)
-        }
+        RelaxCompletionScreen(
+            title: "Well done",
+            subtitle: "You completed the 5-4-3-2-1 sensory reset",
+            accent: accent,
+            onContinue: onContinue
+        )
     }
 
     // MARK: - Actions

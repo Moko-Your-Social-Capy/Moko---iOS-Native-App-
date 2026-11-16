@@ -6,6 +6,8 @@
 //  Supabase through `ImageryGuideStore`, so it shows a spinner or an error
 //  if that text has not loaded yet.
 //
+//  The GPay success sound plays once the guide content is ready and visible.
+//
 
 import SwiftUI
 
@@ -53,6 +55,13 @@ struct SessionCompleteView: View {
         .toolbar(.hidden, for: .tabBar)
         // `.task` runs when the screen appears. Loads the text only if it is not loaded yet.
         .task { await store.loadIfNeeded() }
+        // Play the GPay success chime once the imagery content is loaded and showing.
+        // We watch `store.screen` – it goes from nil to non-nil when content arrives.
+        .onChange(of: store.screen != nil) { _, isReady in
+            if isReady {
+                DebriefSoundPlayer.shared.playSuccess()
+            }
+        }
     }
 
     private func content(_ screen: ImageryGuideScreenContent) -> some View {

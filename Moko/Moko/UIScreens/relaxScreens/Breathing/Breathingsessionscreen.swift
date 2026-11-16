@@ -106,19 +106,45 @@ struct BreathingSessionScreen: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Spacer(minLength: 12)
-            breathingFocus
-            Spacer(minLength: 12)
-        }
-        .padding(.horizontal, MokoScreenTheme.Space.page)
-        .padding(.top, 8)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(MokoBackdrop())
-        // Pins the timer card to the bottom, above the home indicator.
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            bottomPanel
+        ZStack {
+            // Show the shared completion screen when done, overlaid on the session UI.
+            if runState == .completed {
+                // Gentle Breathing specific content passed to the shared completion screen.
+                // RelaxCompletionScreen plays the GPay sound automatically on appear.
+                RelaxCompletionScreen(
+                    title: "Well done",
+                    subtitle: "You breathed mindfully for \(minutes) min. Every breath was a step toward calm.",
+                    accent: accent,
+                    onContinue: {
+                        if let onFinish {
+                            onFinish()
+                        } else {
+                            dismiss()
+                        }
+                    }
+                )
+                .transition(.opacity)
+            } else {
+                VStack(spacing: 0) {
+                    header
+                    Spacer(minLength: 12)
+                    breathingFocus
+                    Spacer(minLength: 12)
+                }
+                .padding(.horizontal, MokoScreenTheme.Space.page)
+                .padding(.top, 8)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(MokoBackdrop())
+                // Pins the timer card to the bottom, above the home indicator.
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    bottomPanel
+                }
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(.hidden, for: .navigationBar)
+                // Immersive session: keep the tab bar out of the way.
+                .toolbar(.hidden, for: .tabBar)
+                .transition(.opacity)
+            }
         }
         // Reveal the finished session once, without interrupting breathing cues.
         .mokoCompletionReveal(isPresented: runState == .completed)
@@ -136,6 +162,7 @@ struct BreathingSessionScreen: View {
             default: return .impact(weight: .light)
             }
         }
+        .animation(.easeInOut(duration: 0.35), value: runState == .completed)
     }
 
     /// The mascot inside the progress ring, with the phase text under it.

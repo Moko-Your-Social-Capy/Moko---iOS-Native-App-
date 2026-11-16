@@ -588,42 +588,17 @@ struct MirrorCompletionScreen: View {
     var onDone: () -> Void
 
     var body: some View {
-        ZStack {
-            MokoBackdrop()
-
-            VStack(spacing: 0) {
-                MirrorHeader(centered: true)
-                    .padding(.horizontal, MokoScreenTheme.Space.page)
-                    .padding(.top, 26)
-
-                Spacer(minLength: 12)
-
-                MokoCompletionAnimation(ringDiameter: 190)
-
-                Text("You did it!")
-                    .mokoText(MokoScreenTheme.Typeface.title1)
-                    .foregroundStyle(MirrorPalette.title)
-                    .padding(.top, 8)
-
-                Text("You took a moment to look at yourself with kindness and appreciate the person you are.")
-                    .mokoText(MokoScreenTheme.Typeface.body)
-                    .foregroundStyle(MirrorPalette.subtext)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-                    .padding(.top, 12)
-                    .padding(.horizontal, 36)
-
-                Spacer(minLength: 12)
-
-                MirrorPrimaryButton(title: "Done", action: onDone)
-                    .padding(.horizontal, MokoScreenTheme.Space.page)
-                    .padding(.bottom, 12)
-            }
-        }
+        // The shared completion screen with mirror-reflection-specific content.
+        // RelaxCompletionScreen plays the GPay sound automatically on appear.
+        RelaxCompletionScreen(
+            title: "You did it!",
+            subtitle: "You took a moment to look at yourself with kindness and appreciate the person you are.",
+            buttonLabel: "Done",
+            accent: MirrorPalette.accent,
+            onContinue: onDone
+        )
         // Open the mint panels once to mark this moment of kindness.
         .mokoCompletionReveal()
-        // Stays immersive until Done returns to the Mirror landing screen.
-        .toolbar(.hidden, for: .tabBar)
     }
 }
 

@@ -1,5 +1,7 @@
 # Changelog
 
+- 2026-11-16 — `RelaxCompletionScreen.swift` (new), `GroundingExerciseScreen.swift`, `BoxBreathingView.swift`, `Breathingsessionscreen.swift`, `Mirrorflow.swift`, `SessionCompleteView.swift`: Created a shared `RelaxCompletionScreen` used by every relax exercise. Each exercise passes its own title and subtitle so content stays distinct. The GPay success sound (`google-pay-success.mp3`) now plays automatically via `.task { DebriefSoundPlayer.shared.playSuccess() }` the moment any relax completion screen appears. Imagery (`SessionCompleteView`) triggers the sound via `.onChange` when its Supabase content loads.
+
 - 2026-11-16 — `QuestModels.swift`, `Questsscreen.swift`, `Questdetailscreen.swift`, `QuestLibraryView.swift`: Added `QuestStyle.xpColor(for:)` to assign distinct, high-visibility colors for each XP value (100 XP green, 150 XP amber, 200 XP coral) across custom quests in the Quests tab, quest briefing cards, and Quest Library cards; removed divider and styled titles brown.
 - 2026-11-16 — `Questdetailscreen.swift`, `QuestModels.swift`, `OverviewScaffold.swift`, `OverviewData.swift`: Used the brand brown from `MokoTheme` for the quest title on the pre-debrief screen, and changed the Overview Insights card from today's warmth alone to the overall average of all four parameters.
 - 2026-11-16 — `MokoProfileComponents.swift`, `ProfileOverView.swift`: Enlarged Profile icons, avatar, stat/badge cards and settings rows; added wrapping layouts for accessibility text and visible navigation on detail screens.
