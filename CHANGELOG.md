@@ -1,5 +1,7 @@
 # Changelog
 
+- 2026-11-16 — `Summaryview.swift`: Changed weekday labels on the Calm Down insights week chart from full weekday names (`.wide`, e.g. "Monday", "Tuesday") to abbreviated names (`.abbreviated`, e.g. "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").
+
 - 2026-11-16 — `OnboardingFlowView.swift`: Enhanced the first-card swipe-hint animation. The first card now lifts upward (`hintOffsetY = -20`) into the air for the duration of the tutorial hint, performs two full cycles of tilting left and right (demonstrating swiping left for No and right for Yes), and smoothly descends back to its resting position (`hintOffsetY = 0`) before unlocking user interaction.
 
 - 2026-11-16 — `RelaxCompletionScreen.swift`, `SessionCompleteView.swift`: Moved GPay success sound from screen-appear to button tap. `RelaxCompletionScreen` now plays `DebriefSoundPlayer.shared.playSuccess()` inside the Continue button's action (covers Grounding, Box Breathing, Breathing, Mirror). `SessionCompleteView` (Imagery Guide) now plays it inside the Done button's action; removed the previous `.onChange(of: store.screen != nil)` trigger. Sound no longer fires on appear — it fires exactly when the user taps the button.

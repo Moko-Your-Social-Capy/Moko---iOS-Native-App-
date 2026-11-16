@@ -334,8 +334,9 @@ struct SummaryData {
                     inSameDayAs: now
                 )
 
+                // Short weekday name (e.g. Mon, Tue, Wed).
                 let label = dayStart.formatted(
-                    .dateTime.weekday(.wide)
+                    .dateTime.weekday(.abbreviated)
                 )
 
                 return SummaryBar(
@@ -757,7 +758,7 @@ struct SummaryView: View {
                     }
                 }
             }
-            // One label per bar, using the bar's own text ("9 AM", "Monday", "Week 2", "Jan").
+            // One label per bar, using the bar's own text ("9 AM", "Mon", "Week 2", "Jan").
             .chartXAxis {
 
                 AxisMarks(
