@@ -172,6 +172,8 @@ struct RelaxScreen: View {
                     switch sheet {
                     case .breathing:
                         breathingSheet
+                            // Breathing sheet is compact – just the timer picker + steps.
+                            .presentationDetents([.fraction(0.52)])
                     case .session(let session):
                         RelaxSessionSheet(
                             session: session,
@@ -181,9 +183,10 @@ struct RelaxScreen: View {
                                 activeSheet = nil
                             }
                         )
+                        // Session sheets have a large banner image, so they need more room.
+                        .presentationDetents([.fraction(0.80)])
                     }
                 }
-                .presentationDetents([.fraction(0.80)])   // sheet covers 80% of the screen
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(28)
             }
@@ -496,7 +499,6 @@ struct RelaxScreen: View {
                     "Breathe out gently and let go of tension"],
             buttonTitle: "Start",
             onStart: { pendingBreathing = true },
-            icon: { BreathingDotsIcon(color: accent).frame(width: 64, height: 64) },
             extra: { minutesStepper(style: MokoScreenTheme.Typeface.cardTitle, labelWidth: 60) }
         )
     }
@@ -504,15 +506,15 @@ struct RelaxScreen: View {
 
 // MARK: - Breathing sheet layout
 
-/// A sheet with an icon, title, subtitle, a custom `extra` view, numbered steps and a button.
-/// `Icon` and `Extra` are generic, so the caller can pass any view without `AnyView`.
-struct RelaxDetailSheet<Icon: View, Extra: View>: View {
+/// A sheet with a title, subtitle, a custom `extra` view (the timer stepper),
+/// numbered steps and a primary action button.
+/// `Extra` is generic so the caller can pass any view without `AnyView`.
+struct RelaxDetailSheet<Extra: View>: View {
     let title: String
     let subtitle: String
     let steps: [String]
     let buttonTitle: String
     let onStart: () -> Void
-    private let icon: Icon
     private let extra: Extra
 
     // Closes this sheet.
@@ -525,77 +527,78 @@ struct RelaxDetailSheet<Icon: View, Extra: View>: View {
          steps: [String],
          buttonTitle: String,
          onStart: @escaping () -> Void,
-         @ViewBuilder icon: () -> Icon,
          @ViewBuilder extra: () -> Extra) {
         self.title = title
         self.subtitle = subtitle
         self.steps = steps
         self.buttonTitle = buttonTitle
         self.onStart = onStart
-        self.icon = icon()
         self.extra = extra()
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                icon
-                    .frame(height: 64)
-                    .padding(.top, 28)
+        // Not a ScrollView — the content fits the compact sheet, so we fill it evenly.
+        VStack(spacing: 0) {
 
+            // ── Title + subtitle ─────────────────────────────────────────────
+            VStack(spacing: 6) {
                 Text(title)
                     .mokoText(MokoScreenTheme.Typeface.title2)
                     .foregroundStyle(MokoScreenTheme.Colors.textTitle)
-                    .padding(.top, 14)
 
                 Text(subtitle)
                     .mokoText(MokoScreenTheme.Typeface.body)
                     .foregroundStyle(MokoScreenTheme.Colors.textBody)
                     .multilineTextAlignment(.center)
-                    .padding(.top, 6)
                     .padding(.horizontal, MokoScreenTheme.Space.page)
+            }
+            .padding(.top, 24)
 
-                extra
-                    .padding(.top, 16)
+            Spacer()
 
-                // Numbered steps: a small filled circle with the number, then the text.
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
-                        HStack(alignment: .top, spacing: 12) {
-                            Text("\(index + 1)")
-                                .mokoText(MokoScreenTheme.Typeface.caption)
-                                .foregroundStyle(.white)
-                                .frame(width: 22, height: 22)
-                                .background(Circle().fill(accent))
-                            Text(step)
-                                .mokoText(MokoScreenTheme.Typeface.body)
-                                .foregroundStyle(MokoScreenTheme.Colors.textTitle)
-                        }
+            // ── Basic Timer stepper (the "extra" slot) ───────────────────────
+            extra
+
+            Spacer()
+
+            // ── Numbered instructions ────────────────────────────────────────
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
+                    HStack(alignment: .top, spacing: 12) {
+                        // Numbered circle badge.
+                        Text("\(index + 1)")
+                            .mokoText(MokoScreenTheme.Typeface.caption)
+                            .foregroundStyle(.white)
+                            .frame(width: 22, height: 22)
+                            .background(Circle().fill(accent))
+                        Text(step)
+                            .mokoText(MokoScreenTheme.Typeface.body)
+                            .foregroundStyle(MokoScreenTheme.Colors.textTitle)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 20)
-                .padding(.horizontal, MokoScreenTheme.Space.page)
-
-                Spacer(minLength: 12)
-
-                Button {
-                    onStart()
-                    dismiss()
-                } label: {
-                    Text(buttonTitle)
-                        .mokoText(MokoScreenTheme.Typeface.slider)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: MokoScreenTheme.Control.trackHeight)
-                        .background(Capsule().fill(accent))
-                }
-                .buttonStyle(.plain)
-                .padding(.horizontal, MokoScreenTheme.Space.page)
-                .padding(.bottom, 20)
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, MokoScreenTheme.Space.page)
+
+            Spacer()
+
+            // ── Continue / Start button ──────────────────────────────────────
+            Button {
+                onStart()
+                dismiss()
+            } label: {
+                Text(buttonTitle)
+                    .mokoText(MokoScreenTheme.Typeface.slider)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: MokoScreenTheme.Control.trackHeight)
+                    .background(Capsule().fill(accent))
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, MokoScreenTheme.Space.page)
+            .padding(.bottom, 20)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background { MokoBackdrop() }
     }
 }
