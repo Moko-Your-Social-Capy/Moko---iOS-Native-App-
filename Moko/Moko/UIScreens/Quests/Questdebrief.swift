@@ -23,6 +23,7 @@ import Observation
 import AVFoundation
 import Speech
 import OSLog
+import Lottie
 
 // MARK: - Where the user ends up
 
@@ -852,8 +853,8 @@ struct QuestDebriefScreen: View {
             // Show loading while coach is thinking
             if session.isCoachTyping {
                 MokoLoadingView(
-                    message: "Your coach is thinking...",
-                    subtitle: "Generating personalized feedback"
+                    message: "Your coach is thinking..."
+                    
                 )
                 .transition(.opacity)
             }
@@ -1222,8 +1223,7 @@ struct DebriefUserBubble: View {
                         .foregroundStyle(DebriefStyle.accent)
                         .monospacedDigit()
                 } else {
-                    MokoFlossLoadingView(size: 28)
-                        .frame(width: 28, height: 28)
+                    MokoLoadingView()
                 }
 
                 Image(systemName: "chevron.down")
@@ -1324,31 +1324,12 @@ struct DebriefQuestionHeader: View {
     }
 }
 
-/// Three bouncing dots while the coach is thinking.
+/// Loading spinner while the coach is thinking.
 struct DebriefTypingIndicator: View {
-    // The phone setting "Reduce Motion". If it is on, the dots stay still.
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     var body: some View {
         HStack(spacing: 0) {
-            // TimelineView redraws every frame; each dot follows a sine wave, a little behind the last.
-            TimelineView(.animation(paused: reduceMotion)) { timeline in
-                let t = timeline.date.timeIntervalSinceReferenceDate
-
-                HStack(spacing: 6) {
-                    ForEach(0..<3, id: \.self) { index in
-                        let wave = sin(t * 6 + Double(index) * 0.9)
-
-                        Circle()
-                            .fill(DebriefStyle.accent.opacity(0.55 + 0.35 * (wave + 1) / 2))
-                            .frame(width: 8, height: 8)
-                            .offset(y: CGFloat(wave) * -3)
-                    }
-                }
-            }
-            .padding(.horizontal, 18)
-            .frame(height: 44)
-            .mokoCard(radius: MokoScreenTheme.Radius.pill)
+            MokoLoadingView()
+                .frame(height: 44)
 
             Spacer()
         }
@@ -1690,6 +1671,7 @@ struct DebriefCompletionPanel: View {
 
     // Flipped on appear: pops the check mark in and fills the score bars one by one.
     @State private var animate = false
+    @State private var showConfetti = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -1704,6 +1686,12 @@ struct DebriefCompletionPanel: View {
                 }
                 .scaleEffect(animate ? 1 : 0.5)
                 .opacity(animate ? 1 : 0)
+                .overlay(
+                    MokoLottieView(animation: .confetti, loopMode: .playOnce)
+                        .frame(width: 80, height: 80)
+                        .opacity(showConfetti ? 1 : 0)
+                        .allowsHitTesting(false)
+                )
 
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 8) {
@@ -1755,6 +1743,10 @@ struct DebriefCompletionPanel: View {
         .animation(.spring(response: 0.55, dampingFraction: 0.7), value: animate)
         .onAppear {
             animate = true
+            // Trigger confetti animation after a short delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                showConfetti = true
+            }
         }
     }
 

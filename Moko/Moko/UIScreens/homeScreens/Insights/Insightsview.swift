@@ -13,8 +13,11 @@
 
 import SwiftUI
 import SwiftData
+import Lottie
 
 // MARK: - Model
+
+
 
 enum InsightsRange: String, CaseIterable, Identifiable {
     case day = "Day"
@@ -41,7 +44,7 @@ struct InsightsScores {
     let courage: Double
     let presence: Double
     let warmth: Double
-
+        
     /// No saved entries
     static let zero = InsightsScores(clarity: 0, courage: 0, presence: 0, warmth: 0)
 
@@ -68,6 +71,7 @@ struct InsightsScores {
         presence = Double(records.reduce(0) { $0 + $1.presence }) / count
         warmth   = Double(records.reduce(0) { $0 + $1.warmth })   / count
     }
+    
 }
 
 /// Everything one parameter card shows.
@@ -96,6 +100,8 @@ struct InsightsView: View {
 
     // Which segment is picked: Day, Week, Month or Year.
     @State private var range: InsightsRange = .day
+    @State private var showOverallSparkles = false
+    @State private var overallSparklesVersion = 0
 
     private let accent    = MokoScreenTheme.Colors.dataVioletDeep
     private let soft      = MokoScreenTheme.Colors.surfaceLavender
@@ -225,9 +231,28 @@ struct InsightsView: View {
                     .pickerStyle(.segmented)
                     .tint(Color(red: 0.8, green: 0.7, blue: 1.0)) // Light purple
 
-                    radar
+                    if records.isEmpty {
+                        VStack(spacing: 12) {
+                            MokoLottieView(animation: .empty, loopMode: .loop)
+                                .frame(width: 140, height: 140)
 
-                    overallCard
+                            Text("Your insights will appear here")
+                                .mokoText(MokoScreenTheme.Typeface.cardTitle)
+                                .foregroundStyle(titleDark)
+
+                            Text("Complete your first quest and debrief to start tracking your growth.")
+                                .mokoText(MokoScreenTheme.Typeface.body)
+                                .foregroundStyle(gray)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 28)
+                    } else {
+                        radar
+                        overallCard
+
+                        // Keep your existing Social Pulse heading and parameter cards here.
+                    }
 
                     Text("Social Pulse")
                         .mokoText(MokoScreenTheme.Typeface.section)
@@ -247,8 +272,20 @@ struct InsightsView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbarBackground(.hidden, for: .navigationBar)
         .tint(MokoScreenTheme.Colors.dataVioletDeep)
-        // Smoothly updates the numbers and bars when another range is picked.
         .animation(.easeInOut, value: range)
+        .onChange(of: scores.overall) { oldValue, newValue in
+            guard newValue > oldValue, !records.isEmpty else {
+                return
+            }
+
+            overallSparklesVersion += 1
+            showOverallSparkles = true
+
+            Task {
+                try? await Task.sleep(for: .seconds(2))
+                showOverallSparkles = false
+            }
+        }
     }
 
     // MARK: Radar chart

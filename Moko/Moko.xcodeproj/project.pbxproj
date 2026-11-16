@@ -7,11 +7,25 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1760FDB830AB2EAA00B224D3 /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 1760FDB730AB2EAA00B224D3 /* Lottie */; };
 		2979228A3089E3990016BAEE /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 297922893089E3990016BAEE /* Auth */; };
 		297922943089E3990016BAEE /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 297922933089E3990016BAEE /* Supabase */; };
 		297922A33089EFF00016BAEE /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 297922A23089EFF00016BAEE /* GoogleSignIn */; };
 		297922A53089EFF00016BAEE /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 297922A43089EFF00016BAEE /* GoogleSignInSwift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		177E5CE730AB481800FD0E95 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		177E22F33089D968002C18EB /* Moko.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Moko.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -43,6 +57,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1760FDB830AB2EAA00B224D3 /* Lottie in Frameworks */,
 				297922943089E3990016BAEE /* Supabase in Frameworks */,
 				297922A53089EFF00016BAEE /* GoogleSignInSwift in Frameworks */,
 				2979228A3089E3990016BAEE /* Auth in Frameworks */,
@@ -79,6 +94,7 @@
 				177E22EF3089D968002C18EB /* Sources */,
 				177E22F03089D968002C18EB /* Frameworks */,
 				177E22F13089D968002C18EB /* Resources */,
+				177E5CE730AB481800FD0E95 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -93,6 +109,8 @@
 				297922933089E3990016BAEE /* Supabase */,
 				297922A23089EFF00016BAEE /* GoogleSignIn */,
 				297922A43089EFF00016BAEE /* GoogleSignInSwift */,
+				1760FDB730AB2EAA00B224D3 /* Lottie */,
+				1760FDB930AB2EAA00B224D3 /* Lottie-Dynamic */,
 			);
 			productName = Moko;
 			productReference = 177E22F33089D968002C18EB /* Moko.app */;
@@ -125,6 +143,7 @@
 			packageReferences = (
 				297922803089E1680016BAEE /* XCRemoteSwiftPackageReference "supabase-swift" */,
 				297922A13089EFF00016BAEE /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				1760FDB630AB2EAA00B224D3 /* XCRemoteSwiftPackageReference "lottie-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 177E22F43089D968002C18EB /* Products */;
@@ -291,6 +310,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Moko/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Moko;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Moko uses the front camera only during the Mirror Reflection exercise. Nothing is recorded or saved.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Moko uses your mic only when you record a voice reflection. You choose when it starts and you can delete recordings any time.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Moko uses speech recognition only when you answer a debrief question by voice. Recognition happens on-device when possible.";
@@ -327,6 +347,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Moko/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Moko;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Moko uses the front camera only during the Mirror Reflection exercise. Nothing is recorded or saved.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Moko uses your mic only when you record a voice reflection. You choose when it starts and you can delete recordings any time.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Moko uses speech recognition only when you answer a debrief question by voice. Recognition happens on-device when possible.";
@@ -375,6 +396,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		1760FDB630AB2EAA00B224D3 /* XCRemoteSwiftPackageReference "lottie-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.6.1;
+			};
+		};
 		297922803089E1680016BAEE /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/supabase/supabase-swift";
@@ -396,6 +425,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		1760FDB730AB2EAA00B224D3 /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1760FDB630AB2EAA00B224D3 /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = Lottie;
+		};
+		1760FDB930AB2EAA00B224D3 /* Lottie-Dynamic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 1760FDB630AB2EAA00B224D3 /* XCRemoteSwiftPackageReference "lottie-ios" */;
+			productName = "Lottie-Dynamic";
+		};
 		297922893089E3990016BAEE /* Auth */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 297922803089E1680016BAEE /* XCRemoteSwiftPackageReference "supabase-swift" */;

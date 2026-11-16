@@ -366,7 +366,7 @@ struct QuestDetailScreen: View {
                         case .empty:
                             ZStack {
                                 Color.white.opacity(0.25)
-                                MokoFlossLoadingView(size: 44)
+                                MokoLoadingView()
                                     .frame(width: 44, height: 44)
                             }
                         case .failure:

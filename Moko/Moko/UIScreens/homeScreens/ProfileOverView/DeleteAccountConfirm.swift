@@ -81,7 +81,7 @@ struct ProfileOverViewDeleteReauthentication: View {
                     HStack {
                         Spacer()
                         if isLoading {
-                            MokoFlossLoadingView(size: 30)
+                            MokoLoadingView()
                                 .frame(width: 30, height: 30)
                         } else {
                             Text("Verify and continue").fontWeight(.semibold)

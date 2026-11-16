@@ -19,6 +19,9 @@ struct ProfileOverViewEditProfile: View {
     @Environment(\.modelContext) private var modelContext
     // @Query reads every saved Profile. The app only ever keeps one.
     @Query private var profiles: [Profile]
+    
+    // Haptic feedback for validation
+    @State private var feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
 
     // Copies of the profile fields that the form edits.
     @State private var name = ""
@@ -33,12 +36,31 @@ struct ProfileOverViewEditProfile: View {
     @State private var showValidation = false
     // A message shown if saving to the database fails.
     @State private var saveError: String?
+    
+    // Loading state for save operation
+    @State private var isSaving = false
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var trimmedHandle: String { handle.trimmingCharacters(in: .whitespacesAndNewlines) }
+    
     private var nameError: String? {
         if trimmedName.isEmpty { return "Enter a display name." }
         if trimmedName.count > 30 { return "Use 30 characters or fewer." }
         return nil
+    }
+    
+    private var handleError: String? {
+        guard !trimmedHandle.isEmpty else { return nil }
+        if trimmedHandle.count < 3 { return "Username must be at least 3 characters." }
+        if trimmedHandle.count > 20 { return "Username must be 20 characters or fewer." }
+        if !trimmedHandle.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" || $0 == "-" }) {
+            return "Username can only contain letters, numbers, underscores, and hyphens."
+        }
+        return nil
+    }
+    
+    private var isValidForm: Bool {
+        nameError == nil && handleError == nil
     }
 
     var body: some View {
@@ -55,11 +77,11 @@ struct ProfileOverViewEditProfile: View {
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.85)
                                     .frame(maxWidth: .infinity, minHeight: 48)
-                                    .background(ProfilePalette.lime, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .background(MokoScreenTheme.Colors.dataVioletDeep, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                                     .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             }
                             .buttonStyle(.plain)
-                            .foregroundStyle(ProfilePalette.text)
+                            .foregroundStyle(MokoScreenTheme.Colors.textOnBrand)
 
                             Button {
                                 showAvatarChoices = true
@@ -69,11 +91,11 @@ struct ProfileOverViewEditProfile: View {
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.85)
                                     .frame(maxWidth: .infinity, minHeight: 48)
-                                    .background(ProfilePalette.lime, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .background(MokoScreenTheme.Colors.dataVioletLight, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                                     .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             }
                             .buttonStyle(.plain)
-                            .foregroundStyle(ProfilePalette.text)
+                            .foregroundStyle(MokoScreenTheme.Colors.textBody)
 
                             if photoData != nil {
                                 Button(role: .destructive) {
@@ -86,6 +108,7 @@ struct ProfileOverViewEditProfile: View {
                                         .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
+                                .foregroundStyle(MokoScreenTheme.Colors.error)
                             }
                         }
                     }
@@ -93,75 +116,176 @@ struct ProfileOverViewEditProfile: View {
                     .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 } header: {
                     Text("Profile photo")
+                        .mokoText(MokoScreenTheme.Typeface.sectionHeader)
                 } footer: {
                     Text("Preview shows the centered square crop that will be saved.")
+                        .mokoText(MokoScreenTheme.Typeface.caption)
                 }
 
-                Section("Your details") {
-                    LabeledContent("Display name") {
+                Section {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Display name")
+                            .mokoText(MokoScreenTheme.Typeface.fieldLabel)
+                            .foregroundStyle(MokoScreenTheme.Colors.textBody)
+                        
                         TextField("Required", text: $name)
-                            .multilineTextAlignment(.leading)
+                            .mokoText(MokoScreenTheme.Typeface.body)
+                            .textFieldStyle(.roundedBorder)
                             .textInputAutocapitalization(.words)
-                            // Runs every time the name changes: cut it at 30 characters.
+                            .autocorrectionDisabled()
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(MokoScreenTheme.Colors.canvasTop.opacity(0.1))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(nameError != nil && showValidation ? MokoScreenTheme.Colors.error : MokoScreenTheme.Colors.borderSubtle, lineWidth: 1)
+                                    )
+                            )
                             .onChange(of: name) { _, newValue in
                                 if newValue.count > 30 { name = String(newValue.prefix(30)) }
                             }
-                    }
-                    if showValidation, let nameError {
-                        Text(nameError)
-                            .font(.footnote)
-                            .foregroundStyle(ProfilePalette.error)
-                            .accessibilityAddTraits(.isStaticText)
-                    }
-                    LabeledContent("Username (optional)") {
-                        TextField("username", text: $handle)
-                            .multilineTextAlignment(.leading)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                    }
-                    Picker("Age range (optional)", selection: $ageRange) {
-                        Text("Prefer not to say").tag("")
-                        ForEach(["13–17", "18–24", "25–34", "35–44", "45+"], id: \.self) { range in
-                            Text(range).tag(range)
+                        
+                        if showValidation, let nameError {
+                            Text(nameError)
+                                .mokoText(MokoScreenTheme.Typeface.caption)
+                                .foregroundStyle(MokoScreenTheme.Colors.error)
+                                .accessibilityAddTraits(.isStaticText)
+                                .padding(.horizontal, 4)
                         }
                     }
+                    .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Username (optional)")
+                            .mokoText(MokoScreenTheme.Typeface.fieldLabel)
+                            .foregroundStyle(MokoScreenTheme.Colors.textBody)
+                        
+                        TextField("username", text: $handle)
+                            .mokoText(MokoScreenTheme.Typeface.body)
+                            .textFieldStyle(.roundedBorder)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(MokoScreenTheme.Colors.canvasTop.opacity(0.1))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(handleError != nil && showValidation ? MokoScreenTheme.Colors.error : MokoScreenTheme.Colors.borderSubtle, lineWidth: 1)
+                                    )
+                            )
+                            .onChange(of: handle) { _, newValue in
+                                // Remove spaces from username
+                                if newValue.contains(" ") {
+                                    handle = newValue.replacingOccurrences(of: " ", with: "")
+                                }
+                            }
+                        
+                        if showValidation, let handleError {
+                            Text(handleError)
+                                .mokoText(MokoScreenTheme.Typeface.caption)
+                                .foregroundStyle(MokoScreenTheme.Colors.error)
+                                .accessibilityAddTraits(.isStaticText)
+                                .padding(.horizontal, 4)
+                        }
+                    }
+                    .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Age range (optional)")
+                            .mokoText(MokoScreenTheme.Typeface.fieldLabel)
+                            .foregroundStyle(MokoScreenTheme.Colors.textBody)
+                        
+                        Menu {
+                            Button("Prefer not to say") { ageRange = "" }
+                            Divider()
+                            ForEach(["13–17", "18–24", "25–34", "35–44", "45+"], id: \.self) { range in
+                                Button(range) { ageRange = range }
+                            }
+                        } label: {
+                            HStack {
+                                Text(ageRange.isEmpty ? "Select age range" : ageRange)
+                                    .mokoText(MokoScreenTheme.Typeface.body)
+                                    .foregroundStyle(ageRange.isEmpty ? MokoScreenTheme.Colors.textMuted : MokoScreenTheme.Colors.textBody)
+                                Spacer()
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundStyle(MokoScreenTheme.Colors.textMuted)
+                            }
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(MokoScreenTheme.Colors.canvasTop.opacity(0.1))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(MokoScreenTheme.Colors.borderSubtle, lineWidth: 1)
+                                    )
+                            )
+                        }
+                    }
+                    .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
+                } header: {
+                    Text("Your details")
+                        .mokoText(MokoScreenTheme.Typeface.sectionHeader)
                 }
 
                 if let saveError {
                     Section {
-                        Text(saveError).foregroundStyle(ProfilePalette.error)
+                        HStack(spacing: 12) {
+                            Image(systemName: "exclamationmark.triangle")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundStyle(MokoScreenTheme.Colors.error)
+                            
+                            Text(saveError)
+                                .mokoText(MokoScreenTheme.Typeface.caption)
+                                .foregroundStyle(MokoScreenTheme.Colors.error)
+                        }
+                        .padding(.vertical, 8)
                     }
                 }
             }
-            .listStyle(.insetGrouped)
+            .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(MokoBackdrop())
             .navigationTitle("Edit Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    // Dismissal is a cross, not a "Cancel" title: this is a sheet, so the system
-                    // close affordance is the expected control (role `.close` is iOS 26+).
-                    // No explicit frame/buttonStyle — the toolbar sizes and shapes it like the
-                    // system close button (a fixed 44 pt frame stretched the glass capsule).
                     Button(role: .close) { dismiss() } label: {
                         Image(systemName: "xmark")
+                            .font(.system(size: 18, weight: .medium))
+                            .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel("Close")
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(ProfilePalette.text)
+                    .foregroundStyle(MokoScreenTheme.Colors.textBody)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save", action: save)
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(ProfilePalette.text)
-                        .frame(minWidth: 44, minHeight: 44)
-                        .buttonStyle(.plain)
+                    Button(action: save) {
+                        if isSaving {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: MokoScreenTheme.Colors.textOnBrand))
+                        } else {
+                            Text("Save")
+                                .mokoText(MokoScreenTheme.Typeface.button)
+                        }
+                    }
+                    .mokoButtonStyle(.primary, isLoading: isSaving, isDisabled: !isValidForm)
+                    .disabled(!isValidForm || isSaving)
                 }
             }
             .confirmationDialog("Choose a Moko avatar", isPresented: $showAvatarChoices, titleVisibility: .visible) {
-                Button("Calm Moko") { photoData = compressedAvatar(named: "profile_empty_moko") }
-                Button("Waving Moko") { photoData = compressedAvatar(named: "welcome_moko") }
+                Button("Calm Moko") { 
+                    photoData = compressedAvatar(named: "profile_empty_moko")
+                    feedbackGenerator.impactOccurred()
+                }
+                Button("Waving Moko") { 
+                    photoData = compressedAvatar(named: "welcome_moko")
+                    feedbackGenerator.impactOccurred()
+                }
                 Button("Cancel", role: .cancel) { }
             }
             // Fill the form with the saved profile when the sheet opens.
@@ -169,24 +293,42 @@ struct ProfileOverViewEditProfile: View {
             // `.task(id:)` runs again every time `photoItem` changes, i.e. after the user picks a photo.
             .task(id: photoItem) { await loadPhoto() }
         }
-        .tint(ProfilePalette.accent)
+        .tint(MokoScreenTheme.Colors.dataVioletDeep)
+        .onAppear {
+            feedbackGenerator.prepare()
+        }
     }
 
     private var avatarPreview: some View {
         Group {
             if let photoData, let image = UIImage(data: photoData) {
-                Image(uiImage: image).resizable().scaledToFill()
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
             } else {
                 Image("profile_empty_moko")
-                    .resizable().scaledToFit()
+                    .resizable()
+                    .scaledToFit()
                     .padding(8)
             }
         }
         .frame(width: 96, height: 96)
-        .background(ProfilePalette.grouped, in: Circle())
+        .background(MokoScreenTheme.Colors.canvasTop.opacity(0.1), in: Circle())
         .clipShape(Circle())
-        .overlay(Circle().stroke(ProfilePalette.accent.opacity(0.22), lineWidth: 1))
+        .overlay(
+            Circle()
+                .stroke(MokoScreenTheme.Colors.dataVioletLight.opacity(0.3), lineWidth: 2)
+        )
+        .overlay(
+            Circle()
+                .stroke(MokoScreenTheme.Colors.canvasTop, lineWidth: 6)
+                .blendMode(.overlay)
+        )
         .accessibilityLabel("Profile photo preview")
+        .onTapGesture {
+            showAvatarChoices = true
+            feedbackGenerator.impactOccurred()
+        }
     }
 
     /// Copies the saved profile into the form fields.
@@ -255,27 +397,60 @@ struct ProfileOverViewEditProfile: View {
     /// Checks the name, updates (or creates) the Profile, then saves to disk.
     private func save() {
         showValidation = true
-        guard nameError == nil else { return }
-        let normalizedHandle = handle.trimmingCharacters(in: .whitespacesAndNewlines)
-        let savedAge = representativeAge(ageRange)
-        if let profile = profiles.first {
-            profile.username = trimmedName
-            profile.handle = normalizedHandle.isEmpty ? nil : normalizedHandle
-            profile.ageRange = ageRange.isEmpty ? nil : ageRange
-            profile.age = savedAge
-            profile.profileImageData = photoData
-            profile.updatedAt = .now
-        } else {
-            // No profile yet (e.g. the user skipped onboarding), so make one.
-            modelContext.insert(Profile(username: trimmedName, handle: normalizedHandle.isEmpty ? nil : normalizedHandle,
-                                        ageRange: ageRange.isEmpty ? nil : ageRange, age: savedAge, profileImageData: photoData))
+        
+        guard isValidForm else {
+            // Play haptic feedback for validation error
+            feedbackGenerator.impactOccurred(intensity: 0.7)
+            return
         }
-        do {
-            // Write the changes to disk. Close the sheet only if that worked.
-            try modelContext.save()
-            dismiss()
-        } catch {
-            saveError = "Your changes could not be saved. Try again."
+        
+        isSaving = true
+        feedbackGenerator.impactOccurred(intensity: 0.5)
+        
+        let normalizedHandle = trimmedHandle.isEmpty ? nil : trimmedHandle
+        let savedAge = representativeAge(ageRange)
+        
+        // Simulate network delay for better UX
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            do {
+                if let profile = profiles.first {
+                    profile.username = trimmedName
+                    profile.handle = normalizedHandle
+                    profile.ageRange = ageRange.isEmpty ? nil : ageRange
+                    profile.age = savedAge
+                    profile.profileImageData = photoData
+                    profile.updatedAt = .now
+                } else {
+                    // No profile yet (e.g. the user skipped onboarding), so make one.
+                    modelContext.insert(Profile(
+                        username: trimmedName,
+                        handle: normalizedHandle,
+                        ageRange: ageRange.isEmpty ? nil : ageRange,
+                        age: savedAge,
+                        profileImageData: photoData
+                    ))
+                }
+                
+                // Write the changes to disk
+                try modelContext.save()
+                
+                // Success haptic
+                let successGenerator = UINotificationFeedbackGenerator()
+                successGenerator.notificationOccurred(.success)
+                
+                // Close the sheet after a brief delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    dismiss()
+                }
+                
+            } catch {
+                isSaving = false
+                saveError = "Your changes could not be saved. Please try again."
+                
+                // Error haptic
+                let errorGenerator = UINotificationFeedbackGenerator()
+                errorGenerator.notificationOccurred(.error)
+            }
         }
     }
 }

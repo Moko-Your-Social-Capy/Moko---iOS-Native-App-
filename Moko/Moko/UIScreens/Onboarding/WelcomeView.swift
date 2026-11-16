@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Lottie
 
 struct WelcomeView: View {
     /// The name the user typed on NameEntryView.
@@ -42,12 +43,18 @@ struct WelcomeView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 32)
 
-            Image("welcome_moko")
-                .resizable()
-                .scaledToFit()
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .padding(.horizontal, 20)
-                .padding(.top, 60)
+            // Success checkmark animation
+            VStack(spacing: 20) {
+                MokoLottieView(animation: .successCheck, loopMode: .playOnce)
+                    .frame(width: 120, height: 120)
+                
+                Image("welcome_moko")
+                    .resizable()
+                    .scaledToFit()
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 40)
                 .accessibilityHidden(true)
 
             Spacer(minLength: 16)

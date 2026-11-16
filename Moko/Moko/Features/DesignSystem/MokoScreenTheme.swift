@@ -108,6 +108,21 @@ enum MokoScreenTheme {
         static let medalGold = Color(hex: 0xD9A441)
         static let medalSilver = Color(hex: 0xB9C1C3)
 
+        // MARK: Extended data palette — used by streak, profile and animation views
+        /// Warm magenta accent (streak milestones, celebration panels).
+        static let dataMagenta = Color(hex: 0xC4547A)
+        /// Amber/gold accent (streak flame, trophy, XP highlights).
+        static let dataGold = Color(hex: 0xD9A441)
+        /// Teal accent (success states, completed milestones).
+        static let dataTeal = Color(hex: 0x3B9A8C)
+        /// Soft lavender — a lighter tint of dataVioletDeep for backgrounds/chips.
+        static let dataVioletLight = Color(hex: 0xC4C1DC)
+
+        // MARK: Button & UI Colors
+        static let textOnBrand = Color.white
+        static let buttonDisabled = Color(hex: 0xE5E5EA)
+        static let borderSubtle = Color(hex: 0xE0E0E0)
+
         // MARK: Profile bright
         static let brightGreen = Color(hex: 0x4A9E7A)
         static let brightSun = Color(hex: 0xF2B84B)
@@ -251,6 +266,15 @@ enum MokoScreenTheme {
                                       tracking: -0.4, relativeTo: .largeTitle)
         static let title2 = TextStyle(size: 22, leading: 28, weight: .semibold,
                                       tracking: -0.2, relativeTo: .title2)
+        // Mid-level heading, one step below title2.
+        static let title3 = TextStyle(size: 18, leading: 24, weight: .semibold,
+                                      tracking: -0.1, relativeTo: .title3)
+        // Section label above a form group (e.g. "Profile photo").
+        static let sectionHeader = TextStyle(size: 13, leading: 18, weight: .semibold,
+                                             tracking: 0.2, relativeTo: .caption)
+        // Small label sitting directly above an input field.
+        static let fieldLabel = TextStyle(size: 13, leading: 18, weight: .medium,
+                                          tracking: 0, relativeTo: .footnote)
         static let section = TextStyle(size: 21, leading: 26, weight: .semibold,
                                        tracking: 0, relativeTo: .title3)
         static let cardTitle = TextStyle(size: 17, leading: 22, weight: .semibold,
@@ -268,6 +292,8 @@ enum MokoScreenTheme {
                                       tracking: 0.2, relativeTo: .headline)
         static let tab = TextStyle(size: 10, leading: 12, weight: .medium,
                                    tracking: 0, relativeTo: .caption2, fixed: true)
+        static let button = TextStyle(size: 16, leading: 22, weight: .semibold,
+                                      tracking: 0, relativeTo: .headline)
 
         // MARK: Profile
 

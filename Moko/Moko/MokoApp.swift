@@ -19,6 +19,7 @@ struct MokoApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+//            MokoLottieDemoView()
         }
         // SwiftData is Apple's storage. It saves these types on the phone
         // and shares them with every screen through the environment.

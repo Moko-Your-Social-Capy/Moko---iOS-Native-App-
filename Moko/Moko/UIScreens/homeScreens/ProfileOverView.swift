@@ -358,11 +358,11 @@ struct ProfileOverView: View {
 
     private var settingsSection: some View {
         VStack(spacing: Theme.Space.s3) {
+            settingsRow("Settings & preferences", symbol: "gearshape") {
+                ProfileSettingsView()
+            }
             settingsRow("Moko’s wardrobe", symbol: "tshirt") {
                 MokoWardrobeView(level: level)
-            }
-            settingsRow("Settings & privacy", symbol: "gearshape") {
-                ProfileOverViewSettingsOverview()
             }
             settingsRow("Account & data", symbol: "person.crop.circle") {
                 ProfileOverViewAccountAndData()

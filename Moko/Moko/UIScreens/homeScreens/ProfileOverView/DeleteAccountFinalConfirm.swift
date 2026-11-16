@@ -43,7 +43,7 @@ struct ProfileOverViewDeleteFinalConfirmation: View {
                 HStack {
                     Spacer()
                     if isDeleting {
-                        MokoFlossLoadingView(size: 34)
+                        MokoLoadingView()
                             .frame(width: 34, height: 34)
                     }
                     else { Text("Delete permanently").fontWeight(.semibold) }

@@ -328,7 +328,7 @@ struct CameraTimerScreen: View {
             CameraPreviewView(session: camera.camera.session)
 
         case .checking:
-            MokoFlossLoadingView(size: 84)
+            MokoLoadingView()
                 .frame(width: 84, height: 84)
 
         case .denied, .unavailable:
