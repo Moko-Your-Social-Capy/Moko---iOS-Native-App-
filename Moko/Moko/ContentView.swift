@@ -8,7 +8,7 @@
 //  chosen by `currentScreen`:
 //
 //    splash → intro → auth → onboardingInfo (carousel, name, age, welcome)
-//           → onboardingQuestions → done → reflection → microphonePreprompt → home
+//           → onboardingQuestions → done → reflection → home
 //
 //  A returning, fully registered user goes straight from splash to home.
 //  Signing out or deleting the account comes back here through `endSession`.
@@ -43,7 +43,6 @@ struct ContentView: View {
         case onboardingQuestions // Swipeable onboarding questions
         case done
         case reflection
-        case microphonePreprompt
         case accountDeleted
         case home
     }
@@ -159,17 +158,8 @@ struct ContentView: View {
 
             case .reflection:
                 ReflectionView(userName: currentUserName) {
-                    withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) {
-                        currentScreen = .microphonePreprompt
-                    }
-                }
-                .transition(.opacity)
-
-            // MARK: Microphone permission
-
-            case .microphonePreprompt:
-                MicrophonePermissionView {
-                    show(.home, duration: 0.2)
+                    // Text reflections need no microphone access or extra permission step.
+                    show(.home)
                 }
                 .transition(.opacity)
 

@@ -3,125 +3,77 @@
 //  Moko
 //
 //  Two simple full-screen messages that share the same look:
-//  - MicrophonePermissionView: explains why Moko wants the mic, then asks iOS for it.
+//  - MicrophonePermissionView: explains why microphone access is not needed yet.
 //  - AccountDeletedConfirmation: shown once after the user deletes their account.
 //
-//  Debug tip: iOS only shows the mic popup once per install. To see it again,
-//  delete the app (or reset the simulator), then reinstall.
+//  Real recording is not available yet, so this screen never asks for access.
 //
 
 import SwiftUI
-import AVFoundation
 
-/// Colors shared by the two screens in this file.
-private enum PermissionPalette {
-    static let teal       = Color(hex: 0x1F7488)
-    static let brown      = Color(hex: 0x4A3826)
-    static let background = Color(hex: 0xF7F5F2)
-    static let error      = Color(hex: 0xB9583F)
-    static let success    = Color(hex: 0x2F6E4A)
-}
+// Share the app's mint, white, forest, and readable text colors.
+private typealias PermissionTheme = MokoScreenTheme
 
 // MARK: - Microphone permission
 
 struct MicrophonePermissionView: View {
-    /// Called when the mic is allowed, or when the user taps "Skip for now".
-    let onContinue: () -> Void
-
-    /// True while Apple's permission popup is on screen.
-    @State private var isRequesting = false
-    /// Shown under the text if the user says no.
-    @State private var permissionMessage: String?
-
-    private let reason = "Moko uses your mic only when you record a voice reflection. You choose when it starts and you can delete recordings any time."
+    // Close this information screen without changing any permission.
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Spacer()
-
-            Image("profile_empty_moko")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 164, height: 164)
-                .overlay(alignment: .topTrailing) {
-                    Image(systemName: "headphones")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundStyle(PermissionPalette.teal)
-                        .padding(12)
-                        .background(PermissionPalette.background, in: Circle())
-                }
-                .frame(maxWidth: .infinity)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Moko wearing headphones")
-
-            Text("Let Moko listen")
-                .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(PermissionPalette.brown)
-                .padding(.top, 28)
-
-            Text(reason)
-                .font(.body)
-                .foregroundStyle(PermissionPalette.brown.opacity(0.78))
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 10)
-
-            Text("You can also use text reflections. Moko works without microphone access.")
-                .font(.subheadline)
-                .foregroundStyle(PermissionPalette.brown.opacity(0.72))
-                .padding(.top, 14)
-
-            if let permissionMessage {
-                Text(permissionMessage)
-                    .font(.footnote)
-                    .foregroundStyle(PermissionPalette.error)
-                    .padding(.top, 10)
-            }
-
-            Spacer()
-
-            Button(action: requestMicrophone) {
-                // Show a small loader instead of the label while the popup is up.
-                Group {
-                    if isRequesting {
-                        MokoFlossLoadingView(size: 30)
-                            .frame(width: 30, height: 30)
-                    } else {
-                        Text("Allow microphone").fontWeight(.semibold)
+        ScrollView {
+            VStack(alignment: .leading, spacing: PermissionTheme.Space.s4) {
+                Image("profile_empty_moko")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 180, height: 180)
+                    .overlay(alignment: .topTrailing) {
+                        Image(systemName: "mic.slash")
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(PermissionTheme.Colors.forest)
+                            .padding(PermissionTheme.Space.s3)
+                            .background(PermissionTheme.Colors.surfaceWhite, in: Circle())
                     }
-                }
-                .frame(maxWidth: .infinity, minHeight: 52)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, PermissionTheme.Space.s6)
+                    .accessibilityHidden(true)
+
+                Text("No microphone needed")
+                    .font(.title.weight(.bold))
+                    .foregroundStyle(PermissionTheme.Colors.textTitle)
+                    .accessibilityAddTraits(.isHeader)
+
+                Text("Voice recording isn't available yet. You can complete your reflections by typing, without microphone access.")
+                    .font(.body)
+                    .foregroundStyle(PermissionTheme.Colors.textBody)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Label("No audio is recorded", systemImage: "lock.shield")
+                    .font(.headline)
+                    .foregroundStyle(PermissionTheme.Colors.forest)
+                    .padding(PermissionTheme.Space.s4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .mokoCard()
+            }
+            .padding(PermissionTheme.Space.page)
+        }
+        .background(MokoBackdrop())
+        // Keep Done within reach while larger text scrolls above it.
+        .safeAreaInset(edge: .bottom) {
+            Button { dismiss() } label: {
+                Text("Done")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 52)
             }
             .buttonStyle(.borderedProminent)
-            .tint(PermissionPalette.teal)
+            .tint(PermissionTheme.Colors.forest)
             .buttonBorderShape(.capsule)
-            .disabled(isRequesting)
-
-            Button("Skip for now", action: onContinue)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(PermissionPalette.brown)
-                .frame(maxWidth: .infinity, minHeight: 50)
-                .contentShape(Rectangle())
-                .padding(.top, 8)
+            .padding(.horizontal, PermissionTheme.Space.page)
+            .padding(.vertical, PermissionTheme.Space.s3)
+            .background(PermissionTheme.Colors.surfaceWhite.ignoresSafeArea(edges: .bottom))
         }
-        .padding(24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(MokoBackdrop())
-    }
-
-    private func requestMicrophone() {
-        isRequesting = true
-        Task {
-            // Shows Apple's "Allow microphone?" popup and waits for the user's answer.
-            // The popup text comes from NSMicrophoneUsageDescription (target → Info tab).
-            // Without it, the app crashes here.
-            let granted = await AVAudioApplication.requestRecordPermission()
-            isRequesting = false
-            if granted {
-                onContinue()
-            } else {
-                permissionMessage = "Microphone access is off. You can continue with text reflections."
-            }
-        }
+        .navigationTitle("Microphone")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -137,16 +89,16 @@ struct AccountDeletedConfirmation: View {
 
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 56))
-                .foregroundStyle(PermissionPalette.success)
+                .foregroundStyle(PermissionTheme.Colors.forest)
                 .accessibilityHidden(true)
 
             Text("Your account was deleted")
-                .font(.system(size: 30, weight: .bold, design: .rounded))
-                .foregroundStyle(PermissionPalette.brown)
+                .font(.title.weight(.bold))
+                .foregroundStyle(PermissionTheme.Colors.textTitle)
 
             Text("Your account and local Moko data have been removed.")
                 .font(.body)
-                .foregroundStyle(PermissionPalette.brown.opacity(0.78))
+                .foregroundStyle(PermissionTheme.Colors.textBody)
 
             Spacer()
 
@@ -156,7 +108,7 @@ struct AccountDeletedConfirmation: View {
                     .frame(maxWidth: .infinity, minHeight: 52)
             }
             .buttonStyle(.borderedProminent)
-            .tint(PermissionPalette.teal)
+            .tint(PermissionTheme.Colors.forest)
             .buttonBorderShape(.capsule)
         }
         .padding(24)
@@ -166,7 +118,12 @@ struct AccountDeletedConfirmation: View {
 }
 
 #Preview("Microphone") {
-    MicrophonePermissionView(onContinue: {})
+    NavigationStack { MicrophonePermissionView() }
+}
+
+#Preview("Microphone — Larger Text") {
+    NavigationStack { MicrophonePermissionView() }
+        .environment(\.dynamicTypeSize, .accessibility3)
 }
 
 #Preview("Account deleted") {

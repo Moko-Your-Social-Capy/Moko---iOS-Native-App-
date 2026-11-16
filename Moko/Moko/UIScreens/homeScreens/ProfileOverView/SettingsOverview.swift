@@ -7,7 +7,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct ProfileOverViewSettingsOverview: View {
     // SwiftUI's way to open a link (a website or the Settings app).
@@ -19,17 +18,38 @@ struct ProfileOverViewSettingsOverview: View {
                 NavigationLink {
                     ProfileOverViewAccountAndData()
                 } label: {
-                    Label("Account Info", systemImage: "person.crop.circle")
+                    Label("Account & Data", systemImage: "person.crop.circle")
                 }
             }
+            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
 
             Section("Reminders") {
                 NavigationLink {
                     ProfileOverViewNotifications()
                 } label: {
-                    Label("Reminders and Notifications", systemImage: "bell")
+                    Label("Reminders & Notifications", systemImage: "bell")
                 }
             }
+            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
+
+            Section {
+                NavigationLink {
+                    MicrophonePermissionView()
+                } label: {
+                    Label("Microphone", systemImage: "mic")
+                }
+                Button {
+                    // Open existing permission choices without requesting any new access.
+                    if let url = mokoOpenAppSettingsURL() { openURL(url) }
+                } label: {
+                    Label("Manage Permissions", systemImage: "lock")
+                }
+            } header: {
+                Text("Permissions")
+            } footer: {
+                Text("Access is requested only when a supported feature needs it.")
+            }
+            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
 
             Section("Privacy and legal") {
                 NavigationLink {
@@ -47,22 +67,14 @@ struct ProfileOverViewSettingsOverview: View {
                 } label: {
                     Label("Data we collect", systemImage: "list.bullet.rectangle")
                 }
-                Button {
-                    // Jumps to Moko's page in the iPhone Settings app (camera, microphone, notifications).
-                    if let url = mokoOpenAppSettingsURL() { openURL(url) }
-                } label: {
-                    Label("Manage permissions", systemImage: "lock")
-                        .foregroundStyle(ProfilePalette.text)
-                        .frame(minHeight: 44)
-                }
                 NavigationLink {
                     ProfileOverViewDeleteAccountConfirm()
                 } label: {
-                    Label("Delete my data", systemImage: "trash")
-                        .foregroundStyle(ProfilePalette.error)
-                        .frame(minHeight: 44)
+                    Label("Delete Account", systemImage: "trash")
+                        .labelStyle(MokoSettingsLabelStyle(isDestructive: true))
                 }
             }
+            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
 
             Section("Support") {
                 NavigationLink {
@@ -76,16 +88,27 @@ struct ProfileOverViewSettingsOverview: View {
                     Label("About Moko", systemImage: "info.circle")
                 }
             }
+            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
         }
         .listStyle(.insetGrouped)
+        .labelStyle(MokoSettingsLabelStyle())
+        .foregroundStyle(ProfilePalette.text)
+        // Larger rows stay easy to find and grow further when text needs to wrap.
+        .environment(\.defaultMinListRowHeight, 72)
         .scrollContentBackground(.hidden)
         .background(MokoBackdrop())
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
+        .toolbar(.visible, for: .navigationBar)
         .tint(ProfilePalette.accent)
     }
 }
 
 #Preview {
     NavigationStack { ProfileOverViewSettingsOverview() }
+}
+
+#Preview("Settings — Larger Text") {
+    NavigationStack { ProfileOverViewSettingsOverview() }
+        .environment(\.dynamicTypeSize, .accessibility3)
 }
