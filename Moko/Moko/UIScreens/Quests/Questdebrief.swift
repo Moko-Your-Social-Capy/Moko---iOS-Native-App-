@@ -13,7 +13,7 @@
 //  - `QuestDebriefScreen` draws it and saves the scores when it finishes.
 //  - The coach is `AFMDebriefCoach` (Apple Foundation Models) when the phone supports it,
 //    otherwise `DummyDebriefCoach` below, which scores answers with simple word rules.
-//  - Voice answers are simulated for now: `startRecording()` "speaks" a sample answer.
+//  - Voice answers use AVFoundation + Speech for live microphone recording and real-time transcription.
 //  - Leaving with "Finish Later" saves a draft (`DebriefDraftStore`) so it can resume.
 //
 
@@ -21,6 +21,8 @@ import SwiftUI
 import SwiftData
 import Observation
 import AVFoundation
+import Speech
+import OSLog
 
 // MARK: - Where the user ends up
 
@@ -327,6 +329,8 @@ final class DebriefSession {
     // Running background jobs. Kept so `cancelAll()` can stop them when the screen closes.
     private var recordingTask: Task<Void, Never>?
     private var flowTask: Task<Void, Never>?
+    // Live audio recorder and speech transcriber (AVFoundation + Speech framework).
+    private let transcriber = AudioTranscriber()
 
     init(context: DebriefContext, coach: any DebriefCoaching) {
         self.context = context
@@ -392,92 +396,86 @@ final class DebriefSession {
             : "Hey \(context.userName)! How did it go — did you manage to do it?"
     }
 
-    // MARK: Voice (simulated)
+    // MARK: Voice (AVFoundation + Speech)
 
-    // Sample answers "spoken" by the fake microphone, one per question.
-    private static let spokenAnswers = [
-        "I asked him about his new internship first, and he asked about my semester. It got quiet for a bit, but I kept going.",
-        "Mostly listening, I think. When it went quiet I started planning what to say next, but then I caught myself and tried to tune back into what he was saying about his project.",
-        "I asked how the team treats new hires, because I really wanted to know. He lit up and told me all about his first week.",
-        "I told him I was really glad we caught up and that I missed our school days. He smiled and said the same."
-    ]
-
-    /// Pretends to listen: every 90 ms it moves the waveform, and every 4th tick it
-    /// "hears" one more word. When the words run out it waits a moment and sends.
-    func startRecording() {
+    /// Starts live microphone recording and real-time speech transcription.
+    func startRecording() async {
         guard canAnswer, !isRecording else { return }
 
         isRecording = true
         elapsed = 0
         transcript = ""
+        // Reset waveform bars to a quiet resting state.
+        levels = Array(repeating: 0.08, count: levels.count)
 
-        let script = Self.spokenAnswers[min(questionNumber, Self.spokenAnswers.count - 1)]
-        let words = script.split(separator: " ").map(String.init)
+        // Wire up callbacks so the transcriber feeds our published properties.
+        transcriber.onTranscriptUpdate = { [weak self] liveText in
+            guard let self else { return }
+            // Update the live transcript shown in the recording card.
+            self.transcript = liveText
+        }
 
-        // `[weak self]` stops this loop from keeping the session alive after the screen closes.
-        recordingTask = Task { [weak self] in
-            var tick = 0
-            var spoken = 0
-            var quietTicks = 0
+        transcriber.onAudioLevelUpdate = { [weak self] liveLevel in
+            guard let self else { return }
+            // Push each RMS sample into the scrolling waveform.
+            self.pushLiveLevel(liveLevel)
+        }
 
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(90))
-                guard let self, !Task.isCancelled else { return }
-                if self.isPaused { continue }
+        transcriber.onTimerTick = { [weak self] seconds in
+            guard let self else { return }
+            // Keep the elapsed-time counter in sync with real clock ticks.
+            self.elapsed = seconds
+        }
 
-                tick += 1
-                let speaking = spoken < words.count
-                self.pushLevel(speaking: speaking)
+        do {
+            // Start the AVAudioEngine tap and SFSpeechRecognizer task.
+            try await transcriber.start()
+        } catch {
+            Logger.audio.error("AudioTranscriber start failed: \(error.localizedDescription, privacy: .public)")
+            stopRecordingState()
+        }
+    }
 
-                // 11 ticks × 90 ms ≈ 1 second.
-                if tick % 11 == 0 { self.elapsed += 1 }
+    /// Stops recording, grabs the transcript, and submits it into chat for confidence grading.
+    func finishRecording() {
+        guard isRecording else { return }
+        let currentText = transcript
+        stopRecordingState()
 
-                if speaking {
-                    if tick % 4 == 0 {
-                        spoken += 1
-                        self.transcript = words[0..<spoken].joined(separator: " ")
-                    }
-                } else {
-                    // Finished speaking: pause for a beat, then send automatically.
-                    quietTicks += 1
-                    if quietTicks > 14 {
-                        self.finishRecording()
-                        return
-                    }
-                }
+        Task { [weak self] in
+            guard let self else { return }
+            var text = await self.transcriber.stop()
+            if text.isEmpty {
+                text = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if !text.isEmpty {
+                self.submit(text)
             }
         }
     }
 
-    /// Stop and send what was heard.
-    func finishRecording() {
-        guard isRecording else { return }
-        let text = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-        stopRecording()
-        if !text.isEmpty {
-            submit(text)
-        }
-    }
-
-    /// Stop and throw the recording away.
+    /// Stops recording and throws everything away (user tapped the discard button).
     func cancelRecording() {
-        stopRecording()
+        transcriber.cancel()
+        stopRecordingState()
     }
 
-    private func stopRecording() {
+    /// Resets all recording-related state without touching the transcriber.
+    private func stopRecordingState() {
         recordingTask?.cancel()
         recordingTask = nil
         isRecording = false
         orbLevel = 0
         elapsed = 0
         transcript = ""
+        // Return bars to the flat resting position.
         levels = Array(repeating: 0.08, count: levels.count)
     }
 
-    /// Adds one fake loudness value. The old value is blended in so the bars move smoothly.
-    private func pushLevel(speaking: Bool) {
-        let target = speaking ? Double.random(in: 0.25...1.0) : Double.random(in: 0.05...0.2)
-        orbLevel = orbLevel * 0.5 + target * 0.5
+    /// Smooths the new RMS loudness value into the scrolling waveform bars.
+    private func pushLiveLevel(_ level: Double) {
+        // Blend 60% new + 40% old so bars move smoothly instead of jumping.
+        orbLevel = orbLevel * 0.4 + level * 0.6
         levels.removeFirst()
         levels.append(orbLevel)
     }
@@ -557,6 +555,9 @@ final class DebriefSession {
 
     /// Stops every background job. Called when the screen goes away.
     func cancelAll() {
+        // Stop the live microphone + transcription engine first.
+        transcriber.cancel()
+        stopRecordingState()
         recordingTask?.cancel()
         flowTask?.cancel()
     }
@@ -777,7 +778,7 @@ struct QuestDebriefScreen: View {
         .sensoryFeedback(.impact(weight: .light), trigger: session.messages.count)
         .sensoryFeedback(.impact(weight: .medium), trigger: session.isRecording)
         .sensoryFeedback(.success, trigger: session.isComplete)
-        .alert("Microphone Access Needed", isPresented: $showMicSettingsAlert) {
+        .alert("Microphone & Speech Access Needed", isPresented: $showMicSettingsAlert) {
             Button("Open Settings") {
                 if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(settingsURL)
@@ -785,7 +786,7 @@ struct QuestDebriefScreen: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("To answer by voice, please allow microphone access in Settings. You can also type your reflections.")
+            Text("To answer by voice, please allow both Microphone and Speech Recognition access in Settings. You can also type your reflections.")
         }
     }
 
@@ -1009,31 +1010,57 @@ struct QuestDebriefScreen: View {
         }
     }
 
-    /// Handles mic button tap: requests microphone permission on first use,
-    /// or alerts the user if microphone access was previously denied.
+    /// Handles mic button tap: requests microphone and speech recognition permissions on
+    /// first use, or alerts the user to go to Settings if either was denied.
     private func handleMicTap() {
         isTyping = false
         Task {
-            // Checks if the phone already allowed or denied the microphone.
-            let permission = AVAudioSession.sharedInstance().recordPermission
-            switch permission {
+            // --- Step 1: microphone permission ---
+            let micPermission = AVAudioSession.sharedInstance().recordPermission
+            let micGranted: Bool
+            switch micPermission {
             case .granted:
-                session.startRecording()
+                micGranted = true
             case .undetermined:
-                // First time: iOS displays the system permission dialog.
-                let granted = await AVAudioApplication.requestRecordPermission()
-                if granted {
-                    session.startRecording()
-                }
+                // First time: show the iOS system microphone dialog.
+                micGranted = await AVAudioApplication.requestRecordPermission()
             case .denied:
-                // User previously denied access; guide them to Settings.
-                showMicSettingsAlert = true
+                micGranted = false
             @unknown default:
-                let granted = await AVAudioApplication.requestRecordPermission()
-                if granted {
-                    session.startRecording()
-                }
+                micGranted = await AVAudioApplication.requestRecordPermission()
             }
+
+            guard micGranted else {
+                showMicSettingsAlert = true
+                return
+            }
+
+            // --- Step 2: speech recognition permission ---
+            let speechStatus = SFSpeechRecognizer.authorizationStatus()
+            let speechGranted: Bool
+            switch speechStatus {
+            case .authorized:
+                speechGranted = true
+            case .notDetermined:
+                // First time: show the iOS speech recognition dialog.
+                speechGranted = await withCheckedContinuation { continuation in
+                    SFSpeechRecognizer.requestAuthorization { status in
+                        continuation.resume(returning: status == .authorized)
+                    }
+                }
+            case .denied, .restricted:
+                speechGranted = false
+            @unknown default:
+                speechGranted = false
+            }
+
+            guard speechGranted else {
+                showMicSettingsAlert = true
+                return
+            }
+
+            // Both permissions granted — start live recording + transcription.
+            await session.startRecording()
         }
     }
 }

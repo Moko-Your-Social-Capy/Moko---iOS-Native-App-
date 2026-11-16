@@ -1,5 +1,7 @@
 # Changelog
 
+- 2026-11-16 — `AudioTranscriber.swift`, `Questdebrief.swift`: Fixed real-time transcription and audio metering pipeline; throttled RMS waveform updates to prevent MainActor overload; ensured `finishRecording()` submits transcribed speech to chat for confidence grading and follow-up scoring; added Simulator fallback handling.
+
 - 2026-11-16 — `RelaxScreen.swift`: Breathing sheet now uses `.fraction(0.52)` detent (compact) while session sheets keep `.fraction(0.80)`. Replaced `ScrollView` in `RelaxDetailSheet` with an evenly-spaced `VStack` using `Spacer`s — title+subtitle at top, Basic Timer stepper in the middle, numbered instructions below that, Start button pinned to the bottom. Removed the unused icon generic parameter from `RelaxDetailSheet`.
 
 - 2026-11-16 — `RelaxCompletionScreen.swift` (new), `GroundingExerciseScreen.swift`, `BoxBreathingView.swift`, `Breathingsessionscreen.swift`, `Mirrorflow.swift`, `SessionCompleteView.swift`: Created a shared `RelaxCompletionScreen` used by every relax exercise. Each exercise passes its own title and subtitle so content stays distinct. The GPay success sound (`google-pay-success.mp3`) now plays automatically via `.task { DebriefSoundPlayer.shared.playSuccess() }` the moment any relax completion screen appears. Imagery (`SessionCompleteView`) triggers the sound via `.onChange` when its Supabase content loads.
