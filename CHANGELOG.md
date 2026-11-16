@@ -1,5 +1,7 @@
 # Changelog
 
+- 2026-11-16 — `RelaxCompletionScreen.swift`, `SessionCompleteView.swift`: Moved GPay success sound from screen-appear to button tap. `RelaxCompletionScreen` now plays `DebriefSoundPlayer.shared.playSuccess()` inside the Continue button's action (covers Grounding, Box Breathing, Breathing, Mirror). `SessionCompleteView` (Imagery Guide) now plays it inside the Done button's action; removed the previous `.onChange(of: store.screen != nil)` trigger. Sound no longer fires on appear — it fires exactly when the user taps the button.
+
 - 2026-11-16 — `OnboardingFlowView.swift`, `ContentView.swift`: Fixed non-functional Back button on the first onboarding question card. Added `onBack: () -> Void` closure to `OnboardingFlowView`; `goBack()` now calls `onBack()` instead of the no-op `dismiss()` when on card 0. Removed the now-unused `@Environment(\.dismiss)` property. `ContentView` passes `onBack: { show(.onboardingInfo) }` so tapping Back returns the user to the Welcome (intro) screen.
 
 - 2026-11-16 — `AudioTranscriber.swift`, `Questdebrief.swift`: Fixed real-time transcription and audio metering pipeline; throttled RMS waveform updates to prevent MainActor overload; ensured `finishRecording()` submits transcribed speech to chat for confidence grading and follow-up scoring; added Simulator fallback handling.

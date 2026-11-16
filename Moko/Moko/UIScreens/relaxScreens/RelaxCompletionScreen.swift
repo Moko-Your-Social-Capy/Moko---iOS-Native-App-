@@ -6,7 +6,7 @@
 //  Each exercise passes its own title, subtitle and button label so the
 //  content stays different even though the layout is identical.
 //
-//  The GPay success sound plays once, automatically, when the screen appears.
+//  The GPay success sound plays once when the user taps the Continue button.
 //
 
 import SwiftUI
@@ -66,8 +66,12 @@ struct RelaxCompletionScreen: View {
 
                 Spacer(minLength: 16)
 
-                // Primary button – pops back to the Relax tab.
-                Button(action: onContinue) {
+                // Primary button – plays the GPay success chime then hands off to the caller.
+                Button(action: {
+                    // Play the celebration sound the moment the user taps Continue.
+                    DebriefSoundPlayer.shared.playSuccess()
+                    onContinue()
+                }) {
                     Text(buttonLabel)
                         .mokoText(MokoScreenTheme.Typeface.cardTitle)
                         .foregroundStyle(.white)
@@ -79,11 +83,6 @@ struct RelaxCompletionScreen: View {
                 .padding(.horizontal, MokoScreenTheme.Space.page)
                 .padding(.bottom, 28)
             }
-        }
-        // Play the GPay success chime the moment this view appears.
-        // `.task` is the modern SwiftUI way to run async work on appear.
-        .task {
-            DebriefSoundPlayer.shared.playSuccess()
         }
         // Keep the tab bar hidden – immersive experience until the user taps Complete.
         .toolbar(.hidden, for: .tabBar)
