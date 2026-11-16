@@ -17,12 +17,12 @@ struct OnboardingFlow<QuestionView: View>: View {
     @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     private let totalSteps: Int
-    private let questionViewBuilder: (Int, (Int) -> Void) -> QuestionView
+    private let questionViewBuilder: (Int, @escaping (Int) -> Void) -> QuestionView
     private let onFinish: () -> Void
 
     init(
         totalSteps: Int,
-        @ViewBuilder questionView: @escaping (Int, (Int) -> Void) -> QuestionView,
+        @ViewBuilder questionView: @escaping (Int, @escaping (Int) -> Void) -> QuestionView,
         onFinish: @escaping () -> Void
     ) {
         self.totalSteps = totalSteps
@@ -59,7 +59,14 @@ struct OnboardingFlow<QuestionView: View>: View {
                     go(delta)
                 }
                 .id(step)  // New id triggers transition
-                .transition(slideTransition)
+                .transition(
+                    .asymmetric(
+                        insertion: .move(edge: goingForward ? .trailing : .leading)
+                            .combined(with: .opacity),
+                        removal: .move(edge: goingForward ? .leading : .trailing)
+                            .combined(with: .opacity)
+                    )
+                )
                 .clipped()
             }
 
@@ -76,16 +83,6 @@ struct OnboardingFlow<QuestionView: View>: View {
             Spacer()
         }
         .padding()
-    }
-
-    /// Directional slide transition – forward enters from trailing, backward from leading.
-    private var slideTransition: AnyTransition {
-        .asymmetric(
-            insertion: .move(edge: goingForward ? .trailing : .leading)
-                .combined(with: .opacity),
-            removal: .move(edge: goingForward ? .leading : .trailing)
-                .combined(with: .opacity)
-        )
     }
 
     /// Navigate forward or backward, triggering completion when appropriate.

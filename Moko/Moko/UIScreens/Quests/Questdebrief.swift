@@ -848,6 +848,27 @@ struct QuestDebriefScreen: View {
                 messageView(message)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+            
+            // Show loading while coach is thinking
+            if session.isCoachTyping {
+                MokoLoadingView(
+                    message: "Your coach is thinking...",
+                    subtitle: "Generating personalized feedback"
+                )
+                .transition(.opacity)
+            }
+            
+            // Show animated score reveal when debrief is complete
+            if session.isComplete, let result = session.result {
+                ScoreReveal(scores: [
+                    .courage: result.scores[.courage] ?? 0,
+                    .clarity: result.scores[.clarity] ?? 0,
+                    .presence: result.scores[.presence] ?? 0,
+                    .warmth: result.scores[.warmth] ?? 0
+                ])
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+
 
             if session.isCoachTyping {
                 DebriefTypingIndicator()

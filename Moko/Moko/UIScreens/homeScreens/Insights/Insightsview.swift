@@ -232,8 +232,9 @@ struct InsightsView: View {
                         .foregroundStyle(titleDark)
                         .padding(.top, 8)
 
-                    ForEach(parameters) { parameter in
+                    ForEach(parameters.enumerated(), id: \.element.id) { index, parameter in
                         parameterCard(parameter)
+                            .mokoReveal(index: index)
                     }
                 }
                 .padding(.horizontal, MokoScreenTheme.Space.page)
@@ -252,20 +253,22 @@ struct InsightsView: View {
 
     /// The radar chart with a name + score label on each of its four sides.
     private var radar: some View {
-        VStack(spacing: 8) {
-            label("Courage", scores.courage)
-
-            HStack {
+        VStack(spacing: 16) {
+            // New animated radar with color-coded nodes
+            EnhancedInsightsRadar(values: [
+                scores.courage / 100,
+                scores.clarity / 100,
+                scores.presence / 100,
+                scores.warmth / 100
+            ])
+            
+            // Numeric labels below radar
+            HStack(spacing: 12) {
+                label("Courage", scores.courage)
                 label("Clarity", scores.clarity)
-
-                MokoRadarChart(scores: scores)
-                    .aspectRatio(1, contentMode: .fit)
-                    .accessibilityHidden(true)
-
                 label("Presence", scores.presence)
+                label("Warmth", scores.warmth)
             }
-
-            label("Warmth", scores.warmth)
         }
         .padding(MokoScreenTheme.Space.cardHorizontal)
         .mokoCard()

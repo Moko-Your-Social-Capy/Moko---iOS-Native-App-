@@ -120,7 +120,8 @@ struct EnhancedInsightsRadar: View {
 
             // Color-coded vertex nodes and labels
             Canvas { ctx, size in
-                let center = CGPoint(x: size.midX, y: size.midY)
+                let rect = CGRect(origin: .zero, size: size)
+                let center = CGPoint(x: rect.midX, y: rect.midY)
                 let radius = min(size.width, size.height) / 2
 
                 for (i, color) in colors.enumerated() {

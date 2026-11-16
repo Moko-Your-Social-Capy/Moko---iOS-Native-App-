@@ -23,6 +23,8 @@ struct RelaxCompletionScreen: View {
     var accent: Color = MokoScreenTheme.Colors.dataVioletDeep
     // Called when the user taps the primary button.
     var onContinue: () -> Void = {}
+    
+    @State private var showCelebration = false
 
     var body: some View {
         ZStack {
@@ -30,7 +32,7 @@ struct RelaxCompletionScreen: View {
             MokoBackdrop()
 
             VStack(spacing: 0) {
-                // Small "Complete" pill aligned to the right, same as Grounding.
+                // Small "Complete" pill aligned to the right
                 HStack {
                     Spacer()
                     Text("Complete")
@@ -43,32 +45,48 @@ struct RelaxCompletionScreen: View {
                 .padding(.horizontal, MokoScreenTheme.Space.page)
                 .padding(.top, 8)
 
-                Spacer(minLength: 16)
+                Spacer(minLength: 20)
 
-                // The animated ring with Moko inside – same component every exercise uses.
-                MokoCompletionAnimation(ringDiameter: 190)
-                    .transition(.opacity)
+                // Animated completion with ripples, breathing mascot, and centered checkmark
+                ZStack {
+                    // Ripples and mascot from RelaxCompleteView
+                    RelaxCompleteView()
+                        .transition(.opacity)
+                    
+                    // Centered checkmark overlaid on ripples
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 72, weight: .bold))
+                        .foregroundStyle(accent)
+                        .shadow(color: Color.black.opacity(0.15), radius: 8, y: 4)
+                }
+                .frame(height: 280)
 
-                VStack(spacing: 8) {
-                    // Exercise-specific headline.
+                Spacer(minLength: 28)
+
+                // Larger headline and better formatted subtitle
+                VStack(spacing: 12) {
+                    // Exercise-specific headline (larger and bolder)
                     Text(title)
-                        .mokoText(MokoScreenTheme.Typeface.title2)
+                        .font(.system(size: 28, weight: .bold))
+                        .tracking(-0.5)
                         .foregroundStyle(MokoScreenTheme.Colors.textTitle)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.9)
 
-                    // Exercise-specific description.
+                    // Exercise-specific description (better spaced)
                     Text(subtitle)
-                        .mokoText(MokoScreenTheme.Typeface.body)
+                        .font(.system(size: 16, weight: .regular))
+                        .lineSpacing(5)
                         .foregroundStyle(MokoScreenTheme.Colors.textBody)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 36)
+                        .padding(.horizontal, 20)
+                        .lineLimit(4)
                 }
-                .padding(.top, 36)
 
-                Spacer(minLength: 16)
+                Spacer(minLength: 32)
 
-                // Primary button – plays the GPay success chime then hands off to the caller.
+                // Primary button – plays the GPay success chime then hands off to the caller
                 Button(action: {
-                    // Play the celebration sound the moment the user taps Continue.
                     DebriefSoundPlayer.shared.playSuccess()
                     onContinue()
                 }) {
@@ -81,18 +99,25 @@ struct RelaxCompletionScreen: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, MokoScreenTheme.Space.page)
-                .padding(.bottom, 28)
+                .padding(.bottom, 36)
             }
         }
-        // Keep the tab bar hidden – immersive experience until the user taps Complete.
+        // Keep the tab bar hidden – immersive experience until the user taps Complete
         .toolbar(.hidden, for: .tabBar)
+        // Hide the back button for immersive completion experience
+        .navigationBarBackButtonHidden(true)
+        .celebration($showCelebration, style: .confetti, duration: 3.5)
+        .onAppear {
+            showCelebration = true
+        }
     }
 }
 
 #Preview {
-    RelaxCompletionScreen(
-        title: "Well done",
-        subtitle: "You completed the 5-4-3-2-1 sensory reset"
-    )
+    NavigationStack {
+        RelaxCompletionScreen(
+            title: "Well done",
+            subtitle: "You completed the 5-4-3-2-1 sensory reset"
+        )
+    }
 }
-
