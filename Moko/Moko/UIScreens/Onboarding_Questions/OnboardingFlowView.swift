@@ -19,19 +19,21 @@ struct OnboardingFlowView: View {
     var totalSteps: Int
     /// Called after the last card is answered. Keys are `OnboardingCardQuestion.id`.
     var onFinish: ([Int: OnboardingAnswer]) -> Void
+    /// Called when the user taps Back on the very first card.
+    /// The parent decides where to navigate (e.g. back to the Welcome screen).
+    var onBack: () -> Void
 
     init(
         questions: [OnboardingCardQuestion] = OnboardingCardQuestion.all,
         totalSteps: Int = OnboardingCardQuestion.totalSteps,
-        onFinish: @escaping ([Int: OnboardingAnswer]) -> Void = { _ in }
+        onFinish: @escaping ([Int: OnboardingAnswer]) -> Void = { _ in },
+        onBack: @escaping () -> Void = {}
     ) {
         self.questions = questions
         self.totalSteps = totalSteps
         self.onFinish = onFinish
+        self.onBack = onBack
     }
-
-    /// Closes this screen. Used by Back on the first card.
-    @Environment(\.dismiss) private var dismiss
 
     /// Which card is on screen right now.
     @State private var index = 0
@@ -233,7 +235,8 @@ struct OnboardingFlowView: View {
     /// Goes back one card, or leaves the screen if we're on the first card.
     private func goBack(width: CGFloat) {
         guard !isBusy else { return }
-        guard index > 0 else { dismiss(); return }
+        // On the first card, ask the parent to handle navigation instead of dismissing.
+        guard index > 0 else { onBack(); return }
         isBusy = true
         hapticTick += 1
 

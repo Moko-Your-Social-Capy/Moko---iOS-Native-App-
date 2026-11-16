@@ -141,7 +141,9 @@ struct ContentView: View {
                             answers = result
                             saveOnboardingAnswers(result)
                             show(.done)
-                        }
+                        },
+                        // Back on the first card → return to the Welcome screen.
+                        onBack: { show(.onboardingInfo) }
                     )
                 }
                 .transition(.opacity)

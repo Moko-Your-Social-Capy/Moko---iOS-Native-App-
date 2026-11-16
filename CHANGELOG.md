@@ -1,5 +1,7 @@
 # Changelog
 
+- 2026-11-16 — `OnboardingFlowView.swift`, `ContentView.swift`: Fixed non-functional Back button on the first onboarding question card. Added `onBack: () -> Void` closure to `OnboardingFlowView`; `goBack()` now calls `onBack()` instead of the no-op `dismiss()` when on card 0. Removed the now-unused `@Environment(\.dismiss)` property. `ContentView` passes `onBack: { show(.onboardingInfo) }` so tapping Back returns the user to the Welcome (intro) screen.
+
 - 2026-11-16 — `AudioTranscriber.swift`, `Questdebrief.swift`: Fixed real-time transcription and audio metering pipeline; throttled RMS waveform updates to prevent MainActor overload; ensured `finishRecording()` submits transcribed speech to chat for confidence grading and follow-up scoring; added Simulator fallback handling.
 
 - 2026-11-16 — `RelaxScreen.swift`: Breathing sheet now uses `.fraction(0.52)` detent (compact) while session sheets keep `.fraction(0.80)`. Replaced `ScrollView` in `RelaxDetailSheet` with an evenly-spaced `VStack` using `Spacer`s — title+subtitle at top, Basic Timer stepper in the middle, numbered instructions below that, Start button pinned to the bottom. Removed the unused icon generic parameter from `RelaxDetailSheet`.
