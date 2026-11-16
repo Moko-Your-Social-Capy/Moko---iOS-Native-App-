@@ -281,7 +281,7 @@ struct QuestLibraryView: View {
         .accessibilityHint("Opens the quest briefing")
     }
 
-    /// Picture, title, divider, XP — top to bottom.
+    /// Picture, title, XP — top to bottom.
     private func cardContent(for quest: LibraryQuest, in section: QuestSection) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             // 1. Picture area, filled with the quest's pastel tint behind the artwork.
@@ -293,27 +293,22 @@ struct QuestLibraryView: View {
                 }
                 .clipShape(RoundedRectangle(cornerRadius: MokoScreenTheme.Radius.inner, style: .continuous))
 
-            // 2. Title: up to 2 lines. The min height keeps every card's divider at the same place.
+            // 2. Title: up to 2 lines. Brown color matches brand quest titles.
             Text(quest.title)
                 .mokoText(MokoScreenTheme.Typeface.cardTitle)
-                .foregroundStyle(MokoScreenTheme.Colors.textTitle)
+                .foregroundStyle(QuestStyle.titleBrown)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, minHeight: 39, alignment: .topLeading)
                 .padding(.top, 5)
 
-            // 3. Pushes the divider and XP to the bottom of the card.
+            // 3. Pushes the XP label to the bottom of the card.
             Spacer(minLength: 0)
 
-            // 4. Thin divider.
-            Rectangle()
-                .fill(MokoScreenTheme.Colors.dataGrid)
-                .frame(height: 1)
-
-            // 5. XP label.
+            // 4. XP label with distinct, high-visibility color per XP tier.
             Text("\(quest.xp) XP")
-                .mokoText(MokoScreenTheme.Typeface.caption)
-                .foregroundStyle(MokoScreenTheme.Colors.textMuted)
+                .mokoText(MokoScreenTheme.Typeface.slider)
+                .foregroundStyle(QuestStyle.xpColor(for: quest.xp))
                 .frame(maxWidth: .infinity, minHeight: 21.5, alignment: .leading)
         }
         .padding(12)

@@ -196,10 +196,27 @@ enum QuestStyle {
     static let screenBg = MokoScreenTheme.Colors.canvasTop
     static let accent   = MokoScreenTheme.Colors.dataVioletDeep   // buttons, XP, icons
     static let title    = MokoScreenTheme.Colors.textTitle
+    /// The warm brand brown from `MokoTheme`, used for the quest's own title.
+    static let titleBrown = MokoTheme.titleBrown
     static let subtext  = MokoScreenTheme.Colors.textBody
     static let chipSelectedFill = MokoScreenTheme.Colors.surfaceLavender
     static let chipSelectedBorder = MokoScreenTheme.Colors.dataGrid
     static let divider = Color.black.opacity(0.08)
+
+    /// Distinct colors for each XP tier (100, 150, 200) for clear visibility across all quest cards.
+    static func xpColor(for xp: Int) -> Color {
+        switch xp {
+        case ...100:
+            // 100 XP: Fresh energetic green
+            return Color(red: 47 / 255, green: 107 / 255, blue: 79 / 255)
+        case 101...150:
+            // 150 XP: Warm golden amber
+            return Color(red: 217 / 255, green: 130 / 255, blue: 43 / 255)
+        default:
+            // 200 XP: Rich berry coral
+            return Color(red: 204 / 255, green: 68 / 255, blue: 74 / 255)
+        }
+    }
 }
 
 // MARK: - Formatting

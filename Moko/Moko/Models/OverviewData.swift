@@ -3,7 +3,8 @@
 //  Moko
 //
 //  Real values behind the Overview growth cards. Insights show today's
-//  average warmth; Calm Down shows today's total time and the last six days.
+//  overall average across all four parameters; Calm Down shows today's total
+//  time and the last six days.
 //  Plain maths only (no UI), so it is easy to check in a unit test.
 //
 

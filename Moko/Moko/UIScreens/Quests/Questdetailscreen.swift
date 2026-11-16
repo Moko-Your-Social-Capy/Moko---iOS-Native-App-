@@ -275,7 +275,7 @@ struct QuestDetailScreen: View {
                 HStack(alignment: .top, spacing: 12) {
                     Text(quest.title)
                         .mokoText(MokoScreenTheme.Typeface.title2)
-                        .foregroundStyle(QuestStyle.title)
+                        .foregroundStyle(QuestStyle.titleBrown)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Spacer(minLength: 8)
@@ -286,7 +286,7 @@ struct QuestDetailScreen: View {
                         Text("\(quest.awardedXP) XP")
                             .mokoText(MokoScreenTheme.Typeface.slider)
                     }
-                    .foregroundStyle(QuestStyle.accent)
+                    .foregroundStyle(QuestStyle.xpColor(for: quest.awardedXP))
                     .padding(.horizontal, 12)
                     .frame(height: 32)
                     .background(Capsule().fill(QuestStyle.chipSelectedFill))
