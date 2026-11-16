@@ -1,5 +1,13 @@
 # Changelog
 
+- 2026-11-17 — `OverviewDebriefDone.swift`, `MokoRootView.swift`: Updated Overview countdown to dynamically calculate actual remaining hours and minutes until midnight using `TimelineView(.everyMinute)`. Fixed label to "New quest in" and refined remaining time string (e.g. "12 hrs 48 mins"). In `MokoRootView`, if all today's quests are completed and no debrief is pending, launch directly into `.debriefDone` mode to display the dynamic countdown.
+
+- 2026-11-17 — `MokoAFM.swift`, `Questdebrief.swift`: Removed formal exam/questionnaire phrasing from AFM instructions, `@Guide` descriptions, and debrief openers. Replaced legacy "in your own words" and "how it unfolded" prompts with punchy, conversational one-sentence questions that sound like texting a supportive friend.
+
+- 2026-11-17 — `Questdebrief.swift`: Fixed opening greeting glitch where an initial fallback bubble was displayed and then abruptly mutated/swapped in place when the tailored AFM greeting arrived. The debrief now shows the coach typing indicator while generating and appends the final tailored opening question directly, eliminating text morphing.
+
+- 2026-11-17 — `Questdebrief.swift`, `AFMDebriefCoach.swift`, `MokoAFM.swift`, `MokoServices.swift`: Added dynamic, topic-tailored conversation starters and warm, encouraging closures to quest debriefs. Introduced `DebriefClosing` AFM generative model and `closing` protocol method. After answering the final follow-up question, the coach now generates a personalized, encouraging closure message reflecting the specific quest topic and the user's answers before presenting the completion panel. Starting greetings are now dynamically varied based on quest events and categories.
+
 - 2026-11-16 — `Summaryview.swift`: Changed weekday labels on the Calm Down insights week chart from full weekday names (`.wide`, e.g. "Monday", "Tuesday") to abbreviated names (`.abbreviated`, e.g. "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").
 
 - 2026-11-16 — `OnboardingFlowView.swift`: Enhanced the first-card swipe-hint animation. The first card now lifts upward (`hintOffsetY = -20`) into the air for the duration of the tutorial hint, performs two full cycles of tilting left and right (demonstrating swiping left for No and right for Yes), and smoothly descends back to its resting position (`hintOffsetY = 0`) before unlocking user interaction.
