@@ -185,7 +185,7 @@ struct OverviewScaffold<MissionCard: View>: View {
         }
     }
 
-    /// Today's warmth score next to a small radar chart.
+    /// Today's overall score (the average of all four parameters) next to a small radar chart.
     private var insightsCard: some View {
         progressCard {
             ZStack(alignment: .topLeading) {
@@ -194,7 +194,7 @@ struct OverviewScaffold<MissionCard: View>: View {
 
                     Spacer(minLength: Theme.Space.gapInner)
 
-                    metric(value: "\(Int(data.insights.warmth.rounded()))", unit: "warmth")
+                    metric(value: "\(Int(data.insights.overall.rounded()))", unit: "overall")
                 }
 
                 MokoRadarChart(scores: data.insights)

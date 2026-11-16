@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-11-16 — `Questdetailscreen.swift`, `QuestModels.swift`, `OverviewScaffold.swift`, `OverviewData.swift`: Used the brand brown from `MokoTheme` for the quest title on the pre-debrief screen, and changed the Overview Insights card from today's warmth alone to the overall average of all four parameters.
 - 2026-11-16 — `MokoProfileComponents.swift`, `ProfileOverView.swift`: Enlarged Profile icons, avatar, stat/badge cards and settings rows; added wrapping layouts for accessibility text and visible navigation on detail screens.
 - 2026-11-16 — `SettingsOverview.swift`, `AccountAndData.swift`: Shared larger icon labels, 72-point minimum rows and white card surfaces; clarified account deletion and added a microphone information entry without requesting access.
 - 2026-11-16 — `MicrophonePermissionView.swift`, `ContentView.swift`: Replaced the separate teal/brown palette with app theme colors, made microphone information scrollable, and removed the unnecessary onboarding permission request because voice recording is not implemented.

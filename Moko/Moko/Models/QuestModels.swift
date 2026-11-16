@@ -196,6 +196,8 @@ enum QuestStyle {
     static let screenBg = MokoScreenTheme.Colors.canvasTop
     static let accent   = MokoScreenTheme.Colors.dataVioletDeep   // buttons, XP, icons
     static let title    = MokoScreenTheme.Colors.textTitle
+    /// The warm brand brown from `MokoTheme`, used for the quest's own title.
+    static let titleBrown = MokoTheme.titleBrown
     static let subtext  = MokoScreenTheme.Colors.textBody
     static let chipSelectedFill = MokoScreenTheme.Colors.surfaceLavender
     static let chipSelectedBorder = MokoScreenTheme.Colors.dataGrid
