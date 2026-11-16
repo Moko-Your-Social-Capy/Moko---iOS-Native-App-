@@ -52,6 +52,8 @@ struct OnboardingFlowView: View {
     @State private var hapticTick = 0
     /// Screen width, saved so the toolbar Back button (outside GeometryReader) can use it.
     @State private var screenWidth: CGFloat = 430
+    /// True after the first-card swipe hint has played, so it never repeats.
+    @State private var hintPlayed = false
 
     /// How far (in points) a drag must travel to count as an answer.
     private let swipeThreshold: CGFloat = 110
@@ -86,6 +88,11 @@ struct OnboardingFlowView: View {
         }
         .background(MokoBackdrop())
         .sensoryFeedback(.impact(weight: .light), trigger: hapticTick)
+        // After the first card settles, nudge it left then right to show the user
+        // they can swipe. Only plays once, only on card 0.
+        .task {
+            await playSwipeHintIfNeeded()
+        }
         // Replace the system Back button with our own, so Back steps through cards first.
         .navigationBarBackButtonHidden(true)
         .navigationBarTitleDisplayMode(.inline)
@@ -266,6 +273,48 @@ struct OnboardingFlowView: View {
             try? await Task.sleep(for: .milliseconds(400))
             isBusy = false
         }
+    }
+
+    // MARK: - First-card swipe hint
+
+    /// Gently tilts the first card left then right once, teaching the user how to swipe.
+    /// Does nothing if the card has already been answered or the hint already played.
+    @MainActor
+    private func playSwipeHintIfNeeded() async {
+        // Only run on the very first card and only once per session.
+        guard index == 0, !hintPlayed else { return }
+
+        // Let the spring-in animation finish before we start nudging.
+        try? await Task.sleep(for: .milliseconds(900))
+
+        // Guard again: user may have already swiped during the delay.
+        guard index == 0, !isBusy else { return }
+
+        // Lock interaction so a drag mid-hint can't fight the animation.
+        isBusy = true
+        hintPlayed = true
+
+        // The nudge distance – enough to show visible tilt but nowhere near the commit threshold.
+        let nudge: CGFloat = 42
+
+        // 1. Tilt left (swipe-No side) so the user sees "you can go this way".
+        withAnimation(.easeInOut(duration: 0.35)) { dragX = -nudge }
+        try? await Task.sleep(for: .milliseconds(380))
+
+        // 2. Spring back to centre.
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) { dragX = 0 }
+        try? await Task.sleep(for: .milliseconds(320))
+
+        // 3. Tilt right (swipe-Yes side).
+        withAnimation(.easeInOut(duration: 0.35)) { dragX = nudge }
+        try? await Task.sleep(for: .milliseconds(380))
+
+        // 4. Spring back to centre. Card is now resting naturally again.
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) { dragX = 0 }
+        try? await Task.sleep(for: .milliseconds(350))
+
+        // Unlock: the user can now swipe freely.
+        isBusy = false
     }
 
     /// Changes state instantly, with no animation, even if an animation is already running.

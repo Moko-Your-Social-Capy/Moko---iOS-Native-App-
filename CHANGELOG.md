@@ -1,5 +1,7 @@
 # Changelog
 
+- 2026-11-16 — `OnboardingFlowView.swift`: Added a one-time swipe-hint animation on the first onboarding question card. After the card springs in (~900 ms), it gently tilts left then right (±42 pt, well below the 110 pt commit threshold) to show the user they can swipe. `hintPlayed` flag prevents it repeating. If the user starts swiping mid-hint, the Task exits cleanly via guards on `index == 0` and `isBusy`.
+
 - 2026-11-16 — `RelaxCompletionScreen.swift`, `SessionCompleteView.swift`: Moved GPay success sound from screen-appear to button tap. `RelaxCompletionScreen` now plays `DebriefSoundPlayer.shared.playSuccess()` inside the Continue button's action (covers Grounding, Box Breathing, Breathing, Mirror). `SessionCompleteView` (Imagery Guide) now plays it inside the Done button's action; removed the previous `.onChange(of: store.screen != nil)` trigger. Sound no longer fires on appear — it fires exactly when the user taps the button.
 
 - 2026-11-16 — `OnboardingFlowView.swift`, `ContentView.swift`: Fixed non-functional Back button on the first onboarding question card. Added `onBack: () -> Void` closure to `OnboardingFlowView`; `goBack()` now calls `onBack()` instead of the no-op `dismiss()` when on card 0. Removed the now-unused `@Environment(\.dismiss)` property. `ContentView` passes `onBack: { show(.onboardingInfo) }` so tapping Back returns the user to the Welcome (intro) screen.
