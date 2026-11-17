@@ -265,11 +265,21 @@ struct MirrorPrepScreen<Hero: View>: View {
                         .padding(.horizontal, MokoScreenTheme.Space.page)
                         .padding(.top, 10)
 
+                    // Set expectations: the microphone is part of the practice,
+                    // and it only listens for voice level, not words.
+                    Text("Moko will listen while you say each line. If you pause, Moko will gently nudge you to continue.")
+                        .mokoText(MokoScreenTheme.Typeface.caption)
+                        .foregroundStyle(MirrorPalette.subtext)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 30)
+                        .padding(.top, 14)
+                        .opacity(revealed == items.count ? 1 : 0)
+
                     Text("Take your time. Continue when you’re ready.")
                         .mokoText(MokoScreenTheme.Typeface.body)
                         .foregroundStyle(MirrorPalette.subtext)
                         .multilineTextAlignment(.center)
-                        .padding(.top, 16)
+                        .padding(.top, 8)
                         .padding(.bottom, 24)
                         .opacity(revealed == items.count ? 1 : 0)
                 }
@@ -364,6 +374,8 @@ struct MirrorTimerScreen: View {
 
     // The 2:00 clock. See `MirrorSessionClock`.
     @State private var clock = MirrorSessionClock()
+    // Listens for the user's voice and nudges them when they go quiet.
+    @State private var voice = MirrorVoiceCoach()
     // Opens the "edit affirmations" sheet.
     @State private var isEditingAffirmations = false
     // The SwiftData database. Used to save the finished session.
@@ -396,15 +408,15 @@ struct MirrorTimerScreen: View {
                     .padding(.top, 22)
                     .padding(.horizontal, MokoScreenTheme.Space.page)
 
-                Text(clock.statusText)
-                    .mokoText(MokoScreenTheme.Typeface.title2)
-                    .foregroundStyle(MirrorPalette.title)
-                    .padding(.top, 22)
+                statusArea
+                    .padding(.top, 18)
 
                 MirrorTimerRing(
                     progress: clock.progress,
                     isRunning: clock.runState == .running,
-                    isCompleted: clock.runState == .completed
+                    isCompleted: clock.runState == .completed,
+                    isSpeaking: voice.isSpeaking,
+                    voiceLevel: voice.audioLevel
                 )
                 .frame(width: 230, height: 230)
                 .padding(.top, 10)
@@ -416,6 +428,15 @@ struct MirrorTimerScreen: View {
                     .padding(.top, 4)
                     .padding(.bottom, 16)
 
+                // Before Start, explain why the microphone will turn on.
+                if clock.runState == .idle {
+                    Text("Say each line out loud. Moko will listen and gently nudge you if you pause.")
+                        .mokoText(MokoScreenTheme.Typeface.caption)
+                        .foregroundStyle(MirrorPalette.subtext)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 30)
+                }
+
                 Spacer(minLength: 0)
             }
         }
@@ -426,16 +447,69 @@ struct MirrorTimerScreen: View {
         }
         // Immersive session: keep the tab bar out of the way.
         .toolbar(.hidden, for: .tabBar)
+        // Ask for the microphone while the user is still reading the lines.
+        .task {
+            await voice.prepare()
+        }
         // Restarts every time the run state changes. See `MirrorSessionClock.run()`.
         .task(id: clock.runState) {
+            switch clock.runState {
+            case .running:
+                // Start listening before the clock starts, so the first line is heard too.
+                await voice.startListening()
+            case .idle, .paused, .completed:
+                voice.stopListening()
+            }
+
             if await clock.run() {
                 // Save the session so it shows up in Insights and achievements.
+                voice.stopListening()
                 modelContext.logCalmDown("Mirror Reflection", seconds: MirrorSessionClock.total)
             }
+        }
+        // A new affirmation is a fresh chance to start speaking before a nudge.
+        .onChange(of: clock.lineIndex(count: affirmationStore.quotes.count)) { _, _ in
+            voice.affirmationChanged()
+        }
+        // A very soft tap when Moko nudges, so it is felt without being loud.
+        .sensoryFeedback(.impact(weight: .light), trigger: voice.nudgeCount)
+        .onDisappear {
+            voice.stop()
         }
         .sheet(isPresented: $isEditingAffirmations) {
             MirrorAffirmationsSheet(store: affirmationStore)
         }
+    }
+
+    // MARK: Status + voice
+
+    /// The status line normally shows "Keep Going!" next to the listening pill.
+    /// When the user goes quiet, Moko replaces it with a small speech bubble.
+    private var statusArea: some View {
+        ZStack {
+            if let nudge = voice.nudge {
+                MirrorNudgeBubble(text: nudge)
+                    .transition(.scale(scale: 0.92).combined(with: .opacity))
+            } else {
+                HStack(spacing: 10) {
+                    Text(clock.statusText)
+                        .mokoText(MokoScreenTheme.Typeface.title2)
+                        .foregroundStyle(MirrorPalette.title)
+
+                    if clock.runState == .running || voice.isUnavailable {
+                        MirrorVoicePill(
+                            state: voice.state,
+                            isSpeaking: voice.isSpeaking,
+                            level: voice.audioLevel
+                        )
+                    }
+                }
+                .transition(.opacity)
+            }
+        }
+        // Fixed height keeps the ring from jumping when the bubble appears.
+        .frame(height: 46)
+        .animation(.easeInOut(duration: 0.25), value: voice.nudge)
     }
 
     // MARK: Affirmations
@@ -492,14 +566,16 @@ struct MirrorTimerScreen: View {
     }
 }
 
-/// Progress ring with a glowing end dot and a breathing face in the middle.
-/// When the time is up, the face is replaced by the completion animation.
+/// Progress ring with a glowing end dot and a breathing Moko in the middle.
+/// When the time is up, Moko is replaced by the completion animation.
 struct MirrorTimerRing: View {
     var progress: Double
     var isRunning: Bool
     var isCompleted: Bool
+    var isSpeaking: Bool = false
+    var voiceLevel: Double = 0
 
-    // The phone setting "Reduce Motion". If it is on, the glow and face stay still.
+    // The phone setting "Reduce Motion". If it is on, the glow and Moko stay still.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     // Flipped once on appear. `repeatForever` then animates it back and forth on its own.
     @State private var pulse = false
@@ -518,7 +594,8 @@ struct MirrorTimerRing: View {
             Circle()
                 .fill(
                     RadialGradient(
-                        colors: [MirrorPalette.accent.opacity(isRunning ? 0.22 : 0.10),
+                        // The glow gets a little brighter as the user's voice rises.
+                        colors: [MirrorPalette.accent.opacity(isRunning ? 0.18 + voiceLevel * 0.16 : 0.10),
                                  MirrorPalette.accent.opacity(0)],
                         center: .center,
                         startRadius: 40,
@@ -566,8 +643,8 @@ struct MirrorTimerRing: View {
                 MokoCompletionAnimation(ringDiameter: 140)
                     .transition(.opacity)
             } else {
-                MirrorFaceIcon()
-                    .frame(width: 72, height: 72)
+                // Moko sits in the middle and breathes with the user's voice.
+                MokoMirrorMascot(size: 72, isSpeaking: isSpeaking, level: voiceLevel)
                     .scaleEffect(1.5)
                     .scaleEffect(isRunning ? (pulse ? 1.05 : 0.95) : 1)
             }

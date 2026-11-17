@@ -292,7 +292,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Moko/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Moko uses the front camera only during the Mirror Reflection exercise. Nothing is recorded or saved.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Moko uses your mic only when you record a voice reflection. You choose when it starts and you can delete recordings any time.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Moko uses your mic only when you record a voice reflection or start a Mirror practice. In Mirror, Moko listens for your voice level to nudge you if you go quiet. You can stop any time.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Moko uses speech recognition only when you answer a debrief question by voice. Recognition happens on-device when possible.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -328,7 +328,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Moko/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Moko uses the front camera only during the Mirror Reflection exercise. Nothing is recorded or saved.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Moko uses your mic only when you record a voice reflection. You choose when it starts and you can delete recordings any time.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Moko uses your mic only when you record a voice reflection or start a Mirror practice. In Mirror, Moko listens for your voice level to nudge you if you go quiet. You can stop any time.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Moko uses speech recognition only when you answer a debrief question by voice. Recognition happens on-device when possible.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

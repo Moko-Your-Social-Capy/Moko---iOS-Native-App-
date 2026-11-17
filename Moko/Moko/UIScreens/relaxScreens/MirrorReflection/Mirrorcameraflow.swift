@@ -97,9 +97,8 @@ struct CameraPhoneHero: View {
                     .frame(width: 92, height: 108)
                     .offset(y: -10)
 
-                MirrorFaceIcon()
-                    .frame(width: 72, height: 72)
-                    .scaleEffect(1.2)
+                // Moko peeks out of the phone instead of the old drawn face.
+                MokoMirrorMascot(size: 86)
                     .offset(y: -10)
 
                 // Shutter
@@ -186,6 +185,8 @@ struct CameraTimerScreen: View {
     @State private var camera = FrontCameraModel()
     // The 2:00 clock. See `MirrorSessionClock` in MirrorFlow.swift.
     @State private var clock = MirrorSessionClock()
+    // Listens for the user's voice and nudges them when they go quiet.
+    @State private var voice = MirrorVoiceCoach()
     // Opens the "edit affirmations" sheet.
     @State private var isEditingAffirmations = false
     // Opens links such as the Settings app.
@@ -241,15 +242,37 @@ struct CameraTimerScreen: View {
         .toolbar(.hidden, for: .tabBar)
         // Turn the camera on while this screen is visible, and off when it goes away.
         .onAppear { camera.start() }
-        .onDisappear { camera.stop() }
+        .onDisappear {
+            camera.stop()
+            voice.stop()
+        }
+        // Ask for the microphone while the user is still reading the lines.
+        .task {
+            await voice.prepare()
+        }
         // Restarts every time the run state changes. See `MirrorSessionClock.run()`.
         .task(id: clock.runState) {
+            switch clock.runState {
+            case .running:
+                // Start listening before the clock starts, so the first line is heard too.
+                await voice.startListening()
+            case .idle, .paused, .completed:
+                voice.stopListening()
+            }
+
             if await clock.run() {
                 camera.stop()
+                voice.stopListening()
                 // Save the session so it shows up in Insights and achievements.
                 modelContext.logCalmDown("Mirror Reflection", seconds: MirrorSessionClock.total)
             }
         }
+        // A new affirmation is a fresh chance to start speaking before a nudge.
+        .onChange(of: clock.lineIndex(count: affirmationStore.quotes.count)) { _, _ in
+            voice.affirmationChanged()
+        }
+        // A very soft tap when Moko nudges, so it is felt without being loud.
+        .sensoryFeedback(.impact(weight: .light), trigger: voice.nudgeCount)
         .sheet(isPresented: $isEditingAffirmations) {
             MirrorAffirmationsSheet(store: affirmationStore)
         }
@@ -302,6 +325,28 @@ struct CameraTimerScreen: View {
                 .background(MokoScreenTheme.Colors.surfaceLavender, in: Capsule())
                 .padding(14)
         }
+        .overlay(alignment: .topTrailing) {
+            // The pill sits opposite the status chip so both stay readable.
+            if clock.runState == .running || voice.isUnavailable {
+                MirrorVoicePill(
+                    state: voice.state,
+                    isSpeaking: voice.isSpeaking,
+                    level: voice.audioLevel
+                )
+                .padding(14)
+            }
+        }
+        .overlay(alignment: .top) {
+            // In the camera version Moko is not on screen, so the nudge
+            // arrives like a small notification instead of a speech bubble.
+            if let nudge = voice.nudge {
+                CameraNudgeBanner(text: nudge)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 58)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: voice.nudge)
         .clipShape(RoundedRectangle(cornerRadius: cardRadius, style: .continuous))
         .overlay { progressOutline }
         .mokoCard()

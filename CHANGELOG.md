@@ -1,5 +1,7 @@
 # Changelog
 
+- 2026-11-16 — `Mirrorreflectionscreen.swift`, `Mirrorflow.swift`, `Mirrorcameraflow.swift`, `MirrorVoiceCoach.swift` (new), `MirrorVoiceViews.swift` (new), `project.pbxproj`: Replaced the drawn face in the Mirror artwork with the Moko mascot; added live voice-level listening during the 2:00 practice; Moko now breathes with the user's voice and shows a small "Continue saying." speech bubble when the user goes quiet; the camera version shows the same nudge as a notification-style banner. Updated the microphone permission copy to cover Mirror practice. The Simulator skips the real microphone engine because CoreAudio can abort there, so the practice still runs for UI checks.
+
 - 2026-11-17 — `OverviewDebriefDone.swift`, `MokoRootView.swift`: Updated Overview countdown to dynamically calculate actual remaining hours and minutes until midnight using `TimelineView(.everyMinute)`. Fixed label to "New quest in" and refined remaining time string (e.g. "12 hrs 48 mins"). In `MokoRootView`, if all today's quests are completed and no debrief is pending, launch directly into `.debriefDone` mode to display the dynamic countdown.
 
 - 2026-11-17 — `MokoAFM.swift`, `Questdebrief.swift`: Removed formal exam/questionnaire phrasing from AFM instructions, `@Guide` descriptions, and debrief openers. Replaced legacy "in your own words" and "how it unfolded" prompts with punchy, conversational one-sentence questions that sound like texting a supportive friend.
