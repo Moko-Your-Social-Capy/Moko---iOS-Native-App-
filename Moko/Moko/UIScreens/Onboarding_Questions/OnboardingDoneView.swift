@@ -32,6 +32,11 @@ struct OnboardingDoneView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // The tick animation celebrates the completed onboarding.
+            MokoTickCompleteView(size: 180)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 4)
+
             // Headline and short summary share the left edge with the cards below.
             Text("You rock!!!")
                 .font(.system(size: 38, weight: .bold, design: .rounded))
@@ -104,19 +109,20 @@ struct OnboardingDoneView: View {
                 Image("onboarding_complete_bg")
                     .resizable()
                     .scaledToFill()
+                    .opacity(0.85)
                     .accessibilityHidden(true)
 
-                // A soft cream wash at the very top keeps the title crisp.
-                LinearGradient(
-                    stops: [
-                        .init(color: Color(hex: 0xF4F1E4).opacity(0.55), location: 0),
-                        .init(color: Color(hex: 0xF4F1E4).opacity(0.15), location: 0.28),
-                        .init(color: .clear, location: 0.42)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .allowsHitTesting(false)
+            // A soft cream wash at the very top keeps the title crisp.
+            LinearGradient(
+                stops: [
+                    .init(color: Color(hex: 0xF4F1E4).opacity(0.55), location: 0),
+                    .init(color: Color(hex: 0xF4F1E4).opacity(0.15), location: 0.28),
+                    .init(color: .clear, location: 0.42)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .allowsHitTesting(false)
             }
             .ignoresSafeArea()
         }

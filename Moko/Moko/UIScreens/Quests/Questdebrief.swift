@@ -971,10 +971,12 @@ struct QuestDebriefScreen: View {
             
             // Show loading while coach is thinking
             if session.isCoachTyping {
-                MokoLoadingView(
-                    message: "Your coach is thinking..."
-                    
-                )
+                HStack(spacing: 10) {
+                    MokoInlineLoader(size: 28)
+                    Text("Your coach is thinking...")
+                        .mokoText(MokoScreenTheme.Typeface.caption)
+                        .foregroundStyle(MokoScreenTheme.Colors.textBody)
+                }
                 .transition(.opacity)
             }
             
@@ -1344,7 +1346,7 @@ struct DebriefUserBubble: View {
                         .foregroundStyle(DebriefStyle.accent)
                         .monospacedDigit()
                 } else {
-                    MokoLoadingView()
+                    MokoInlineLoader(size: 18)
                 }
 
                 Image(systemName: "chevron.down")
@@ -1449,11 +1451,10 @@ struct DebriefQuestionHeader: View {
 struct DebriefTypingIndicator: View {
     var body: some View {
         HStack(spacing: 0) {
-            MokoLoadingView()
-                .frame(height: 44)
-
+            MokoInlineLoader(size: 28)
             Spacer()
         }
+        .frame(height: 44)
         .accessibilityLabel("Your coach is typing")
     }
 }

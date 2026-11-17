@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <title>Moko moonwalk loading</title>
+  <rect width="800" height="800" fill="transparent"/>
+  <ellipse cx="402" cy="624" rx="165" ry="14" fill="#4A2418" opacity="0.14"/>
+
+  <g transform="translate(210,135) scale(0.95)">
+    <!-- gentle float (no moonwalk) -->
+    <g>
+      <animateTransform attributeName="transform" type="translate" dur="3.2s" repeatCount="indefinite"
+        values="0 0; 0 -10; 0 0" keyTimes="0;0.5;1" calcMode="spline"
+        keySplines="0.4 0 0.2 1; 0.4 0 0.2 1"/>
+      <animateTransform attributeName="transform" type="scale" additive="sum" dur="3.2s" repeatCount="indefinite"
+        values="1 1; 1.015 1.015; 1 1" keyTimes="0;0.5;1" calcMode="spline"
+        keySplines="0.4 0 0.2 1; 0.4 0 0.2 1"/>
+    <!-- feet: static -->
+    <g stroke="#4A2418" stroke-width="6" stroke-linejoin="round">
+      <ellipse cx="95" cy="500" rx="46" ry="19" fill="#8A5A3A">
+      </ellipse>
+      <ellipse cx="265" cy="500" rx="46" ry="19" fill="#8A5A3A">
+      </ellipse>
+    </g>
+
+    <g>
+      <animateTransform attributeName="transform" type="translate" dur="1.2s" repeatCount="indefinite" calcMode="spline"
+        keyTimes="0;0.25;0.5;0.75;1" values="0 0;0 -5;0 0;0 -5;0 0"
+        keySplines="0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1;0.4 0 0.6 1"/>
+      <g transform="translate(200,500)">
+        <g transform="rotate(-2)">
+          <g transform="translate(-200,-500)">
+
+            <g stroke="#4A2418" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+              <ellipse cx="88" cy="52" rx="30" ry="32" fill="#E89A4B"/>
+              <ellipse cx="92" cy="58" rx="15" ry="19" fill="#8A5A3A" stroke="none"/>
+              <ellipse cx="312" cy="52" rx="30" ry="32" fill="#E89A4B"/>
+              <ellipse cx="308" cy="58" rx="15" ry="19" fill="#8A5A3A" stroke="none"/>
+              <path d="M185 30 L192 6 L202 24 L214 8 L218 32 Z" fill="#E89A4B"/>
+              <path d="M200 22 C292 22 352 84 356 172 C359 232 330 272 346 334 C361 400 362 462 322 496 L78 496 C38 462 39 400 54 334 C70 272 41 232 44 172 C48 84 108 22 200 22 Z" fill="#E89A4B"/>
+            </g>
+            <ellipse cx="200" cy="395" rx="98" ry="92" fill="#F7DDB2"/>
+            <circle cx="82" cy="158" r="27" fill="#F2958E" opacity="0.9"/>
+            <circle cx="318" cy="158" r="27" fill="#F2958E" opacity="0.9"/>
+
+            <!-- face turned slightly to the right -->
+            <g transform="translate(10,0)">
+              <path d="M146 124 C146 98 254 98 254 124 L258 178 C258 208 232 222 200 222 C168 222 142 208 142 178 Z" fill="#9A6540"/>
+              <g fill="none" stroke="#4A2418" stroke-width="5" stroke-linecap="round">
+                <path d="M172 128 q10 10 20 0"/>
+                <path d="M208 128 q10 10 20 0"/>
+                <path d="M200 150 L200 184"/>
+                <path d="M168 190 Q202 214 238 184"/>
+              </g>
+              <g fill="#1E1E2A" stroke="#4A2418" stroke-width="5" stroke-linejoin="round">
+                <rect x="76" y="78" width="72" height="46" rx="20"/>
+                <rect x="252" y="78" width="72" height="46" rx="20"/>
+              </g>
+              <path d="M148 96 Q200 82 252 96" fill="none" stroke="#4A2418" stroke-width="6" stroke-linecap="round"/>
+              <path d="M90 94 l16 -6 M266 94 l16 -6" stroke="#fff" stroke-width="5" opacity="0.5" stroke-linecap="round"/>
+            </g>
+
+            <!-- arms swing in opposite phase -->
+            <path fill="none" stroke="#4A2418" stroke-width="46" stroke-linecap="round" d="M64 285 C50 330 62 372 92 395">
+              <animate attributeName="d" dur="1.2s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1"
+                values="M64 285 C50 330 62 372 92 395;M64 285 C34 325 24 365 30 400;M64 285 C50 330 62 372 92 395"
+                keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+            </path>
+            <path fill="none" stroke="#E89A4B" stroke-width="34" stroke-linecap="round" d="M64 285 C50 330 62 372 92 395">
+              <animate attributeName="d" dur="1.2s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1"
+                values="M64 285 C50 330 62 372 92 395;M64 285 C34 325 24 365 30 400;M64 285 C50 330 62 372 92 395"
+                keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+            </path>
+            <circle r="18" fill="#8A5A3A" stroke="#4A2418" stroke-width="5" cx="92" cy="398">
+            </circle>
+
+            <path fill="none" stroke="#4A2418" stroke-width="46" stroke-linecap="round" d="M336 285 C366 325 376 365 370 400">
+              <animate attributeName="d" dur="1.2s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1"
+                values="M336 285 C366 325 376 365 370 400;M336 285 C350 330 338 372 308 395;M336 285 C366 325 376 365 370 400"
+                keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+            </path>
+            <path fill="none" stroke="#E89A4B" stroke-width="34" stroke-linecap="round" d="M336 285 C366 325 376 365 370 400">
+              <animate attributeName="d" dur="1.2s" repeatCount="indefinite" calcMode="spline" keyTimes="0;0.5;1"
+                values="M336 285 C366 325 376 365 370 400;M336 285 C350 330 338 372 308 395;M336 285 C366 325 376 365 370 400"
+                keySplines="0.4 0 0.6 1;0.4 0 0.6 1"/>
+            </path>
+            <circle r="18" fill="#8A5A3A" stroke="#4A2418" stroke-width="5" cx="370" cy="402">
+            </circle>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- three brown loading dots -->
+  <g fill="#8A5A3A">
+    <circle cx="360" cy="712" r="12">
+      <animate attributeName="opacity" dur="1.2s" repeatCount="indefinite" keyTimes="0;0.2;0.4;1" values="0.6;1;0.6;0.6"/>
+    </circle>
+    <circle cx="400" cy="712" r="12">
+      <animate attributeName="opacity" dur="1.2s" begin="0.15s" repeatCount="indefinite" keyTimes="0;0.2;0.4;1" values="0.6;1;0.6;0.6"/>
+    </circle>
+    <circle cx="440" cy="712" r="12">
+      <animate attributeName="opacity" dur="1.2s" begin="0.3s" repeatCount="indefinite" keyTimes="0;0.2;0.4;1" values="0.6;1;0.6;0.6"/>
+    </circle>
+  </g>
+  </g>
+</g>
+</svg>

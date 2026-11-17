@@ -493,10 +493,10 @@ struct MokoSettingsLabelStyle: LabelStyle {
         HStack(spacing: Theme.Space.s4) {
             configuration.icon
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(isDestructive ? Theme.Colors.error : Theme.Colors.forest)
+                .foregroundStyle(isDestructive ? Theme.Colors.error : Theme.Colors.ctaAccent)
                 .frame(width: iconSize, height: iconSize)
                 .background(
-                    isDestructive ? Theme.Colors.error.opacity(0.1) : Theme.Colors.surfaceLavender,
+                    isDestructive ? Theme.Colors.error.opacity(0.12) : Theme.Colors.surfaceLavender,
                     in: RoundedRectangle(cornerRadius: Metric.settingPlateRadius, style: .continuous)
                 )
                 .accessibilityHidden(true)

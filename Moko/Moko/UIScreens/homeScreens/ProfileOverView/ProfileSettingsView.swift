@@ -17,7 +17,21 @@ struct ProfileSettingsView: View {
     @State private var settings = SettingsStore.shared
 
     var body: some View {
+        // Use theme-aware tint/text so labels stay readable in light and dark.
         List {
+            // Appearance: pick one of six themes and light/dark/system mode.
+            Section {
+                Text("Appearance").foregroundStyle(MokoScreenTheme.Colors.textBody)
+            } header: { EmptyView() }
+            Section {
+                NavigationLink {
+                    AppearanceSettingsView()
+                } label: {
+                    Label("Theme & Appearance", systemImage: "paintpalette")
+                }
+            }
+            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
+
             SettingsAccountSection()
             SettingsNotificationsSection()
             SettingsMicrophoneSection()
@@ -29,13 +43,13 @@ struct ProfileSettingsView: View {
         .listStyle(.insetGrouped)
         .labelStyle(MokoSettingsLabelStyle())
         .environment(\.defaultMinListRowHeight, 60)
-        .foregroundStyle(ProfilePalette.text)
+        .foregroundStyle(MokoScreenTheme.Colors.textTitle)
         .scrollContentBackground(.hidden)
         .background(MokoBackdrop())
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
         .toolbar(.visible, for: .navigationBar)
-        .tint(ProfilePalette.accent)
+        .tint(MokoScreenTheme.Colors.ctaAccent)
         // Reading only: this never shows a permission popup.
         .task { await settings.refresh() }
         // When the person returns from iOS Settings, refresh every status.

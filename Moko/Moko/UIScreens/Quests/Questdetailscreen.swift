@@ -364,8 +364,7 @@ struct QuestDetailScreen: View {
                         case .empty:
                             ZStack {
                                 Color.white.opacity(0.25)
-                                MokoLoadingView()
-                                    .frame(width: 44, height: 44)
+                                MokoInlineLoader(size: 36)
                             }
                         case .failure:
                             categoryPlaceholder
@@ -533,28 +532,16 @@ struct QuestDetailScreen: View {
 
 // MARK: - Loading placeholder
 
-/// Three grey bars that gently pulse while the briefing loads.
+/// Inline Lottie loading indicator shown while the briefing loads.
 struct QuestSkeletonLines: View {
-    // The phone setting "Reduce Motion". If it is on, the bars stay still.
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    // Flipped once on appear. `repeatForever` then fades the bars in and out on its own.
-    @State private var dim = false
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            RoundedRectangle(cornerRadius: 5).frame(height: 12)
-            RoundedRectangle(cornerRadius: 5).frame(height: 12)
-            RoundedRectangle(cornerRadius: 5).frame(width: 120, height: 12)
+        HStack(spacing: 10) {
+            MokoInlineLoader(size: 28)
+            Text("Loading…")
+                .mokoText(MokoScreenTheme.Typeface.caption)
+                .foregroundStyle(MokoScreenTheme.Colors.textBody)
         }
-        .foregroundStyle(Color.black.opacity(0.08))
-        .opacity(dim ? 0.45 : 1)
         .accessibilityLabel("Loading")
-        .onAppear {
-            guard !reduceMotion else { return }
-            withAnimation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true)) {
-                dim = true
-            }
-        }
     }
 }
 

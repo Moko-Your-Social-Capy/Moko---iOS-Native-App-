@@ -17,147 +17,119 @@ enum MokoScreenTheme {
 
     // MARK: - §2 Color registry
 
-    /// Every colour in the app. `Color(hex:)` turns a web-style hex code into a SwiftUI colour.
+    /// Every colour in the app, resolved from the active MOKO theme.
+    /// Legacy token names are preserved and mapped to semantic theme colors.
     enum Colors {
-//        // MARK: Background - Three-stop soft green gradient
-//        static let forestGreen = Color(hex: 0x365948)
-        static let lightSage = Color(hex: 0xCBE6D3)
-        static let cleanWhite = Color(hex: 0xFFFFFF)
-        
-        // Backward compatibility
-        static let canvasTop = lightSage
-        static let canvasBottom = cleanWhite
+        @MainActor private static var t: MokoResolvedTheme { MokoThemeManager.shared.current }
+        @MainActor private static var c: MokoThemeColors { t.colors }
+
+        // MARK: Background
+        static var lightSage: Color { c.backgroundTop }
+        static var cleanWhite: Color { c.backgroundBottom }
+        static var canvasTop: Color { c.backgroundTop }
+        static var canvasBottom: Color { c.backgroundBottom }
 
         // MARK: Card Surfaces
-        /// Mission card background (white)
-        static let surfaceWhite = Color(hex: 0xFFFFFF)
-        /// Progress cards (Insights and Calm Down) background (light green)
-        static let surfaceLavender = Color(hex: 0xE8F5EB)
+        static var surfaceWhite: Color { c.cardSurface }
+        static var surfaceLavender: Color { c.elevatedCardBackground }
 
-        static let strokeInk = Color(hex: 0x17161C)
+        static var strokeInk: Color { c.border }
 
         // MARK: Text Colors
-        /// Primary text color (dark green-gray) – Overview titles, "Mission", "Growth"
-        static let textTitle = Color(hex: 0x1E2D23)
-        /// Mission card title (teal-green)
-        static let textMissionTitle = Color(hex: 0x2F4C43)
-        /// Body and secondary text (muted green-gray)
-        static let textBody = Color(hex: 0x5E6D63)
-        /// Countdown label and date labels (muted green-gray)
-        static let textMuted = Color(hex: 0x4A5A50)
-        /// Countdown value color (green-blue)
-        static let countdownValue = Color(hex: 0x3B9A8C)
+        static var textTitle: Color { c.textPrimary }
+        static var textMissionTitle: Color { c.textPrimary }
+        static var textBody: Color { c.textSecondary }
+        static var textMuted: Color { c.textSecondary.opacity(0.85) }
+        static var countdownValue: Color { c.ctaAccent }
 
         // MARK: Data Visualization
-        /// Radar fill (light green)
-        static let dataViolet = Color(hex: 0xCBE6D3)
-        /// Radar nodes and bars deep color (dark green)
-        static let dataVioletDeep = Color(hex: 0x2F6E4A)
-        /// Metric numbers (green accent)
-        static let dataNumeral = Color(hex: 0x2F6E4A)
-        /// Grid lines and vectors (light green)
-        static let dataGrid = Color(hex: 0xCBE6D3)
-        /// Radar node dots (dark green)
-        static let dataNode = Color(hex: 0x254C3C)
+        static var dataViolet: Color { c.chartSecondary }
+        static var dataVioletDeep: Color { c.chartPrimary }
+        static var dataNumeral: Color { c.chartPrimary }
+        static var dataGrid: Color { c.chartGrid }
+        static var dataNode: Color { c.chartPrimary }
 
-        static let accentBlue = Color(hex: 0x2168E0)
-        static let accentBlueTint = Color(hex: 0xE8F1FF)
+        static var accentBlue: Color { c.ctaAccent }
+        static var accentBlueTint: Color { c.ctaAccent.opacity(0.15) }
 
         // MARK: Avatar
-        /// Avatar background (light green)
-        static let avatarFill = Color(hex: 0xA8D5B5)
-        /// Avatar text/icon (dark green-gray)
-        static let avatarText = Color(hex: 0x1E2D23)
+        static var avatarFill: Color { c.secondary.opacity(0.35) }
+        static var avatarText: Color { c.textPrimary }
 
-        /// Vector strokes carry their registration opacity with them.
-        static let vectorBush = Color(hex: 0x7FAF79).opacity(0.15)
-        static let vectorLeaf = Color(hex: 0x8FB98A).opacity(0.18)
+        static var vectorBush: Color { c.secondary.opacity(0.15) }
+        static var vectorLeaf: Color { c.accent.opacity(0.18) }
 
-        /// Tab bar selected color (green accent)
-        static let tabActiveGlyph = Color(hex: 0x2F6E4A)
+        static var tabActiveGlyph: Color { c.selectedTab }
 
         // MARK: Profile
-        static let cream = Color(hex: 0xFBF6EA)
-        static let forest = Color(hex: 0x254C3C)
-        static let sage = Color(hex: 0x3F6B54)
+        static var cream: Color { c.card }
+        static var forest: Color { c.primary }
+        static var sage: Color { c.secondary }
 
-        /// Hero gradient, topLeft → bottomRight.
-        static let heroTop = Color(hex: 0x55866A)
-        static let heroMid = Color(hex: 0x3F6B54)
-        static let heroBottom = Color(hex: 0x2C5140)
-        static let heroInk = Color(hex: 0xF1F6EE)
-        /// Hero vectors, each carrying its registration opacity.
-        static let heroVector = Color(hex: 0xDCEBD5)
-        static let heroVectorBush = heroVector.opacity(0.14)
-        static let heroVectorLeaf = heroVector.opacity(0.12)
-        /// The hero's round navigation buttons.
-        static let heroButtonSurface = Color(hex: 0xFFFFFF).opacity(0.16)
+        static var heroTop: Color { c.profileAccent }
+        static var heroMid: Color { c.profileAccent }
+        static var heroBottom: Color { c.profileAccent }
+        static var heroInk: Color { c.inverseText }
+        static var heroVector: Color { c.ctaAccent }
+        static var heroVectorBush: Color { c.mokoMascotAccent.opacity(0.16) }
+        static var heroVectorLeaf: Color { c.ctaAccent.opacity(0.14) }
+        static var heroButtonSurface: Color { c.inverseText.opacity(0.16) }
 
-        /// Top stop of the avatar gradient. The bottom stop is `avatarFill`.
-        static let avatarTop = Color(hex: 0xE2EFDD)
-        static let avatarRing = Color(hex: 0xF6FAF2)
+        static var avatarTop: Color { c.secondary.opacity(0.25) }
+        static var avatarRing: Color { c.card }
 
-        /// Icon plate tints, cycled by stat / chip position.
-        static let tileSage = Color(hex: 0xE2EFDD)
-        static let tileLilac = Color(hex: 0xE3F1DF)
-        static let tileCream = Color(hex: 0xE9EFE2)
+        static var tileSage: Color { c.secondary.opacity(0.18) }
+        static var tileLilac: Color { c.accent.opacity(0.14) }
+        static var tileCream: Color { c.elevatedSurface }
 
-        static let trackCream = Color(hex: 0xEFE8D8)
-        static let lockedSurface = Color(hex: 0xF4F2EC)
-        static let lockedInk = Color(hex: 0x9A94A4)
-        static let chevron = Color(hex: 0xA6A2B0)
-        static let axisLabel = Color(hex: 0x8E8778)
-        static let error = Color(hex: 0xB9583F)
+        static var trackCream: Color { c.elevatedSurface }
+        static var lockedSurface: Color { c.inputBackground }
+        static var lockedInk: Color { c.placeholder }
+        static var chevron: Color { c.placeholder }
+        static var axisLabel: Color { c.textSecondary.opacity(0.8) }
+        static var error: Color { Color(hex: 0xB9583F) }
 
-        /// Medal metals, used only by the badge artwork.
-        static let medalGold = Color(hex: 0xD9A441)
-        static let medalSilver = Color(hex: 0xB9C1C3)
+        static var medalGold: Color { Color(hex: 0xD9A441) }
+        static var medalSilver: Color { Color(hex: 0xB9C1C3) }
 
-        // MARK: Extended data palette — used by streak, profile and animation views
-        /// Warm magenta accent (streak milestones, celebration panels).
-        static let dataMagenta = Color(hex: 0xC4547A)
-        /// Amber/gold accent (streak flame, trophy, XP highlights).
-        static let dataGold = Color(hex: 0xD9A441)
-        /// Teal accent (success states, completed milestones).
-        static let dataTeal = Color(hex: 0x3B9A8C)
-        /// Soft green — a lighter tint of dataVioletDeep for backgrounds/chips.
-        static let dataVioletLight = Color(hex: 0xCBE6D3)
-        
-        // MARK: Parameter-specific colors (for Insights)
-        /// Courage - Greenish teal (was violet)
-        static let parameterCourage = Color(hex: 0x2F6E4A)
-        static let parameterCourageDark = Color(hex: 0x1E4D32)
-        /// Clarity - Emerald green (was emerald)
-        static let parameterClarity = Color(hex: 0x10B981)
-        static let parameterClarityDark = Color(hex: 0x0A7A56)
-        /// Presence - Forest green (was indigo)
-        static let parameterPresence = Color(hex: 0x254C3C)
-        static let parameterPresenceDark = Color(hex: 0x183327)
-        /// Warmth - Sage green (was teal)
-        static let parameterWarmth = Color(hex: 0x3F6B54)
-        static let parameterWarmthDark = Color(hex: 0x2C5140)
-        
-        // MARK: Score-based colors (yellow/red/green logic)
-        /// Excellent score (70-100) - Bright green
-        static let scoreExcellent = Color(hex: 0x4A9E7A)
-        static let scoreExcellentDark = Color(hex: 0x36785A)
-        /// Good score (40-69) - Gold/yellow
-        static let scoreGood = Color(hex: 0xD9A441)
-        static let scoreGoodDark = Color(hex: 0xB8862A)
-        /// Needs improvement (0-39) - Soft red/rose
-        static let scoreNeedsImprovement = Color(hex: 0xC4547A)
-        static let scoreNeedsImprovementDark = Color(hex: 0x9A3C5D)
+        // MARK: Extended data palette
+        static var dataMagenta: Color { c.chart3 }
+        static var dataGold: Color { c.accent }
+        static var dataTeal: Color { c.secondary }
+        static var dataVioletLight: Color { c.secondary.opacity(0.4) }
+
+        // MARK: Parameter-specific colors
+        static var parameterCourage: Color { c.chart1 }
+        static var parameterCourageDark: Color { c.primary }
+        static var parameterClarity: Color { c.chart2 }
+        static var parameterClarityDark: Color { c.secondary }
+        static var parameterPresence: Color { c.chart4 }
+        static var parameterPresenceDark: Color { c.primary.opacity(0.85) }
+        static var parameterWarmth: Color { c.chart3 }
+        static var parameterWarmthDark: Color { c.accent }
+
+        // MARK: Score-based colors (semantic, consistent across themes)
+        static var scoreExcellent: Color { c.success }
+        static var scoreExcellentDark: Color { c.success.opacity(0.85) }
+        static var scoreGood: Color { c.accent }
+        static var scoreGoodDark: Color { c.accent.opacity(0.85) }
+        static var scoreNeedsImprovement: Color { Color(hex: 0xC4547A) }
+        static var scoreNeedsImprovementDark: Color { Color(hex: 0x9A3C5D) }
 
         // MARK: Button & UI Colors
-        static let textOnBrand = Color.white
-        static let buttonDisabled = Color(hex: 0xE5E5EA)
-        static let borderSubtle = Color(hex: 0xE0E0E0)
+        static var textOnBrand: Color { c.ctaAccentText }
+        static var ctaAccent: Color { c.ctaAccent }
+        static var cardShadow: Color { c.cardShadow }
+        static var cardGlow: Color { c.cardGlow }
+        static var chartTertiary: Color { c.chartTertiary }
+        static var buttonDisabled: Color { c.disabledButton }
+        static var borderSubtle: Color { c.cardBorder }
 
         // MARK: Profile bright
-        static let brightGreen = Color(hex: 0x4A9E7A)
-        static let brightSun = Color(hex: 0xF2B84B)
-        static let brightHeroTop = Color(hex: 0x7FBF8E)
-        static let brightHeroBottom = Color(hex: 0x4A9E7A)
+        static var brightGreen: Color { c.ctaAccent }
+        static var brightSun: Color { c.missionAccent }
+        static var brightHeroTop: Color { c.profileAccent }
+        static var brightHeroBottom: Color { c.profileAccent }
     }
 
     // MARK: - §1 Scale
@@ -196,12 +168,12 @@ enum MokoScreenTheme {
 
     /// The card surface. Mission card is white, progress cards are light lavender-blue.
     enum Card {
-        /// Mission card fill (white background)
-        static let missionFill = Colors.surfaceWhite
-        /// Progress cards fill (Insights and Calm Down – light lavender-blue)
-        static let progressFill = Colors.surfaceLavender
+        /// Mission card fill (white/light in light, themed surface in dark)
+        static var missionFill: Color { Colors.surfaceWhite }
+        /// Progress cards fill (Insights and Calm Down)
+        static var progressFill: Color { Colors.surfaceLavender }
         /// Default/standard card fill
-        static let fill = Colors.surfaceWhite
+        static var fill: Color { Colors.surfaceWhite }
         /// §1 registers a 2pt ink outline. It is suppressed: cards separate by
         /// lift instead of line. Raise this to bring the outline back.
         static let outline: CGFloat = 0
@@ -349,13 +321,13 @@ enum MokoScreenTheme {
 
     /// Shadow settings that make cards look like they float above the background.
     enum Elevation {
-        /// Cards float on a tinted two-layer lift: a 1pt contact line plus a wide
-        /// ambient shadow. Both are green-black, never pure black.
-        static let nearColor = Color(hex: 0x1E2D23).opacity(0.05)
+        /// Cards float on a tinted two-layer lift: contact + ambient shadow from the active theme.
+        @MainActor private static var shadow: Color { MokoThemeManager.shared.current.colors.cardShadow }
+        static var nearColor: Color { shadow.opacity(0.06) }
         static let nearRadius: CGFloat = 1
         static let nearOffset: CGFloat = 1
 
-        static let ambientColor = Color(hex: 0x1E2D23).opacity(0.11)
+        static var ambientColor: Color { shadow.opacity(0.14) }
         static let ambientRadius: CGFloat = 13
         static let ambientOffset: CGFloat = 12
 
@@ -365,7 +337,7 @@ enum MokoScreenTheme {
         static let knobOffset: CGFloat = 2
 
         /// The hero avatar straddles the seam, so it needs its own lift.
-        static let avatarColor = Color(hex: 0x1E2D23).opacity(0.20)
+        static var avatarColor: Color { shadow.opacity(0.22) }
         static let avatarRadius: CGFloat = 12
         static let avatarOffset: CGFloat = 10
     }
@@ -413,7 +385,9 @@ private struct MokoTextStyleModifier: ViewModifier {
     func body(content: Content) -> some View {
         // Fixed styles (like tab labels) ignore the text-size setting.
         let resolvedSize = style.fixed ? style.size : size
-        let base = Font.system(size: resolvedSize, weight: style.weight)
+        // Use the font style chosen in Appearance settings (stored with the theme).
+        let design = MokoThemeManager.shared.fontOption.design
+        let base = Font.system(size: resolvedSize, weight: style.weight, design: design)
 
         return content
             // monospacedDigit makes every number the same width, so counters don't wobble.

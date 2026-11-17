@@ -201,7 +201,7 @@ enum QuestStyle {
     static let subtext  = MokoScreenTheme.Colors.textBody
     static let chipSelectedFill = MokoScreenTheme.Colors.surfaceLavender
     static let chipSelectedBorder = MokoScreenTheme.Colors.dataGrid
-    static let divider = Color.black.opacity(0.08)
+    static var divider: Color { MokoScreenTheme.Colors.strokeInk.opacity(0.35) }
 
     /// Distinct colors for each XP tier (100, 150, 200) for clear visibility across all quest cards.
     static func xpColor(for xp: Int) -> Color {

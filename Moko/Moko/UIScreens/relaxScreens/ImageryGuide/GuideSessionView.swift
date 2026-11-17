@@ -136,8 +136,7 @@ struct GuideSessionView: View {
                                     .scaleEffect(guide.sessionImageScale, anchor: .top)
                                     .offset(x: guide.sessionImageShift)   // framing comes from Supabase
                             case .empty:
-                                ProgressView()
-                                    .tint(accent)
+                                MokoInlineLoader(size: 28, tint: accent)
                             case .failure:
                                 iconArtwork
                             @unknown default:

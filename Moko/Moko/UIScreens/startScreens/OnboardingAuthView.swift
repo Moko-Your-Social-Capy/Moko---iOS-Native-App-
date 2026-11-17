@@ -29,45 +29,49 @@ struct OnboardingAuthView: View {
     @State private var showPrivacySheet = false
     @State private var showEmailInput = false
     
+    // MARK: - Top Image
+
+    private var topImage: some View {
+        // The photo fills the upper half of the screen edge-to-edge.
+        Image("authImage")
+            .resizable()
+            .scaledToFill()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .clipped()
+            // Shadow gradient fades the photo into the backdrop at the bottom edge.
+            .overlay(
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0.62),
+                        .init(color: .black.opacity(0.2), location: 0.9),
+                        .init(color: Color(hex: 0xCBE6D3).opacity(0.95), location: 1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .allowsHitTesting(false)
+            )
+            .shadow(color: .black.opacity(0.28), radius: 20, x: 0, y: 12)
+    }
+
     var body: some View {
         ZStack {
             // MARK: - Background (same as other auth screens)
             MokoBackdrop()
             
             VStack(spacing: 0) {
-                Spacer()
-                
-                // MARK: - Capybara Collection Image with Circles
-                ZStack {
-                    // Outer circle (cream/beige)
-                    Circle()
-                        .fill(Color(red: 0.98, green: 0.96, blue: 0.92))
-                        .frame(width: 280, height: 280)
-                    
-                    // Middle circle (light purple)
-                    Circle()
-                        .fill(Color(red: 0.88, green: 0.82, blue: 0.98))
-                        .frame(width: 220, height: 220)
-                    
-                    // Inner circle (cream)
-                    Circle()
-                        .fill(Color(red: 0.98, green: 0.96, blue: 0.92))
-                        .frame(width: 160, height: 160)
-                    
-                    // Capybara image (centered)
-                    Image("moko_sitting_raw")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 120, height: 120)
-                }
-                .frame(height: 300)
-                .scaleEffect(hasAppeared ? 1.0 : 0.85)
-                .opacity(hasAppeared ? 1.0 : 0.0)
+                // Top-half image, blended into the background gradient.
+                topImage
+                    .frame(height: UIScreen.main.bounds.height * 0.6)
+                    .clipped()
+                    // Extend into the status-bar area so no green shows above the photo.
+                    .ignoresSafeArea(edges: .top)
+                    .opacity(hasAppeared ? 1.0 : 0.0)
                 
                 Spacer()
                 
                 // MARK: - Title
-                Text("Your Social Quest\nStarts Here")
+                Text("Your Social Quest")
                     .font(.system(size: 32, weight: .bold, design: .default))
                     .foregroundStyle(MokoTheme.textPrimary)
                     .multilineTextAlignment(.center)
@@ -83,6 +87,7 @@ struct OnboardingAuthView: View {
                             Image(systemName: "envelope.fill")
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(MokoTheme.forestGreen)
+                                
                             
                             TextField("name@example.com", text: $email)
                                 .font(.system(size: 16, design: .rounded))
@@ -131,6 +136,7 @@ struct OnboardingAuthView: View {
                                         .fill(Color(red: 0.2, green: 0.2, blue: 0.2))
                                 )
                         }
+                        .shadow(color: Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.45), radius: 8, x: 0, y: 4)
                         
                         // Back Button
                         Button(action: {
@@ -172,6 +178,7 @@ struct OnboardingAuthView: View {
                     .opacity(hasAppeared ? 1.0 : 0.0)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 24)
+                    .shadow(color: Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.45), radius: 8, x: 0, y: 4)
                 }
                 
                 // MARK: - Divider "OR"
@@ -209,7 +216,8 @@ struct OnboardingAuthView: View {
                                     .fill(Color(red: 0.95, green: 0.95, blue: 0.95))
                             )
                     }
-                    
+                    .shadow(color: Color(red: 0.95, green: 0.95, blue: 0.95).opacity(0.7), radius: 8, x: 0, y: 4)
+
                     // Google
                     Button(action: {
                         MokoTheme.playFeedback(.medium)
@@ -228,6 +236,7 @@ struct OnboardingAuthView: View {
                                     .fill(Color(red: 0.95, green: 0.95, blue: 0.95))
                             )
                     }
+                    .shadow(color: Color(red: 0.95, green: 0.95, blue: 0.95).opacity(0.7), radius: 8, x: 0, y: 4)
                 }
                 .opacity(hasAppeared ? 1.0 : 0.0)
                 .padding(.horizontal, 20)
