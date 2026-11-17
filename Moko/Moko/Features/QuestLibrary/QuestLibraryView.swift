@@ -66,7 +66,7 @@ struct QuestLibraryView: View {
 
                 if store.isLoading || !store.hasAttemptedLoad {
                     VStack(spacing: 14) {
-                        MokoFlossLoadingView(size: 176)
+                        MokoLoadingView()
                             .frame(width: 176, height: 176)
 
                         Text("Loading quests…")
@@ -331,7 +331,7 @@ struct QuestLibraryView: View {
                 case .empty:
                     ZStack {
                         Color.white.opacity(0.25)
-                        MokoFlossLoadingView(size: 44)
+                        MokoLoadingView()
                             .frame(width: 44, height: 44)
                     }
                 case .failure:

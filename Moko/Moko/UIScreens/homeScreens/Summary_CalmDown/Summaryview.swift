@@ -13,6 +13,7 @@
 import SwiftUI
 import SwiftData
 import Charts
+import Lottie
 
 // MARK: - Model
 
@@ -670,13 +671,11 @@ struct SummaryView: View {
 
     private var emptyCard: some View {
 
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
 
-            Image(systemName: "leaf.fill")
-                .font(.system(size: 36))
-                .foregroundStyle(accent)
-                .frame(width: 80, height: 80)
-                .background(soft, in: Circle())
+            // Use Lottie empty animation instead of SF Symbol
+            MokoLottieView(animation: .empty, loopMode: .loop)
+                .frame(width: 100, height: 100)
                 .accessibilityHidden(true)
 
             Text("No exercise logged yet")

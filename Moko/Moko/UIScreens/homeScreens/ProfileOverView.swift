@@ -38,6 +38,7 @@ struct ProfileOverView: View {
     @Query private var quests: [Quest]
     @Query private var insights: [InsightsModel]
     @Query private var onboardingStates: [OnboardingState]
+    @Query private var activityRecords: [ActivityRecord]
 
     // Goes from 0 to 1 once, so the stat numbers count up from zero.
     @State private var countProgress = 0.0
@@ -67,7 +68,14 @@ struct ProfileOverView: View {
     // Every 400 XP is one level. `levelXP` is the progress inside the current level.
     private var level: Int { xp / 400 + 1 }
     private var levelXP: Int { xp % 400 }
-    private var streak: Int { profile?.currentStreak ?? 0 }
+    
+    // Streak stats computed from ActivityRecord rows via StreakService (single source of truth).
+    private var streakStats: StreakStats {
+        StreakService.shared.stats(from: activityRecords)
+    }
+    private var streak: Int { streakStats.currentStreak }
+    private var longestStreak: Int { streakStats.longestStreak }
+    private var totalActiveDays: Int { streakStats.totalActiveDays }
 
     // Only quests that belong to the person on this phone.
     private var localQuests: [Quest] { quests.filter { $0.ownerID == CurrentUser.localID } }
@@ -123,6 +131,12 @@ struct ProfileOverView: View {
                 case .badge(let achievement):
                     NavigationStack {
                         ProfileOverViewAchievementDetailUnlocked(achievement: achievement)
+                    }
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
+                case .streakDetail:
+                    NavigationStack {
+                        StreakDetailView()
                     }
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
@@ -182,7 +196,8 @@ struct ProfileOverView: View {
                      label: "Day streak",
                      plate: Theme.Colors.tileSage,
                      tint: Theme.Colors.brightGreen,
-                     fill: Theme.Colors.surfaceWhite),
+                     fill: Theme.Colors.surfaceWhite,
+                     action: { showStreakDetail() }),
             MokoStat(id: 1,
                      symbol: "checkmark.seal.fill",
                      value: "\(animated(questsDone))",
@@ -198,6 +213,11 @@ struct ProfileOverView: View {
                      tint: Theme.Colors.forest,
                      fill: Theme.Colors.cream)
         ])
+    }
+    
+    private func showStreakDetail() {
+        // Navigate to streak detail view
+        activeSheet = .streakDetail
     }
 
     // MARK: - §6 Journey
@@ -358,11 +378,11 @@ struct ProfileOverView: View {
 
     private var settingsSection: some View {
         VStack(spacing: Theme.Space.s3) {
+            settingsRow("Settings & preferences", symbol: "gearshape") {
+                ProfileSettingsView()
+            }
             settingsRow("Moko’s wardrobe", symbol: "tshirt") {
                 MokoWardrobeView(level: level)
-            }
-            settingsRow("Settings & privacy", symbol: "gearshape") {
-                ProfileOverViewSettingsOverview()
             }
             settingsRow("Account & data", symbol: "person.crop.circle") {
                 ProfileOverViewAccountAndData()
@@ -462,11 +482,13 @@ private struct AchievementChipItem: Identifiable {
 private enum ProfileSheet: Identifiable {
     case editProfile
     case badge(Achievement)
+    case streakDetail
 
     var id: String {
         switch self {
         case .editProfile: "edit-profile"
         case .badge(let achievement): "badge-\(achievement.id)"
+        case .streakDetail: "streak-detail"
         }
     }
 }

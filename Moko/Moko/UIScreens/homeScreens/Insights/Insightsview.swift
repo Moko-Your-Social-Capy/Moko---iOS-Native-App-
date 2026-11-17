@@ -13,8 +13,11 @@
 
 import SwiftUI
 import SwiftData
+import Lottie
 
 // MARK: - Model
+
+
 
 enum InsightsRange: String, CaseIterable, Identifiable {
     case day = "Day"
@@ -41,7 +44,7 @@ struct InsightsScores {
     let courage: Double
     let presence: Double
     let warmth: Double
-
+        
     /// No saved entries
     static let zero = InsightsScores(clarity: 0, courage: 0, presence: 0, warmth: 0)
 
@@ -68,6 +71,7 @@ struct InsightsScores {
         presence = Double(records.reduce(0) { $0 + $1.presence }) / count
         warmth   = Double(records.reduce(0) { $0 + $1.warmth })   / count
     }
+    
 }
 
 /// Everything one parameter card shows.
@@ -96,11 +100,35 @@ struct InsightsView: View {
 
     // Which segment is picked: Day, Week, Month or Year.
     @State private var range: InsightsRange = .day
+    @State private var showOverallSparkles = false
+    @State private var overallSparklesVersion = 0
 
-    private let accent    = MokoScreenTheme.Colors.dataVioletDeep
-    private let soft      = MokoScreenTheme.Colors.surfaceLavender
-    private let titleDark = MokoScreenTheme.Colors.textTitle
-    private let gray      = MokoScreenTheme.Colors.textBody
+    private typealias Theme = MokoScreenTheme
+    
+    // Dark theme aware colors
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var isDarkMode: Bool { colorScheme == .dark }
+    
+    private var accent: Color {
+        isDarkMode ? Theme.Colors.parameterCourageDark : Theme.Colors.parameterCourage
+    }
+    
+    private var soft: Color {
+        isDarkMode ? Color(hex: 0x1E2D23) : Theme.Colors.surfaceLavender
+    }
+    
+    private var titleColor: Color {
+        isDarkMode ? Color(hex: 0xE6F0E8) : Theme.Colors.textTitle
+    }
+    
+    private var bodyColor: Color {
+        isDarkMode ? Color(hex: 0xB8C6BB) : Theme.Colors.textBody
+    }
+    
+    private var mutedColor: Color {
+        isDarkMode ? Color(hex: 0x8A978D) : Theme.Colors.textMuted
+    }
 
     /// Records that fall in today / this week / this month / this year.
     private var rangeRecords: [InsightsModel] {
@@ -142,8 +170,8 @@ struct InsightsView: View {
         case .steady:   bandTitle = "Grounded & Steady"
         case .growth:   bandTitle = "Growth Focus"
         }
-        // "Growth Focus" uses a softer colour so it doesn't read as a warning.
-        let badgeColor = band == .growth ? MokoScreenTheme.Colors.textBody : accent
+        // Use score-based color (yellow/red/green logic)
+        let badgeColor = colorForScore(score)
 
         let detail: String
         let analysis: String
@@ -216,24 +244,46 @@ struct InsightsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    // MARK: - Range Picker (Clean, no shadow/gradient)
                     Picker("Range", selection: $range) {
                         ForEach(InsightsRange.allCases) { item in
                             Text(item.rawValue).tag(item)
                         }
                     }
                     .pickerStyle(.segmented)
+                    .tint(isDarkMode ? Theme.Colors.parameterCourageDark : Theme.Colors.parameterCourage)
 
-                    radar
+                    if records.isEmpty {
+                        VStack(spacing: 12) {
+                            MokoLottieView(animation: .empty, loopMode: .loop)
+                                .frame(width: 140, height: 140)
 
-                    overallCard
+                            Text("Your insights will appear here")
+                                .mokoText(Theme.Typeface.cardTitle)
+                                .foregroundStyle(titleColor)
+
+                            Text("Complete your first quest and debrief to start tracking your growth.")
+                                .mokoText(Theme.Typeface.body)
+                                .foregroundStyle(bodyColor)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 28)
+                    } else {
+                        radar
+                        overallCard
+
+                        // Keep your existing Social Pulse heading and parameter cards here.
+                    }
 
                     Text("Social Pulse")
-                        .mokoText(MokoScreenTheme.Typeface.section)
-                        .foregroundStyle(titleDark)
+                        .mokoText(Theme.Typeface.section)
+                        .foregroundStyle(titleColor)
                         .padding(.top, 8)
 
-                    ForEach(parameters) { parameter in
+                    ForEach(parameters.enumerated(), id: \.element.id) { index, parameter in
                         parameterCard(parameter)
+                            .mokoReveal(index: index)
                     }
                 }
                 .padding(.horizontal, MokoScreenTheme.Space.page)
@@ -243,45 +293,37 @@ struct InsightsView: View {
         .navigationTitle("Insights")
         .navigationBarTitleDisplayMode(.large)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .tint(MokoScreenTheme.Colors.dataVioletDeep)
-        // Smoothly updates the numbers and bars when another range is picked.
+        .tint(isDarkMode ? Theme.Colors.parameterCourageDark : Theme.Colors.parameterCourage)
         .animation(.easeInOut, value: range)
+        .onChange(of: scores.overall) { oldValue, newValue in
+            guard newValue > oldValue, !records.isEmpty else {
+                return
+            }
+
+            overallSparklesVersion += 1
+            showOverallSparkles = true
+
+            Task {
+                try? await Task.sleep(for: .seconds(2))
+                showOverallSparkles = false
+            }
+        }
     }
 
     // MARK: Radar chart
 
-    /// The radar chart with a name + score label on each of its four sides.
+    /// Radar chart with its four labels at the axis ends:
+    /// top Courage, bottom Clarity, left Presence, right Warmth.
     private var radar: some View {
-        VStack(spacing: 8) {
-            label("Courage", scores.courage)
-
-            HStack {
-                label("Clarity", scores.clarity)
-
-                MokoRadarChart(scores: scores)
-                    .aspectRatio(1, contentMode: .fit)
-                    .accessibilityHidden(true)
-
-                label("Presence", scores.presence)
-            }
-
-            label("Warmth", scores.warmth)
-        }
-        .padding(MokoScreenTheme.Space.cardHorizontal)
-        .mokoCard()
-    }
-
-    /// "Courage" above its score. VoiceOver reads both together.
-    private func label(_ name: String, _ score: Double) -> some View {
-        VStack(spacing: 2) {
-            Text(name)
-                .mokoText(MokoScreenTheme.Typeface.caption)
-                .foregroundStyle(titleDark)
-            Text("\(Int(score.rounded()))")
-                .mokoText(MokoScreenTheme.Typeface.body)
-                .foregroundStyle(gray)
-        }
-        .accessibilityElement(children: .combine)
+        InsightsAxisRadar(courage: scores.courage,
+                          warmth: scores.warmth,
+                          clarity: scores.clarity,
+                          presence: scores.presence)
+            .frame(maxWidth: 420)
+            .aspectRatio(1.0, contentMode: .fit)
+            .frame(maxWidth: .infinity)
+            .padding(MokoScreenTheme.Space.cardHorizontal)
+            .mokoCard()
     }
 
     // MARK: Overall
@@ -290,20 +332,36 @@ struct InsightsView: View {
         HStack(spacing: 20) {
             VStack(alignment: .leading) {
                 Text("Overall")
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .foregroundStyle(gray)
+                    .mokoText(Theme.Typeface.caption)
+                    .foregroundStyle(bodyColor)
                 Text("\(Int(scores.overall.rounded()))")
-                    .mokoText(MokoScreenTheme.Typeface.numeral)
-                    .foregroundStyle(accent)
+                    .mokoText(Theme.Typeface.numeral)
+                    .foregroundStyle(overallColor)
+                    .contentTransition(.numericText())
             }
 
             Text(overallNote)
-                .mokoText(MokoScreenTheme.Typeface.body)
-                .foregroundStyle(gray)
+                .mokoText(Theme.Typeface.body)
+                .foregroundStyle(bodyColor)
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .mokoCard(fill: soft)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.Radius.card)
+                .fill(isDarkMode ? Color(hex: 0x1A231E) : soft)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.card)
+                        .stroke(overallColor.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .shadow(color: isDarkMode ? Color.black.opacity(0.3) : Theme.Elevation.nearColor,
+                radius: isDarkMode ? 8 : Theme.Elevation.nearRadius,
+                x: 0, y: isDarkMode ? 4 : Theme.Elevation.nearOffset)
+    }
+
+    /// Red below 40, yellow below 70, green from 70 up.
+    private var overallColor: Color {
+        colorForScore(scores.overall)
     }
 
     /// The sentence next to the overall score. Explains where the number comes from.
@@ -330,62 +388,94 @@ struct InsightsView: View {
     // MARK: Parameter card
 
     private func parameterCard(_ parameter: InsightsParameter) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+        let parameterColor = colorForParameter(parameter.name)
+        let scoreColor = colorForScore(parameter.score)
+        
+        return VStack(alignment: .leading, spacing: 14) {
             // Header: name + score + band badge
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
+                    // Color-coded title based on parameter
                     Text(parameter.name)
-                        .mokoText(MokoScreenTheme.Typeface.section)
-                        .foregroundStyle(titleDark)
+                        .mokoText(Theme.Typeface.section)
+                        .foregroundStyle(parameterColor)
                     Text(parameter.bandTitle)
-                        .mokoText(MokoScreenTheme.Typeface.caption)
-                        .foregroundStyle(parameter.badgeColor)
+                        .mokoText(Theme.Typeface.caption)
+                        .foregroundStyle(scoreColor)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(soft, in: Capsule())
                 }
                 Spacer()
                 Text("\(Int(parameter.score.rounded()))")
-                    .mokoText(MokoScreenTheme.Typeface.numeral)
-                    .foregroundStyle(accent)
+                    .mokoText(Theme.Typeface.numeral)
+                    .foregroundStyle(scoreColor)
             }
 
-            // Progress bar
+            // Progress bar with parameter-specific color
             ProgressView(value: parameter.score, total: 100)
-                .tint(accent)
+                .tint(parameterColor)
+                .background(parameterColor.opacity(0.2))
 
             Divider()
+                .background(bodyColor.opacity(0.3))
 
             // What this parameter means
             Text(parameter.detail)
-                .mokoText(MokoScreenTheme.Typeface.body)
-                .foregroundStyle(gray)
+                .mokoText(Theme.Typeface.body)
+                .foregroundStyle(bodyColor)
                 .fixedSize(horizontal: false, vertical: true)
 
             // Personalised analysis
             VStack(alignment: .leading, spacing: 6) {
                 Label("Analysis", systemImage: "brain.head.profile")
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .foregroundStyle(accent)
+                    .mokoText(Theme.Typeface.caption)
+                    .foregroundStyle(parameterColor)
                 Text(parameter.analysis)
-                    .mokoText(MokoScreenTheme.Typeface.body)
-                    .foregroundStyle(gray)
+                    .mokoText(Theme.Typeface.body)
+                    .foregroundStyle(bodyColor)
                     .fixedSize(horizontal: false, vertical: true)
-            }
-
-            // Supported-by tag
-            HStack(spacing: 4) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(accent)
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .accessibilityHidden(true)
-                Text("Supported by \(parameter.supportedBy)")
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .foregroundStyle(gray)
             }
         }
         .padding(20)
-        .mokoCard()
+        .background(
+            RoundedRectangle(cornerRadius: Theme.Radius.card)
+                .fill(isDarkMode ? Color(hex: 0x1A231E) : Theme.Colors.surfaceWhite)
+                .overlay(
+                    RoundedRectangle(cornerRadius: Theme.Radius.card)
+                        .stroke(parameterColor.opacity(0.1), lineWidth: 1)
+                )
+        )
+        .shadow(color: isDarkMode ? Color.black.opacity(0.3) : Theme.Elevation.nearColor,
+                radius: isDarkMode ? 8 : Theme.Elevation.nearRadius,
+                x: 0, y: isDarkMode ? 4 : Theme.Elevation.nearOffset)
+    }
+    
+    /// Returns color-coded tint for each parameter with dark theme support
+    private func colorForParameter(_ name: String) -> Color {
+        switch name {
+        case "Courage":
+            return isDarkMode ? Theme.Colors.parameterCourageDark : Theme.Colors.parameterCourage
+        case "Clarity":
+            return isDarkMode ? Theme.Colors.parameterClarityDark : Theme.Colors.parameterClarity
+        case "Presence":
+            return isDarkMode ? Theme.Colors.parameterPresenceDark : Theme.Colors.parameterPresence
+        case "Warmth":
+            return isDarkMode ? Theme.Colors.parameterWarmthDark : Theme.Colors.parameterWarmth
+        default:
+            return accent
+        }
+    }
+    
+    /// Returns score-based color (yellow/red/green logic) with dark theme support
+    private func colorForScore(_ score: Double) -> Color {
+        if score < 40 {
+            return isDarkMode ? Theme.Colors.scoreNeedsImprovementDark : Theme.Colors.scoreNeedsImprovement
+        } else if score < 70 {
+            return isDarkMode ? Theme.Colors.scoreGoodDark : Theme.Colors.scoreGood
+        } else {
+            return isDarkMode ? Theme.Colors.scoreExcellentDark : Theme.Colors.scoreExcellent
+        }
     }
 }
 
@@ -397,7 +487,7 @@ struct InsightsView: View {
         for: InsightsModel.self,
         configurations: ModelConfiguration(isStoredInMemoryOnly: true)
     ) else {
-        return Text("Preview database could not be created")
+        return AnyView(Text("Preview database could not be created"))
     }
 
     // Two entries today (average: clarity 56, courage 32, presence 42, warmth 78)
@@ -421,8 +511,233 @@ struct InsightsView: View {
         )
     }
 
-    return NavigationStack {
-        InsightsView()
+    return AnyView(
+        NavigationStack {
+            InsightsView()
+        }
+        .modelContainer(container)
+    )
+}
+
+
+// MARK: - Radar chart with labels at the axes
+
+/// Four-axis radar. Vertex order is top, right, bottom, left:
+///   top Courage, right Warmth, bottom Clarity, left Presence.
+/// Scores are 0–100 and are clamped, so the shape never leaves the outer ring.
+/// The four names sit outside the chart at the end of their axis, and the radius
+/// is worked out from the available size so nothing is clipped on any device.
+private struct InsightsAxisRadar: View {
+    let courage: Double
+    let warmth: Double
+    let clarity: Double
+    let presence: Double
+    
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var isDarkMode: Bool { colorScheme == .dark }
+    private typealias Theme = MokoScreenTheme
+
+    private let levels: [Double] = [25, 50, 75, 100]
+    private let sideLabelWidth: CGFloat = 66
+    private let endLabelHeight: CGFloat = 44
+    private let labelGap: CGFloat = 8
+
+    private var grid: Color {
+        isDarkMode ? Theme.Colors.parameterCourageDark.opacity(0.2) : Theme.Colors.parameterCourage.opacity(0.25)
     }
-    .modelContainer(container)
+    
+    private var fillColor: Color {
+        isDarkMode ? Theme.Colors.parameterCourageDark.opacity(0.15) : Theme.Colors.parameterCourage.opacity(0.22)
+    }
+    
+    private var strokeColor: Color {
+        isDarkMode ? Theme.Colors.parameterCourageDark : Theme.Colors.parameterCourage
+    }
+
+    /// 0...1 per axis, in the order top, right, bottom, left.
+    private var fractions: [Double] {
+        [courage, warmth, clarity, presence].map { min(max($0 / 100, 0), 1) }
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+            let radius = max(30, min(geo.size.width / 2 - sideLabelWidth - labelGap,
+                                     geo.size.height / 2 - endLabelHeight - labelGap))
+
+            ZStack {
+                // Rings: 25 / 50 / 75 dashed, 100 solid
+                ForEach(levels, id: \.self) { level in
+                    InsightsRadarShape(fractions: Array(repeating: level / 100, count: 4))
+                        .stroke(grid, style: StrokeStyle(lineWidth: 1,
+                                                         dash: level == 100 ? [] : [3, 3]))
+                        .frame(width: radius * 2, height: radius * 2)
+                        .position(center)
+                }
+
+                // Axes
+                Path { path in
+                    path.move(to: CGPoint(x: center.x, y: center.y - radius))
+                    path.addLine(to: CGPoint(x: center.x, y: center.y + radius))
+                    path.move(to: CGPoint(x: center.x - radius, y: center.y))
+                    path.addLine(to: CGPoint(x: center.x + radius, y: center.y))
+                }
+                .stroke(grid, lineWidth: 1)
+
+                // Level numbers beside the upper half of the vertical axis
+                ForEach(levels, id: \.self) { level in
+                    Text("\(Int(level))")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(Theme.Colors.textMuted)
+                        .position(x: center.x + 12, y: center.y - radius * level / 100 + 7)
+                }
+
+                // Value polygon
+                InsightsRadarShape(fractions: fractions)
+                    .fill(fillColor)
+                    .frame(width: radius * 2, height: radius * 2)
+                    .position(center)
+                InsightsRadarShape(fractions: fractions)
+                    .stroke(strokeColor,
+                            style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+                    .frame(width: radius * 2, height: radius * 2)
+                    .position(center)
+
+                // Dots where each score meets its axis
+                ForEach(0..<4, id: \.self) { index in
+                    Circle()
+                        .fill(strokeColor)
+                        .frame(width: 8, height: 8)
+                        .position(dot(index, center, radius))
+                }
+
+                // Names + scores outside the chart, at the end of each axis
+                endLabel("Courage", courage)
+                    .position(x: center.x,
+                              y: center.y - radius - labelGap - endLabelHeight / 2)
+                endLabel("Clarity", clarity)
+                    .position(x: center.x,
+                              y: center.y + radius + labelGap + endLabelHeight / 2)
+                sideLabel("Presence", presence, alignment: .trailing)
+                    .position(x: center.x - radius - labelGap - sideLabelWidth / 2,
+                              y: center.y)
+                sideLabel("Warmth", warmth, alignment: .leading)
+                    .position(x: center.x + radius + labelGap + sideLabelWidth / 2,
+                              y: center.y)
+            }
+        }
+        // Smooth, subtle polygon update when the range (Day / Week / Month / Year) changes.
+        .animation(.smooth(duration: 0.6), value: fractions)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Courage \(Int(courage.rounded())), Warmth \(Int(warmth.rounded())), Clarity \(Int(clarity.rounded())), Presence \(Int(presence.rounded()))")
+    }
+
+    private func endLabel(_ name: String, _ score: Double) -> some View {
+        labelContent(name, score, textAlignment: .center)
+            .frame(width: 110, height: endLabelHeight)
+    }
+
+    private func sideLabel(_ name: String, _ score: Double, alignment: Alignment) -> some View {
+        labelContent(name, score, textAlignment: alignment == .trailing ? .trailing : .leading)
+            .frame(width: sideLabelWidth, height: endLabelHeight, alignment: alignment)
+    }
+
+    private func labelContent(_ name: String, _ score: Double, textAlignment: HorizontalAlignment) -> some View {
+        VStack(alignment: textAlignment, spacing: 1) {
+            Text(name)
+                .mokoText(Theme.Typeface.caption)
+                .foregroundStyle(colorForParameterName(name))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text("\(Int(score.rounded()))")
+                .mokoText(Theme.Typeface.body)
+                .fontWeight(.semibold)
+                .foregroundStyle(colorForScore(score))
+                .contentTransition(.numericText())
+        }
+    }
+    
+    private func colorForParameterName(_ name: String) -> Color {
+        switch name {
+        case "Courage":
+            return isDarkMode ? Theme.Colors.parameterCourageDark : Theme.Colors.parameterCourage
+        case "Clarity":
+            return isDarkMode ? Theme.Colors.parameterClarityDark : Theme.Colors.parameterClarity
+        case "Presence":
+            return isDarkMode ? Theme.Colors.parameterPresenceDark : Theme.Colors.parameterPresence
+        case "Warmth":
+            return isDarkMode ? Theme.Colors.parameterWarmthDark : Theme.Colors.parameterWarmth
+        default:
+            return isDarkMode ? Theme.Colors.parameterCourageDark : Theme.Colors.parameterCourage
+        }
+    }
+    
+    private func colorForScore(_ score: Double) -> Color {
+        if score < 40 {
+            return isDarkMode ? Theme.Colors.scoreNeedsImprovementDark : Theme.Colors.scoreNeedsImprovement
+        } else if score < 70 {
+            return isDarkMode ? Theme.Colors.scoreGoodDark : Theme.Colors.scoreGood
+        } else {
+            return isDarkMode ? Theme.Colors.scoreExcellentDark : Theme.Colors.scoreExcellent
+        }
+    }
+
+    /// Point on axis `index` (0 top, 1 right, 2 bottom, 3 left) at the score's distance.
+    private func dot(_ index: Int, _ center: CGPoint, _ radius: CGFloat) -> CGPoint {
+        let d = CGFloat(fractions[index]) * radius
+        switch index {
+        case 0:  return CGPoint(x: center.x, y: center.y - d)
+        case 1:  return CGPoint(x: center.x + d, y: center.y)
+        case 2:  return CGPoint(x: center.x, y: center.y + d)
+        default: return CGPoint(x: center.x - d, y: center.y)
+        }
+    }
+}
+
+/// Diamond with one vertex per axis (top, right, bottom, left) at the given 0–1 fractions.
+/// Conforms to Animatable so the polygon morphs smoothly between two score sets.
+private struct InsightsRadarShape: Shape {
+    var fractions: [Double]
+
+    var animatableData: InsightsAnimatableVector {
+        get { InsightsAnimatableVector(values: fractions) }
+        set { fractions = newValue.values }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let c = CGPoint(x: rect.midX, y: rect.midY)
+        let r = min(rect.width, rect.height) / 2
+        let f = fractions + Array(repeating: 0, count: max(0, 4 - fractions.count))
+        var path = Path()
+        path.move(to: CGPoint(x: c.x, y: c.y - r * f[0]))
+        path.addLine(to: CGPoint(x: c.x + r * f[1], y: c.y))
+        path.addLine(to: CGPoint(x: c.x, y: c.y + r * f[2]))
+        path.addLine(to: CGPoint(x: c.x - r * f[3], y: c.y))
+        path.closeSubpath()
+        return path
+    }
+}
+
+/// Lets SwiftUI animate an array of numbers.
+private struct InsightsAnimatableVector: VectorArithmetic {
+    var values: [Double]
+
+    static var zero: InsightsAnimatableVector { InsightsAnimatableVector(values: []) }
+
+    static func + (l: InsightsAnimatableVector, r: InsightsAnimatableVector) -> InsightsAnimatableVector {
+        combine(l, r, +)
+    }
+    static func - (l: InsightsAnimatableVector, r: InsightsAnimatableVector) -> InsightsAnimatableVector {
+        combine(l, r, -)
+    }
+    private static func combine(_ l: InsightsAnimatableVector, _ r: InsightsAnimatableVector,
+                                _ op: (Double, Double) -> Double) -> InsightsAnimatableVector {
+        let n = max(l.values.count, r.values.count)
+        return InsightsAnimatableVector(values: (0..<n).map {
+            op($0 < l.values.count ? l.values[$0] : 0, $0 < r.values.count ? r.values[$0] : 0)
+        })
+    }
+    mutating func scale(by rhs: Double) { values = values.map { $0 * rhs } }
+    var magnitudeSquared: Double { values.reduce(0) { $0 + $1 * $1 } }
 }

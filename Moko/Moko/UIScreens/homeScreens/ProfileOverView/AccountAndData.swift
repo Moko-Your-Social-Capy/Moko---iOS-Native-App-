@@ -68,7 +68,7 @@ struct ProfileOverViewAccountAndData: View {
                 LabeledContent("Sign-in method") {
                     HStack(spacing: 8) {
                         if isLoadingAccount {
-                            MokoFlossLoadingView(size: 28)
+                            MokoLoadingView()
                                 .frame(width: 28, height: 28)
                         }
                         Text(email)

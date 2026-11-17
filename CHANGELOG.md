@@ -1,5 +1,8 @@
 # Changelog
 
+- 2026-11-17 — Settings (`SettingsStore.swift`, `LiveActivityController.swift`, `MokoActivityAttributes.swift`, `ProfileSettingsView.swift`, `Notifications.swift`, `MicrophonePermissionView.swift`, new `MokoLiveActivity` widget target): Replaced decorative switches with real status and behaviour for notifications, daily reminders, microphone, camera and Live Activities; added iOS Settings deep links, foreground refresh, reminder scheduling/cancellation/rescheduling, ActivityKit start/update/end plus a Live Activity widget, and real account/sign-out/delete/legal entries.
+
+- 2026-11-17 — `Moko.xcodeproj`: Removed the unused `Lottie-Dynamic` package product that stopped the app from linking; the code imports the regular `Lottie` product.
 - 2026-11-17 — `Questsscreen.swift`, `Questdetailscreen.swift`, `QuestModels.swift`: Gave each of the five quest categories its own calm colour (Work blue, Dating rose, Friends teal, Family honey, Others violet). The category name and its icon now share that colour on the filter chips and on the quest briefing tag. Selected chips use a pale wash of the same colour with a faint glow, and the "All" chip stays neutral. Ink colours were checked for 4.6:1 or better contrast on white for easy reading.
 
 - 2026-11-17 — Xcode build database (DerivedData, not source): Fixed `error: accessing build database ".../XCBuildData/build.db": not an error` and `unexpected incomplete target` by quitting Xcode and deleting the stale `XCBuildData` folder (128 MB database with 4 leftover build sessions). Rebuilt from scratch on the iPhone 18 Pro simulator: build succeeds and the new database (9.5 MB) passes `PRAGMA integrity_check`.

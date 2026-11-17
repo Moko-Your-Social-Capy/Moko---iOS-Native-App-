@@ -41,12 +41,12 @@ struct OnboardingDoneView: View {
                 .padding(.top, 20)
 
             VStack(spacing: 30) {
-                StatusRow(icon: "checkmark",
+                OnboardingStatusRow(icon: "checkmark",
                           iconBackground: RColor.mint,
                           title: "\(completed) of \(total) reflections completed",
                           status: "100%",
                           statusColor: RColor.green)
-                StatusRow(icon: "list.clipboard",
+                OnboardingStatusRow(icon: "list.clipboard",
                           iconBackground: RColor.peach,
                           title: "Baseline calculated",
                           status: "READY",
@@ -71,7 +71,7 @@ struct OnboardingDoneView: View {
 // MARK: - Status row
 
 /// Icon in a colored circle, a title, and a short status on the right ("100%", "READY").
-private struct StatusRow: View {
+private struct OnboardingStatusRow: View {
     /// SF Symbol name.
     let icon: String
     let iconBackground: Color

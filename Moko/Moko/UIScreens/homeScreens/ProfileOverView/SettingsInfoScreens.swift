@@ -185,8 +185,8 @@ struct ProfileOverViewPrivacy: View {
                 Divider()
                 InfoPoint(
                     symbol: "hand.raised",
-                    title: "Microphone and reminders",
-                    text: "Voice recording and reminder delivery are not available in this build. Moko does not request microphone or notification access for these features. Text reflections need neither permission."
+                    title: "Permissions you choose",
+                    text: "The microphone is used only for a voice reflection, the camera only for the Mirror Reflection preview, and notifications only for the daily reminder. Moko asks when you turn one on and shows each status in Settings. Text reflections need no permission."
                 )
             }
 
@@ -243,7 +243,7 @@ struct ProfileOverViewPrivacyPolicy: View {
             InfoCard {
                 InfoSection(
                     title: "Information we collect",
-                    text: "Account details: your email address and authentication session are handled by Supabase when you create an account or sign in. Moko does not store your password.\n\nApp content: your profile name, optional username, age range, photo, onboarding answers, quest notes, self-rated scores, reflection text, XP, streaks and calm-session history are stored locally on this device. In this build, this content is not uploaded to Moko’s server.\n\nVoice: voice reflection recording is not available in this build, so Moko does not collect voice recordings or transcripts."
+                    text: "Account details: your email address and authentication session are handled by Supabase when you create an account or sign in. Moko does not store your password.\n\nApp content: your profile name, optional username, age range, photo, onboarding answers, quest notes, self-rated scores, reflection text, XP, streaks and calm-session history are stored locally on this device. In this build, this content is not uploaded to Moko’s server.\n\nVoice: if you choose a voice reflection, the microphone records audio and Apple’s speech recognition turns it into text for that debrief. You can type instead, and you can turn microphone access off in Settings."
                 )
             }
 
@@ -420,7 +420,7 @@ struct ProfileOverViewHelpSupport: View {
                     Divider()
                     FAQItem(
                         question: "Why aren’t reminders appearing?",
-                        answer: "Reminder delivery is not available in this build. Changing notification permissions will not enable it. Moko will request access only when reminders can actually be delivered."
+                        answer: "Check Settings → Notifications. If Moko is not allowed to send notifications, open iOS Settings and turn them on, then enable the daily reminder again."
                     )
                     Divider()
                     FAQItem(

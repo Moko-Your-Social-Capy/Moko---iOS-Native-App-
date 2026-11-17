@@ -191,6 +191,8 @@ struct MokoStat: Identifiable {
     let plate: Color
     let tint: Color
     let fill: Color
+    /// Optional action when the stat is tapped
+    var action: (() -> Void)? = nil
 }
 
 /// Stat tiles wrap onto another row when larger text needs more room.
@@ -241,8 +243,22 @@ private struct MokoStatTile: View {
         .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
         .padding(Metric.statFill)
         .mokoCard(fill: stat.fill, radius: Theme.Radius.tile)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            stat.action?()
+        }
+        .opacity(stat.action != nil ? 1.0 : 0.95)
+        .overlay(
+            Group {
+                if stat.action != nil {
+                    RoundedRectangle(cornerRadius: Theme.Radius.tile)
+                        .stroke(stat.tint.opacity(0.2), lineWidth: 1)
+                }
+            }
+        )
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(stat.value), \(stat.label)")
+        .accessibilityHint(stat.action != nil ? "Double tap to view streak details" : "")
     }
 }
 
@@ -320,7 +336,7 @@ struct MokoWeekBars: View {
     private func bar(isPeak: Bool) -> some View {
         if isPeak {
             RoundedRectangle(cornerRadius: Metric.weekBarRadius, style: .continuous)
-                .fill(Theme.Colors.forest)
+//                .fill(Theme.Colors.forest)
         } else {
             RoundedRectangle(cornerRadius: Metric.weekBarRadius, style: .continuous)
                 .fill(Theme.Colors.dataViolet.opacity(0.18))
