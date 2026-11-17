@@ -104,19 +104,20 @@ struct OnboardingDoneView: View {
                 Image("onboarding_complete_bg")
                     .resizable()
                     .scaledToFill()
+                    .opacity(0.85)
                     .accessibilityHidden(true)
 
-                // A soft cream wash at the very top keeps the title crisp.
-                LinearGradient(
-                    stops: [
-                        .init(color: Color(hex: 0xF4F1E4).opacity(0.55), location: 0),
-                        .init(color: Color(hex: 0xF4F1E4).opacity(0.15), location: 0.28),
-                        .init(color: .clear, location: 0.42)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .allowsHitTesting(false)
+            // A soft cream wash at the very top keeps the title crisp.
+            LinearGradient(
+                stops: [
+                    .init(color: Color(hex: 0xF4F1E4).opacity(0.55), location: 0),
+                    .init(color: Color(hex: 0xF4F1E4).opacity(0.15), location: 0.28),
+                    .init(color: .clear, location: 0.42)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .allowsHitTesting(false)
             }
             .ignoresSafeArea()
         }
