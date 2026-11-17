@@ -4,7 +4,8 @@
 //
 //  Draws one question card: peeking mascot, illustration, question and NO / YES.
 //  It does not handle swiping itself — OnboardingFlowView moves it around and
-//  passes `swipeProgress` in so the card can tint and grow the matching label.
+//  passes `swipeProgress` in so the card can tint, outline, shadow, and grow the
+//  matching label as the user drags.
 //
 
 import SwiftUI
@@ -22,6 +23,31 @@ struct SwipeQuestionCard: View {
     private let mascotSize = CGSize(width: 85, height: 80.7)
     /// The card starts this far down so the mascot can peek over its top edge.
     private let cardTopInset: CGFloat = 52
+
+    // MARK: - Computed swipe colours
+
+    /// The active side's colour: green for Yes (right), red for No (left).
+    /// At zero the card rests on the neutral stroke colour.
+    private var swipeColor: Color {
+        swipeProgress >= 0 ? OBColor.yes : OBColor.no
+    }
+
+    /// How strongly the swiped colour shows: 0 at rest, 1 at full drag.
+    private var swipeStrength: Double { Double(abs(swipeProgress)) }
+
+    /// Stroke colour blends from the resting neutral into the swipe colour as the drag grows.
+    private var borderColor: Color {
+        OBColor.cardStroke.mix(with: swipeColor, by: swipeStrength)
+    }
+
+    /// Border thickness grows from 1 pt at rest up to 2.5 pt at full drag.
+    private var borderWidth: CGFloat { 1 + CGFloat(swipeStrength) * 1.5 }
+
+    /// Shadow radius grows from 0 at rest to 14 pt at full drag.
+    private var shadowRadius: CGFloat { CGFloat(swipeStrength) * 14 }
+
+    /// Shadow opacity mirrors the drag strength.
+    private var shadowOpacity: Double { swipeStrength * 0.45 }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -69,10 +95,19 @@ struct SwipeQuestionCard: View {
                     .opacity(Double(abs(swipeProgress)) * 0.12))
                 .allowsHitTesting(false)                 // let taps pass through to the buttons
         )
+        // Coloured outline: blends from the neutral resting stroke to the swipe colour.
+        // Grows from 1 pt at rest to 2.5 pt at full drag so the border is clearly visible.
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .strokeBorder(OBColor.cardStroke, lineWidth: 1)
+                .strokeBorder(borderColor, lineWidth: borderWidth)
                 .allowsHitTesting(false)
+        )
+        // Coloured glow shadow that matches the border colour, growing with the drag.
+        .shadow(
+            color: swipeColor.opacity(shadowOpacity),
+            radius: shadowRadius,
+            x: 0,
+            y: 4
         )
     }
 

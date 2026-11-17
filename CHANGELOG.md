@@ -1,5 +1,7 @@
 # Changelog
 
+- 2026-11-17 — `SwipeQuestionCard.swift`: Added dynamic swipe-direction border and glow shadow. As the user drags right the card border blends toward `OBColor.yes` (green) and left toward `OBColor.no` (red), matching the YES/NO button colours exactly. Border width grows from 1 pt at rest to 2.5 pt at full drag; a matching coloured shadow with up to 14 pt radius and 0.45 opacity grows alongside it. All driven by the existing `swipeProgress` prop — no caller changes needed.
+
 - 2026-11-17 — Settings (`SettingsStore.swift`, `LiveActivityController.swift`, `MokoActivityAttributes.swift`, `ProfileSettingsView.swift`, `Notifications.swift`, `MicrophonePermissionView.swift`, new `MokoLiveActivity` widget target): Replaced decorative switches with real status and behaviour for notifications, daily reminders, microphone, camera and Live Activities; added iOS Settings deep links, foreground refresh, reminder scheduling/cancellation/rescheduling, ActivityKit start/update/end plus a Live Activity widget, and real account/sign-out/delete/legal entries.
 
 - 2026-11-17 — `Moko.xcodeproj`: Removed the unused `Lottie-Dynamic` package product that stopped the app from linking; the code imports the regular `Lottie` product.
