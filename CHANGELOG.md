@@ -1,5 +1,14 @@
 # Changelog
 
+- 2026-11-17 — `Questdebrief.swift`: Removed back button from `QuestDebriefScreen` top header per user request, keeping the quest title centered as a clean, distraction-free single-line header.
+
+- 2026-11-17 — `Questdebrief.swift`, `AFMDebriefCoach.swift`, `MokoAFM.swift`, `Insightsview.swift`, `DynamicParameterAnalysisStore.swift` (new), `MokoLog.swift`:
+  - Added single-line top header bar to `QuestDebriefScreen` with `<` back chevron button and centered quest title (`.lineLimit(1)`, `.truncationMode(.tail)`) so users always know which quest they are debriefing.
+  - Revamped conversation opener to enter the conversation warmly and interactively like a scene partner or conversational companion, welcoming the user into dialogue and removing dry questionnaire/exam phrasing.
+  - Implemented dynamic, non-repetitive, adaptive follow-ups in `AFMDebriefCoach` and AFM prompts: reads all preceding answers, eliminates repetition of already addressed observations/details, ignores meta chatter or complaints, and dynamically probes the remaining social dimensions without rigid sequencing.
+  - Shifted confidence scoring to be content-based and authenticity-based: concise, authentic, direct responses receive high confidence (80–96), removing artificial word-length caps that previously penalized concise answers.
+  - Eliminated hardcoded parameter analyses in `Insightsview.swift` (Courage, Clarity, Presence, Warmth); replaced with `DynamicParameterAnalysisStore` which dynamically generates, caches, and updates AFM-based parameter analysis based on the user's actual scores and debrief progress.
+
 - 2026-11-17 — `Summary_CalmDown/Summaryview.swift`, `MokoScreenTheme.swift`: The Calm Down chart now uses light, clearly different colours per exercise (pale green, gold, blue, violet and rose, with teal/rust fallbacks) instead of similar green shades. Bars are built from per-exercise segments and stack when an hour, day, week or month contains more than one exercise. The same pale fills now colour the icon plates in "All Activities" with a deeper same-hue glyph for readability, and a themed colour key under the chart explains them. Simulator build passed.
 
 - 2026-11-17 — `QuestLibraryView.swift`, new `QuestLibrary/Components/QuestLibraryFilterBar.swift`, `QuestLibraryLargeCard.swift`, `QuestLibraryArtwork.swift`: Added a type filter to the Quest Library. "All" keeps the existing sideways category rows; picking one type shows only that section as a vertical list with a type heading, quest count and full-width, taller cards. The artwork lookup moved into a shared component so the small and large cards use the same Supabase/bundled/symbol fallback. Simulator build passed.

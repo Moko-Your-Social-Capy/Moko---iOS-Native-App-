@@ -26,6 +26,8 @@ extension Logger {
     static let data = Logger(subsystem: subsystem, category: "Data")
     /// Talking to Supabase (quests, imagery guides, account).
     static let network = Logger(subsystem: subsystem, category: "Network")
+    /// Apple Foundation Models and intelligence logging.
+    static let afm = Logger(subsystem: subsystem, category: "AFM")
 }
 
 extension ModelContext {
