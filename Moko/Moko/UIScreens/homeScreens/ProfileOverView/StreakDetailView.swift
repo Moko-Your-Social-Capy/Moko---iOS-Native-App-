@@ -4,22 +4,32 @@
 //
 //  Detailed streak view with hero section, milestones, and activity breakdown.
 //  Shows progress towards next milestone and streak history.
+//  All data comes from StreakService (ActivityRecord rows) — the single source
+//  of truth — so the detail screen, calendar and profile always match.
 //
 
 import SwiftUI
 import Lottie
+import SwiftData
 
 struct StreakDetailView: View {
-    var currentStreak: Int = 7
-    var longestStreak: Int = 21
-    var totalDaysActive: Int = 45
-    var lastActivityDate: Date = Date()
+    // SwiftData rows — the single source of truth for streak data.
+    @Query private var activityRecords: [ActivityRecord]
     
     @State private var selectedTimeRange: TimeRange = .week
     @State private var showingMilestoneCelebration = false
     
-    
     private let milestones = [7, 14, 21, 30, 60, 90, 180, 365]
+    
+    // Streak stats computed from ActivityRecord rows via StreakService.
+    private var stats: StreakStats {
+        StreakService.shared.stats(from: activityRecords)
+    }
+    
+    private var currentStreak: Int { stats.currentStreak }
+    private var longestStreak: Int { stats.longestStreak }
+    private var totalDaysActive: Int { stats.totalActiveDays }
+    private var lastActivityDate: Date? { stats.lastActivityDate }
     
     var body: some View {
         ScrollView {
@@ -433,15 +443,17 @@ struct StreakDetailView: View {
     
     // MARK: - Computed Properties
     
-
-    
     private var lastActivityStatus: String {
-        if Calendar.current.isDateInToday(lastActivityDate) {
+        guard let lastDate = lastActivityDate else {
+            return "Start your streak today!"
+        }
+        
+        if Calendar.current.isDateInToday(lastDate) {
             return "You practiced mindfulness today. Great job!"
-        } else if Calendar.current.isDateInYesterday(lastActivityDate) {
+        } else if Calendar.current.isDateInYesterday(lastDate) {
             return "You practiced yesterday. Keep it up!"
         } else {
-            let daysAgo = Calendar.current.dateComponents([.day], from: lastActivityDate, to: Date()).day ?? 0
+            let daysAgo = Calendar.current.dateComponents([.day], from: lastDate, to: Date()).day ?? 0
             return "Last practice was \(daysAgo) day\(daysAgo == 1 ? "" : "s") ago."
         }
     }

@@ -30,6 +30,7 @@ struct MokoApp: App {
             Profile.self,
             CalmDownModel.self,
             Quest.self,
+            ActivityRecord.self,
             InsightsModel.self
         ])
     }

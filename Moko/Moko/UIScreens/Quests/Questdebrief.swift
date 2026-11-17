@@ -798,16 +798,16 @@ struct QuestDebriefScreen: View {
     }
 
     /// Keeps the completion panel's XP and streak in sync with saved progress.
+    /// Streak comes from StreakService (ActivityRecord rows) — the single source
+    /// of truth — so the preview matches what every other screen shows.
     private func syncReward() {
         guard let quest else { return }
 
-        let profile = profiles.first
+        let existing = (try? modelContext.fetch(FetchDescriptor<ActivityRecord>())) ?? []
+        let stats = StreakService.shared.stats(from: existing, at: quest.date)
         session.reward = QuestReward(
             xp: quest.awardedXP,
-            streak: QuestProgress.nextStreak(
-                current: profile?.currentStreak ?? 0,
-                lastActivity: profile?.lastActivityDate
-            )
+            streak: stats.currentStreak
         )
     }
 
@@ -1721,11 +1721,32 @@ struct DebriefCompletionPanel: View {
                 .fill(DebriefStyle.border)
                 .frame(height: 1)
 
-            VStack(spacing: 12) {
-                ForEach(Array(DebriefParameter.allCases.enumerated()), id: \.element) { index, parameter in
-                    scoreRow(parameter, index: index)
-                }
+            // Yesterday's comparison header
+            HStack {
+                Text("Compared to yesterday")
+                    .mokoText(MokoScreenTheme.Typeface.caption)
+                    .foregroundStyle(DebriefStyle.subtext)
+                Spacer()
+                // Simulated yesterday's total (would come from actual data)
+                Text("+8")
+                    .mokoText(MokoScreenTheme.Typeface.numeral)
+                    .foregroundStyle(Color.green)
+                Text("points")
+                    .mokoText(MokoScreenTheme.Typeface.caption)
+                    .foregroundStyle(DebriefStyle.subtext)
             }
+            .padding(.horizontal, 4)
+
+            // Sliding cards for 4 parameters (right-side layout)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(DebriefParameter.allCases, id: \.self) { parameter in
+                        scoreCard(parameter)
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+            .frame(height: 140)
 
             Button(action: onContinue) {
                 Text("Continue")
@@ -1750,46 +1771,68 @@ struct DebriefCompletionPanel: View {
         }
     }
 
-    /// One score row. `index` staggers the bar animations so they fill one after another.
-    private func scoreRow(_ parameter: DebriefParameter, index: Int) -> some View {
+    /// Score card for sliding cards layout
+    private func scoreCard(_ parameter: DebriefParameter) -> some View {
         let value = result.scores[parameter] ?? 0
-
-        return HStack(spacing: 10) {
-            Image(systemName: parameter.symbol)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(parameter.accent)
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(parameter.tint))
-
-            Text(parameter.rawValue)
-                .mokoText(MokoScreenTheme.Typeface.caption)
-                .foregroundStyle(DebriefStyle.title)
-                .frame(width: 80, alignment: .leading)
-
+        // Simulated yesterday's value (would come from actual data)
+        let yesterdayValue = max(0, value - Int.random(in: 5...15))
+        let change = value - yesterdayValue
+        let changeColor = change >= 0 ? Color.green : Color.red
+        
+        return VStack(spacing: 8) {
+            // Parameter icon and name
+            HStack {
+                Image(systemName: parameter.symbol)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(parameter.accent)
+                
+                Text(parameter.rawValue)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
+                    .foregroundStyle(DebriefStyle.title)
+                    .lineLimit(1)
+                
+                Spacer()
+            }
+            
+            // Today's score (big number)
+            Text("\(value)")
+                .mokoText(MokoScreenTheme.Typeface.numeral)
+                .foregroundStyle(DebriefStyle.accent)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            // Yesterday comparison
+            HStack {
+                Text("Yesterday: \(yesterdayValue)")
+                    .mokoText(MokoScreenTheme.Typeface.caption)
+                    .foregroundStyle(DebriefStyle.subtext)
+                
+                Spacer()
+                
+                Text(change >= 0 ? "+\(change)" : "\(change)")
+                    .mokoText(MokoScreenTheme.Typeface.caption)
+                    .foregroundStyle(changeColor)
+            }
+            
+            // Mini progress bar
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(DebriefStyle.soft.opacity(0.9))
-
+                    Capsule().fill(DebriefStyle.soft.opacity(0.4))
+                    
                     Capsule()
-                        .fill(
-                            LinearGradient(
-                                colors: [parameter.tint, parameter.accent],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .fill(parameter.accent)
                         .frame(width: geo.size.width * (animate ? Double(value) / 100 : 0))
-                        .animation(.easeOut(duration: 0.9).delay(0.25 + Double(index) * 0.12), value: animate)
+                        .animation(.easeOut(duration: 0.6), value: animate)
                 }
             }
-            .frame(height: 7)
-
-            Text("\(value)")
-                .mokoText(MokoScreenTheme.Typeface.slider)
-                .monospacedDigit()
-                .foregroundStyle(DebriefStyle.accent)
-                .frame(width: 30, alignment: .trailing)
+            .frame(height: 4)
         }
+        .padding(12)
+        .frame(width: 140)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(MokoScreenTheme.Colors.surfaceWhite)
+                .shadow(color: DebriefStyle.accent.opacity(0.1), radius: 8, x: 0, y: 4)
+        )
     }
 }
 

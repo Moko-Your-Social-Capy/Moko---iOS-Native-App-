@@ -2,9 +2,13 @@
 //  EditProfileSheet.swift
 //  Moko
 //
-//  Profile → Edit: change the photo, display name, username and age range.
-//  Changes are kept in @State while editing and are saved to SwiftData only
-//  when the user taps Save.
+//  Profile → Edit. What can change here:
+//    • profile photo        (editable: tap the photo or "Change photo")
+//    • display name         (editable, loaded from the saved profile)
+//    • username             (editable, loaded from the saved profile)
+//  Shown but NOT editable: age and the sign-in method.
+//
+//  Changes stay in @State while editing and are written to SwiftData only on Save.
 //
 
 import SwiftUI
@@ -12,449 +16,587 @@ import PhotosUI
 import SwiftData
 import UIKit
 
-struct ProfileOverViewEditProfile: View {
-    // Closes this sheet.
-    @Environment(\.dismiss) private var dismiss
-    // The SwiftData "database" we save the profile into.
-    @Environment(\.modelContext) private var modelContext
-    // @Query reads every saved Profile. The app only ever keeps one.
-    @Query private var profiles: [Profile]
-    
-    // Haptic feedback for validation
-    @State private var feedbackGenerator = UIImpactFeedbackGenerator(style: .medium)
+// MARK: - Sign-in method
 
-    // Copies of the profile fields that the form edits.
+/// How the user signed in. Shown read-only on the edit screen.
+///
+/// `current()` is a placeholder that reads two UserDefaults keys. Replace its body
+/// with your real auth source (AuthService / GoogleAuthService / Supabase session)
+/// and keep the rest of the file as it is.
+enum SignInMethod {
+    case apple
+    case google
+    case email(String?)
+    case unknown
+
+    static func current() -> SignInMethod {
+        let defaults = UserDefaults.standard
+        switch defaults.string(forKey: "moko.signInMethod") {
+        case "apple":  return .apple
+        case "google": return .google
+        case "email":  return .email(defaults.string(forKey: "moko.signInEmail"))
+        default:       return .unknown
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .apple:   return "Apple"
+        case .google:  return "Google"
+        case .email:   return "Email"
+        case .unknown: return "Not available"
+        }
+    }
+
+    var detail: String? {
+        if case .email(let address) = self { return address }
+        return nil
+    }
+
+    var symbol: String {
+        switch self {
+        case .apple:   return "apple.logo"
+        case .google:  return "g.circle.fill"
+        case .email:   return "envelope.fill"
+        case .unknown: return "person.crop.circle"
+        }
+    }
+
+    var isEmail: Bool {
+        if case .email = self { return true }
+        return false
+    }
+}
+
+// MARK: - Screen
+
+struct ProfileOverViewEditProfile: View {
+    // Shown only for email accounts. Pass the action that opens your change-password flow.
+    var onChangePassword: (() -> Void)? = nil
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    // The app only ever keeps one Profile.
+    @Query private var profiles: [Profile]
+
+    // Editable copies of the profile.
     @State private var name = ""
     @State private var handle = ""
-    @State private var ageRange = ""
-    // The photo picked from the library, and its compressed bytes.
     @State private var photoItem: PhotosPickerItem?
     @State private var photoData: Data?
-    // Shows the "Choose a Moko avatar" menu.
-    @State private var showAvatarChoices = false
-    // Only show "Enter a display name" after the user has tried to save.
+    // Read-only.
+    @State private var age = 0
+
+    // Only show validation messages after the user has tried to save.
     @State private var showValidation = false
-    // A message shown if saving to the database fails.
     @State private var saveError: String?
-    
-    // Loading state for save operation
     @State private var isSaving = false
+
+    private let signInMethod = SignInMethod.current()
+    /// false: no banner, the photo sits centred with a "Change photo" button.
+    /// true:  a light-green banner behind the title, with the photo straddling its edge.
+    private let showsBanner = false
+    private let bannerHeight: CGFloat = 150
+    private let avatarSize: CGFloat = 96
+
+    private typealias Theme = MokoScreenTheme
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var trimmedHandle: String { handle.trimmingCharacters(in: .whitespacesAndNewlines) }
-    
+
     private var nameError: String? {
         if trimmedName.isEmpty { return "Enter a display name." }
         if trimmedName.count > 30 { return "Use 30 characters or fewer." }
         return nil
     }
-    
+
     private var handleError: String? {
         guard !trimmedHandle.isEmpty else { return nil }
         if trimmedHandle.count < 3 { return "Username must be at least 3 characters." }
         if trimmedHandle.count > 20 { return "Username must be 20 characters or fewer." }
         if !trimmedHandle.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" || $0 == "-" }) {
-            return "Username can only contain letters, numbers, underscores, and hyphens."
+            return "Use only letters, numbers, underscores and hyphens."
         }
         return nil
     }
-    
-    private var isValidForm: Bool {
-        nameError == nil && handleError == nil
-    }
+
+    private var isValidForm: Bool { nameError == nil && handleError == nil }
+
+    // MARK: Body
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    HStack(alignment: .center, spacing: 16) {
-                        avatarPreview
-                            .frame(width: 96, height: 96)
-                        VStack(alignment: .leading, spacing: 10) {
-                            PhotosPicker(selection: $photoItem, matching: .images) {
-                                Label(photoData == nil ? "Choose Photo" : "Change Photo", systemImage: "photo")
-                                    .font(.subheadline.weight(.semibold))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.85)
-                                    .frame(maxWidth: .infinity, minHeight: 48)
-                                    .background(MokoScreenTheme.Colors.dataVioletDeep, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                    .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(MokoScreenTheme.Colors.textOnBrand)
+        ZStack {
+            MokoBackdrop()
 
-                            Button {
-                                showAvatarChoices = true
-                            } label: {
-                                Label("Choose Moko", systemImage: "pawprint")
-                                    .font(.subheadline.weight(.semibold))
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.85)
-                                    .frame(maxWidth: .infinity, minHeight: 48)
-                                    .background(MokoScreenTheme.Colors.dataVioletLight, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                    .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(MokoScreenTheme.Colors.textBody)
-
-                            if photoData != nil {
-                                Button(role: .destructive) {
-                                    photoData = nil
-                                    photoItem = nil
-                                } label: {
-                                    Label("Remove Photo", systemImage: "trash")
-                                        .font(.subheadline.weight(.medium))
-                                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                                        .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(MokoScreenTheme.Colors.error)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 8)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
-                } header: {
-                    Text("Profile photo")
-                        .mokoText(MokoScreenTheme.Typeface.sectionHeader)
-                } footer: {
-                    Text("Preview shows the centered square crop that will be saved.")
-                        .mokoText(MokoScreenTheme.Typeface.caption)
+            VStack(spacing: 0) {
+                if showsBanner {
+                    bannerSection
+                        .zIndex(1)           // keeps the avatar above the scrolling form
+                } else {
+                    headerBar
                 }
 
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Display name")
-                            .mokoText(MokoScreenTheme.Typeface.fieldLabel)
-                            .foregroundStyle(MokoScreenTheme.Colors.textBody)
-                        
-                        TextField("Required", text: $name)
-                            .mokoText(MokoScreenTheme.Typeface.body)
-                            .textFieldStyle(.roundedBorder)
-                            .textInputAutocapitalization(.words)
-                            .autocorrectionDisabled()
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(MokoScreenTheme.Colors.canvasTop.opacity(0.1))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(nameError != nil && showValidation ? MokoScreenTheme.Colors.error : MokoScreenTheme.Colors.borderSubtle, lineWidth: 1)
-                                    )
-                            )
-                            .onChange(of: name) { _, newValue in
-                                if newValue.count > 30 { name = String(newValue.prefix(30)) }
-                            }
-                        
-                        if showValidation, let nameError {
-                            Text(nameError)
-                                .mokoText(MokoScreenTheme.Typeface.caption)
-                                .foregroundStyle(MokoScreenTheme.Colors.error)
-                                .accessibilityAddTraits(.isStaticText)
-                                .padding(.horizontal, 4)
-                        }
-                    }
-                    .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Username (optional)")
-                            .mokoText(MokoScreenTheme.Typeface.fieldLabel)
-                            .foregroundStyle(MokoScreenTheme.Colors.textBody)
-                        
-                        TextField("username", text: $handle)
-                            .mokoText(MokoScreenTheme.Typeface.body)
-                            .textFieldStyle(.roundedBorder)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(MokoScreenTheme.Colors.canvasTop.opacity(0.1))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(handleError != nil && showValidation ? MokoScreenTheme.Colors.error : MokoScreenTheme.Colors.borderSubtle, lineWidth: 1)
-                                    )
-                            )
-                            .onChange(of: handle) { _, newValue in
-                                // Remove spaces from username
-                                if newValue.contains(" ") {
-                                    handle = newValue.replacingOccurrences(of: " ", with: "")
-                                }
-                            }
-                        
-                        if showValidation, let handleError {
-                            Text(handleError)
-                                .mokoText(MokoScreenTheme.Typeface.caption)
-                                .foregroundStyle(MokoScreenTheme.Colors.error)
-                                .accessibilityAddTraits(.isStaticText)
-                                .padding(.horizontal, 4)
-                        }
-                    }
-                    .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Age range (optional)")
-                            .mokoText(MokoScreenTheme.Typeface.fieldLabel)
-                            .foregroundStyle(MokoScreenTheme.Colors.textBody)
-                        
-                        Menu {
-                            Button("Prefer not to say") { ageRange = "" }
-                            Divider()
-                            ForEach(["13–17", "18–24", "25–34", "35–44", "45+"], id: \.self) { range in
-                                Button(range) { ageRange = range }
-                            }
-                        } label: {
-                            HStack {
-                                Text(ageRange.isEmpty ? "Select age range" : ageRange)
-                                    .mokoText(MokoScreenTheme.Typeface.body)
-                                    .foregroundStyle(ageRange.isEmpty ? MokoScreenTheme.Colors.textMuted : MokoScreenTheme.Colors.textBody)
-                                Spacer()
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundStyle(MokoScreenTheme.Colors.textMuted)
-                            }
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(MokoScreenTheme.Colors.canvasTop.opacity(0.1))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(MokoScreenTheme.Colors.borderSubtle, lineWidth: 1)
-                                    )
-                            )
-                        }
-                    }
-                    .listRowInsets(EdgeInsets(top: 12, leading: 0, bottom: 12, trailing: 0))
-                } header: {
-                    Text("Your details")
-                        .mokoText(MokoScreenTheme.Typeface.sectionHeader)
-                }
-
-                if let saveError {
-                    Section {
-                        HStack(spacing: 12) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundStyle(MokoScreenTheme.Colors.error)
-                            
+                ScrollView {
+                    VStack(spacing: Theme.Space.gapCard) {
+                        if !showsBanner { photoBlock }
+                        detailsCard
+                        accountCard
+                        if let saveError {
                             Text(saveError)
-                                .mokoText(MokoScreenTheme.Typeface.caption)
-                                .foregroundStyle(MokoScreenTheme.Colors.error)
-                        }
-                        .padding(.vertical, 8)
-                    }
-                }
-            }
-            .listStyle(.plain)
-            .scrollContentBackground(.hidden)
-            .background(MokoBackdrop())
-            .navigationTitle("Edit Profile")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(role: .close) { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 18, weight: .medium))
-                            .frame(width: 44, height: 44)
-                    }
-                    .accessibilityLabel("Close")
-                    .foregroundStyle(MokoScreenTheme.Colors.textBody)
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(action: save) {
-                        if isSaving {
-                            ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: MokoScreenTheme.Colors.textOnBrand))
-                        } else {
-                            Text("Save")
-                                .mokoText(MokoScreenTheme.Typeface.button)
+                                .mokoText(Theme.Typeface.caption)
+                                .foregroundStyle(Theme.Colors.error)
                         }
                     }
-                    .mokoButtonStyle(.primary, isLoading: isSaving, isDisabled: !isValidForm)
-                    .disabled(!isValidForm || isSaving)
+                    .padding(.horizontal, Theme.Space.page)
+                    .padding(.top, showsBanner ? avatarSize / 2 + Theme.Space.s7   // clears the avatar
+                                               : Theme.Space.s2)
+                    .padding(.bottom, Theme.Space.s6)
                 }
+                .scrollDismissesKeyboard(.interactively)
+                .safeAreaInset(edge: .bottom, spacing: 0) { actionBar }
             }
-            .confirmationDialog("Choose a Moko avatar", isPresented: $showAvatarChoices, titleVisibility: .visible) {
-                Button("Calm Moko") { 
-                    photoData = compressedAvatar(named: "profile_empty_moko")
-                    feedbackGenerator.impactOccurred()
-                }
-                Button("Waving Moko") { 
-                    photoData = compressedAvatar(named: "welcome_moko")
-                    feedbackGenerator.impactOccurred()
-                }
-                Button("Cancel", role: .cancel) { }
-            }
-            // Fill the form with the saved profile when the sheet opens.
-            .onAppear(perform: loadProfile)
-            // `.task(id:)` runs again every time `photoItem` changes, i.e. after the user picks a photo.
-            .task(id: photoItem) { await loadPhoto() }
         }
-        .tint(MokoScreenTheme.Colors.dataVioletDeep)
-        .onAppear {
-            feedbackGenerator.prepare()
+        .onAppear(perform: loadProfile)
+        // Each runs again whenever its picker changes, i.e. after the user picks an image.
+        .task(id: photoItem) { await loadPhoto() }
+        .interactiveDismissDisabled(isSaving)
+        .tint(Theme.Colors.dataVioletDeep)
+    }
+
+    // MARK: Banner + avatar
+
+    private var bannerSection: some View {
+        ZStack(alignment: .bottom) {
+            ZStack(alignment: .top) {
+                bannerBackground
+                    .ignoresSafeArea(edges: .top)
+
+                headerBar
+            }
+
+            avatarButton
+                .offset(y: avatarSize / 2 + 5)     // half of the ringed avatar hangs below the banner
+        }
+        .frame(height: bannerHeight)
+    }
+
+    private var bannerBackground: some View {
+        ZStack {
+            LinearGradient(colors: [Theme.Colors.lightSage, Theme.Colors.tileLilac],
+                           startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipShape(UnevenRoundedRectangle(topLeadingRadius: 0,
+                                          bottomLeadingRadius: Theme.Radius.hero,
+                                          bottomTrailingRadius: Theme.Radius.hero,
+                                          topTrailingRadius: 0,
+                                          style: .continuous))
+        .shadow(color: Theme.Elevation.ambientColor, radius: 14, x: 0, y: 6)
+    }
+
+    private var headerBar: some View {
+        HStack {
+            Text("Edit profile")
+                .mokoText(Theme.Typeface.title2)
+                .foregroundStyle(Theme.Colors.textTitle)
+
+            Spacer()
+
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.Colors.textTitle)
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(Theme.Colors.surfaceWhite.opacity(0.85)))
+                    .shadow(color: Theme.Elevation.ambientColor, radius: 6, x: 0, y: 2)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close")
+        }
+        .padding(.horizontal, Theme.Space.page)
+        .padding(.top, Theme.Space.s4)
+        .padding(.bottom, showsBanner ? 0 : Theme.Space.s2)
+        .frame(maxHeight: showsBanner ? .infinity : nil, alignment: .top)
+    }
+
+    /// No-banner layout: centred photo plus an explicit button to change it.
+    private var photoBlock: some View {
+        VStack(spacing: Theme.Space.s3) {
+            avatarButton
+
+            PhotosPicker(selection: $photoItem, matching: .images) {
+                HStack(spacing: Theme.Space.s1) {
+                    Image(systemName: "photo")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text(photoData == nil ? "Add photo" : "Change photo")
+                        .mokoText(Theme.Typeface.button)
+                }
+                .foregroundStyle(Theme.Colors.dataVioletDeep)
+                .padding(.horizontal, Theme.Space.s5)
+                .frame(minHeight: 44)
+                .background(Capsule().fill(Theme.Colors.surfaceLavender))
+                .shadow(color: Theme.Elevation.ambientColor.opacity(0.5), radius: 6, x: 0, y: 2)
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, Theme.Space.s2)
+    }
+
+    /// Tapping the avatar opens the photo library.
+    private var avatarButton: some View {
+        PhotosPicker(selection: $photoItem, matching: .images) {
+            ZStack(alignment: .bottomTrailing) {
+                avatarImage
+                    .frame(width: avatarSize, height: avatarSize)
+                    .clipShape(Circle())
+                    .padding(5)
+                    .background(Circle().fill(Theme.Colors.surfaceWhite))
+                    .shadow(color: Theme.Elevation.ambientColor, radius: 10, x: 0, y: 4)
+
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.Colors.textOnBrand)
+                    .frame(width: 32, height: 32)
+                    .background(Circle().fill(Theme.Colors.dataVioletDeep))
+                    .shadow(color: Theme.Elevation.ambientColor, radius: 6, x: 0, y: 2)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(photoData == nil ? "Choose profile photo" : "Change profile photo")
+    }
+
+    @ViewBuilder
+    private var avatarImage: some View {
+        if let photoData, let image = UIImage(data: photoData) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+        } else if UIImage(named: "profile_empty_moko") != nil {
+            Image("profile_empty_moko")
+                .resizable()
+                .scaledToFit()
+                .padding(10)
+                .background(Theme.Colors.surfaceLavender)
+        } else {
+            Image(systemName: "person.fill")
+                .font(.system(size: 40))
+                .foregroundStyle(Theme.Colors.dataVioletDeep)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Theme.Colors.surfaceLavender)
         }
     }
 
-    private var avatarPreview: some View {
-        Group {
-            if let photoData, let image = UIImage(data: photoData) {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                Image("profile_empty_moko")
-                    .resizable()
-                    .scaledToFit()
-                    .padding(8)
+    // MARK: Cards
+
+    /// Editable: display name and username, plus a link to remove the photo.
+    private var detailsCard: some View {
+        card {
+            fieldGroup(title: "Display name",
+                       error: showValidation ? nameError : nil) {
+                TextField("Required", text: $name)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                    .onChange(of: name) { _, newValue in
+                        if newValue.count > 30 { name = String(newValue.prefix(30)) }
+                    }
             }
-        }
-        .frame(width: 96, height: 96)
-        .background(MokoScreenTheme.Colors.canvasTop.opacity(0.1), in: Circle())
-        .clipShape(Circle())
-        .overlay(
-            Circle()
-                .stroke(MokoScreenTheme.Colors.dataVioletLight.opacity(0.3), lineWidth: 2)
-        )
-        .overlay(
-            Circle()
-                .stroke(MokoScreenTheme.Colors.canvasTop, lineWidth: 6)
-                .blendMode(.overlay)
-        )
-        .accessibilityLabel("Profile photo preview")
-        .onTapGesture {
-            showAvatarChoices = true
-            feedbackGenerator.impactOccurred()
+
+            fieldGroup(title: "Username",
+                       error: showValidation ? handleError : nil) {
+                HStack(spacing: Theme.Space.s1) {
+                    Text("@")
+                        .foregroundStyle(Theme.Colors.textMuted)
+                    TextField("username", text: $handle)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .onChange(of: handle) { _, newValue in
+                            if newValue.contains(" ") {
+                                handle = newValue.replacingOccurrences(of: " ", with: "")
+                            }
+                        }
+                }
+            }
+
+            if photoData != nil {
+                removeLink("Remove photo") {
+                    photoData = nil
+                    photoItem = nil
+                }
+            }
         }
     }
 
-    /// Copies the saved profile into the form fields.
+    /// Read-only: age and sign-in method.
+    private var accountCard: some View {
+        card {
+            readOnlyRow(title: "Age",
+                        value: age > 0 ? "\(age)" : "Not set",
+                        symbol: "lock.fill",
+                        note: "Age can't be changed here.")
+
+            signInRow
+        }
+    }
+
+    private func card<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s5) {
+            content()
+        }
+        .padding(Theme.Space.cardHorizontal)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous)
+                .fill(Theme.Colors.surfaceWhite)
+                .shadow(color: Theme.Elevation.ambientColor,
+                        radius: Theme.Elevation.ambientRadius,
+                        x: 0,
+                        y: Theme.Elevation.ambientOffset)
+        )
+    }
+
+    private func removeLink(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .mokoText(Theme.Typeface.caption)
+                .foregroundStyle(Theme.Colors.error)
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// A label above a rounded text field. No outline: the field is a soft tinted block.
+    private func fieldGroup<Content: View>(
+        title: String,
+        error: String?,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s2) {
+            Text(title)
+                .mokoText(Theme.Typeface.fieldLabel)
+                .foregroundStyle(Theme.Colors.textMuted)
+
+            content()
+                .mokoText(Theme.Typeface.body)
+                .foregroundStyle(Theme.Colors.textTitle)
+                .padding(.horizontal, Theme.Space.s4)
+                .frame(minHeight: 52)
+                .background(
+                    RoundedRectangle(cornerRadius: Theme.Radius.chip, style: .continuous)
+                        .fill(error == nil ? Theme.Colors.surfaceLavender
+                                           : Theme.Colors.error.opacity(0.10))
+                )
+
+            if let error {
+                Text(error)
+                    .mokoText(Theme.Typeface.caption)
+                    .foregroundStyle(Theme.Colors.error)
+                    .padding(.horizontal, Theme.Space.s1)
+            }
+        }
+    }
+
+    // MARK: Read-only rows
+
+    private func readOnlyRow(title: String, value: String, symbol: String, note: String) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s2) {
+            Text(title)
+                .mokoText(Theme.Typeface.fieldLabel)
+                .foregroundStyle(Theme.Colors.textMuted)
+
+            HStack {
+                Text(value)
+                    .mokoText(Theme.Typeface.body)
+                    .foregroundStyle(Theme.Colors.textBody)
+                Spacer()
+                Image(systemName: symbol)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.Colors.lockedInk)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, Theme.Space.s4)
+            .frame(minHeight: 52)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.Radius.chip, style: .continuous)
+                    .fill(Theme.Colors.lockedSurface)
+            )
+
+            Text(note)
+                .mokoText(Theme.Typeface.caption)
+                .foregroundStyle(Theme.Colors.textMuted)
+                .padding(.horizontal, Theme.Space.s1)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title) \(value), not editable")
+    }
+
+    private var signInRow: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s2) {
+            Text("Sign-in method")
+                .mokoText(Theme.Typeface.fieldLabel)
+                .foregroundStyle(Theme.Colors.textMuted)
+
+            HStack(spacing: Theme.Space.s3) {
+                Image(systemName: signInMethod.symbol)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Theme.Colors.dataVioletDeep)
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(Theme.Colors.dataVioletLight.opacity(0.55)))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(signInMethod.title)
+                        .mokoText(Theme.Typeface.cardTitle)
+                        .foregroundStyle(Theme.Colors.textTitle)
+                    if let detail = signInMethod.detail {
+                        Text(detail)
+                            .mokoText(Theme.Typeface.caption)
+                            .foregroundStyle(Theme.Colors.textMuted)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                if case .unknown = signInMethod {} else {
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundStyle(Theme.Colors.dataVioletDeep)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding(Theme.Space.s3)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.Radius.chip, style: .continuous)
+                    .fill(Theme.Colors.surfaceLavender)
+            )
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Signed in with \(signInMethod.title)")
+        }
+    }
+
+    // MARK: Pinned buttons
+
+    private var actionBar: some View {
+        VStack(spacing: Theme.Space.s2) {
+            Button(action: save) {
+                Group {
+                    if isSaving {
+                        ProgressView().tint(Theme.Colors.textOnBrand)
+                    } else {
+                        Text("Save")
+                            .mokoText(Theme.Typeface.button)
+                    }
+                }
+                .foregroundStyle(Theme.Colors.textOnBrand)
+                .frame(maxWidth: .infinity, minHeight: 54)
+                .background(
+                    Capsule()
+                        .fill(Theme.Colors.dataVioletDeep)
+                        .shadow(color: Theme.Elevation.ambientColor, radius: 10, x: 0, y: 4)
+                )
+                .opacity(isValidForm ? 1 : 0.5)
+            }
+            .buttonStyle(.plain)
+            .disabled(isSaving)
+            .accessibilityLabel("Save profile")
+
+            // Only email accounts have a password to change.
+            if signInMethod.isEmail, let onChangePassword {
+                Button(action: onChangePassword) {
+                    Text("Change password")
+                        .mokoText(Theme.Typeface.button)
+                        .foregroundStyle(Theme.Colors.textBody)
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .background(Capsule().fill(Theme.Colors.surfaceLavender))
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, Theme.Space.page)
+        .padding(.top, Theme.Space.s3)
+        .padding(.bottom, Theme.Space.s3)
+        .background(.ultraThinMaterial)
+    }
+
+    // MARK: Data
+
+    /// Copies the saved profile into the form.
     private func loadProfile() {
         guard let profile = profiles.first else { return }
         name = profile.username
         handle = profile.handle ?? ""
-        ageRange = profile.ageRange ?? inferredAgeRange(profile.age)
+        age = profile.age
         photoData = profile.profileImageData
     }
 
-    /// Older profiles stored only an age number. This turns it into one of the picker's ranges.
-    private func inferredAgeRange(_ age: Int) -> String {
-        switch age {
-        case 13..<18: "13–17"
-        case 18..<25: "18–24"
-        case 25..<35: "25–34"
-        case 35..<45: "35–44"
-        case 45...: "45+"
-        default: ""
-        }
-    }
-
-    /// The opposite of `inferredAgeRange`: one age number for a range (0 means "not given").
-    private func representativeAge(_ range: String) -> Int {
-        switch range {
-        case "13–17": 15
-        case "18–24": 21
-        case "25–34": 30
-        case "35–44": 40
-        case "45+": 50
-        default: 0
-        }
-    }
-
-    /// Reads the picked photo from the library and shrinks it. `try?` turns a failure into `nil`.
+    /// Reads the picked profile photo from the library and shrinks it to a square.
     private func loadPhoto() async {
         guard let raw = try? await photoItem?.loadTransferable(type: Data.self),
               let image = UIImage(data: raw) else { return }
-        photoData = centeredSquareJPEG(image)
+        photoData = centeredJPEG(image, size: CGSize(width: 512, height: 512), quality: 0.78)
     }
 
-    /// Turns a Moko picture from Assets into avatar bytes.
-    private func compressedAvatar(named name: String) -> Data? {
-        guard let image = UIImage(named: name) else { return nil }
-        return centeredSquareJPEG(image)
-    }
-
-    /// Crops the middle square of an image, resizes it to 512 x 512 and saves it as a JPEG.
-    /// A small image keeps the database small.
-    private func centeredSquareJPEG(_ image: UIImage) -> Data? {
-        let side: CGFloat = 512
+    /// Crops the middle of an image to `size` and saves it as a JPEG, which keeps the database small.
+    private func centeredJPEG(_ image: UIImage, size: CGSize, quality: CGFloat) -> Data? {
         let format = UIGraphicsImageRendererFormat.default()
-        // Scale 1 means 512 real pixels, not 512 x 3 on a Retina screen.
-        format.scale = 1
-        // UIGraphicsImageRenderer is a blank canvas. We draw the photo on it, centred and filling it.
-        return UIGraphicsImageRenderer(size: CGSize(width: side, height: side), format: format).jpegData(withCompressionQuality: 0.78) { _ in
-            let source = image.size
-            let scale = side / min(source.width, source.height)
-            let drawSize = CGSize(width: source.width * scale, height: source.height * scale)
-            let rect = CGRect(x: (side - drawSize.width) / 2, y: (side - drawSize.height) / 2, width: drawSize.width, height: drawSize.height)
-            image.draw(in: rect)
-        }
+        format.scale = 1     // `size` is real pixels, not points
+        return UIGraphicsImageRenderer(size: size, format: format)
+            .jpegData(withCompressionQuality: quality) { _ in
+                let source = image.size
+                let scale = max(size.width / source.width, size.height / source.height)
+                let drawSize = CGSize(width: source.width * scale, height: source.height * scale)
+                let rect = CGRect(x: (size.width - drawSize.width) / 2,
+                                  y: (size.height - drawSize.height) / 2,
+                                  width: drawSize.width, height: drawSize.height)
+                image.draw(in: rect)
+            }
     }
 
-    /// Checks the name, updates (or creates) the Profile, then saves to disk.
+    /// Checks the form, updates (or creates) the Profile, then saves to disk.
+    /// Age is never written here: it is read-only.
     private func save() {
         showValidation = true
-        
         guard isValidForm else {
-            // Play haptic feedback for validation error
-            feedbackGenerator.impactOccurred(intensity: 0.7)
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
             return
         }
-        
+
         isSaving = true
-        feedbackGenerator.impactOccurred(intensity: 0.5)
-        
+        saveError = nil
         let normalizedHandle = trimmedHandle.isEmpty ? nil : trimmedHandle
-        let savedAge = representativeAge(ageRange)
-        
-        // Simulate network delay for better UX
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            do {
-                if let profile = profiles.first {
-                    profile.username = trimmedName
-                    profile.handle = normalizedHandle
-                    profile.ageRange = ageRange.isEmpty ? nil : ageRange
-                    profile.age = savedAge
-                    profile.profileImageData = photoData
-                    profile.updatedAt = .now
-                } else {
-                    // No profile yet (e.g. the user skipped onboarding), so make one.
-                    modelContext.insert(Profile(
-                        username: trimmedName,
-                        handle: normalizedHandle,
-                        ageRange: ageRange.isEmpty ? nil : ageRange,
-                        age: savedAge,
-                        profileImageData: photoData
-                    ))
-                }
-                
-                // Write the changes to disk
-                try modelContext.save()
-                
-                // Success haptic
-                let successGenerator = UINotificationFeedbackGenerator()
-                successGenerator.notificationOccurred(.success)
-                
-                // Close the sheet after a brief delay
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    dismiss()
-                }
-                
-            } catch {
-                isSaving = false
-                saveError = "Your changes could not be saved. Please try again."
-                
-                // Error haptic
-                let errorGenerator = UINotificationFeedbackGenerator()
-                errorGenerator.notificationOccurred(.error)
-            }
+
+        if let profile = profiles.first {
+            profile.username = trimmedName
+            profile.handle = normalizedHandle
+            profile.profileImageData = photoData
+            profile.updatedAt = .now
+        } else {
+            // No profile yet (e.g. the user skipped onboarding), so make one.
+            modelContext.insert(Profile(
+                username: trimmedName,
+                handle: normalizedHandle,
+                ageRange: nil,
+                age: 0,
+                profileImageData: photoData
+            ))
+        }
+
+        do {
+            try modelContext.save()
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            dismiss()
+        } catch {
+            isSaving = false
+            saveError = "Your changes could not be saved. Please try again."
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
         }
     }
 }
 
 #Preview {
-    ProfileOverViewEditProfile().modelContainer(for: Profile.self, inMemory: true)
+    ProfileOverViewEditProfile(onChangePassword: {})
+        .modelContainer(for: Profile.self, inMemory: true)
 }

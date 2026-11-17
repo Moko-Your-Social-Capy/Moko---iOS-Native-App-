@@ -19,57 +19,62 @@ enum MokoScreenTheme {
 
     /// Every colour in the app. `Color(hex:)` turns a web-style hex code into a SwiftUI colour.
     enum Colors {
-        // MARK: Background (preserved)
-        static let canvasTop = Color(hex: 0xE8F0E3)
-        static let canvasBottom = Color(hex: 0xFFFFFF)
+//        // MARK: Background - Three-stop soft green gradient
+//        static let forestGreen = Color(hex: 0x365948)
+        static let lightSage = Color(hex: 0xCBE6D3)
+        static let cleanWhite = Color(hex: 0xFFFFFF)
+        
+        // Backward compatibility
+        static let canvasTop = lightSage
+        static let canvasBottom = cleanWhite
 
         // MARK: Card Surfaces
         /// Mission card background (white)
         static let surfaceWhite = Color(hex: 0xFFFFFF)
-        /// Progress cards (Insights and Calm Down) background (#ECEFF8)
-        static let surfaceLavender = Color(hex: 0xECEFF8)
+        /// Progress cards (Insights and Calm Down) background (light green)
+        static let surfaceLavender = Color(hex: 0xE8F5EB)
 
         static let strokeInk = Color(hex: 0x17161C)
 
         // MARK: Text Colors
-        /// Primary text color (dark purple-gray) – Overview titles, "Mission", "Growth"
-        static let textTitle = Color(hex: 0x211F2C)
+        /// Primary text color (dark green-gray) – Overview titles, "Mission", "Growth"
+        static let textTitle = Color(hex: 0x1E2D23)
         /// Mission card title (teal-green)
         static let textMissionTitle = Color(hex: 0x2F4C43)
-        /// Body and secondary text (muted gray)
-        static let textBody = Color(hex: 0x737078)
-        /// Countdown label and date labels (muted gray)
-        static let textMuted = Color(hex: 0x5E5D65)
-        /// Countdown value color (blue-purple)
-        static let countdownValue = Color(hex: 0x55749F)
+        /// Body and secondary text (muted green-gray)
+        static let textBody = Color(hex: 0x5E6D63)
+        /// Countdown label and date labels (muted green-gray)
+        static let textMuted = Color(hex: 0x4A5A50)
+        /// Countdown value color (green-blue)
+        static let countdownValue = Color(hex: 0x3B9A8C)
 
         // MARK: Data Visualization
-        /// Radar fill (light purple)
-        static let dataViolet = Color(hex: 0xC4C1DC)
-        /// Radar nodes and bars deep color (dark purple)
-        static let dataVioletDeep = Color(hex: 0x54457E)
-        /// Metric numbers (purple accent)
-        static let dataNumeral = Color(hex: 0x54457E)
-        /// Grid lines and vectors (light purple)
-        static let dataGrid = Color(hex: 0xC4C1DC)
-        /// Radar node dots (dark teal)
-        static let dataNode = Color(hex: 0x314C43)
+        /// Radar fill (light green)
+        static let dataViolet = Color(hex: 0xCBE6D3)
+        /// Radar nodes and bars deep color (dark green)
+        static let dataVioletDeep = Color(hex: 0x2F6E4A)
+        /// Metric numbers (green accent)
+        static let dataNumeral = Color(hex: 0x2F6E4A)
+        /// Grid lines and vectors (light green)
+        static let dataGrid = Color(hex: 0xCBE6D3)
+        /// Radar node dots (dark green)
+        static let dataNode = Color(hex: 0x254C3C)
 
         static let accentBlue = Color(hex: 0x2168E0)
         static let accentBlueTint = Color(hex: 0xE8F1FF)
 
         // MARK: Avatar
-        /// Avatar background (light purple)
-        static let avatarFill = Color(hex: 0xB8A3E4)
-        /// Avatar text/icon (dark purple-gray)
-        static let avatarText = Color(hex: 0x211F2C)
+        /// Avatar background (light green)
+        static let avatarFill = Color(hex: 0xA8D5B5)
+        /// Avatar text/icon (dark green-gray)
+        static let avatarText = Color(hex: 0x1E2D23)
 
         /// Vector strokes carry their registration opacity with them.
         static let vectorBush = Color(hex: 0x7FAF79).opacity(0.15)
         static let vectorLeaf = Color(hex: 0x8FB98A).opacity(0.18)
 
-        /// Tab bar selected color (purple accent)
-        static let tabActiveGlyph = Color(hex: 0x54457E)
+        /// Tab bar selected color (green accent)
+        static let tabActiveGlyph = Color(hex: 0x2F6E4A)
 
         // MARK: Profile
         static let cream = Color(hex: 0xFBF6EA)
@@ -89,7 +94,7 @@ enum MokoScreenTheme {
         static let heroButtonSurface = Color(hex: 0xFFFFFF).opacity(0.16)
 
         /// Top stop of the avatar gradient. The bottom stop is `avatarFill`.
-        static let avatarTop = Color(hex: 0xE6E1F2)
+        static let avatarTop = Color(hex: 0xE2EFDD)
         static let avatarRing = Color(hex: 0xF6FAF2)
 
         /// Icon plate tints, cycled by stat / chip position.
@@ -115,8 +120,33 @@ enum MokoScreenTheme {
         static let dataGold = Color(hex: 0xD9A441)
         /// Teal accent (success states, completed milestones).
         static let dataTeal = Color(hex: 0x3B9A8C)
-        /// Soft lavender — a lighter tint of dataVioletDeep for backgrounds/chips.
-        static let dataVioletLight = Color(hex: 0xC4C1DC)
+        /// Soft green — a lighter tint of dataVioletDeep for backgrounds/chips.
+        static let dataVioletLight = Color(hex: 0xCBE6D3)
+        
+        // MARK: Parameter-specific colors (for Insights)
+        /// Courage - Greenish teal (was violet)
+        static let parameterCourage = Color(hex: 0x2F6E4A)
+        static let parameterCourageDark = Color(hex: 0x1E4D32)
+        /// Clarity - Emerald green (was emerald)
+        static let parameterClarity = Color(hex: 0x10B981)
+        static let parameterClarityDark = Color(hex: 0x0A7A56)
+        /// Presence - Forest green (was indigo)
+        static let parameterPresence = Color(hex: 0x254C3C)
+        static let parameterPresenceDark = Color(hex: 0x183327)
+        /// Warmth - Sage green (was teal)
+        static let parameterWarmth = Color(hex: 0x3F6B54)
+        static let parameterWarmthDark = Color(hex: 0x2C5140)
+        
+        // MARK: Score-based colors (yellow/red/green logic)
+        /// Excellent score (70-100) - Bright green
+        static let scoreExcellent = Color(hex: 0x4A9E7A)
+        static let scoreExcellentDark = Color(hex: 0x36785A)
+        /// Good score (40-69) - Gold/yellow
+        static let scoreGood = Color(hex: 0xD9A441)
+        static let scoreGoodDark = Color(hex: 0xB8862A)
+        /// Needs improvement (0-39) - Soft red/rose
+        static let scoreNeedsImprovement = Color(hex: 0xC4547A)
+        static let scoreNeedsImprovementDark = Color(hex: 0x9A3C5D)
 
         // MARK: Button & UI Colors
         static let textOnBrand = Color.white

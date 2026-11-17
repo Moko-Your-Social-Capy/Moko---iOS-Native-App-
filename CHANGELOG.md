@@ -1,5 +1,9 @@
 # Changelog
 
+- 2026-11-17 — Settings (`SettingsStore.swift`, `LiveActivityController.swift`, `MokoActivityAttributes.swift`, `ProfileSettingsView.swift`, `Notifications.swift`, `MicrophonePermissionView.swift`, new `MokoLiveActivity` widget target): Replaced decorative switches with real status and behaviour for notifications, daily reminders, microphone, camera and Live Activities; added iOS Settings deep links, foreground refresh, reminder scheduling/cancellation/rescheduling, ActivityKit start/update/end plus a Live Activity widget, and real account/sign-out/delete/legal entries.
+
+- 2026-11-17 — `Moko.xcodeproj`: Removed the unused `Lottie-Dynamic` package product that stopped the app from linking; the code imports the regular `Lottie` product.
+
 - 2026-11-16 — `Summaryview.swift`: Changed weekday labels on the Calm Down insights week chart from full weekday names (`.wide`, e.g. "Monday", "Tuesday") to abbreviated names (`.abbreviated`, e.g. "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun").
 
 - 2026-11-16 — `OnboardingFlowView.swift`: Enhanced the first-card swipe-hint animation. The first card now lifts upward (`hintOffsetY = -20`) into the air for the duration of the tutorial hint, performs two full cycles of tilting left and right (demonstrating swiping left for No and right for Yes), and smoothly descends back to its resting position (`hintOffsetY = 0`) before unlocking user interaction.

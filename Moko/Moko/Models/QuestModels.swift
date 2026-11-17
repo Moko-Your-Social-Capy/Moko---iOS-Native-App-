@@ -181,7 +181,7 @@ enum MokoDatabase {
     private static func make(inMemory: Bool) -> ModelContainer {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: inMemory)
         do {
-            return try ModelContainer(for: Quest.self, configurations: configuration)
+            return try ModelContainer(for: Quest.self, ActivityRecord.self, configurations: configuration)
         } catch {
             // Without a database the app can't work at all, so stopping here is intended.
             fatalError("Could not create the database: \(error)")

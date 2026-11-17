@@ -3,13 +3,16 @@
 //  Moko
 //
 //  Two simple full-screen messages that share the same look:
-//  - MicrophonePermissionView: explains why microphone access is not needed yet.
+//  - MicrophonePermissionView: shows the real microphone permission.
 //  - AccountDeletedConfirmation: shown once after the user deletes their account.
 //
-//  Real recording is not available yet, so this screen never asks for access.
+//  Opening this screen only reads the status. The permission popup appears
+//  after a tap on "Allow microphone".
 //
 
 import SwiftUI
+import UIKit
+import AVFAudio
 
 // Share the app's mint, white, forest, and readable text colors.
 private typealias PermissionTheme = MokoScreenTheme
@@ -17,8 +20,15 @@ private typealias PermissionTheme = MokoScreenTheme
 // MARK: - Microphone permission
 
 struct MicrophonePermissionView: View {
-    // Close this information screen without changing any permission.
+    // Close this screen without changing any permission.
     @Environment(\.dismiss) private var dismiss
+    // Opens the Settings app when microphone access was denied.
+    @Environment(\.openURL) private var openURL
+    // Refresh the status after the person returns from Settings.
+    @Environment(\.scenePhase) private var scenePhase
+
+    // The shared permission store. Reading it never shows a popup.
+    @State private var settings = SettingsStore.shared
 
     var body: some View {
         ScrollView {
@@ -28,7 +38,7 @@ struct MicrophonePermissionView: View {
                     .scaledToFit()
                     .frame(width: 180, height: 180)
                     .overlay(alignment: .topTrailing) {
-                        Image(systemName: "mic.slash")
+                        Image(systemName: settings.microphoneStatus == .granted ? "mic.fill" : "mic.slash")
                             .font(.title2.weight(.semibold))
                             .foregroundStyle(PermissionTheme.Colors.forest)
                             .padding(PermissionTheme.Space.s3)
@@ -38,42 +48,85 @@ struct MicrophonePermissionView: View {
                     .padding(.vertical, PermissionTheme.Space.s6)
                     .accessibilityHidden(true)
 
-                Text("No microphone needed")
+                Text("Microphone")
                     .font(.title.weight(.bold))
                     .foregroundStyle(PermissionTheme.Colors.textTitle)
                     .accessibilityAddTraits(.isHeader)
 
-                Text("Voice recording isn't available yet. You can complete your reflections by typing, without microphone access.")
+                HStack {
+                    Text("Status")
+                    Spacer()
+                    Text(settings.microphoneStatusLabel)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(settings.microphoneStatus == .granted
+                                         ? PermissionTheme.Colors.forest
+                                         : PermissionTheme.Colors.error)
+                }
+                .font(.body)
+                .padding(PermissionTheme.Space.s4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .mokoCard()
+
+                Text("Moko uses the microphone only when you record a voice reflection in a debrief. You can always type instead.")
                     .font(.body)
                     .foregroundStyle(PermissionTheme.Colors.textBody)
                     .fixedSize(horizontal: false, vertical: true)
 
-                Label("No audio is recorded", systemImage: "lock.shield")
-                    .font(.headline)
-                    .foregroundStyle(PermissionTheme.Colors.forest)
-                    .padding(PermissionTheme.Space.s4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .mokoCard()
+                if let message = settings.microphoneMessage {
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(PermissionTheme.Colors.error)
+                }
             }
             .padding(PermissionTheme.Space.page)
         }
         .background(MokoBackdrop())
-        // Keep Done within reach while larger text scrolls above it.
+        // Keep the action within reach while larger text scrolls above it.
         .safeAreaInset(edge: .bottom) {
-            Button { dismiss() } label: {
-                Text("Done")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity, minHeight: 52)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(PermissionTheme.Colors.forest)
-            .buttonBorderShape(.capsule)
-            .padding(.horizontal, PermissionTheme.Space.page)
-            .padding(.vertical, PermissionTheme.Space.s3)
-            .background(PermissionTheme.Colors.surfaceWhite.ignoresSafeArea(edges: .bottom))
+            actionButton
+                .buttonStyle(.borderedProminent)
+                .tint(PermissionTheme.Colors.forest)
+                .buttonBorderShape(.capsule)
+                .padding(.horizontal, PermissionTheme.Space.page)
+                .padding(.vertical, PermissionTheme.Space.s3)
+                .background(PermissionTheme.Colors.surfaceWhite.ignoresSafeArea(edges: .bottom))
         }
         .navigationTitle("Microphone")
         .navigationBarTitleDisplayMode(.inline)
+        .task { await settings.refresh() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                Task { await settings.refresh() }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var actionButton: some View {
+        switch settings.microphoneStatus {
+        case .undetermined:
+            Button {
+                Task { await settings.requestMicrophonePermission() }
+            } label: {
+                primaryLabel("Allow microphone")
+            }
+        case .denied:
+            Button {
+                if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+            } label: {
+                primaryLabel("Open iOS Settings")
+            }
+        default:
+            Button { dismiss() } label: {
+                primaryLabel("Done")
+            }
+        }
+    }
+
+    private func primaryLabel(_ title: String) -> some View {
+        Text(title)
+            .font(.headline)
+            .frame(maxWidth: .infinity, minHeight: 52)
     }
 }
 

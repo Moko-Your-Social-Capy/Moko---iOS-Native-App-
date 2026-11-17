@@ -73,6 +73,14 @@ extension View {
 /// Ready-made animation compositions for common moments in the app.
 enum MokoAnimationPresets {
 
+    // MARK: - Onboarding Animations
+    
+    /// MOKO waving — used on welcome screen.
+    static var welcomeMoko: some View {
+        MokoLottieView(animation: .mokoWaving, loopMode: .playOnce)
+            .frame(width: 180, height: 180)
+    }
+    
     /// Success check + confetti burst — used on onboarding completion.
     static var onboardingCompletion: some View {
         ZStack {
@@ -85,7 +93,28 @@ enum MokoAnimationPresets {
                 .frame(width: 120, height: 120)
         }
     }
+    
+    /// Final onboarding screen: MOKO celebrating.
+    static var onboardingCelebration: some View {
+        ZStack {
+            MokoLottieView(animation: .confetti, loopMode: .playOnce)
+                .frame(width: 240, height: 240)
+            
+            MokoLottieView(animation: .sparkles, loopMode: .loop)
+                .frame(width: 160, height: 160)
+                .opacity(0.7)
+        }
+        .allowsHitTesting(false)
+    }
 
+    // MARK: - Quest Animations
+    
+    /// Quest starting: MOKO listening or idle.
+    static var questStarting: some View {
+        MokoLottieView(animation: .mokoListening, loopMode: .playOnce)
+            .frame(width: 140, height: 140)
+    }
+    
     /// Confetti with a sparkle accent — used on quest completion.
     static var questCompletion: some View {
         ZStack {
@@ -98,8 +127,106 @@ enum MokoAnimationPresets {
         }
         .allowsHitTesting(false)
     }
+    
+    /// High score or milestone: confetti.
+    static var questMilestone: some View {
+        MokoLottieView(animation: .confetti, loopMode: .playOnce)
+            .frame(width: 200, height: 200)
+    }
+    
+    /// Score improvement: sparkles.
+    static var scoreImprovement: some View {
+        MokoLottieView(animation: .sparkles, loopMode: .playOnce)
+            .frame(width: 160, height: 160)
+    }
 
-    /// Looping flame for streak counters; adds sparkles at milestone counts.
+    // MARK: - Debrief Animations
+    
+    /// Listening state: listening animation.
+    static var debriefListening: some View {
+        MokoLottieView(animation: .mokoListening, loopMode: .loop)
+            .frame(width: 120, height: 120)
+    }
+    
+    /// Processing state: appropriate loading animation.
+    static var debriefProcessing: some View {
+        MokoLottieView(animation: .empty, loopMode: .loop)
+            .frame(width: 100, height: 100)
+    }
+    
+    /// Successful debrief: success check.
+    static var debriefSuccess: some View {
+        MokoLottieView(animation: .successCheck, loopMode: .playOnce)
+            .frame(width: 120, height: 120)
+    }
+    
+    /// Completion milestone: confetti.
+    static var debriefMilestone: some View {
+        MokoLottieView(animation: .confetti, loopMode: .playOnce)
+            .frame(width: 180, height: 180)
+    }
+
+    // MARK: - Relaxation Animations
+    
+    /// Breathing: breathing animation.
+    static var breathingAnimation: some View {
+        MokoLottieView(animation: .breathing, loopMode: .loop)
+            .frame(width: 160, height: 160)
+    }
+    
+    /// Grounding: calm, subtle mascot animation.
+    static var groundingAnimation: some View {
+        MokoLottieView(animation: .grounding, loopMode: .loop)
+            .frame(width: 140, height: 140)
+    }
+    
+    /// Guided imagery: meditation animation.
+    static var guidedImageryAnimation: some View {
+        MokoLottieView(animation: .guidedImagery, loopMode: .loop)
+            .frame(width: 150, height: 150)
+    }
+    
+    /// Mirror reflection: listening or idle animation.
+    static var mirrorReflectionAnimation: some View {
+        MokoLottieView(animation: .mirrorReflection, loopMode: .loop)
+            .frame(width: 130, height: 130)
+    }
+    
+    /// Session completion: success check and subtle celebration.
+    static var relaxationCompletion: some View {
+        ZStack {
+            MokoLottieView(animation: .successCheck, loopMode: .playOnce)
+                .frame(width: 100, height: 100)
+            
+            MokoLottieView(animation: .sparkles, loopMode: .playOnce)
+                .frame(width: 140, height: 140)
+                .opacity(0.6)
+        }
+    }
+
+    // MARK: - Insights Animations
+    
+    /// Empty state: empty animation.
+    static var insightsEmptyState: some View {
+        MokoLottieView(animation: .empty, loopMode: .loop)
+            .frame(width: 160, height: 160)
+    }
+    
+    /// New insight: sparkles.
+    static var newInsight: some View {
+        MokoLottieView(animation: .sparkles, loopMode: .playOnce)
+            .frame(width: 120, height: 120)
+    }
+    
+    /// Meaningful milestone: confetti.
+    static var insightsMilestone: some View {
+        MokoLottieView(animation: .confetti, loopMode: .playOnce)
+            .frame(width: 180, height: 180)
+    }
+
+    // MARK: - Profile Animations
+    
+    /// Current streak: flame animation.
     static func streakHero(currentStreak: Int) -> some View {
         ZStack {
             if currentStreak >= 7 {
@@ -111,6 +238,23 @@ enum MokoAnimationPresets {
             MokoLottieView(animation: .streakFlame, loopMode: .loop)
                 .frame(width: 100, height: 100)
         }
+    }
+    
+    /// New achievement: badge unlock animation and sparkles.
+    static var achievementUnlock: some View {
+        ZStack {
+            MokoLottieView(animation: .sparkles, loopMode: .playOnce)
+                .frame(width: 140, height: 140)
+            
+            MokoLottieView(animation: .successCheck, loopMode: .playOnce)
+                .frame(width: 80, height: 80)
+        }
+    }
+    
+    /// Milestone achievement: confetti.
+    static var milestoneAchievement: some View {
+        MokoLottieView(animation: .confetti, loopMode: .playOnce)
+            .frame(width: 160, height: 160)
     }
 
     /// Subtle looping animation for screens with no content yet.

@@ -3,34 +3,45 @@
 //  Moko
 //
 //  Calendar view showing daily activity streak with visual indicators.
-//  Supports month navigation, day highlighting, and streak visualization.
+//  All data comes from StreakService (ActivityRecord rows) — the single source
+//  of truth — so the calendar, profile streak and detail screen always match.
 //
 
 import SwiftUI
+import SwiftData
 
 struct StreakCalendarView: View {
-    @Binding var selectedDate: Date
-    @Binding var activeDates: Set<Date>
-    var currentStreak: Int = 0
-    var longestStreak: Int = 0
-    
+    // The day the user tapped. The view owns its own selection.
+    @State private var selectedDate: Date = Date()
+    // SwiftData rows — the single source of truth for streak data.
+    @Query private var activityRecords: [ActivityRecord]
+
+    // Streak stats computed from ActivityRecord rows via StreakService.
+    private var stats: StreakStats {
+        StreakService.shared.stats(from: activityRecords)
+    }
+
+    private var activeDates: Set<Date> { stats.activeDates }
+    private var currentStreak: Int { stats.currentStreak }
+    private var longestStreak: Int { stats.longestStreak }
+
     @State private var currentMonth: Date = Date()
     @State private var showingMonthPicker = false
-    
+
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
-    
+
     var body: some View {
         VStack(spacing: 20) {
             // Month header with navigation
             monthHeader
-            
+
             // Weekday headers
             weekdayHeaders
-            
+
             // Calendar grid
             calendarGrid
-            
+
             // Streak stats
             streakStats
         }
@@ -48,9 +59,9 @@ struct StreakCalendarView: View {
             monthPickerSheet
         }
     }
-    
+
     // MARK: - Month Header
-    
+
     private var monthHeader: some View {
         HStack {
             Button(action: previousMonth) {
@@ -60,18 +71,18 @@ struct StreakCalendarView: View {
                     .foregroundStyle(MokoScreenTheme.Colors.dataVioletDeep)
             }
             .mokoButtonStyle(.icon)
-            
+
             Spacer()
-            
+
             Button(action: { showingMonthPicker = true }) {
                 Text(monthYearString(from: currentMonth))
                     .mokoText(MokoScreenTheme.Typeface.title3)
                     .foregroundStyle(MokoScreenTheme.Colors.textTitle)
             }
             .mokoButtonStyle(.secondary)
-            
+
             Spacer()
-            
+
             Button(action: nextMonth) {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 18, weight: .medium))
@@ -81,9 +92,9 @@ struct StreakCalendarView: View {
             .mokoButtonStyle(.icon)
         }
     }
-    
+
     // MARK: - Weekday Headers
-    
+
     private var weekdayHeaders: some View {
         HStack(spacing: 0) {
             ForEach(calendar.shortWeekdaySymbols, id: \.self) { symbol in
@@ -94,9 +105,9 @@ struct StreakCalendarView: View {
             }
         }
     }
-    
+
     // MARK: - Calendar Grid
-    
+
     private var calendarGrid: some View {
         LazyVGrid(columns: columns, spacing: 8) {
             ForEach(daysInMonth(), id: \.self) { date in
@@ -119,31 +130,31 @@ struct StreakCalendarView: View {
             }
         }
     }
-    
+
     // MARK: - Streak Stats
-    
+
     private var streakStats: some View {
         HStack(spacing: 20) {
             VStack(spacing: 4) {
                 Text("\(currentStreak)")
                     .mokoText(MokoScreenTheme.Typeface.title1)
                     .foregroundStyle(MokoScreenTheme.Colors.dataVioletDeep)
-                
+
                 Text("Current Streak")
                     .mokoText(MokoScreenTheme.Typeface.caption)
                     .foregroundStyle(MokoScreenTheme.Colors.textBody)
             }
             .frame(maxWidth: .infinity)
-            
+
             Divider()
                 .frame(height: 40)
                 .background(MokoScreenTheme.Colors.borderSubtle)
-            
+
             VStack(spacing: 4) {
                 Text("\(longestStreak)")
                     .mokoText(MokoScreenTheme.Typeface.title1)
                     .foregroundStyle(MokoScreenTheme.Colors.dataMagenta)
-                
+
                 Text("Longest Streak")
                     .mokoText(MokoScreenTheme.Typeface.caption)
                     .foregroundStyle(MokoScreenTheme.Colors.textBody)
@@ -157,9 +168,9 @@ struct StreakCalendarView: View {
                 .fill(MokoScreenTheme.Colors.canvasTop.opacity(0.1))
         )
     }
-    
+
     // MARK: - Month Picker Sheet
-    
+
     private var monthPickerSheet: some View {
         NavigationStack {
             List {
@@ -173,9 +184,9 @@ struct StreakCalendarView: View {
                             Text(monthYearString(from: date))
                                 .mokoText(MokoScreenTheme.Typeface.body)
                                 .foregroundStyle(MokoScreenTheme.Colors.textBody)
-                            
+
                             Spacer()
-                            
+
                             if calendar.isDate(date, equalTo: currentMonth, toGranularity: .month) {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 16, weight: .medium))
@@ -199,43 +210,43 @@ struct StreakCalendarView: View {
         }
         .presentationDetents([.medium])
     }
-    
+
     // MARK: - Helper Methods
-    
+
     private func daysInMonth() -> [Date?] {
         guard let monthInterval = calendar.dateInterval(of: .month, for: currentMonth),
               let monthFirstWeek = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start) else {
             return []
         }
-        
+
         var days: [Date?] = []
         let totalDays = 42 // 6 weeks × 7 days
-        
+
         for offset in 0..<totalDays {
             if let date = calendar.date(byAdding: .day, value: offset, to: monthFirstWeek.start) {
                 days.append(date)
             }
         }
-        
+
         return days
     }
-    
+
     private func startOfMonth(for date: Date) -> Date {
         calendar.date(from: calendar.dateComponents([.year, .month], from: date)) ?? date
     }
-    
+
     private func monthYearString(from date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
         return formatter.string(from: date)
     }
-    
+
     private func previousMonth() {
         if let newMonth = calendar.date(byAdding: .month, value: -1, to: currentMonth) {
             currentMonth = newMonth
         }
     }
-    
+
     private func nextMonth() {
         if let newMonth = calendar.date(byAdding: .month, value: 1, to: currentMonth) {
             currentMonth = newMonth
@@ -251,9 +262,9 @@ struct CalendarDayView: View {
     let isActive: Bool
     let isToday: Bool
     let isInCurrentMonth: Bool
-    
+
     private let calendar = Calendar.current
-    
+
     var body: some View {
         VStack(spacing: 4) {
             Text("\(calendar.component(.day, from: date))")
@@ -266,7 +277,7 @@ struct CalendarDayView: View {
         .frame(height: 50)
         .opacity(isInCurrentMonth ? 1 : 0.3)
     }
-    
+
     private var dayTextColor: Color {
         if isSelected {
             return MokoScreenTheme.Colors.textOnBrand
@@ -278,7 +289,7 @@ struct CalendarDayView: View {
             return MokoScreenTheme.Colors.textMuted
         }
     }
-    
+
     private var dayBackground: some View {
         Group {
             if isSelected {
@@ -300,23 +311,6 @@ struct CalendarDayView: View {
 }
 
 #Preview {
-    @Previewable @State var selectedDate = Date()
-    @Previewable @State var activeDates: Set<Date> = {
-        let calendar = Calendar.current
-        var dates = Set<Date>()
-        for offset in -5...5 {
-            if let date = calendar.date(byAdding: .day, value: offset, to: Date()) {
-                dates.insert(date)
-            }
-        }
-        return dates
-    }()
-    
-    StreakCalendarView(
-        selectedDate: $selectedDate,
-        activeDates: $activeDates,
-        currentStreak: 7,
-        longestStreak: 21
-    )
-    .padding()
+    StreakCalendarView()
+        .modelContainer(for: [ActivityRecord.self], inMemory: true)
 }

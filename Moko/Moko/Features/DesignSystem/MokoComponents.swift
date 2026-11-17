@@ -60,27 +60,52 @@ extension View {
 
 // MARK: - Background (§5)
 
-/// Green canvas plus the two vector strokes.
+/// Three-stop soft green gradient background with subtle vector strokes.
 struct MokoBackdrop: View {
+    @Environment(\.colorScheme) private var colorScheme
+    
+    private var isDarkMode: Bool { colorScheme == .dark }
+    
     var body: some View {
         ZStack {
-            Theme.Colors.canvasBottom
+            // Dark theme: dark green gradient, Light theme: soft green gradient
+            if isDarkMode {
+                // Dark theme gradient: dark forest green → dark sage → dark charcoal
+                LinearGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: Color(hex: 0x1A231E), location: 0.0),
+                        .init(color: Color(hex: 0x25312A), location: 0.4),
+                        .init(color: Color(hex: 0x1E2D23), location: 1.0)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            } else {
+                // Light theme gradient: light sage → clean white
+                LinearGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: Theme.Colors.lightSage, location: 0.4),
+                        .init(color: Theme.Colors.cleanWhite, location: 1.0)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
 
-            // A vector curve separates the mint hero from the white reading area.
-            MokoHeroBackgroundShape()
-                .fill(Theme.Colors.canvasTop)
-
+            // Subtle vector decorations - reduced opacity to work with gradient
             GeometryReader { geo in
                 // Bush: bottom-left, 310 wide, 28pt bleed, rotated 6°.
                 VectorBushShape()
-                    .stroke(Theme.Colors.vectorBush, lineWidth: Theme.Line.data)
+                    .stroke(isDarkMode ? Color(hex: 0x3F6B54).opacity(0.05) : Theme.Colors.vectorBush.opacity(0.1), 
+                            lineWidth: Theme.Line.data)
                     .frame(width: 310, height: 200)
                     .rotationEffect(.degrees(6), anchor: .bottomLeading)
                     .offset(x: -70, y: geo.size.height - 200 + 28)
 
                 // Leaf: right edge, mid-height, 44pt bleed, 12°, mirrored.
                 VectorLeafShape()
-                    .stroke(Theme.Colors.vectorLeaf, lineWidth: Theme.Line.data)
+                    .stroke(isDarkMode ? Color(hex: 0x4A9E7A).opacity(0.05) : Theme.Colors.vectorLeaf.opacity(0.1), 
+                            lineWidth: Theme.Line.data)
                     .frame(width: 96, height: 44)
                     .scaleEffect(x: -1, y: 1)
                     .rotationEffect(.degrees(12))
@@ -90,23 +115,6 @@ struct MokoBackdrop: View {
         .ignoresSafeArea()
         .allowsHitTesting(false)
         .accessibilityHidden(true)
-    }
-}
-
-/// The top half of the page, with a gentle curve that scales to every device.
-private struct MokoHeroBackgroundShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: .zero)
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.height * 0.46))
-        path.addCurve(
-            to: CGPoint(x: rect.minX, y: rect.height * 0.52),
-            control1: CGPoint(x: rect.width * 0.65, y: rect.height * 0.60),
-            control2: CGPoint(x: rect.width * 0.35, y: rect.height * 0.42)
-        )
-        path.closeSubpath()
-        return path
     }
 }
 

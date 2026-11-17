@@ -273,7 +273,7 @@ struct MokoLottieDemoView: View {
         case .streakFlame:   return "flame"
         case .sparkles:      return "sparkles"
         case .successCheck:  return "checkmark.circle"
-      
+        default: return "questionmark.square"
         }
     }
 }

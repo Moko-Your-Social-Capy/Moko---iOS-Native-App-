@@ -5,20 +5,26 @@ import Lottie
 // MARK: - Animation Catalogue
 
 enum MokoAnimation: String, CaseIterable {
+    // Real files in the bundle: the raw value is the exact file name
     case confetti = "confetti"
     case empty = "empty"
     case streakFlame = "flame___streak"
     case sparkles = "sparkles"
-    case successCheck = "success_check"
+    case successCheck = "success_check"   // use your real file name
+    // add "strings" here only once strings.lottie is in the project
+
+    // Placeholders: no raw value of their own
+    case mokoWaving, mokoListening, breathing, grounding, guidedImagery, mirrorReflection, strings
 
     // Exact JSON filename without the .json extension.
     var filename: String { rawValue }
 
     var defaultLoopMode: Lottie.LottieLoopMode {
         switch self {
-        case .streakFlame:
+        case .streakFlame, .breathing:
             return .loop
-        case .confetti, .sparkles, .successCheck, .empty:
+        case .confetti, .sparkles, .successCheck, .empty, .mokoWaving, .mokoListening,
+             .grounding, .guidedImagery, .mirrorReflection, .strings:
             return .playOnce
         }
     }
@@ -44,6 +50,18 @@ enum MokoAnimation: String, CaseIterable {
             return .blue
         case .successCheck:
             return .green
+        case .mokoWaving, .mokoListening:
+            return .orange
+        case .breathing:
+            return Color(hex: 0x365948) // forest green
+        case .grounding:
+            return Color(hex: 0x2F4C43) // teal-green
+        case .guidedImagery:
+            return Color(hex: 0x54457E) // violet
+        case .mirrorReflection:
+            return Color(hex: 0x55749F) // blue-purple
+        case .strings:
+            return Color(hex: 0xC4547A) // magenta
         }
     }
 
@@ -54,6 +72,14 @@ enum MokoAnimation: String, CaseIterable {
         case .streakFlame: return "flame"
         case .sparkles: return "sparkles"
         case .successCheck: return "checkmark.circle"
+        case .mokoWaving: return "hand.wave"
+        case .mokoListening: return "ear"
+        case .breathing: return "wind"
+        case .grounding: return "leaf"
+        case .guidedImagery: return "brain.head.profile"
+        case .mirrorReflection: return "person.crop.circle"
+        case .strings: return "music.note"
+        
         }
     }
 }

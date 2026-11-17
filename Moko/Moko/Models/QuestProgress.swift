@@ -3,6 +3,8 @@
 //  Moko
 //
 //  Shared updates for completed quests: XP, daily streak and debrief insights.
+//  Streak is computed from ActivityRecord rows via StreakService — the single
+//  source of truth — not from Profile fields.
 //
 
 import Foundation
@@ -17,44 +19,15 @@ struct QuestReward: Equatable {
 
 enum QuestProgress {
 
-    /// The streak after activity on `date`: same day keeps the streak,
-    /// the next day extends it, one rest day is allowed after seven active days,
-    /// and a longer gap starts a new one.
-    static func nextStreak(
-        current: Int,
-        lastActivity: Date?,
-        at date: Date = .now,
-        calendar: Calendar = .current
-    ) -> Int {
-        guard let lastActivity else { return 1 }
-
-        if calendar.isDate(lastActivity, inSameDayAs: date) {
-            return max(current, 1)
-        }
-
-        if let yesterday = calendar.date(byAdding: .day, value: -1, to: date),
-           calendar.isDate(lastActivity, inSameDayAs: yesterday) {
-            return max(current, 0) + 1
-        }
-
-        // One missed calendar day is a rest day once the user has built a week-long streak.
-        if current >= 7, current.isMultiple(of: 7),
-           let twoDaysAgo = calendar.date(byAdding: .day, value: -2, to: date),
-           calendar.isDate(lastActivity, inSameDayAs: twoDaysAgo) {
-            return current
-        }
-
-        return 1
-    }
-
     /// Marks the quest complete and awards its XP, streak and activity date once.
+    /// Streak comes from `StreakService` which computes it from `ActivityRecord`
+    /// rows, so every screen shares the same underlying data.
     @MainActor
     @discardableResult
     static func complete(
         _ quest: Quest,
         in context: ModelContext,
-        at date: Date = .now,
-        calendar: Calendar = .current
+        at date: Date = .now
     ) -> QuestReward {
         if quest.modelContext == nil {
             context.insert(quest)
@@ -64,17 +37,19 @@ enum QuestProgress {
         if quest.completedAt == nil { quest.completedAt = date }
 
         if !quest.xpAwarded {
-            let streak = nextStreak(
-                current: profile.currentStreak,
-                lastActivity: profile.lastActivityDate,
-                at: date,
-                calendar: calendar
+            // Single source of truth: record the activity and compute streak
+            // from ActivityRecord rows via StreakService.
+            let stats = StreakService.shared.recordActivity(
+                type: .quest,
+                referenceID: quest.id,
+                in: context,
+                at: date
             )
 
             profile.xp += quest.awardedXP
-            profile.currentStreak = streak
-            profile.longestStreak = max(profile.longestStreak, streak)
-            profile.lastActivityDate = date
+            profile.currentStreak = stats.currentStreak
+            profile.longestStreak = stats.longestStreak
+            profile.lastActivityDate = stats.lastActivityDate ?? date
             profile.updatedAt = date
             quest.xpAwarded = true
         }
@@ -94,7 +69,7 @@ enum QuestProgress {
         at date: Date = .now,
         calendar: Calendar = .current
     ) -> QuestReward {
-        let reward = complete(quest, in: context, at: date, calendar: calendar)
+        let reward = complete(quest, in: context, at: date)
 
         guard !quest.debriefRecorded else { return reward }
 
