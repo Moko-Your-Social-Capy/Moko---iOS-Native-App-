@@ -218,7 +218,7 @@ struct OverviewScaffold<MissionCard: View>: View {
             // Not enough data yet
             return AnyView(
                 Text("Try out one quest.")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 18, weight: .medium))
                     .foregroundStyle(Theme.Colors.textMuted)
             )
         }
