@@ -97,8 +97,8 @@ struct MokoWardrobeView: View {
     @AppStorage("moko.selectedCostumeLevel") private var selectedLevel = 1
 
     var body: some View {
-        List {
-            Section {
+        ScrollView {
+            LazyVStack(spacing: 16) {
                 VStack(spacing: 8) {
                     MokoCostumeAvatar(level: level, photoData: nil, size: 144)
                     Text(MokoCostume.selected(unlockedAt: level, selection: selectedLevel).name)
@@ -109,64 +109,119 @@ struct MokoWardrobeView: View {
                         .foregroundStyle(MokoScreenTheme.Colors.textBody)
                 }
                 .frame(maxWidth: .infinity)
-                .listRowBackground(Color.clear)
                 .padding(.vertical, 12)
-            }
 
-            Section {
-                ForEach(MokoCostume.all) { costume in
-                    let unlocked = level >= costume.level
-                    Button {
-                        // Locked outfits cannot be picked.
-                        guard unlocked else { return }
+                ForEach(Array(MokoCostume.all.enumerated()), id: \.element.id) { index, costume in
+                    MokoWardrobeCostumeCard(
+                        costume: costume,
+                        index: index,
+                        isUnlocked: level >= costume.level,
+                        isSelected: selectedLevel == costume.level
+                    ) {
+                        guard level >= costume.level else { return }
                         selectedLevel = costume.level
-                    } label: {
-                        HStack(spacing: 14) {
-                            Image(costume.assetName)
-                                .resizable()
-                                .scaledToFit()
-                                .padding(3)
-                                .frame(width: 64, height: 64)
-                                .background(MokoScreenTheme.Colors.surfaceLavender.opacity(unlocked ? 0.7 : 0.35), in: Circle())
-                                .overlay(Circle().stroke(MokoScreenTheme.Colors.ctaAccent.opacity(0.15), lineWidth: 1))
-                                .opacity(unlocked ? 1 : 0.55)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(costume.name)
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(MokoScreenTheme.Colors.textTitle)
-                                Text(unlocked ? "Unlocked · Level \(costume.level)" : "Unlocks at Level \(costume.level)")
-                                    .font(.subheadline)
-                                    .foregroundStyle(MokoScreenTheme.Colors.textBody)
-                            }
-                            Spacer(minLength: 8)
-                            if selectedLevel == costume.level && unlocked {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(MokoScreenTheme.Colors.brightGreen)
-                                    .accessibilityLabel("Selected")
-                            } else if !unlocked {
-                                Image(systemName: "lock.fill")
-                                    .foregroundStyle(MokoScreenTheme.Colors.textBody)
-                                    .accessibilityLabel("Locked")
-                            }
-                        }
-                        .frame(minHeight: 68)
-                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    .disabled(!unlocked)
                 }
-            } header: {
-                Text("Costumes · \(MokoCostume.all.count)")
-            } footer: {
+
                 Text("Keep practicing to unlock each new look. Costumes are never for sale.")
+                    .font(.footnote)
+                    .foregroundStyle(MokoScreenTheme.Colors.textBody)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 4)
             }
+            .padding(.horizontal, MokoScreenTheme.Space.page)
+            .padding(.vertical, 16)
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
         .background(MokoBackdrop())
         .navigationTitle("Moko’s wardrobe")
         .navigationBarTitleDisplayMode(.large)
         .tint(MokoScreenTheme.Colors.ctaAccent)
+    }
+}
+
+/// Costume card with alternating left/right entrance animation as it scrolls into view.
+private struct MokoWardrobeCostumeCard: View {
+    let costume: MokoCostume
+    let index: Int
+    let isUnlocked: Bool
+    let isSelected: Bool
+    let onSelect: () -> Void
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    // Tracks whether this row has played its one-time entrance.
+    @State private var hasAppeared = false
+
+    // Even rows enter from the left, odd rows from the right.
+    private var fromLeft: Bool { index.isMultiple(of: 2) }
+
+    var body: some View {
+        let hidden = !hasAppeared && !reduceMotion
+        let startOffset: CGFloat = hidden ? (fromLeft ? -48 : 48) : 0
+
+        // Button lets the user pick an unlocked costume.
+        Button {
+            onSelect()
+        } label: {
+            cardContent
+        }
+        .buttonStyle(.plain)
+        .disabled(!isUnlocked)
+        // Slide and fade in once when the card first scrolls into view.
+        .offset(x: startOffset)
+        .opacity(hidden ? 0 : 1)
+        .onAppear {
+            // Trigger entrance once; skip movement for Reduce Motion.
+            guard !hasAppeared else { return }
+            if reduceMotion {
+                hasAppeared = true
+            } else {
+                // Smooth spring gives a natural alternating entrance.
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.86)) {
+                    hasAppeared = true
+                }
+            }
+        }
+    }
+
+    // Row content for one costume card.
+    private var cardContent: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(MokoScreenTheme.Colors.surfaceLavender.opacity(isUnlocked ? 0.7 : 0.35))
+                Image(costume.assetName)
+                    .resizable()
+                    .scaledToFit()
+                    .padding(6)
+            }
+            .frame(width: 72, height: 72)
+            .opacity(isUnlocked ? 1 : 0.55)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(costume.name)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(MokoScreenTheme.Colors.textTitle)
+                Text(isUnlocked ? "Unlocked · Level \(costume.level)" : "Unlocks at Level \(costume.level)")
+                    .font(.subheadline)
+                    .foregroundStyle(MokoScreenTheme.Colors.textBody)
+            }
+
+            Spacer(minLength: 8)
+
+            Group {
+                if isSelected && isUnlocked {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(MokoScreenTheme.Colors.ctaAccent)
+                        .accessibilityLabel("Selected")
+                } else if !isUnlocked {
+                    Image(systemName: "lock.fill")
+                        .foregroundStyle(MokoScreenTheme.Colors.textBody)
+                        .accessibilityLabel("Locked")
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
+        .padding(14)
+        .mokoCard(fill: MokoScreenTheme.Colors.surfaceWhite)
     }
 }

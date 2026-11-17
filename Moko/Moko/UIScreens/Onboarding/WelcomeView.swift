@@ -43,19 +43,15 @@ struct WelcomeView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 32)
 
-            // Success checkmark animation
+            // Mascot welcomes the user before reflections start.
             VStack(spacing: 20) {
-                MokoLottieView(animation: .successCheck, loopMode: .playOnce)
-                    .frame(width: 120, height: 120)
-                
-                Image("welcome_moko")
-                    .resizable()
-                    .scaledToFit()
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                MokoLottieView(animation: .easterBunnyWaving, loopMode: .loop)
+                    .frame(width: 220, height: 220)
             }
+            .frame(maxWidth: .infinity)
             .padding(.horizontal, 20)
             .padding(.top, 40)
-                .accessibilityHidden(true)
+            .accessibilityHidden(true)
 
             Spacer(minLength: 16)
 

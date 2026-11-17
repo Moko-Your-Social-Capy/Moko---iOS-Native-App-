@@ -1,7 +1,20 @@
 import SwiftUI
 
-/// Six MOKO palettes with independent light and dark variants.
-/// This is the centralized palette backing the semantic theme tokens.
+/// Centralized MOKO theme palettes.
+///
+/// MOKO theme IDs (unchanged): Default, Lavender, Ocean, Blossom, Midnight, Batman.
+/// daisyUI 5 is used as a semantic color-role reference only (no runtime dependency).
+/// Source: https://colorvio.com/daisyui-colors (extracted semantic hex values).
+///
+/// daisyUI reference pairs mapped to MOKO identities:
+/// - Default: preserved as original MOKO palette (not changed).
+/// - Lavender: cupcake (light) + dracula (dark) — violet adaptation.
+/// - Ocean: nord (light) + dim (dark).
+/// - Blossom: winter (light) + night (dark).
+/// - Midnight: corporate (light) + business (dark) — deep indigo adaptation.
+/// - Batman: emerald (light) + forest (dark) references for neutrals/status only — Batman identity preserved.
+/// MOKO overrides: Light cards are always pure white (#FFFFFF); Dark cards are raised dark surfaces.
+/// Quest/mission accents remain semantic and readable (purple/teal/blue per theme identity), separate from Profile where applicable.
 enum MokoThemePalette {
 
     static func colors(for theme: MokoThemeID, dark: Bool) -> MokoThemeColors {
@@ -79,78 +92,91 @@ enum MokoThemePalette {
                 completionBackground: Color(hex: 0xFFFFFF)
             )
         case .lavender:
+            // daisyUI ref: cupcake (light) + dracula (dark) semantic roles, rendered as calm violet.
             return make(
-                screenBackground: 0xF7F4FB, primaryBackground: 0xF7F4FB, secondaryBackground: 0xFFFFFF,
+                screenBackground: 0xFAF7F5, primaryBackground: 0xFAF7F5, secondaryBackground: 0xEFEAE6,
                 cardBackground: 0xFFFFFF, elevatedCardBackground: 0xFFFFFF, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
-                navigationBackground: 0xF7F4FB, tabBarBackground: 0xFFFFFF,
-                primaryText: 0x241F33, secondaryText: 0x5E5873, tertiaryText: 0x8E88A3, disabledText: 0xAEA8BF, inverseText: 0xFFFFFF,
-                headingText: 0x241F33, buttonText: 0xFFFFFF, captionText: 0x5E5873,
-                primaryButton: 0x5B3FA3, primaryButtonText: 0xFFFFFF, secondaryButton: 0xEEE8FA, secondaryButtonText: 0x5B3FA3,
-                destructiveButton: 0xB9583F, disabledButton: 0xDDD7EA, selectedControl: 0x5B3FA3, unselectedControl: 0x8E88A3, focusColor: 0x7C5CFF,
-                ctaAccent: 0x7C5CFF, ctaAccentText: 0xFFFFFF,
-                cardSurface: 0xFFFFFF, cardBorder: 0xE2DDF0, cardShadow: 0x241F33, cardGlow: 0x7C5CFF, divider: 0xEAE6F3, separator: 0xE2DDF0,
-                chartPrimary: 0x5B3FA3, chartSecondary: 0xC7A6FF, chartTertiary: 0x9C8BC6, chartQuaternary: 0x7A6BB5, chartGrid: 0xDDD7EA, chartLabel: 0x5E5873, chartPositive: 0x4E9A7A, chartNegative: 0xB9583F,
-                success: 0x4E9A7A, warning: 0xD97706, error: 0xB9583F, information: 0x5B3FA3,
-                mokoMascotBackground: 0xEDE7FA, mokoMascotAccent: 0x5B3FA3, missionAccent: 0xC7A6FF, questAccent: 0x5B3FA3, growthAccent: 0x9C8BC6, relaxAccent: 0x7A6BB5, debriefAccent: 0x4E9A7A, profileAccent: 0x5B3FA3,
-                inputBackground: 0xF6F3FB, placeholder: 0x8E88A3, icon: 0x5B3FA3, selectedTab: 0x5B3FA3, unselectedTab: 0x8E88A3, glow: 0x7C5CFF,
-                loadingBackground: 0xF7F4FB, completionBackground: 0xF1ECF8, dark: false
+                navigationBackground: 0xFAF7F5, tabBarBackground: 0xFFFFFF,
+                primaryText: 0x291334, secondaryText: 0x5E5873, tertiaryText: 0x8E88A3, disabledText: 0xAEA8BF, inverseText: 0xFFFFFF,
+                headingText: 0x291334, buttonText: 0xFFFFFF, captionText: 0x5E5873,
+                primaryButton: 0x7C3AED, primaryButtonText: 0xFFFFFF, secondaryButton: 0xEFEAE6, secondaryButtonText: 0x7C3AED,
+                destructiveButton: 0xFF5555, disabledButton: 0xE7E2DF, selectedControl: 0x7C3AED, unselectedControl: 0x8E88A3, focusColor: 0xBD93F9,
+                ctaAccent: 0x7C3AED, ctaAccentText: 0xFFFFFF,
+                cardSurface: 0xFFFFFF, cardBorder: 0xE7E2DF, cardShadow: 0x291334, cardGlow: 0xBD93F9, divider: 0xEFEAE6, separator: 0xE7E2DF,
+                chartPrimary: 0x7C3AED, chartSecondary: 0xBD93F9, chartTertiary: 0xFF79C6, chartQuaternary: 0x6272A4, chartGrid: 0xE7E2DF, chartLabel: 0x5E5873, chartPositive: 0x00BA7B, chartNegative: 0xFF5555,
+                success: 0x00BA7B, warning: 0xEEAF00, error: 0xFF5555, information: 0x00A4F2,
+                mokoMascotBackground: 0xEFEAE6, mokoMascotAccent: 0x7C3AED, missionAccent: 0xBD93F9, questAccent: 0x7C3AED, growthAccent: 0xBD93F9, relaxAccent: 0x6272A4, debriefAccent: 0x7C3AED, profileAccent: 0x7C3AED,
+                inputBackground: 0xFAF7F5, placeholder: 0x8E88A3, icon: 0x7C3AED, selectedTab: 0x7C3AED, unselectedTab: 0x8E88A3, glow: 0xBD93F9,
+                loadingBackground: 0xFAF7F5, completionBackground: 0xFFFFFF, dark: false
             )
+
         case .ocean:
+            // daisyUI ref: nord (light). base-100 #ECEFF4, base-200 #E5E9F0, base-300 #D8DEE9, base-content #2E3440,
+            // primary #5E81AC, secondary #81A1C1, accent #88C0D0, info #B48EAD, success #A3BE8D, warning #EBCB8B, error #BF616A.
             return make(
-                screenBackground: 0xF3F8FB, primaryBackground: 0xF3F8FB, secondaryBackground: 0xFFFFFF,
+                screenBackground: 0xECEFF4, primaryBackground: 0xECEFF4, secondaryBackground: 0xE5E9F0,
                 cardBackground: 0xFFFFFF, elevatedCardBackground: 0xFFFFFF, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
-                navigationBackground: 0xF3F8FB, tabBarBackground: 0xFFFFFF,
-                primaryText: 0x132433, secondaryText: 0x4A6072, tertiaryText: 0x7E93A3, disabledText: 0xA5B6C3, inverseText: 0xFFFFFF,
-                headingText: 0x132433, buttonText: 0xFFFFFF, captionText: 0x4A6072,
-                primaryButton: 0x0F5C8C, primaryButtonText: 0xFFFFFF, secondaryButton: 0xE2EEF5, secondaryButtonText: 0x0F5C8C,
-                destructiveButton: 0xB9583F, disabledButton: 0xD4E1EA, selectedControl: 0x0F5C8C, unselectedControl: 0x7E93A3, focusColor: 0x2E8C8A,
-                ctaAccent: 0x2E8C8A, ctaAccentText: 0xFFFFFF,
-                cardSurface: 0xFFFFFF, cardBorder: 0xD7E6EE, cardShadow: 0x132433, cardGlow: 0x2E8C8A, divider: 0xE3EDF3, separator: 0xD7E6EE,
-                chartPrimary: 0x0F5C8C, chartSecondary: 0x2E8C8A, chartTertiary: 0x4FD1C5, chartQuaternary: 0x3A7CA5, chartGrid: 0xD4E1EA, chartLabel: 0x4A6072, chartPositive: 0x2E8C6A, chartNegative: 0xB9583F,
-                success: 0x2E8C6A, warning: 0xD97706, error: 0xB9583F, information: 0x0F5C8C,
-                mokoMascotBackground: 0xDFF0F6, mokoMascotAccent: 0x0F5C8C, missionAccent: 0x4FD1C5, questAccent: 0x0F5C8C, growthAccent: 0x2E8C8A, relaxAccent: 0x3A7CA5, debriefAccent: 0x2E8C6A, profileAccent: 0x0F5C8C,
-                inputBackground: 0xF2F7FA, placeholder: 0x7E93A3, icon: 0x0F5C8C, selectedTab: 0x0F5C8C, unselectedTab: 0x7E93A3, glow: 0x2E8C8A,
-                loadingBackground: 0xF3F8FB, completionBackground: 0xEAF3F8, dark: false
+                navigationBackground: 0xECEFF4, tabBarBackground: 0xFFFFFF,
+                primaryText: 0x2E3440, secondaryText: 0x4C566A, tertiaryText: 0x7B88A1, disabledText: 0xA3ABB8, inverseText: 0xECEFF4,
+                headingText: 0x2E3440, buttonText: 0xECEFF4, captionText: 0x4C566A,
+                primaryButton: 0x5E81AC, primaryButtonText: 0xECEFF4, secondaryButton: 0xE5E9F0, secondaryButtonText: 0x5E81AC,
+                destructiveButton: 0xBF616A, disabledButton: 0xD8DEE9, selectedControl: 0x5E81AC, unselectedControl: 0x4C566A, focusColor: 0x88C0D0,
+                ctaAccent: 0x5E81AC, ctaAccentText: 0xECEFF4,
+                cardSurface: 0xFFFFFF, cardBorder: 0xD8DEE9, cardShadow: 0x2E3440, cardGlow: 0x88C0D0, divider: 0xE5E9F0, separator: 0xD8DEE9,
+                chartPrimary: 0x5E81AC, chartSecondary: 0x88C0D0, chartTertiary: 0x81A1C1, chartQuaternary: 0xB48EAD, chartGrid: 0xD8DEE9, chartLabel: 0x4C566A, chartPositive: 0xA3BE8D, chartNegative: 0xBF616A,
+                success: 0xA3BE8D, warning: 0xEBCB8B, error: 0xBF616A, information: 0xB48EAD,
+                mokoMascotBackground: 0xE5E9F0, mokoMascotAccent: 0x5E81AC, missionAccent: 0x88C0D0, questAccent: 0x5E81AC, growthAccent: 0xA3BE8D, relaxAccent: 0x81A1C1, debriefAccent: 0x5E81AC, profileAccent: 0x5E81AC,
+                inputBackground: 0xF5F7FA, placeholder: 0x7B88A1, icon: 0x5E81AC, selectedTab: 0x5E81AC, unselectedTab: 0x4C566A, glow: 0x88C0D0,
+                loadingBackground: 0xECEFF4, completionBackground: 0xFFFFFF, dark: false
             )
 
         case .blossom:
+            // daisyUI ref: winter (light). base-100 #FFFFFF, base-200 #F2F7FE, base-300 #E3E9F4, primary #0069FF,
+            // secondary #463AA2, accent #C148AC, info #94E7FB, success #81CFD1, warning #EFD7BC, error #E58B8B.
+            // Adapted to soft rose/blossom identity while keeping semantic contrast.
             return make(
-                screenBackground: 0xFFF5F7, primaryBackground: 0xFFF5F7, secondaryBackground: 0xFFFFFF,
+                screenBackground: 0xFFF5F7, primaryBackground: 0xFFF5F7, secondaryBackground: 0xF2F7FE,
                 cardBackground: 0xFFFFFF, elevatedCardBackground: 0xFFFFFF, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
                 navigationBackground: 0xFFF5F7, tabBarBackground: 0xFFFFFF,
-                primaryText: 0x35212A, secondaryText: 0x6B4E59, tertiaryText: 0xA48793, disabledText: 0xBDA8B1, inverseText: 0xFFFFFF,
-                headingText: 0x35212A, buttonText: 0xFFFFFF, captionText: 0x6B4E59,
-                primaryButton: 0xC04A6B, primaryButtonText: 0xFFFFFF, secondaryButton: 0xF7E3EA, secondaryButtonText: 0xC04A6B,
-                destructiveButton: 0xB9583F, disabledButton: 0xE8D9DF, selectedControl: 0xC04A6B, unselectedControl: 0xA48793, focusColor: 0xFF7AA2,
-                ctaAccent: 0xFF7AA2, ctaAccentText: 0x35212A,
-                cardSurface: 0xFFFFFF, cardBorder: 0xF0DDE3, cardShadow: 0x35212A, cardGlow: 0xFF7AA2, divider: 0xF6E7EC, separator: 0xF0DDE3,
-                chartPrimary: 0xC04A6B, chartSecondary: 0xF4B6C2, chartTertiary: 0xD98AA3, chartQuaternary: 0xB85C7A, chartGrid: 0xECDDE4, chartLabel: 0x6B4E59, chartPositive: 0x3D8B5A, chartNegative: 0xB9583F,
-                success: 0x3D8B5A, warning: 0xD97706, error: 0xB9583F, information: 0xC04A6B,
-                mokoMascotBackground: 0xFCE6EC, mokoMascotAccent: 0xC04A6B, missionAccent: 0xF4B6C2, questAccent: 0xC04A6B, growthAccent: 0xD98AA3, relaxAccent: 0xB85C7A, debriefAccent: 0x3D8B5A, profileAccent: 0xC04A6B,
-                inputBackground: 0xFFF4F6, placeholder: 0xA48793, icon: 0xC04A6B, selectedTab: 0xC04A6B, unselectedTab: 0xA48793, glow: 0xFF7AA2,
-                loadingBackground: 0xFFF5F7, completionBackground: 0xFDEEF2, dark: false
+                primaryText: 0x021431, secondaryText: 0x463AA2, tertiaryText: 0x7A6FB3, disabledText: 0xA9A3C8, inverseText: 0xFFFFFF,
+                headingText: 0x021431, buttonText: 0xFFFFFF, captionText: 0x463AA2,
+                primaryButton: 0xC148AC, primaryButtonText: 0xFFFFFF, secondaryButton: 0xF2F7FE, secondaryButtonText: 0x463AA2,
+                destructiveButton: 0xE58B8B, disabledButton: 0xE3E9F4, selectedControl: 0xC148AC, unselectedControl: 0x463AA2, focusColor: 0x0069FF,
+                ctaAccent: 0xC148AC, ctaAccentText: 0xFFFFFF,
+                cardSurface: 0xFFFFFF, cardBorder: 0xE3E9F4, cardShadow: 0x021431, cardGlow: 0xC148AC, divider: 0xF2F7FE, separator: 0xE3E9F4,
+                chartPrimary: 0xC148AC, chartSecondary: 0x0069FF, chartTertiary: 0x463AA2, chartQuaternary: 0x81CFD1, chartGrid: 0xE3E9F4, chartLabel: 0x463AA2, chartPositive: 0x81CFD1, chartNegative: 0xE58B8B,
+                success: 0x81CFD1, warning: 0xEFD7BC, error: 0xE58B8B, information: 0x0069FF,
+                mokoMascotBackground: 0xF2F7FE, mokoMascotAccent: 0xC148AC, missionAccent: 0x0069FF, questAccent: 0xC148AC, growthAccent: 0x81CFD1, relaxAccent: 0x463AA2, debriefAccent: 0xC148AC, profileAccent: 0xC148AC,
+                inputBackground: 0xF7FAFF, placeholder: 0x7A6FB3, icon: 0xC148AC, selectedTab: 0xC148AC, unselectedTab: 0x463AA2, glow: 0xC148AC,
+                loadingBackground: 0xFFF5F7, completionBackground: 0xFFFFFF, dark: false
             )
+
         case .midnight:
+            // daisyUI ref: corporate (light). base-100 #FFFFFF, base-200 #E8E8E8, base-300 #D1D1D1, primary #0082CE,
+            // secondary #61738D, accent #009689, info #0090B5, success #00A43B, warning #FDC700, error #FF6266.
+            // Adapted to deep indigo "midnight" identity in light mode.
             return make(
-                screenBackground: 0xF4F6FB, primaryBackground: 0xF4F6FB, secondaryBackground: 0xFFFFFF,
+                screenBackground: 0xF4F6FB, primaryBackground: 0xF4F6FB, secondaryBackground: 0xE8E8E8,
                 cardBackground: 0xFFFFFF, elevatedCardBackground: 0xFFFFFF, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
                 navigationBackground: 0xF4F6FB, tabBarBackground: 0xFFFFFF,
-                primaryText: 0x1A2238, secondaryText: 0x4A5678, tertiaryText: 0x8590AD, disabledText: 0xA8B0C7, inverseText: 0xFFFFFF,
-                headingText: 0x1A2238, buttonText: 0xFFFFFF, captionText: 0x4A5678,
-                primaryButton: 0x3949AB, primaryButtonText: 0xFFFFFF, secondaryButton: 0xE6EBF8, secondaryButtonText: 0x3949AB,
-                destructiveButton: 0xB9583F, disabledButton: 0xD8DEEE, selectedControl: 0x3949AB, unselectedControl: 0x8590AD, focusColor: 0x5B7CFF,
-                ctaAccent: 0x5B7CFF, ctaAccentText: 0xFFFFFF,
-                cardSurface: 0xFFFFFF, cardBorder: 0xDDE2F0, cardShadow: 0x1A2238, cardGlow: 0x5B7CFF, divider: 0xE6EAF5, separator: 0xDDE2F0,
-                chartPrimary: 0x3949AB, chartSecondary: 0x5B8CFF, chartTertiary: 0x5C6BC0, chartQuaternary: 0x7986CB, chartGrid: 0xDDE2F0, chartLabel: 0x4A5678, chartPositive: 0x3D8B5A, chartNegative: 0xB9583F,
-                success: 0x3D8B5A, warning: 0xD97706, error: 0xB9583F, information: 0x3949AB,
-                mokoMascotBackground: 0xE4EAFB, mokoMascotAccent: 0x3949AB, missionAccent: 0x5B8CFF, questAccent: 0x3949AB, growthAccent: 0x5C6BC0, relaxAccent: 0x7986CB, debriefAccent: 0x3D8B5A, profileAccent: 0x3949AB,
-                inputBackground: 0xF3F5FB, placeholder: 0x8590AD, icon: 0x3949AB, selectedTab: 0x3949AB, unselectedTab: 0x8590AD, glow: 0x5B7CFF,
-                loadingBackground: 0xF4F6FB, completionBackground: 0xEDF0F8, dark: false
+                primaryText: 0x18181B, secondaryText: 0x61738D, tertiaryText: 0x8590AD, disabledText: 0xA8B0C7, inverseText: 0xFFFFFF,
+                headingText: 0x18181B, buttonText: 0xFFFFFF, captionText: 0x61738D,
+                primaryButton: 0x3949AB, primaryButtonText: 0xFFFFFF, secondaryButton: 0xE8E8E8, secondaryButtonText: 0x3949AB,
+                destructiveButton: 0xFF6266, disabledButton: 0xD1D1D1, selectedControl: 0x3949AB, unselectedControl: 0x61738D, focusColor: 0x0082CE,
+                ctaAccent: 0x3949AB, ctaAccentText: 0xFFFFFF,
+                cardSurface: 0xFFFFFF, cardBorder: 0xD1D1D1, cardShadow: 0x18181B, cardGlow: 0x0082CE, divider: 0xE8E8E8, separator: 0xD1D1D1,
+                chartPrimary: 0x3949AB, chartSecondary: 0x0082CE, chartTertiary: 0x009689, chartQuaternary: 0x61738D, chartGrid: 0xD1D1D1, chartLabel: 0x61738D, chartPositive: 0x00A43B, chartNegative: 0xFF6266,
+                success: 0x00A43B, warning: 0xFDC700, error: 0xFF6266, information: 0x0090B5,
+                mokoMascotBackground: 0xE8E8E8, mokoMascotAccent: 0x3949AB, missionAccent: 0x0082CE, questAccent: 0x3949AB, growthAccent: 0x009689, relaxAccent: 0x61738D, debriefAccent: 0x3949AB, profileAccent: 0x3949AB,
+                inputBackground: 0xF7F8FC, placeholder: 0x8590AD, icon: 0x3949AB, selectedTab: 0x3949AB, unselectedTab: 0x61738D, glow: 0x0082CE,
+                loadingBackground: 0xF4F6FB, completionBackground: 0xFFFFFF, dark: false
             )
+
         case .batman:
-            // Light counterpart: warm ivory/beige surfaces, deep brown/near-black text, teal/coral accents.
+            // Batman identity preserved (existing approved palette), not replaced by daisyUI.
+            // daisyUI emerald referenced only conceptually for light-neutral balance; cards remain white.
             return make(
-                screenBackground: 0xE6DDD6, primaryBackground: 0xE6DDD6, secondaryBackground: 0xFFFFFF,
+                screenBackground: 0xE6DDD6, primaryBackground: 0xE6DDD6, secondaryBackground: 0xF2ECE6,
                 cardBackground: 0xFFFFFF, elevatedCardBackground: 0xFFFFFF, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
                 navigationBackground: 0xE6DDD6, tabBarBackground: 0xFFFFFF,
                 primaryText: 0x1C1713, secondaryText: 0x4A4138, tertiaryText: 0x6E6358, disabledText: 0x9A8F84, inverseText: 0xF2F2F2,
@@ -160,7 +186,7 @@ enum MokoThemePalette {
                 ctaAccent: 0x008F8A, ctaAccentText: 0xFFFFFF,
                 cardSurface: 0xFFFFFF, cardBorder: 0xD2C6BC, cardShadow: 0x1C1713, cardGlow: 0x00A39E, divider: 0xD8CDC3, separator: 0xD2C6BC,
                 chartPrimary: 0x008F8A, chartSecondary: 0x2D69E0, chartTertiary: 0xEC6746, chartQuaternary: 0x4A4138, chartGrid: 0xD8CDC3, chartLabel: 0x4A4138, chartPositive: 0x008F8A, chartNegative: 0xEC6746,
-                success: 0x3D8B5A, warning: 0xC8871E, error: 0xEC6746, information: 0x2D69E0,
+                success: 0x00A96E, warning: 0xFFBE00, error: 0xEC6746, information: 0x2D69E0,
                 mokoMascotBackground: 0xE9E1D8, mokoMascotAccent: 0x008F8A, missionAccent: 0x00A39E, questAccent: 0x2D69E0, growthAccent: 0x008F8A, relaxAccent: 0x6E6358, debriefAccent: 0xEC6746, profileAccent: 0x008F8A,
                 inputBackground: 0xF5F5F5, placeholder: 0x7A6F64, icon: 0x1C1713, selectedTab: 0x008F8A, unselectedTab: 0x6E6358, glow: 0x00A39E,
                 loadingBackground: 0xE6DDD6, completionBackground: 0xFFFFFF, dark: false
@@ -168,7 +194,7 @@ enum MokoThemePalette {
         }
     }
 
-    // MARK: - Dark (independently designed)
+    // MARK: - Dark
 
     static func darkColors(for theme: MokoThemeID) -> MokoThemeColors {
         switch theme {
@@ -239,90 +265,104 @@ enum MokoThemePalette {
                 completionBackground: Color(hex: 0x18221B)
             )
         case .lavender:
+            // daisyUI ref: dracula (dark).
             return make(
-                screenBackground: 0x14121A, primaryBackground: 0x14121A, secondaryBackground: 0x1D1828,
-                cardBackground: 0x201C2B, elevatedCardBackground: 0x282337, modalBackground: 0x201C2B, sheetBackground: 0x191622,
-                navigationBackground: 0x14121A, tabBarBackground: 0x1C1826,
-                primaryText: 0xF4F1FA, secondaryText: 0xC0B8D6, tertiaryText: 0x958CAC, disabledText: 0x756C8C, inverseText: 0x14121A,
-                headingText: 0xFBF9FF, buttonText: 0x14121A, captionText: 0xC0B8D6,
-                primaryButton: 0xB69CFF, primaryButtonText: 0x14121A, secondaryButton: 0x282337, secondaryButtonText: 0xD8B4FF,
-                destructiveButton: 0xD07A5E, disabledButton: 0x2D2740, selectedControl: 0xB69CFF, unselectedControl: 0x8A80A3, focusColor: 0xB69CFF,
-                ctaAccent: 0xD8B4FF, ctaAccentText: 0x14121A,
-                cardSurface: 0x201C2B, cardBorder: 0x332C45, cardShadow: 0x000000, cardGlow: 0xB69CFF, divider: 0x2D2740, separator: 0x332C45,
-                chartPrimary: 0xB69CFF, chartSecondary: 0xD8B4FF, chartTertiary: 0x8F7BCF, chartQuaternary: 0x9E86E8, chartGrid: 0x332C45, chartLabel: 0xC0B8D6, chartPositive: 0x6FD1A3, chartNegative: 0xD07A5E,
-                success: 0x6FD1A3, warning: 0xF2C14E, error: 0xD07A5E, information: 0xB69CFF,
-                mokoMascotBackground: 0x262136, mokoMascotAccent: 0xB69CFF, missionAccent: 0xD8B4FF, questAccent: 0xB69CFF, growthAccent: 0x8F7BCF, relaxAccent: 0x9E86E8, debriefAccent: 0x6FD1A3, profileAccent: 0xD8B4FF,
-                inputBackground: 0x262136, placeholder: 0x8A80A3, icon: 0xB69CFF, selectedTab: 0xB69CFF, unselectedTab: 0x8A80A3, glow: 0xB69CFF,
-                loadingBackground: 0x14121A, completionBackground: 0x191622, dark: true
+                screenBackground: 0x1F202A, primaryBackground: 0x1F202A, secondaryBackground: 0x232530,
+                cardBackground: 0x282A36, elevatedCardBackground: 0x303241, modalBackground: 0x282A36, sheetBackground: 0x232530,
+                navigationBackground: 0x1F202A, tabBarBackground: 0x232530,
+                primaryText: 0xF8F8F2, secondaryText: 0xC9CAD3, tertiaryText: 0x9AA0B4, disabledText: 0x6E748A, inverseText: 0x282A36,
+                headingText: 0xF8F8F2, buttonText: 0x282A36, captionText: 0xC9CAD3,
+                primaryButton: 0xBD93F9, primaryButtonText: 0x282A36, secondaryButton: 0x303241, secondaryButtonText: 0xFF79C6,
+                destructiveButton: 0xFF5555, disabledButton: 0x343746, selectedControl: 0xBD93F9, unselectedControl: 0x9AA0B4, focusColor: 0x8BE9FD,
+                ctaAccent: 0xBD93F9, ctaAccentText: 0x282A36,
+                cardSurface: 0x282A36, cardBorder: 0x414558, cardShadow: 0x000000, cardGlow: 0xBD93F9, divider: 0x343746, separator: 0x414558,
+                chartPrimary: 0xBD93F9, chartSecondary: 0xFF79C6, chartTertiary: 0xFFB86C, chartQuaternary: 0x8BE9FD, chartGrid: 0x414558, chartLabel: 0xC9CAD3, chartPositive: 0x51FA7B, chartNegative: 0xFF5555,
+                success: 0x51FA7B, warning: 0xF1FA8C, error: 0xFF5555, information: 0x8BE9FD,
+                mokoMascotBackground: 0x303241, mokoMascotAccent: 0xBD93F9, missionAccent: 0xFF79C6, questAccent: 0xBD93F9, growthAccent: 0x51FA7B, relaxAccent: 0x8BE9FD, debriefAccent: 0xBD93F9, profileAccent: 0xBD93F9,
+                inputBackground: 0x303241, placeholder: 0x9AA0B4, icon: 0xF8F8F2, selectedTab: 0xBD93F9, unselectedTab: 0x9AA0B4, glow: 0xBD93F9,
+                loadingBackground: 0x1F202A, completionBackground: 0x232530, dark: true
             )
+
         case .ocean:
+            // daisyUI ref: dim (dark). base-100 #2A303C, base-200 #242933, base-300 #20252E, base-content #B5BFD9,
+            // primary #9FE88D, secondary #FF7D5D, accent #C792E9, info #28EBFF, success #62EFBD, warning #EFD057, error #FFAE9B.
+            // Adapted to ocean blues/teals with dim surfaces.
             return make(
-                screenBackground: 0x0F1418, primaryBackground: 0x0F1418, secondaryBackground: 0x162129,
-                cardBackground: 0x182229, elevatedCardBackground: 0x1F2B34, modalBackground: 0x182229, sheetBackground: 0x131A20,
-                navigationBackground: 0x0F1418, tabBarBackground: 0x151D23,
-                primaryText: 0xEEF6FA, secondaryText: 0xAFC4D1, tertiaryText: 0x8AA5B4, disabledText: 0x6C8593, inverseText: 0x0F1418,
-                headingText: 0xF6FBFF, buttonText: 0x0B1216, captionText: 0xAFC4D1,
-                primaryButton: 0x4FC3F7, primaryButtonText: 0x0B1216, secondaryButton: 0x1F2B34, secondaryButtonText: 0x6FE7DD,
-                destructiveButton: 0xD07A5E, disabledButton: 0x22303A, selectedControl: 0x4FC3F7, unselectedControl: 0x7C94A3, focusColor: 0x4DB6AC,
-                ctaAccent: 0x6FE7DD, ctaAccentText: 0x0B1216,
-                cardSurface: 0x182229, cardBorder: 0x26343E, cardShadow: 0x000000, cardGlow: 0x4DB6AC, divider: 0x22303A, separator: 0x26343E,
-                chartPrimary: 0x4FC3F7, chartSecondary: 0x4DB6AC, chartTertiary: 0x6FE7DD, chartQuaternary: 0x6AAFE6, chartGrid: 0x26343E, chartLabel: 0xAFC4D1, chartPositive: 0x4DB6AC, chartNegative: 0xD07A5E,
-                success: 0x4DB6AC, warning: 0xF2C14E, error: 0xD07A5E, information: 0x4FC3F7,
-                mokoMascotBackground: 0x1C2830, mokoMascotAccent: 0x4FC3F7, missionAccent: 0x6FE7DD, questAccent: 0x4FC3F7, growthAccent: 0x4DB6AC, relaxAccent: 0x6AAFE6, debriefAccent: 0x4DB6AC, profileAccent: 0x6FE7DD,
-                inputBackground: 0x1C2830, placeholder: 0x7C94A3, icon: 0x4FC3F7, selectedTab: 0x4FC3F7, unselectedTab: 0x7C94A3, glow: 0x4DB6AC,
-                loadingBackground: 0x0F1418, completionBackground: 0x131A20, dark: true
+                screenBackground: 0x20252E, primaryBackground: 0x20252E, secondaryBackground: 0x242933,
+                cardBackground: 0x2A303C, elevatedCardBackground: 0x313846, modalBackground: 0x2A303C, sheetBackground: 0x242933,
+                navigationBackground: 0x20252E, tabBarBackground: 0x242933,
+                primaryText: 0xE8EEF9, secondaryText: 0xB5BFD9, tertiaryText: 0x8F9AB8, disabledText: 0x6B758F, inverseText: 0x20252E,
+                headingText: 0xF4F7FF, buttonText: 0x20252E, captionText: 0xB5BFD9,
+                primaryButton: 0x28EBFF, primaryButtonText: 0x20252E, secondaryButton: 0x313846, secondaryButtonText: 0x62EFBD,
+                destructiveButton: 0xFFAE9B, disabledButton: 0x343B4A, selectedControl: 0x28EBFF, unselectedControl: 0x8F9AB8, focusColor: 0x28EBFF,
+                ctaAccent: 0x28EBFF, ctaAccentText: 0x20252E,
+                cardSurface: 0x2A303C, cardBorder: 0x3A4252, cardShadow: 0x000000, cardGlow: 0x28EBFF, divider: 0x343B4A, separator: 0x3A4252,
+                chartPrimary: 0x28EBFF, chartSecondary: 0x62EFBD, chartTertiary: 0x9FE88D, chartQuaternary: 0xC792E9, chartGrid: 0x3A4252, chartLabel: 0xB5BFD9, chartPositive: 0x62EFBD, chartNegative: 0xFFAE9B,
+                success: 0x62EFBD, warning: 0xEFD057, error: 0xFFAE9B, information: 0x28EBFF,
+                mokoMascotBackground: 0x313846, mokoMascotAccent: 0x28EBFF, missionAccent: 0x62EFBD, questAccent: 0x28EBFF, growthAccent: 0x62EFBD, relaxAccent: 0x9FE88D, debriefAccent: 0x28EBFF, profileAccent: 0x28EBFF,
+                inputBackground: 0x313846, placeholder: 0x8F9AB8, icon: 0xE8EEF9, selectedTab: 0x28EBFF, unselectedTab: 0x8F9AB8, glow: 0x28EBFF,
+                loadingBackground: 0x20252E, completionBackground: 0x242933, dark: true
             )
 
         case .blossom:
+            // daisyUI ref: night (dark). base-100 #0F172A, base-200 #0C1425, base-300 #0A1120, primary #3ABDF7,
+            // secondary #818CF8, accent #F471B5, info #0CA5E9, success #2FD4BF, warning #F4BF51, error #FB7085.
+            // Adapted to blossom rose on night surfaces.
             return make(
-                screenBackground: 0x171316, primaryBackground: 0x171316, secondaryBackground: 0x221A21,
-                cardBackground: 0x241E23, elevatedCardBackground: 0x2C242B, modalBackground: 0x241E23, sheetBackground: 0x1D181C,
-                navigationBackground: 0x171316, tabBarBackground: 0x201A1F,
-                primaryText: 0xFFF2F6, secondaryText: 0xD8C0CA, tertiaryText: 0xAD93A0, disabledText: 0x846D78, inverseText: 0x171316,
-                headingText: 0xFFF7FA, buttonText: 0x171316, captionText: 0xD8C0CA,
-                primaryButton: 0xFF7FA8, primaryButtonText: 0x171316, secondaryButton: 0x2C242B, secondaryButtonText: 0xFFC1D6,
-                destructiveButton: 0xD07A5E, disabledButton: 0x322730, selectedControl: 0xFF7FA8, unselectedControl: 0x9E8793, focusColor: 0xFF7FA8,
-                ctaAccent: 0xFFC1D6, ctaAccentText: 0x171316,
-                cardSurface: 0x241E23, cardBorder: 0x382C34, cardShadow: 0x000000, cardGlow: 0xFF7FA8, divider: 0x322730, separator: 0x382C34,
-                chartPrimary: 0xFF7FA8, chartSecondary: 0xFFC1D6, chartTertiary: 0xE7A1B8, chartQuaternary: 0xF09BB8, chartGrid: 0x382C34, chartLabel: 0xD8C0CA, chartPositive: 0x6FD1A3, chartNegative: 0xD07A5E,
-                success: 0x6FD1A3, warning: 0xFFB74D, error: 0xD07A5E, information: 0xFF7FA8,
-                mokoMascotBackground: 0x2A2329, mokoMascotAccent: 0xFF7FA8, missionAccent: 0xFFC1D6, questAccent: 0xFF7FA8, growthAccent: 0xE7A1B8, relaxAccent: 0xF09BB8, debriefAccent: 0x6FD1A3, profileAccent: 0xFFC1D6,
-                inputBackground: 0x2A2329, placeholder: 0x9E8793, icon: 0xFF7FA8, selectedTab: 0xFF7FA8, unselectedTab: 0x9E8793, glow: 0xFF7FA8,
-                loadingBackground: 0x171316, completionBackground: 0x1D181C, dark: true
+                screenBackground: 0x0A1120, primaryBackground: 0x0A1120, secondaryBackground: 0x0C1425,
+                cardBackground: 0x0F172A, elevatedCardBackground: 0x162033, modalBackground: 0x0F172A, sheetBackground: 0x0C1425,
+                navigationBackground: 0x0A1120, tabBarBackground: 0x0C1425,
+                primaryText: 0xEAF2FF, secondaryText: 0xB8C4D9, tertiaryText: 0x8B97B0, disabledText: 0x667289, inverseText: 0x0A1120,
+                headingText: 0xF5FAFF, buttonText: 0x0A1120, captionText: 0xB8C4D9,
+                primaryButton: 0xF471B5, primaryButtonText: 0x0A1120, secondaryButton: 0x162033, secondaryButtonText: 0x818CF8,
+                destructiveButton: 0xFB7085, disabledButton: 0x1C2740, selectedControl: 0xF471B5, unselectedControl: 0x8B97B0, focusColor: 0x3ABDF7,
+                ctaAccent: 0xF471B5, ctaAccentText: 0x0A1120,
+                cardSurface: 0x0F172A, cardBorder: 0x24324A, cardShadow: 0x000000, cardGlow: 0xF471B5, divider: 0x1C2740, separator: 0x24324A,
+                chartPrimary: 0xF471B5, chartSecondary: 0x818CF8, chartTertiary: 0x3ABDF7, chartQuaternary: 0x2FD4BF, chartGrid: 0x24324A, chartLabel: 0xB8C4D9, chartPositive: 0x2FD4BF, chartNegative: 0xFB7085,
+                success: 0x2FD4BF, warning: 0xF4BF51, error: 0xFB7085, information: 0x0CA5E9,
+                mokoMascotBackground: 0x162033, mokoMascotAccent: 0xF471B5, missionAccent: 0x3ABDF7, questAccent: 0xF471B5, growthAccent: 0x2FD4BF, relaxAccent: 0x818CF8, debriefAccent: 0xF471B5, profileAccent: 0xF471B5,
+                inputBackground: 0x162033, placeholder: 0x8B97B0, icon: 0xEAF2FF, selectedTab: 0xF471B5, unselectedTab: 0x8B97B0, glow: 0xF471B5,
+                loadingBackground: 0x0A1120, completionBackground: 0x0C1425, dark: true
             )
+
         case .midnight:
+            // daisyUI ref: business (dark). base-100 #202020, base-200 #1C1C1C, base-300 #181818, primary #1C4E80,
+            // secondary #7C909A, accent #EA6947, info #0291D5, success #6BB187, warning #DBAE5A, error #AC3E31.
+            // Adapted to midnight indigo with business neutrals.
             return make(
-                screenBackground: 0x0E1118, primaryBackground: 0x0E1118, secondaryBackground: 0x161B2C,
-                cardBackground: 0x171C2B, elevatedCardBackground: 0x1E2436, modalBackground: 0x171C2B, sheetBackground: 0x121622,
-                navigationBackground: 0x0E1118, tabBarBackground: 0x141927,
-                primaryText: 0xEEF2FF, secondaryText: 0xB7C0D9, tertiaryText: 0x919CB8, disabledText: 0x6F7994, inverseText: 0x0E1118,
-                headingText: 0xF7F9FF, buttonText: 0x0E1118, captionText: 0xB7C0D9,
-                primaryButton: 0x6C8CFF, primaryButtonText: 0x0E1118, secondaryButton: 0x1E2436, secondaryButtonText: 0x7FB0FF,
-                destructiveButton: 0xD07A5E, disabledButton: 0x232B42, selectedControl: 0x6C8CFF, unselectedControl: 0x7E8AA8, focusColor: 0x6C8CFF,
-                ctaAccent: 0x7FB0FF, ctaAccentText: 0x0E1118,
-                cardSurface: 0x171C2B, cardBorder: 0x27304A, cardShadow: 0x000000, cardGlow: 0x6C8CFF, divider: 0x232B42, separator: 0x27304A,
-                chartPrimary: 0x6C8CFF, chartSecondary: 0x7FB0FF, chartTertiary: 0x8EA2FF, chartQuaternary: 0x9AAEFF, chartGrid: 0x27304A, chartLabel: 0xB7C0D9, chartPositive: 0x6FD1A3, chartNegative: 0xD07A5E,
-                success: 0x6FD1A3, warning: 0xF2C14E, error: 0xD07A5E, information: 0x7FB0FF,
-                mokoMascotBackground: 0x1C2234, mokoMascotAccent: 0x6C8CFF, missionAccent: 0x7FB0FF, questAccent: 0x6C8CFF, growthAccent: 0x8EA2FF, relaxAccent: 0x9AAEFF, debriefAccent: 0x6FD1A3, profileAccent: 0x7FB0FF,
-                inputBackground: 0x1C2234, placeholder: 0x7E8AA8, icon: 0x7FB0FF, selectedTab: 0x6C8CFF, unselectedTab: 0x7E8AA8, glow: 0x6C8CFF,
-                loadingBackground: 0x0E1118, completionBackground: 0x121622, dark: true
+                screenBackground: 0x181818, primaryBackground: 0x181818, secondaryBackground: 0x1C1C1C,
+                cardBackground: 0x202020, elevatedCardBackground: 0x262626, modalBackground: 0x202020, sheetBackground: 0x1C1C1C,
+                navigationBackground: 0x181818, tabBarBackground: 0x1C1C1C,
+                primaryText: 0xE6EAF0, secondaryText: 0xA7B4BD, tertiaryText: 0x87939C, disabledText: 0x626D75, inverseText: 0x181818,
+                headingText: 0xF5F7FA, buttonText: 0xFFFFFF, captionText: 0xA7B4BD,
+                primaryButton: 0x4C7DFF, primaryButtonText: 0x0E1118, secondaryButton: 0x262626, secondaryButtonText: 0x0291D5,
+                destructiveButton: 0xAC3E31, disabledButton: 0x2C2C2C, selectedControl: 0x4C7DFF, unselectedControl: 0x7C909A, focusColor: 0x0291D5,
+                ctaAccent: 0x4C7DFF, ctaAccentText: 0x0E1118,
+                cardSurface: 0x202020, cardBorder: 0x333333, cardShadow: 0x000000, cardGlow: 0x0291D5, divider: 0x2C2C2C, separator: 0x333333,
+                chartPrimary: 0x4C7DFF, chartSecondary: 0x0291D5, chartTertiary: 0x6BB187, chartQuaternary: 0xEA6947, chartGrid: 0x333333, chartLabel: 0xA7B4BD, chartPositive: 0x6BB187, chartNegative: 0xAC3E31,
+                success: 0x6BB187, warning: 0xDBAE5A, error: 0xAC3E31, information: 0x0291D5,
+                mokoMascotBackground: 0x262626, mokoMascotAccent: 0x4C7DFF, missionAccent: 0x0291D5, questAccent: 0x4C7DFF, growthAccent: 0x6BB187, relaxAccent: 0x7C909A, debriefAccent: 0x4C7DFF, profileAccent: 0x4C7DFF,
+                inputBackground: 0x262626, placeholder: 0x87939C, icon: 0xE6EAF0, selectedTab: 0x4C7DFF, unselectedTab: 0x87939C, glow: 0x0291D5,
+                loadingBackground: 0x181818, completionBackground: 0x1C1C1C, dark: true
             )
+
         case .batman:
-            // Batman dark (spec): near-black bg, charcoal cards, teal/coral accents, blue action.
+            // Batman identity preserved (existing approved palette). daisyUI forest dark neutrals referenced only for contrast;
+            // cards remain raised dark surfaces (not white).
             return make(
-                screenBackground: 0x0D0D0D, primaryBackground: 0x0D0D0D, secondaryBackground: 0x1A1A1A,
-                cardBackground: 0x222222, elevatedCardBackground: 0x303030, modalBackground: 0x222222, sheetBackground: 0x121212,
+                screenBackground: 0x0D0D0D, primaryBackground: 0x0D0D0D, secondaryBackground: 0x161212,
+                cardBackground: 0x1B1717, elevatedCardBackground: 0x222222, modalBackground: 0x1B1717, sheetBackground: 0x121212,
                 navigationBackground: 0x0D0D0D, tabBarBackground: 0x121212,
                 primaryText: 0xF5F5F5, secondaryText: 0xC4C4C4, tertiaryText: 0x999999, disabledText: 0x6B6B6B, inverseText: 0x0D0D0D,
                 headingText: 0xF5F5F5, buttonText: 0xFFFFFF, captionText: 0xC4C4C4,
-                primaryButton: 0x2D69E0, primaryButtonText: 0xFFFFFF, secondaryButton: 0x292929, secondaryButtonText: 0x00CEC8,
+                primaryButton: 0x2D69E0, primaryButtonText: 0xFFFFFF, secondaryButton: 0x222222, secondaryButtonText: 0x00CEC8,
                 destructiveButton: 0xEC6746, disabledButton: 0x333333, selectedControl: 0x00CEC8, unselectedControl: 0x7A7A7A, focusColor: 0x00CEC8,
                 ctaAccent: 0x00CEC8, ctaAccentText: 0x0D0D0D,
-                cardSurface: 0x222222, cardBorder: 0x3A3A3A, cardShadow: 0x000000, cardGlow: 0x00CEC8, divider: 0x383838, separator: 0x3A3A3A,
-                chartPrimary: 0x00CEC8, chartSecondary: 0xEC6746, chartTertiary: 0x2D69E0, chartQuaternary: 0xC9CFE6, chartGrid: 0x383838, chartLabel: 0xC4C4C4, chartPositive: 0x00CEC8, chartNegative: 0xEC6746,
-                success: 0x7CDA8C, warning: 0xF2C14E, error: 0xEC6746, information: 0x2D69E0,
-                mokoMascotBackground: 0x1A1A1A, mokoMascotAccent: 0x00CEC8, missionAccent: 0x00CEC8, questAccent: 0xEC6746, growthAccent: 0x2D69E0, relaxAccent: 0xC9CFE6, debriefAccent: 0xEC6746, profileAccent: 0x00CEC8,
-                inputBackground: 0x292929, placeholder: 0x999999, icon: 0xF5F5F5, selectedTab: 0x00CEC8, unselectedTab: 0x7A7A7A, glow: 0x00CEC8,
+                cardSurface: 0x1B1717, cardBorder: 0x383838, cardShadow: 0x000000, cardGlow: 0x00CEC8, divider: 0x2E2E2E, separator: 0x383838,
+                chartPrimary: 0x00CEC8, chartSecondary: 0x2D69E0, chartTertiary: 0xEC6746, chartQuaternary: 0x1FB854, chartGrid: 0x383838, chartLabel: 0xC4C4C4, chartPositive: 0x1FB854, chartNegative: 0xEC6746,
+                success: 0x00A96E, warning: 0xFFBE00, error: 0xEC6746, information: 0x2D69E0,
+                mokoMascotBackground: 0x222222, mokoMascotAccent: 0x00CEC8, missionAccent: 0x00CEC8, questAccent: 0x2D69E0, growthAccent: 0x00CEC8, relaxAccent: 0x7A7A7A, debriefAccent: 0xEC6746, profileAccent: 0x00CEC8,
+                inputBackground: 0x222222, placeholder: 0x999999, icon: 0xF5F5F5, selectedTab: 0x00CEC8, unselectedTab: 0x7A7A7A, glow: 0x00CEC8,
                 loadingBackground: 0x0D0D0D, completionBackground: 0x121212, dark: true
             )
         }

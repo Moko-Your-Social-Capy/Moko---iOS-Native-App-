@@ -41,24 +41,23 @@ struct StreakDetailView: View {
 
     private var streakCountSection: some View {
         VStack(spacing: 10) {
-            Image(systemName: "flame.fill")
-                .font(.system(size: 34, weight: .semibold))
-                .foregroundStyle(MokoScreenTheme.Colors.ctaAccent)
-                .frame(width: 64, height: 64)
-                .background(MokoScreenTheme.Colors.ctaAccent.opacity(0.14), in: Circle())
+            // Flame uses centralized Lottie asset (loops appropriately, respects Reduce Motion).
+            MokoLottieView(animation: .streakFlame)
+                .frame(width: 72, height: 72)
+                .accessibilityHidden(true)
 
             Text("\(currentStreak)")
                 .font(.system(size: 56, weight: .bold, design: .rounded))
                 .foregroundStyle(MokoScreenTheme.Colors.textTitle)
                 .monospacedDigit()
 
-            Text(currentStreak == 1 ? "day streak" : "day streak")
+            Text(currentStreak == 1 ? "day streak" : "days streak")
                 .mokoText(MokoScreenTheme.Typeface.body)
                 .foregroundStyle(MokoScreenTheme.Colors.textBody)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 24)
-        .mokoCard(fill: MokoScreenTheme.Card.missionFill)
+        .mokoCard(fill: MokoScreenTheme.Colors.surfaceWhite)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(currentStreak) day streak")
     }
@@ -78,7 +77,7 @@ struct StreakDetailView: View {
             }
         }
         .padding(16)
-        .mokoCard(fill: MokoScreenTheme.Card.missionFill)
+        .mokoCard(fill: MokoScreenTheme.Colors.surfaceWhite)
     }
 
     private func milestoneRow(milestone: Int) -> some View {

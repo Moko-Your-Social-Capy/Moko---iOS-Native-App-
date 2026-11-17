@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Observation
 
 /// Holds the selected theme and appearance, resolves colors, and persists choices.
@@ -83,11 +84,33 @@ final class MokoThemeManager {
         self.systemScheme = systemScheme
         let resolved = resolved(systemScheme: systemScheme)
         current = resolved
+        applySystemControlAppearance(for: resolved)
         return resolved
     }
 
     private func refreshCurrent() {
         current = resolved(systemScheme: systemScheme)
+        applySystemControlAppearance(for: current)
+    }
+
+    /// Keeps UIKit segmented pickers readable in light/dark and aligned to theme tokens.
+    func applySystemControlAppearance(for theme: MokoResolvedTheme) {
+        let appearance = UISegmentedControl.appearance()
+        let selectedBG = UIColor(theme.colors.selectedControl)
+        let normalText = UIColor(theme.colors.primaryText)
+        let selectedText = UIColor(theme.colors.primaryButtonText)
+        let unselectedBG = UIColor(theme.colors.elevatedCardBackground)
+
+        appearance.selectedSegmentTintColor = selectedBG
+        appearance.backgroundColor = unselectedBG
+        appearance.setTitleTextAttributes([
+            .foregroundColor: normalText,
+            .font: UIFont.systemFont(ofSize: 13, weight: .semibold)
+        ], for: .normal)
+        appearance.setTitleTextAttributes([
+            .foregroundColor: selectedText,
+            .font: UIFont.systemFont(ofSize: 13, weight: .semibold)
+        ], for: .selected)
     }
 
     func resolved(systemScheme: ColorScheme) -> MokoResolvedTheme {

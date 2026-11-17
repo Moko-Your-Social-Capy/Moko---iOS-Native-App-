@@ -13,7 +13,6 @@ import UIKit
 struct MokoApp: App {
 
     init() {
-        styleSegmentedPickers()
         // Preload SVG animations so loaders (moonwalk/tick) appear quickly.
         MokoAnimationAssets.preloadCommonSVGs()
         #if DEBUG
@@ -41,15 +40,4 @@ struct MokoApp: App {
         ])
     }
 
-    /// Colours every segmented `Picker` in the app (lime pill, brown text).
-    /// UIKit is used because SwiftUI has no way to change these colours yet.
-    private func styleSegmentedPickers() {
-        let segments = UISegmentedControl.appearance()
-        let lime = UIColor(red: 226 / 255, green: 245 / 255, blue: 177 / 255, alpha: 1)
-        let brown = UIColor(red: 92 / 255, green: 67 / 255, blue: 48 / 255, alpha: 1)
-
-        segments.selectedSegmentTintColor = lime
-        segments.setTitleTextAttributes([.foregroundColor: brown], for: .selected)
-        segments.setTitleTextAttributes([.foregroundColor: brown], for: .normal)
-    }
 }

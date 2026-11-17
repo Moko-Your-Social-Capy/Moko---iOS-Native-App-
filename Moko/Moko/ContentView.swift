@@ -185,6 +185,16 @@ struct ContentView: View {
             }
         }
         .foregroundStyle(MokoTheme.titleBrown)
+        // Handle widget deep link to open the Streak detail in Profile.
+        .onOpenURL { url in
+            guard url.scheme == "moko", url.host == "streak" else { return }
+            if !isSignedOut && isUserFullyRegistered {
+                show(.home)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                NotificationCenter.default.post(name: .openStreakDetail, object: nil)
+            }
+        }
     }
 
     /// The sign-in screen. Every sign-in button ends up in `completeAuthentication`.

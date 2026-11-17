@@ -106,31 +106,15 @@ struct InsightsView: View {
     @State private var analysisStore = DynamicParameterAnalysisStore.shared
 
     private typealias Theme = MokoScreenTheme
-    
-    // Dark theme aware colors
-    @Environment(\.colorScheme) private var colorScheme
-    
-    private var isDarkMode: Bool { colorScheme == .dark }
-    
-    private var accent: Color {
-        isDarkMode ? Theme.Colors.parameterCourageDark : Theme.Colors.parameterCourage
-    }
-    
-    private var soft: Color {
-        isDarkMode ? Color(hex: 0x1E2D23) : Theme.Colors.surfaceLavender
-    }
-    
-    private var titleColor: Color {
-        isDarkMode ? Color(hex: 0xE6F0E8) : Theme.Colors.textTitle
-    }
-    
-    private var bodyColor: Color {
-        isDarkMode ? Color(hex: 0xB8C6BB) : Theme.Colors.textBody
-    }
-    
-    private var mutedColor: Color {
-        isDarkMode ? Color(hex: 0x8A978D) : Theme.Colors.textMuted
-    }
+    @Environment(\.mokoTheme) private var theme
+
+    // Theme-aware colors for charts/cards in light and dark.
+    private var accent: Color { theme.colors.chartPrimary }
+    private var soft: Color { theme.colors.elevatedCardBackground }
+    private var titleColor: Color { theme.colors.primaryText }
+    private var bodyColor: Color { theme.colors.secondaryText }
+    private var mutedColor: Color { theme.colors.tertiaryText }
+    private var isDarkMode: Bool { theme.isDark }
 
     /// Records that fall in today / this week / this month / this year.
     private var rangeRecords: [InsightsModel] {
@@ -213,14 +197,15 @@ struct InsightsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    // MARK: - Range Picker (Clean, no shadow/gradient)
+                    // MARK: - Range Picker (theme-aware, readable in dark mode)
                     Picker("Range", selection: $range) {
                         ForEach(InsightsRange.allCases) { item in
                             Text(item.rawValue).tag(item)
                         }
                     }
                     .pickerStyle(.segmented)
-                    .tint(isDarkMode ? Theme.Colors.parameterCourageDark : Theme.Colors.parameterCourage)
+                    .tint(theme.colors.selectedControl)
+                    .background(theme.colors.elevatedCardBackground, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
 
                     if records.isEmpty {
                         VStack(spacing: 12) {

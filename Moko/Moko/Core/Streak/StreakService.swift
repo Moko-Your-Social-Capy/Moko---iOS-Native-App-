@@ -160,6 +160,7 @@ final class StreakService {
         }
 
         let allRecords = (try? context.fetch(FetchDescriptor<ActivityRecord>())) ?? []
+        MokoStreakWidgetSnapshot.update(from: allRecords, at: date)
         return stats(from: allRecords, at: date)
     }
 

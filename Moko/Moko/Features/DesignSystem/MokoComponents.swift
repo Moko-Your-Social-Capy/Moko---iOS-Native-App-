@@ -64,16 +64,10 @@ extension View {
 
 // MARK: - Background (§5)
 
-/// Theme-aware app background (gradient only, per theme).
+/// Theme-aware app background with dark-mode water-flow shader (top half only).
 struct MokoBackdrop: View {
-    @Environment(\.mokoTheme) private var theme
-
     var body: some View {
-        // Each theme provides its own subtle gradient; no decorative vectors.
-        theme.colors.backgroundGradient
-            .ignoresSafeArea()
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
+        MokoAnimatedBackdrop()
     }
 }
 

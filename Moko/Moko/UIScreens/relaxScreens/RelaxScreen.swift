@@ -121,6 +121,8 @@ struct RelaxScreen: View {
     @State private var navigationPath: [RelaxRoute] = []
     // Imagery guides store. Created here and shared below with `.environment`.
     @State private var imageryStore = ImageryGuideStore()
+    // Brief completion overlay shown on Relax home after an exercise finishes.
+    @State private var homeCompletionTitle: String?
 
     // Reads the user's text size so the grid can drop to one column for very large text.
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -135,6 +137,12 @@ struct RelaxScreen: View {
             repeating: GridItem(.flexible(), spacing: MokoScreenTheme.Space.gapCard),
             count: dynamicTypeSize.isAccessibilitySize ? 1 : 2
         )
+    }
+
+    /// Returns to Relax home and shows the brief completion overlay for one second.
+    private func completeExercise(_ title: String) {
+        navigationPath.removeAll()
+        homeCompletionTitle = title
     }
 
     var body: some View {
@@ -194,6 +202,16 @@ struct RelaxScreen: View {
             .navigationDestination(for: RelaxRoute.self) { route in
                 routeDestination(route)
             }
+            // Brief translucent completion overlay on Relax home after an exercise finishes.
+            .overlay {
+                if let homeCompletionTitle {
+                    RelaxCompletionScreen(exerciseTitle: homeCompletionTitle) {
+                        self.homeCompletionTitle = nil
+                    }
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+                }
+            }
         }
         .tint(accent)
         // Lets every Imagery screen read the same store with `@Environment(ImageryGuideStore.self)`.
@@ -225,12 +243,12 @@ struct RelaxScreen: View {
     private func routeDestination(_ route: RelaxRoute) -> some View {
         switch route {
         case .breathing(let duration):
-            BreathingSessionScreen(minutes: duration, onFinish: { popRelaxRoute() })
+            BreathingSessionScreen(minutes: duration, onFinish: { completeExercise("Gentle Breathing") })
 
         case .boxBreathing(let cycles):
             BoxBreathingView(
                 initialCycles: cycles,
-                onComplete: { popRelaxRoute() }
+                onComplete: { completeExercise("Box Breathing") }
             )
 
         case .session(let session):
@@ -245,11 +263,11 @@ struct RelaxScreen: View {
                 // so the switch stays exhaustive.
                 BoxBreathingView(
                     initialCycles: boxBreathingCycles,
-                    onComplete: { popRelaxRoute() }
+                    onComplete: { completeExercise("Box Breathing") }
                 )
 
             case .grounding:
-                GroundingExerciseScreen(onContinue: { popRelaxRoute() })
+                GroundingExerciseScreen(onContinue: { completeExercise("Grounding Exercise") })
 
             case .mirror:
                 MirrorReflectionScreen(onSelectOption: { option in
@@ -260,18 +278,16 @@ struct RelaxScreen: View {
 
         case .guideSession(let guide):
             GuideSessionView(guide: guide) {
-                navigationPath.append(.guideComplete(guide))
+                // Return to Relax home and show the completion overlay there.
+                completeExercise(guide.title)
             }
             .navigationTitle(guide.title)
             .navigationBarTitleDisplayMode(.inline)
 
         case .guideComplete(let guide):
-            SessionCompleteView(message: guide.completionMessage) {
-                // Pop the "complete" and "session" screens to land back on the Imagery list.
-                popRelaxRoutes(2)
-            }
-            .navigationTitle(imageryStore.screen?.sessionCompleteNavigationTitle ?? "")
-            .navigationBarTitleDisplayMode(.inline)
+            // Legacy route; completion now shows on Relax home.
+            Color.clear
+                .onAppear { completeExercise(guide.title) }
 
         case .mirrorPrep(let camera):
             mirrorPrepDestination(camera: camera)
@@ -281,23 +297,20 @@ struct RelaxScreen: View {
             Group {
                 if camera {
                     CameraTimerScreen(
-                        onContinue: { navigationPath.append(.mirrorComplete(camera: true)) }
+                        onContinue: { completeExercise("Mirror Reflection") }
                     )
                 } else {
                     MirrorTimerScreen(
-                        onContinue: { navigationPath.append(.mirrorComplete(camera: false)) }
+                        onContinue: { completeExercise("Mirror Reflection") }
                     )
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
 
         case .mirrorComplete:
-            MirrorCompletionScreen(onDone: {
-                // Pop complete, timer and prep to land back on the Mirror options screen.
-                popRelaxRoutes(3)
-            })
-            .navigationTitle("Completed")
-            .navigationBarTitleDisplayMode(.inline)
+            // Legacy route; completion now shows on Relax home.
+            Color.clear
+                .onAppear { completeExercise("Mirror Reflection") }
         }
     }
 

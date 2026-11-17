@@ -10,6 +10,11 @@
 import SwiftUI
 import SwiftData
 
+extension Notification.Name {
+    // Posted when a deep link asks the app to open the Streak screen.
+    static let openStreakDetail = Notification.Name("moko.openStreakDetail")
+}
+
 private typealias Theme = MokoScreenTheme
 
 /// Screen-internal nudges. They describe this one composition rather than a
@@ -145,6 +150,10 @@ struct ProfileOverView: View {
             }
         }
         .preferredColorScheme(nil)
+        // Open Streak Detail when a widget/deep link asks for it.
+        .onReceive(NotificationCenter.default.publisher(for: .openStreakDetail)) { _ in
+            openStreakDetail()
+        }
     }
 
     /// Bigger avatar for the brighter profile section.
@@ -208,10 +217,10 @@ struct ProfileOverView: View {
                      symbol: "flame.fill",
                      value: "\(animated(streak)) days",
                      label: "Day streak",
-                     plate: Theme.Colors.tileSage,
+                     plate: Theme.Colors.ctaAccent.opacity(0.14),
                      tint: Theme.Colors.ctaAccent,
                      fill: Theme.Colors.surfaceWhite,
-                     action: { showStreakDetail() }),
+                     action: { openStreakDetail() }),
             MokoStat(id: 1,
                      symbol: "checkmark.seal.fill",
                      value: "\(animated(questsDone))",
@@ -229,9 +238,16 @@ struct ProfileOverView: View {
         ])
     }
     
-    private func showStreakDetail() {
-        // Navigate to streak detail view
+    @State private var didOpenStreakDetail = false
+
+    private func openStreakDetail() {
+        // Prevent duplicate sheet presentations from rapid taps.
+        guard !didOpenStreakDetail else { return }
+        didOpenStreakDetail = true
         activeSheet = .streakDetail
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            didOpenStreakDetail = false
+        }
     }
 
     // MARK: - §7 Journey
@@ -267,32 +283,49 @@ struct ProfileOverView: View {
             }
             .padding(.top, Nudge.journeyValueTop)
 
-            MokoWeekBars(values: buckets.map { $0.xp / tallest }, peak: peak)
-                .padding(.top, Nudge.journeyBarsTop)
+            // Clear Y-axis context for actual XP values.
+            HStack {
+                Text("XP earned")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.textTitle)
+                Spacer()
+                Text("Peak \(Int(tallest).formatted()) XP")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.textBody)
+            }
+            .padding(.top, 12)
+
+            MokoWeekBars(values: buckets.map { $0.xp / tallest }, peak: peak, barHeight: 148)
+                .padding(.top, 8)
 
             HStack(spacing: MokoWeekBars.spacing) {
                 ForEach(buckets) { bucket in
                     Text(axisLabel(for: bucket.start))
-                        .mokoText(Theme.Typeface.badge)
-                        .foregroundStyle(Theme.Colors.axisLabel)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Theme.Colors.textTitle.opacity(0.9))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                         .frame(maxWidth: .infinity)
                 }
             }
-            .padding(.top, Nudge.journeyAxisTop)
+            .padding(.top, 8)
             .accessibilityHidden(true)
         }
         .padding(Theme.Space.profileCard)
-        .mokoCard(fill: Theme.Colors.cream)
+        .mokoCard(fill: Theme.Colors.surfaceWhite)
         .animation(reduceMotion ? nil : Theme.Motion.tap, value: journeySelection)
         .accessibilityElement(children: .contain)
     }
 
-    /// Short date under each bar: weekday letter, day number or month letter.
+    /// Readable period labels that match actual streak/XP data buckets.
     private func axisLabel(for start: Date) -> String {
         switch journeyRange {
-        case .day: start.formatted(.dateTime.weekday(.narrow))
-        case .week: start.formatted(.dateTime.day())
-        case .month: start.formatted(.dateTime.month(.narrow))
+        case .day:
+            return start.formatted(.dateTime.weekday(.narrow))
+        case .week:
+            return start.formatted(.dateTime.month(.abbreviated).day())
+        case .month:
+            return start.formatted(.dateTime.month(.abbreviated))
         }
     }
 

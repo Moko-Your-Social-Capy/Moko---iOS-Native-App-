@@ -6,6 +6,8 @@ import Lottie
 enum MokoAnimationAssets {
     // Inline/small loading (Lottie JSON).
     static let inlineLoaderName = "loading"
+    // Quest library loading animation (Lottie JSON).
+    static let questLibraryLoadingLottie = "loading-2"
 
     // Full-screen loading illustration (SVG with SMIL animation). "CI2" asset in project.
     static let fullScreenLoadingSVG = "moko-moonwalk-loading"
@@ -14,6 +16,12 @@ enum MokoAnimationAssets {
     static let tickCompleteSVG = "moko-tick-complete"
     // Universal completion illustration (animated HTML file, preferred for tick).
     static let tickCompleteHTML = "11-Tick-Complete-animated"
+    // Relax session completion celebration (Lottie JSON).
+    static let relaxCompletionConfetti = "Confetti 2"
+    // Gentle breathing mascot animation (Lottie JSON).
+    static let gentleBreathingLottie = "[BB] Brick breathing"
+    // Onboarding/intro waving mascot (Lottie JSON).
+    static let onboardingMascotLottie = "Easter Bunny Boy waving"
 
     /// Cached Lottie animation for the inline loader to avoid repeated decoding.
     static let inlineLoaderAnimation: LottieAnimation? = LottieAnimation.named(inlineLoaderName)
@@ -80,6 +88,11 @@ enum MokoAnimationAssets {
         _ = svgString(named: tickCompleteSVG)
         _ = svgString(named: fullScreenLoadingSVG)
         _ = htmlString(named: tickCompleteHTML)
+        // Warm commonly used Lottie animations into memory.
+        _ = LottieAnimation.named(questLibraryLoadingLottie)
+        _ = LottieAnimation.named(relaxCompletionConfetti)
+        _ = LottieAnimation.named(gentleBreathingLottie)
+        _ = LottieAnimation.named(onboardingMascotLottie)
     }
 }
 

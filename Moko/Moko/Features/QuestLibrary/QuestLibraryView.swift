@@ -14,6 +14,7 @@
 import SwiftUI
 import SwiftData
 import OSLog
+import Lottie
 
 struct QuestLibraryView: View {
     // MARK: - Properties
@@ -74,9 +75,9 @@ struct QuestLibraryView: View {
                 MokoBackdrop()
 
                 if store.isLoading || !store.hasAttemptedLoad {
-                    // Moonwalk SVG shows while the quest library is loading (not inside cards).
+                    // Lottie loading animation shows while the quest library is loading (not inside cards).
                     VStack(spacing: 12) {
-                        MokoSVGAnimationView(name: MokoAnimationAssets.fullScreenLoadingSVG)
+                        MokoLottieView(animation: .loading2, loopMode: .loop)
                             .frame(width: 260, height: 260)
                         Text("Loading quests…")
                             .mokoText(MokoScreenTheme.Typeface.body)

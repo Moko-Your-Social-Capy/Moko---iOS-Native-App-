@@ -113,23 +113,22 @@ struct GroundingExerciseScreen: View {
 
     // MARK: - Body
 
+    @State private var didFinish = false
+
     var body: some View {
         ZStack {
             MokoBackdrop()
-
-            if isCompleted {
-                completionScreen
-                    .transition(.opacity)
-            } else {
-                exerciseScreen
-                    .transition(.opacity)
-            }
+            exerciseScreen
         }
-        // Open the panels once after all five senses are finished.
-        .mokoCompletionReveal(isPresented: isCompleted)
         .navigationBarTitleDisplayMode(.inline)
         // Immersive session: keep the tab bar out of the way.
         .toolbar(.hidden, for: .tabBar)
+        // Return to Relax home once; completion overlay is shown there (single animation).
+        .onChange(of: isCompleted) { _, newValue in
+            guard newValue, !didFinish else { return }
+            didFinish = true
+            onContinue()
+        }
     }
 
     // MARK: - Exercise screen
@@ -345,9 +344,7 @@ struct GroundingExerciseScreen: View {
     // RelaxCompletionScreen plays the GPay sound automatically on appear.
     private var completionScreen: some View {
         RelaxCompletionScreen(
-            title: "Well done",
-            subtitle: "You completed the 5-4-3-2-1 sensory reset",
-            accent: accent,
+            exerciseTitle: "Grounding Exercise",
             onContinue: onContinue
         )
     }

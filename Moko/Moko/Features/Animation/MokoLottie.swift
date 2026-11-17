@@ -7,10 +7,14 @@ import Lottie
 enum MokoAnimation: String, CaseIterable {
     // Real files in the bundle: the raw value is the exact file name
     case confetti = "confetti"
+    case confetti2 = "Confetti 2"
     case empty = "empty"
     case streakFlame = "flame___streak"
     case sparkles = "sparkles"
     case successCheck = "success_check"   // use your real file name
+    case loading2 = "loading-2"
+    case brickBreathing = "[BB] Brick breathing"
+    case easterBunnyWaving = "Easter Bunny Boy waving"
     // add "strings" here only once strings.lottie is in the project
 
     // Placeholders: no raw value of their own
@@ -21,9 +25,9 @@ enum MokoAnimation: String, CaseIterable {
 
     var defaultLoopMode: Lottie.LottieLoopMode {
         switch self {
-        case .streakFlame, .breathing:
+        case .streakFlame, .breathing, .loading2, .brickBreathing, .easterBunnyWaving:
             return .loop
-        case .confetti, .sparkles, .successCheck, .empty, .mokoWaving, .mokoListening,
+        case .confetti, .confetti2, .sparkles, .successCheck, .empty, .mokoWaving, .mokoListening,
              .grounding, .guidedImagery, .mirrorReflection, .strings:
             return .playOnce
         }
@@ -31,7 +35,7 @@ enum MokoAnimation: String, CaseIterable {
 
     var respectsReduceMotion: Bool {
         switch self {
-        case .confetti, .sparkles:
+        case .confetti, .confetti2, .sparkles:
             return true
         default:
             return false
@@ -40,7 +44,7 @@ enum MokoAnimation: String, CaseIterable {
 
     var accentColor: Color {
         switch self {
-        case .confetti:
+        case .confetti, .confetti2:
             return Color(red: 0.85, green: 0.20, blue: 0.65)
         case .empty:
             return .gray
@@ -50,10 +54,12 @@ enum MokoAnimation: String, CaseIterable {
             return .blue
         case .successCheck:
             return .green
-        case .mokoWaving, .mokoListening:
+        case .mokoWaving, .mokoListening, .easterBunnyWaving:
             return .orange
-        case .breathing:
+        case .breathing, .brickBreathing:
             return Color(hex: 0x365948) // forest green
+        case .loading2:
+            return MokoScreenTheme.Colors.dataVioletDeep
         case .grounding:
             return Color(hex: 0x2F4C43) // teal-green
         case .guidedImagery:
@@ -67,14 +73,15 @@ enum MokoAnimation: String, CaseIterable {
 
     var iconName: String {
         switch self {
-        case .confetti: return "party.popper"
+        case .confetti, .confetti2: return "party.popper"
         case .empty: return "square.dashed"
         case .streakFlame: return "flame"
         case .sparkles: return "sparkles"
         case .successCheck: return "checkmark.circle"
-        case .mokoWaving: return "hand.wave"
+        case .mokoWaving, .easterBunnyWaving: return "hand.wave"
         case .mokoListening: return "ear"
-        case .breathing: return "wind"
+        case .breathing, .brickBreathing: return "wind"
+        case .loading2: return "arrow.2.circlepath"
         case .grounding: return "leaf"
         case .guidedImagery: return "brain.head.profile"
         case .mirrorReflection: return "person.crop.circle"
@@ -100,6 +107,11 @@ struct MokoLottieView: View {
         loopMode ?? animation.defaultLoopMode
     }
 
+    private var resolvedLottieAnimation: LottieAnimation? {
+        LottieAnimation.named(animation.filename)
+            ?? MokoAnimationAssets.url(named: animation.filename, extension: "json").flatMap { LottieAnimation.filepath($0.path) }
+    }
+
     var body: some View {
         if animation.respectsReduceMotion && reduceMotion {
             fallbackIcon
@@ -108,20 +120,23 @@ struct MokoLottieView: View {
         }
     }
 
+    @ViewBuilder
     private var lottieView: some View {
-        LottieView(
-            animation: .named(animation.filename, bundle: .main)
-        )
-        .configure { view in
-            view.loopMode = effectiveLoopMode
-            view.animationSpeed = CGFloat(speed)
-            view.backgroundBehavior = .pauseAndRestore
+        if let resolvedLottieAnimation {
+            LottieView(animation: resolvedLottieAnimation)
+                .configure { view in
+                    view.loopMode = effectiveLoopMode
+                    view.animationSpeed = CGFloat(speed)
+                    view.backgroundBehavior = .pauseAndRestore
+                }
+                .play()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .aspectRatio(contentMode: contentMode)
+                .accessibilityLabel("\(animation.filename) animation")
+                .accessibilityHidden(true)
+        } else {
+            fallbackIcon
         }
-        .play()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .aspectRatio(contentMode: contentMode)
-        .accessibilityLabel("\(animation.filename) animation")
-        .accessibilityHidden(true)
     }
 
     private var fallbackIcon: some View {
