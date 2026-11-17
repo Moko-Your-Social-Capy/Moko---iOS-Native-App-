@@ -194,6 +194,10 @@ struct OverviewScaffold<MissionCard: View>: View {
 
                     Spacer(minLength: Theme.Space.gapInner)
 
+                    insightsDelta
+
+                    Spacer(minLength: Theme.Space.gapInner)
+
                     metric(value: "\(Int(data.insights.overall.rounded()))", unit: "overall")
                 }
 
@@ -205,12 +209,59 @@ struct OverviewScaffold<MissionCard: View>: View {
         }
     }
 
+    /// Change indicator between the last two debrief records.
+    /// Green + arrow-up if improved, brown + arrow-down if declined, gray prompt if < 2 records.
+    private var insightsDelta: some View {
+        let sorted = insights.sorted { $0.date < $1.date }
+
+        if sorted.count < 2 {
+            // Not enough data yet
+            return AnyView(
+                Text("Try out one quest.")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(Theme.Colors.textMuted)
+            )
+        }
+
+        let prev    = InsightsScores(records: [sorted[sorted.count - 2]])
+        let current = InsightsScores(records: [sorted[sorted.count - 1]])
+
+        guard prev.overall > 0 else {
+            return AnyView(
+                Text("Try out one quest.")
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundStyle(Theme.Colors.textMuted)
+            )
+        }
+
+        let pct    = ((current.overall - prev.overall) / prev.overall) * 100
+        let isUp   = pct >= 0
+        let symbol = isUp ? "arrow.up.right" : "arrow.down.right"
+        let color: Color = isUp
+            ? Color(red: 0.18, green: 0.56, blue: 0.34)   // green
+            : Color(red: 0.55, green: 0.33, blue: 0.18)   // brown
+
+        return AnyView(
+            HStack(spacing: 4) {
+                Image(systemName: symbol)
+                    .font(.system(size: 28, weight: .semibold))
+                Text("\(abs(Int(pct.rounded())))%")
+                    .font(.system(size: 35, weight: .bold))
+            }
+            .foregroundStyle(color)
+        )
+    }
+
     /// Today's relax minutes next to a bar chart of the last six days.
     private var calmDownCard: some View {
         progressCard {
             ZStack(alignment: .topLeading) {
                 VStack(alignment: .leading, spacing: 0) {
                     cardHeader(title: "Calm Down")
+
+                    Spacer(minLength: Theme.Space.gapInner)
+
+                    calmDownLastExercise
 
                     Spacer(minLength: Theme.Space.gapInner)
 
@@ -223,6 +274,16 @@ struct OverviewScaffold<MissionCard: View>: View {
                     .accessibilityHidden(true)
             }
         }
+    }
+
+    /// Most recent exercise name, or a nudge if nothing has been done yet.
+    private var calmDownLastExercise: some View {
+        let title = calmDowns.max(by: { $0.date < $1.date })?.exerciseTitle
+
+        return Text(title ?? "Try Relax")
+            .font(.system(size: 20, weight: .medium))
+            .foregroundStyle(title != nil ? Theme.Colors.textTitle : Theme.Colors.textMuted)
+            .lineLimit(1)
     }
 
     /// Shared shell for the two growth cards: elevated surface, full height, 18/20 insets.
