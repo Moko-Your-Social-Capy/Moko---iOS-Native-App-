@@ -83,28 +83,25 @@ struct QuestLibraryView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    VStack(spacing: 12) {
-                        searchBar
+                    ScrollView(.vertical) {
+                        VStack(alignment: .leading, spacing: 22) {
+                            headerSection
 
-                        ScrollView(.vertical) {
-                            VStack(alignment: .leading, spacing: 22) {
-                                headerSection
+                            searchBar
+                                .padding(.horizontal, MokoScreenTheme.Space.page)
 
-                                // Only show the chips once there is something to filter.
-                                if !store.sections.isEmpty {
-                                    QuestLibraryFilterBar(
-                                        sections: store.sections,
-                                        selectedTitle: $selectedType
-                                    )
-                                }
-
-                                libraryContent
+                            // Only show the chips once there is something to filter.
+                            if !store.sections.isEmpty {
+                                QuestLibraryFilterBar(
+                                    sections: store.sections,
+                                    selectedTitle: $selectedType
+                                )
                             }
-                            .padding(.bottom, 16)
+
+                            libraryContent
                         }
+                        .padding(.bottom, 16)
                     }
-                    .padding(.horizontal, MokoScreenTheme.Space.page)
-                    .padding(.top, 8)
                 }
             }
             // `.task` runs when the screen appears. Downloads the library the first time only.
@@ -131,41 +128,46 @@ struct QuestLibraryView: View {
     // MARK: - Header
 
 
-    /// Search field pinned at the top of the library, so it never appears only when the tab opens.
+    /// Search field below the title and above the quest results.
     private var searchBar: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(MokoScreenTheme.Colors.textMuted)
-                .accessibilityHidden(true)
+        ZStack {
+            Capsule()
+                .fill(MokoScreenTheme.Colors.surfaceWhite)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            TextField(
-                "",
-                text: $searchText,
-                prompt: Text("Search quests")
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(MokoScreenTheme.Colors.textMuted)
-            )
-            .font(.body)
-            .foregroundStyle(MokoScreenTheme.Colors.textTitle)
-            .tint(MokoScreenTheme.Colors.ctaAccent)
-            .submitLabel(.search)
-            .accessibilityLabel("Search quests")
+                    .accessibilityHidden(true)
 
-            if !searchText.isEmpty {
-                Button {
-                    searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16, weight: .semibold))
+                TextField(
+                    "",
+                    text: $searchText,
+                    prompt: Text("Search quests")
                         .foregroundStyle(MokoScreenTheme.Colors.textMuted)
+                )
+                .font(.body)
+                .foregroundStyle(MokoScreenTheme.Colors.textTitle)
+                .tint(MokoScreenTheme.Colors.ctaAccent)
+                .submitLabel(.search)
+                .accessibilityLabel("Search quests")
+
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(MokoScreenTheme.Colors.textMuted)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Clear search")
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Clear search")
             }
+            .padding(.horizontal, 14)
         }
-        .padding(.horizontal, 14)
         .frame(height: 48)
-        .background(MokoScreenTheme.Colors.surfaceWhite, in: Capsule())
         .overlay {
             Capsule().stroke(MokoScreenTheme.Colors.borderSubtle, lineWidth: 1)
         }

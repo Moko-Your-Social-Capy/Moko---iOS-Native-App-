@@ -1,5 +1,7 @@
 # Changelog
 
+- 2026-11-17 — `QuestLibraryView.swift`: Moved the custom Quest Library search bar below the title and into the scroll content, using a full-width capsule with a 14 pt content inset and the shared page gutter; removed the extra padded container that shifted the cards from the edge. Simulator build passed.
+
 - 2026-11-17 — `Questdebrief.swift`: Removed back button from `QuestDebriefScreen` top header per user request, keeping the quest title centered as a clean, distraction-free single-line header.
 
 - 2026-11-17 — `Questdebrief.swift`, `AFMDebriefCoach.swift`, `MokoAFM.swift`, `Insightsview.swift`, `DynamicParameterAnalysisStore.swift` (new), `MokoLog.swift`:
