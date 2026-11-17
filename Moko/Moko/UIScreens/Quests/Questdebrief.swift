@@ -1000,11 +1000,6 @@ struct QuestDebriefScreen: View {
             }
 
 
-            if session.isCoachTyping {
-                DebriefTypingIndicator()
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-
             if session.isRecording {
                 DebriefRecordingCard(
                     levels: session.levels,
@@ -1445,18 +1440,6 @@ struct DebriefQuestionHeader: View {
         .padding(.horizontal, 4)
         .padding(.top, 10)
         .accessibilityElement(children: .combine)
-    }
-}
-
-/// Loading spinner while the coach is thinking.
-struct DebriefTypingIndicator: View {
-    var body: some View {
-        HStack(spacing: 0) {
-            MokoInlineLoader(size: 28)
-            Spacer()
-        }
-        .frame(height: 44)
-        .accessibilityLabel("Your coach is typing")
     }
 }
 
