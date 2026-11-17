@@ -54,6 +54,8 @@ struct OverviewDebriefDone: View {
         .onAppear {
             // One confetti burst celebrates the single completion card below.
             showConfetti = true
+            // Play success chime when the debrief completion checkmark screen is displayed.
+            DebriefSoundPlayer.shared.playSuccess()
         }
     }
 
