@@ -101,16 +101,16 @@ struct MokoStyledButton: ButtonStyle {
         case .primary, .smallPrimary:
             return MokoScreenTheme.Colors.textOnBrand
         case .secondary, .smallSecondary:
-            return effectiveIsDisabled ? MokoScreenTheme.Colors.textMuted : MokoScreenTheme.Colors.dataVioletDeep
+            return effectiveIsDisabled ? MokoScreenTheme.Colors.textMuted : MokoScreenTheme.Colors.ctaAccent
         case .icon:
-            return effectiveIsDisabled ? MokoScreenTheme.Colors.textMuted : MokoScreenTheme.Colors.dataVioletDeep
+            return effectiveIsDisabled ? MokoScreenTheme.Colors.textMuted : MokoScreenTheme.Colors.ctaAccent
         }
     }
     
     private var backgroundColor: Color {
         switch style {
         case .primary, .smallPrimary:
-            return effectiveIsDisabled ? MokoScreenTheme.Colors.buttonDisabled : MokoScreenTheme.Colors.dataVioletDeep
+            return effectiveIsDisabled ? MokoScreenTheme.Colors.buttonDisabled : MokoScreenTheme.Colors.ctaAccent
         case .secondary, .smallSecondary, .icon:
             return .clear
         }
@@ -121,9 +121,9 @@ struct MokoStyledButton: ButtonStyle {
         case .primary, .smallPrimary:
             return .clear
         case .secondary, .smallSecondary:
-            return effectiveIsDisabled ? MokoScreenTheme.Colors.borderSubtle : MokoScreenTheme.Colors.dataVioletDeep
+            return effectiveIsDisabled ? MokoScreenTheme.Colors.borderSubtle : MokoScreenTheme.Colors.ctaAccent
         case .icon:
-            return effectiveIsDisabled ? MokoScreenTheme.Colors.borderSubtle : MokoScreenTheme.Colors.dataVioletDeep
+            return effectiveIsDisabled ? MokoScreenTheme.Colors.borderSubtle : MokoScreenTheme.Colors.ctaAccent
         }
     }
     

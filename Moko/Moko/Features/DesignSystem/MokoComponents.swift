@@ -64,35 +64,16 @@ extension View {
 
 // MARK: - Background (§5)
 
-/// Theme-aware app background (gradient + subtle vector strokes).
+/// Theme-aware app background (gradient only, per theme).
 struct MokoBackdrop: View {
     @Environment(\.mokoTheme) private var theme
 
     var body: some View {
-        ZStack {
-            theme.colors.backgroundGradient
-
-            // Subtle vector decorations tinted by the active theme.
-            GeometryReader { geo in
-                VectorBushShape()
-                    .stroke(theme.colors.secondary.opacity(theme.isDark ? 0.06 : 0.12),
-                            lineWidth: Theme.Line.data)
-                    .frame(width: 310, height: 200)
-                    .rotationEffect(.degrees(6), anchor: .bottomLeading)
-                    .offset(x: -70, y: geo.size.height - 200 + 28)
-
-                VectorLeafShape()
-                    .stroke(theme.colors.accent.opacity(theme.isDark ? 0.05 : 0.10),
-                            lineWidth: Theme.Line.data)
-                    .frame(width: 96, height: 44)
-                    .scaleEffect(x: -1, y: 1)
-                    .rotationEffect(.degrees(12))
-                    .offset(x: geo.size.width - 96 + 44, y: geo.size.height * 0.42)
-            }
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
+        // Each theme provides its own subtle gradient; no decorative vectors.
+        theme.colors.backgroundGradient
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 }
 

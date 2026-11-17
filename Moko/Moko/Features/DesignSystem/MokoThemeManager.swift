@@ -43,8 +43,8 @@ final class MokoThemeManager {
     private init() {
         let storedRaw = UserDefaults.standard.string(forKey: Keys.theme) ?? MokoThemeID.default.rawValue
         let themeRaw: String
-        // Back-compat: older builds saved "forest" for the original theme.
-        if storedRaw == "forest" {
+        // Back-compat: older builds saved "forest" for the original theme; removed "sunset" falls back to default.
+        if storedRaw == "forest" || storedRaw == "sunset" {
             themeRaw = MokoThemeID.default.rawValue
         } else {
             themeRaw = storedRaw

@@ -1,12 +1,11 @@
 import SwiftUI
 
-/// The seven MOKO visual identities.
+/// The six MOKO visual identities.
 enum MokoThemeID: String, CaseIterable, Codable, Identifiable {
     // This is the user's Default palette and the app's starting theme.
     case `default`
     case lavender
     case ocean
-    case sunset
     case blossom
     case midnight
     case batman
@@ -18,7 +17,6 @@ enum MokoThemeID: String, CaseIterable, Codable, Identifiable {
         case .default: return "Default"
         case .lavender: return "Lavender"
         case .ocean: return "Ocean"
-        case .sunset: return "Sunset"
         case .blossom: return "Blossom"
         case .midnight: return "Midnight"
         case .batman: return "Batman"
@@ -30,7 +28,6 @@ enum MokoThemeID: String, CaseIterable, Codable, Identifiable {
         case .default: return "MOKO's original identity"
         case .lavender: return "Calm violet warmth"
         case .ocean: return "Cool and clear"
-        case .sunset: return "Golden coral glow"
         case .blossom: return "Soft rose comfort"
         case .midnight: return "Deep indigo focus"
         case .batman: return "Dark minimal premium"

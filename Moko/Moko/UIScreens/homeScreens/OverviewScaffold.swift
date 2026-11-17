@@ -154,7 +154,7 @@ struct OverviewScaffold<MissionCard: View>: View {
                 .padding(.horizontal, Theme.Space.cardHorizontal)
                 .padding(.vertical, Theme.Space.cardVertical)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .mokoCard(fill: MokoScreenTheme.Colors.surfaceWhite)
+                .mokoCard(fill: MokoScreenTheme.Card.missionFill)
         }
     }
 
@@ -233,7 +233,7 @@ struct OverviewScaffold<MissionCard: View>: View {
             .padding(.horizontal, Theme.Space.cardHorizontal)
             .padding(.vertical, Theme.Space.cardVertical)
             .frame(maxWidth: .infinity, minHeight: Theme.Size.progressCard, alignment: .leading)
-            .mokoCard(fill: MokoScreenTheme.Colors.surfaceLavender)
+            .mokoCard(fill: MokoScreenTheme.Card.progressFill)
     }
 
     /// Card title on the left, today's date and a chevron on the right.
