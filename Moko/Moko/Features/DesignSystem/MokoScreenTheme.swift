@@ -118,10 +118,28 @@ enum MokoScreenTheme {
         static let dataMagenta = Color(hex: 0xC4547A)
         /// Amber/gold accent (streak flame, trophy, XP highlights).
         static let dataGold = Color(hex: 0xD9A441)
+        /// Deeper gold for small chart marks and icons, where the lighter gold
+        /// does not have enough contrast on a white card.
+        static let dataGoldDeep = Color(hex: 0xB8862A)
         /// Teal accent (success states, completed milestones).
         static let dataTeal = Color(hex: 0x3B9A8C)
         /// Soft green — a lighter tint of dataVioletDeep for backgrounds/chips.
         static let dataVioletLight = Color(hex: 0xCBE6D3)
+        /// Soft indigo — one calm-down exercise colour that must stay clearly
+        /// different from the greens and teals.
+        static let dataIndigo = Color(hex: 0x7A4FA8)
+
+        // MARK: Calm Down exercise fills
+        /// Light versions of the five exercise colours. The chart bars, legend
+        /// and activity icon plates all use these pale fills.
+        static let dataGreenLight = Color(hex: 0xA8D5B5)
+        static let dataGoldLight = Color(hex: 0xE7C27D)
+        static let dataBlueLight = Color(hex: 0xA3C2EE)
+        static let dataIndigoLight = Color(hex: 0xC4ADE3)
+        static let dataRoseLight = Color(hex: 0xE9AEBE)
+        /// Fallback fills for an exercise title the app does not know yet.
+        static let dataTealLight = Color(hex: 0xA9D8D1)
+        static let dataRustLight = Color(hex: 0xEFC0A9)
         
         // MARK: Parameter-specific colors (for Insights)
         /// Courage - Greenish teal (was violet)
