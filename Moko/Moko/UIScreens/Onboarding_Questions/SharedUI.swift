@@ -18,7 +18,9 @@ enum RColor {
     static let green   = Color(hex: 0x28523B)
     /// The expand/collapse arrow on reflection rows.
     static let chevron = Color(hex: 0x1B422F)
-    /// "Weak spot" icons.
+    /// "Weak spot" / "Areas to grow" icons (warm brand brown, never red).
+    static let brown   = Color(hex: 0x5C4330)
+    /// Legacy rust tint.
     static let rust    = Color(hex: 0x9A442D)
     /// Soft circle backgrounds behind the Done screen's icons.
     static let mint    = Color(hex: 0xBFEDCF)
