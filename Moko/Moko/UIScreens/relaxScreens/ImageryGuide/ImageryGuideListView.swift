@@ -138,10 +138,16 @@ struct ImageryGuideListView: View {
     @ViewBuilder
     private var guideContent: some View {
         if store.isLoading && store.guides.isEmpty {
-            ProgressView(screen?.loadingText ?? "")
-                .tint(accent)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.top, 40)
+            VStack(spacing: 12) {
+                MokoInlineLoader(size: 48, tint: accent)
+                if let text = screen?.loadingText, !text.isEmpty {
+                    Text(text)
+                        .mokoText(MokoScreenTheme.Typeface.caption)
+                        .foregroundStyle(MokoScreenTheme.Colors.textBody)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.top, 40)
         } else if store.guides.isEmpty, let error = store.errorMessage {
             ContentUnavailableView {
                 Label(screen?.errorTitle ?? "Couldn't load guides", systemImage: screen?.errorIcon ?? "wifi.exclamationmark")
@@ -262,8 +268,7 @@ struct ImageryGuideListView: View {
                             endPoint: .bottomTrailing
                         )
 
-                        ProgressView()
-                            .tint(accent)
+                        MokoInlineLoader(size: 24, tint: accent)
                     }
                 case .failure:
                     iconFallback(for: guide)

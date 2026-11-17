@@ -14,6 +14,8 @@ struct MokoApp: App {
 
     init() {
         styleSegmentedPickers()
+        // Preload SVG animations so loaders (moonwalk/tick) appear quickly.
+        MokoAnimationAssets.preloadCommonSVGs()
         #if DEBUG
         OnboardingReflectionServiceTests.runAllTests()
         #endif
@@ -23,6 +25,7 @@ struct MokoApp: App {
         WindowGroup {
             ContentView()
 //            MokoLottieDemoView()
+                .mokoThemeRoot()
         }
         // SwiftData is Apple's storage. It saves these types on the phone
         // and shares them with every screen through the environment.

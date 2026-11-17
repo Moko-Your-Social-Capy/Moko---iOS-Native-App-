@@ -16,6 +16,7 @@ struct SplashScreenView: View {
 
     // The phone setting "Reduce Motion". If it is on, we fade instead of sliding.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.mokoTheme) private var theme
 
     // False at the start, true after the entrance plays.
     // Flipping it inside withAnimation is what makes things move.
@@ -32,7 +33,7 @@ struct SplashScreenView: View {
         Button(action: finish) {
             // GeometryReader tells us the screen size so the mascot fits any phone.
             GeometryReader { geometry in
-                SplashLayout(size: geometry.size, hasAppeared: hasAppeared, reduceMotion: reduceMotion)
+                SplashLayout(size: geometry.size, hasAppeared: hasAppeared, reduceMotion: reduceMotion, theme: theme)
             }
             .ignoresSafeArea()
         }
@@ -49,7 +50,7 @@ struct SplashScreenView: View {
     /// Plays the entrance, waits a moment, then moves on.
     private func playEntranceThenFinish() async {
         do {
-            // A tiny pause so the first frame is a clean mint screen.
+            // A tiny pause so the first frame is a clean screen.
             try await Task.sleep(for: .milliseconds(80))
 
             withAnimation(reduceMotion ? MokoScreenTheme.Motion.crossfade : MokoScreenTheme.Motion.mascotEntrance) {
@@ -77,6 +78,7 @@ private struct SplashLayout: View {
     let size: CGSize
     let hasAppeared: Bool
     let reduceMotion: Bool
+    let theme: MokoResolvedTheme
 
     private var isLandscape: Bool { size.width > size.height }
 
@@ -96,7 +98,7 @@ private struct SplashLayout: View {
             Text("Moko")
                 .font(.system(size: 72, weight: .heavy, design: .rounded))
                 .tracking(-3)
-                .foregroundStyle(MokoScreenTheme.Colors.dataVioletDeep)
+                .foregroundStyle(theme.colors.ctaAccent)
                 .opacity(hasAppeared ? 1 : 0)
                 .position(x: size.width * (isLandscape ? 0.27 : 0.5),
                           y: size.height * (isLandscape ? 0.44 : 0.30))

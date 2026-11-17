@@ -95,7 +95,7 @@ struct ProfileOverViewNotifications: View {
         }
         .listStyle(.insetGrouped)
         .environment(\.defaultMinListRowHeight, 60)
-        .tint(ProfilePalette.accent)
+        .tint(MokoScreenTheme.Colors.ctaAccent)
         .scrollContentBackground(.hidden)
         .background(MokoBackdrop())
         .navigationTitle("Notifications")
@@ -174,7 +174,7 @@ struct ProfileOverViewNotifications: View {
                         .frame(maxWidth: .infinity, minHeight: 50)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(ProfilePalette.accent)
+                .tint(MokoScreenTheme.Colors.ctaAccent)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }

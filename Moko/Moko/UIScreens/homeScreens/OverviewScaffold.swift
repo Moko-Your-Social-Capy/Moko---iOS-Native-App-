@@ -118,7 +118,7 @@ struct OverviewScaffold<MissionCard: View>: View {
                     .fill(Theme.Colors.avatarFill)
 
                 Circle()
-                    .strokeBorder(Color.white.opacity(0.9), lineWidth: Theme.Line.hair)
+                    .strokeBorder(Theme.Colors.avatarRing, lineWidth: Theme.Line.hair)
 
                 avatarGlyph
             }
@@ -154,7 +154,7 @@ struct OverviewScaffold<MissionCard: View>: View {
                 .padding(.horizontal, Theme.Space.cardHorizontal)
                 .padding(.vertical, Theme.Space.cardVertical)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .mokoCard()
+                .mokoCard(fill: MokoScreenTheme.Colors.surfaceWhite)
         }
     }
 
@@ -225,7 +225,7 @@ struct OverviewScaffold<MissionCard: View>: View {
         }
     }
 
-    /// Shared shell for the two growth cards: one fill, full height, 18/20 insets.
+    /// Shared shell for the two growth cards: elevated surface, full height, 18/20 insets.
     private func progressCard<Content: View>(
         @ViewBuilder content: () -> Content
     ) -> some View {
@@ -233,7 +233,7 @@ struct OverviewScaffold<MissionCard: View>: View {
             .padding(.horizontal, Theme.Space.cardHorizontal)
             .padding(.vertical, Theme.Space.cardVertical)
             .frame(maxWidth: .infinity, minHeight: Theme.Size.progressCard, alignment: .leading)
-            .mokoCard()
+            .mokoCard(fill: MokoScreenTheme.Colors.surfaceLavender)
     }
 
     /// Card title on the left, today's date and a chevron on the right.

@@ -484,7 +484,7 @@ struct ProfileOverViewEditProfile: View {
             Button(action: save) {
                 Group {
                     if isSaving {
-                        ProgressView().tint(Theme.Colors.textOnBrand)
+                        MokoInlineLoader(size: 20, tint: Theme.Colors.textOnBrand)
                     } else {
                         Text("Save")
                             .mokoText(Theme.Typeface.button)

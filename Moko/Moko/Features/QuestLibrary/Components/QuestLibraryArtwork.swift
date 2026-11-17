@@ -26,8 +26,7 @@ struct QuestLibraryArtwork: View {
                 case .empty:
                     ZStack {
                         Color.white.opacity(0.25)
-                        MokoLoadingView()
-                            .frame(width: 44, height: 44)
+                        MokoInlineLoader(size: 36)
                     }
                 case .failure:
                     categorySymbol

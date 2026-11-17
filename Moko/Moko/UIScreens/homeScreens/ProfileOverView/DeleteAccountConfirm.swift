@@ -17,7 +17,7 @@ struct ProfileOverViewDeleteAccountConfirm: View {
         List {
             Section {
                 Text("This permanently deletes your account and cannot be undone.")
-                    .foregroundStyle(ProfilePalette.text)
+                    .foregroundStyle(MokoScreenTheme.Colors.textTitle)
                 Label("Your profile and account details", systemImage: "person.crop.circle")
                 Label("Quests, scores, streaks and badges", systemImage: "chart.bar")
                 Label("Reflection text and calm-session history", systemImage: "text.alignleft")
@@ -42,7 +42,7 @@ struct ProfileOverViewDeleteAccountConfirm: View {
         .background(MokoBackdrop())
         .navigationTitle("Delete account")
         .navigationBarTitleDisplayMode(.large)
-        .tint(ProfilePalette.accent)
+        .tint(MokoScreenTheme.Colors.ctaAccent)
     }
 }
 
@@ -62,7 +62,7 @@ struct ProfileOverViewDeleteReauthentication: View {
         Form {
             Section {
                 Text("Sign in again to confirm that it is you.")
-                    .foregroundStyle(ProfilePalette.secondary)
+                    .foregroundStyle(MokoScreenTheme.Colors.textBody)
                 TextField("Email", text: $email)
                     .textContentType(.username)
                     .keyboardType(.emailAddress)
@@ -73,7 +73,7 @@ struct ProfileOverViewDeleteReauthentication: View {
             } header: {
                 Text("Verify your account")
             }
-            if let error { Section { Text(error).foregroundStyle(ProfilePalette.error) } }
+            if let error { Section { Text(error).foregroundStyle(MokoScreenTheme.Colors.error) } }
             Section {
                 Button {
                     Task { await reauthenticate() }
@@ -105,7 +105,7 @@ struct ProfileOverViewDeleteReauthentication: View {
         .task {
             if let user = try? await AuthService().getCurrentUser() { email = user.email ?? "" }
         }
-        .tint(ProfilePalette.accent)
+        .tint(MokoScreenTheme.Colors.ctaAccent)
     }
 
     /// Signs in with the typed details. Success opens the final step.

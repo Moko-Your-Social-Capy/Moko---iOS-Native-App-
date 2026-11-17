@@ -56,8 +56,8 @@ struct MokoCostumeAvatar: View {
     let photoData: Data?
     var size: CGFloat
     /// Pass `.clear` when the avatar sits on a themed surface of its own.
-    var background: Color = ProfilePalette.grouped
-    var ring: Color? = ProfilePalette.accent.opacity(0.18)
+    var background: Color = MokoScreenTheme.Colors.surfaceLavender
+    var ring: Color? = MokoScreenTheme.Colors.ctaAccent.opacity(0.18)
     // @AppStorage saves the picked outfit in UserDefaults, so it is remembered after the app closes.
     // Every view that uses the same key updates together.
     @AppStorage("moko.selectedCostumeLevel") private var selectedLevel = 1
@@ -103,10 +103,10 @@ struct MokoWardrobeView: View {
                     MokoCostumeAvatar(level: level, photoData: nil, size: 144)
                     Text(MokoCostume.selected(unlockedAt: level, selection: selectedLevel).name)
                         .font(.headline)
-                        .foregroundStyle(ProfilePalette.text)
+                        .foregroundStyle(MokoScreenTheme.Colors.textTitle)
                     Text("Level \(level) · \(MokoCostume.unlockedCount(for: level)) of \(MokoCostume.all.count) unlocked")
                         .font(.subheadline)
-                        .foregroundStyle(ProfilePalette.secondary)
+                        .foregroundStyle(MokoScreenTheme.Colors.textBody)
                 }
                 .frame(maxWidth: .infinity)
                 .listRowBackground(Color.clear)
@@ -127,26 +127,26 @@ struct MokoWardrobeView: View {
                                 .scaledToFit()
                                 .padding(3)
                                 .frame(width: 64, height: 64)
-                                .background(ProfilePalette.lime.opacity(unlocked ? 0.7 : 0.35), in: Circle())
-                                .overlay(Circle().stroke(ProfilePalette.accent.opacity(0.15), lineWidth: 1))
+                                .background(MokoScreenTheme.Colors.surfaceLavender.opacity(unlocked ? 0.7 : 0.35), in: Circle())
+                                .overlay(Circle().stroke(MokoScreenTheme.Colors.ctaAccent.opacity(0.15), lineWidth: 1))
                                 .opacity(unlocked ? 1 : 0.55)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(costume.name)
                                     .font(.body.weight(.semibold))
-                                    .foregroundStyle(ProfilePalette.text)
+                                    .foregroundStyle(MokoScreenTheme.Colors.textTitle)
                                 Text(unlocked ? "Unlocked · Level \(costume.level)" : "Unlocks at Level \(costume.level)")
                                     .font(.subheadline)
-                                    .foregroundStyle(ProfilePalette.secondary)
+                                    .foregroundStyle(MokoScreenTheme.Colors.textBody)
                             }
                             Spacer(minLength: 8)
                             if selectedLevel == costume.level && unlocked {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(ProfilePalette.success)
+                                    .foregroundStyle(MokoScreenTheme.Colors.brightGreen)
                                     .accessibilityLabel("Selected")
                             } else if !unlocked {
                                 Image(systemName: "lock.fill")
-                                    .foregroundStyle(ProfilePalette.secondary)
+                                    .foregroundStyle(MokoScreenTheme.Colors.textBody)
                                     .accessibilityLabel("Locked")
                             }
                         }
@@ -167,6 +167,6 @@ struct MokoWardrobeView: View {
         .background(MokoBackdrop())
         .navigationTitle("Moko’s wardrobe")
         .navigationBarTitleDisplayMode(.large)
-        .tint(ProfilePalette.accent)
+        .tint(MokoScreenTheme.Colors.ctaAccent)
     }
 }

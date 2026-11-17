@@ -33,8 +33,7 @@ struct SessionCompleteView: View {
                     content(screen)
                 }
             } else if store.isLoading {
-                ProgressView()
-                    .tint(accent)
+                MokoInlineLoader(size: 48, tint: accent)
             } else {
                 ContentUnavailableView {
                     Label(store.screen?.errorTitle ?? "Couldn't load guides", systemImage: store.screen?.errorIcon ?? "wifi.exclamationmark")
@@ -85,8 +84,9 @@ struct SessionCompleteView: View {
                 .foregroundStyle(MokoScreenTheme.Colors.textMuted)
                 .padding(.top, 4)
 
-            MokoCompletionAnimation(ringDiameter: 190)
-                .padding(.top, 18)
+            // The tick animation celebrates the completed imagery session.
+            MokoTickCompleteView(size: 220)
+                .padding(.top, 12)
 
             Text(screen.completeHeadline)
                 .mokoText(MokoScreenTheme.Typeface.title1)

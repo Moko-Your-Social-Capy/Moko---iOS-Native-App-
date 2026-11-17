@@ -110,7 +110,7 @@ struct ProfileOverViewAccountAndData: View {
         .labelStyle(MokoSettingsLabelStyle())
         // Keep account actions as easy to read and tap as the main Settings rows.
         .environment(\.defaultMinListRowHeight, 72)
-        .foregroundStyle(ProfilePalette.text)
+        .foregroundStyle(MokoScreenTheme.Colors.textTitle)
         .scrollContentBackground(.hidden)
         .background(MokoBackdrop())
         .navigationTitle("Account & Data")
@@ -139,7 +139,7 @@ struct ProfileOverViewAccountAndData: View {
         } message: {
             Text("Your progress will stay on this device.")
         }
-        .tint(ProfilePalette.accent)
+        .tint(MokoScreenTheme.Colors.ctaAccent)
     }
 }
 
