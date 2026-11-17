@@ -247,8 +247,6 @@ struct QuestDetailScreen: View {
         switch outcome {
         case .completed:
             PendingDebriefStore.clear()
-            // Play the success sound for both custom quests and Quest Library quests.
-            DebriefSoundPlayer.shared.playSuccess()
             openOverview?(.debriefDone)
         case .finishLater:
             PendingDebriefStore.save(quest)

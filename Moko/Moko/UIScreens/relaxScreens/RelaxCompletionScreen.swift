@@ -6,7 +6,7 @@
 //  Each exercise passes its own title, subtitle and button label so the
 //  content stays different even though the layout is identical.
 //
-//  The GPay success sound plays once when the user taps the Continue button.
+//  The GPay success sound plays once when the checkmark screen appears.
 //
 
 import SwiftUI
@@ -85,11 +85,8 @@ struct RelaxCompletionScreen: View {
 
                 Spacer(minLength: 32)
 
-                // Primary button – plays the GPay success chime then hands off to the caller
-                Button(action: {
-                    DebriefSoundPlayer.shared.playSuccess()
-                    onContinue()
-                }) {
+                // Primary button – hands off to caller to dismiss or navigate.
+                Button(action: onContinue) {
                     Text(buttonLabel)
                         .mokoText(MokoScreenTheme.Typeface.cardTitle)
                         .foregroundStyle(.white)
@@ -109,6 +106,8 @@ struct RelaxCompletionScreen: View {
         .celebration($showCelebration, style: .confetti, duration: 3.5)
         .onAppear {
             showCelebration = true
+            // Play the celebration chime when the checkmark screen is displayed.
+            DebriefSoundPlayer.shared.playSuccess()
         }
     }
 }
