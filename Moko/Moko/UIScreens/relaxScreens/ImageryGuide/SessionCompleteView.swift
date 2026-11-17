@@ -19,6 +19,8 @@ struct SessionCompleteView: View {
 
     // The shared store that RelaxFlow put in the environment.
     @Environment(ImageryGuideStore.self) private var store
+    // Remembers whether the success sound has played, so it only happens once.
+    @State private var hasPlayedSound = false
 
     private let accent = MokoScreenTheme.Colors.dataVioletDeep
     private let titleBrown = MokoScreenTheme.Colors.textTitle
@@ -55,12 +57,19 @@ struct SessionCompleteView: View {
         .toolbar(.hidden, for: .tabBar)
         // `.task` runs when the screen appears. Loads the text only if it is not loaded yet.
         .task { await store.loadIfNeeded() }
-        // Play the success chime once the completion screen is displayed and loaded.
-        .onChange(of: store.screen != nil) { _, isReady in
-            if isReady {
-                DebriefSoundPlayer.shared.playSuccess()
-            }
+        // The text is often already loaded, so play the sound as soon as the screen appears.
+        .onAppear { playSuccessSoundIfReady() }
+        // If the text is still loading, play the sound once it arrives.
+        .onChange(of: store.screen != nil) { _, _ in
+            playSuccessSoundIfReady()
         }
+    }
+
+    /// Plays the GPay success chime once, but only when the completion content is visible.
+    private func playSuccessSoundIfReady() {
+        guard !hasPlayedSound, store.screen != nil else { return }
+        hasPlayedSound = true
+        DebriefSoundPlayer.shared.playSuccess()
     }
 
     private func content(_ screen: ImageryGuideScreenContent) -> some View {
