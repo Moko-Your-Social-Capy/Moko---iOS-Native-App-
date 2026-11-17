@@ -66,14 +66,14 @@ enum MokoScreenTheme {
         static var forest: Color { c.primary }
         static var sage: Color { c.secondary }
 
-        static var heroTop: Color { c.profileAccent }
-        static var heroMid: Color { c.profileAccent }
-        static var heroBottom: Color { c.profileAccent }
-        static var heroInk: Color { c.inverseText }
+        static var heroTop: Color { c.profileAccent.opacity(t.isDark ? 0.55 : 1) }
+        static var heroMid: Color { c.profileAccent.opacity(t.isDark ? 0.42 : 1) }
+        static var heroBottom: Color { c.profileAccent.opacity(t.isDark ? 0.34 : 1) }
+        static var heroInk: Color { t.isDark ? c.primaryText : c.inverseText }
         static var heroVector: Color { c.ctaAccent }
-        static var heroVectorBush: Color { c.mokoMascotAccent.opacity(0.16) }
-        static var heroVectorLeaf: Color { c.ctaAccent.opacity(0.14) }
-        static var heroButtonSurface: Color { c.inverseText.opacity(0.16) }
+        static var heroVectorBush: Color { c.mokoMascotAccent.opacity(t.isDark ? 0.28 : 0.16) }
+        static var heroVectorLeaf: Color { c.ctaAccent.opacity(t.isDark ? 0.24 : 0.14) }
+        static var heroButtonSurface: Color { t.isDark ? c.inverseText.opacity(0.18) : c.inverseText.opacity(0.16) }
 
         static var avatarTop: Color { c.secondary.opacity(0.25) }
         static var avatarRing: Color { c.card }

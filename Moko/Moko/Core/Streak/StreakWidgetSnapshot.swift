@@ -38,18 +38,16 @@ struct MokoStreakWidgetSnapshot: Codable, Sendable {
     static let appGroupID = "group.com.SRMIST.MokoAppFinalv2"
     private static let key = "moko.streak.widget.snapshot.v1"
 
-    static var defaults: UserDefaults? {
-        UserDefaults(suiteName: appGroupID) ?? .standard
-    }
+    static var defaults: UserDefaults { .standard }
 
     func save() {
         guard let data = try? JSONEncoder().encode(self) else { return }
-        Self.defaults?.set(data, forKey: Self.key)
+        Self.defaults.set(data, forKey: Self.key)
         WidgetCenter.shared.reloadTimelines(ofKind: "MokoStreakWidget")
     }
 
     static func load() -> MokoStreakWidgetSnapshot {
-        guard let data = defaults?.data(forKey: key),
+        guard let data = defaults.data(forKey: key),
               let snapshot = try? JSONDecoder().decode(MokoStreakWidgetSnapshot.self, from: data)
         else { return .empty }
         return snapshot

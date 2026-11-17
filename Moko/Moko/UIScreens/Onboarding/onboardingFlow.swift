@@ -106,7 +106,7 @@ struct OnboardingJourneyCard<Content: View>: View {
             content()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(22)
+        .padding(28)
         .background {
             RoundedRectangle(cornerRadius: 30, style: .continuous)
                 .fill(
@@ -169,7 +169,7 @@ struct OnboardingJourneyScaffold<Content: View>: View {
                         .font(.body.weight(.semibold))
                         .foregroundStyle(theme.colors.primaryButtonText)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 54)
+                        .frame(height: 58)
                         .background(theme.colors.primaryButton, in: Capsule())
                 }
                 .buttonStyle(.plain)

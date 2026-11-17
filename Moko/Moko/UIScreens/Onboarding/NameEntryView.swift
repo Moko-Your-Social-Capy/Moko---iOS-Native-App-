@@ -69,13 +69,13 @@ struct NameEntryView: View {
                     .font(.subheadline.weight(.medium))
                     .lineSpacing(3)
                     .foregroundStyle(theme.colors.ctaAccentText.opacity(0.82))
-                    .padding(.top, 12)
-                    .padding(.bottom, 22)
+                    .padding(.top, 14)
+                    .padding(.bottom, 30)
 
                 usernameField
 
                 agePicker
-                    .padding(.top, 12)
+                    .padding(.top, 20)
             }
         }
         // Focuses the name field when this step opens, so the keyboard is ready immediately.
@@ -88,7 +88,7 @@ struct NameEntryView: View {
     // MARK: Username field
 
     private var usernameField: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("USERNAME")
                 .font(.caption2.weight(.bold))
                 .tracking(1.6)
@@ -122,18 +122,18 @@ struct NameEntryView: View {
                         .accessibilityHidden(true)
                 }
             }
-            .frame(height: 60)
-            .padding(.horizontal, 14)
-            .background(theme.colors.cardSurface, in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+            .frame(height: 72)
+            .padding(.horizontal, 20)
+            .background(theme.colors.cardSurface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 19, style: .continuous)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .stroke(
                         theme.colors.focusColor.opacity(isFocused ? 0.9 : 0.12),
                         lineWidth: isFocused ? 2 : 1
                     )
             }
             .shadow(color: theme.colors.cardShadow.opacity(0.12), radius: 8, y: 4)
-            .contentShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             // Tapping anywhere in the field brings the keyboard back.
             .onTapGesture { isFocused = true }
         }
@@ -142,7 +142,7 @@ struct NameEntryView: View {
     // MARK: Age picker
 
     private var agePicker: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("YOUR AGE")
                 .font(.caption2.weight(.bold))
                 .tracking(1.6)
@@ -157,10 +157,10 @@ struct NameEntryView: View {
             }
             .pickerStyle(.wheel)
             .labelsHidden()
-            .frame(height: 126)
-            .background(theme.colors.cardSurface, in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+            .frame(height: 150)
+            .background(theme.colors.cardSurface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .overlay {
-                RoundedRectangle(cornerRadius: 19, style: .continuous)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
                     .stroke(theme.colors.cardBorder.opacity(0.72), lineWidth: 1)
             }
             .accessibilityLabel("Your age")

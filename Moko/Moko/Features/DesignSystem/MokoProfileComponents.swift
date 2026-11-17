@@ -47,26 +47,60 @@ struct MokoProfileHero<Avatar: View>: View {
     // @ViewBuilder lets the caller pass in any view (here, the avatar) using `{ ... }`.
     @ViewBuilder var avatar: () -> Avatar
 
+    // The active MOKO theme lets the banner stay soft instead of neon in dark mode.
+    @Environment(\.mokoTheme) private var theme
+
     var body: some View {
         ZStack {
+            // A themed gradient keeps the banner calm in light mode and muted in dark mode.
             LinearGradient(
-                colors: [Theme.Colors.heroTop, Theme.Colors.heroMid, Theme.Colors.heroBottom],
+                colors: bannerColors,
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
             GeometryReader { geo in
+                // Large soft glows add depth without using hard neon fills.
+                Circle()
+                    .fill(theme.colors.inverseText.opacity(theme.isDark ? 0.06 : 0.10))
+                    .frame(width: 260, height: 260)
+                    .blur(radius: 4)
+                    .offset(x: geo.size.width - 220, y: -90)
+
+                Circle()
+                    .fill(theme.colors.ctaAccent.opacity(theme.isDark ? 0.08 : 0.10))
+                    .frame(width: 210, height: 210)
+                    .blur(radius: 4)
+                    .offset(x: -80, y: geo.size.height - 130)
+
                 VectorBushShape()
-                    .stroke(Theme.Colors.heroVectorBush, lineWidth: Theme.Line.data)
+                    .stroke(bannerVectorColor, lineWidth: Theme.Line.data)
                     .frame(width: 220, height: 142)
                     .rotationEffect(.degrees(-6))
                     .offset(x: -70, y: geo.size.height - 142 + 34)
 
                 VectorLeafShape()
-                    .stroke(Theme.Colors.heroVectorLeaf, lineWidth: Theme.Line.data)
+                    .stroke(bannerVectorColor, lineWidth: Theme.Line.data)
                     .frame(width: 150, height: 69)
                     .rotationEffect(.degrees(14))
                     .offset(x: geo.size.width - 60, y: 34)
+
+                // Small dots and sparkles read as quiet theme texture.
+                ForEach(0..<7, id: \.self) { index in
+                    Circle()
+                        .fill(theme.colors.inverseText.opacity(theme.isDark ? 0.10 : 0.14))
+                        .frame(width: index.isMultiple(of: 2) ? 5 : 7)
+                        .offset(
+                            x: bannerDotOffset(index: index, width: geo.size.width),
+                            y: bannerDotOffset(index: index, height: geo.size.height)
+                        )
+                }
+
+                Image(systemName: "sparkle")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(theme.colors.inverseText.opacity(theme.isDark ? 0.22 : 0.28))
+                    .rotationEffect(.degrees(18))
+                    .offset(x: geo.size.width - 96, y: 92)
             }
             .allowsHitTesting(false)
             .accessibilityHidden(true)
@@ -87,6 +121,32 @@ struct MokoProfileHero<Avatar: View>: View {
         }
     }
 
+    /// Dark themes use deep muted tones; light themes keep the brighter MOKO accent.
+    private var bannerColors: [Color] {
+        if theme.isDark {
+            return [
+                theme.colors.elevatedCardBackground,
+                theme.colors.cardSurface,
+                theme.colors.secondaryBackground
+            ]
+        }
+        return [Theme.Colors.heroTop, Theme.Colors.heroMid, Theme.Colors.heroBottom]
+    }
+
+    private var bannerVectorColor: Color {
+        theme.isDark ? theme.colors.secondaryText.opacity(0.34) : Theme.Colors.heroVectorBush
+    }
+
+    private func bannerDotOffset(index: Int, width: CGFloat) -> CGFloat {
+        let positions: [CGFloat] = [28, 72, 118, 166, 205, 242, 274]
+        return positions[index % positions.count]
+    }
+
+    private func bannerDotOffset(index: Int, height: CGFloat) -> CGFloat {
+        let positions: [CGFloat] = [48, 88, 128, 66, 104, 76, 118]
+        return positions[index % positions.count].scaled(by: height / 240)
+    }
+
     private var navigationRow: some View {
         HStack(spacing: Theme.Space.s2) {
             circleButton(symbol: "xmark", action: onClose, label: "Close profile")
@@ -95,7 +155,7 @@ struct MokoProfileHero<Avatar: View>: View {
 
             Text(title)
                 .mokoText(Theme.Typeface.cardTitle)
-                .foregroundStyle(Theme.Colors.heroInk)
+                .foregroundStyle(theme.isDark ? theme.colors.primaryText : Theme.Colors.heroInk)
 
             Spacer(minLength: 0)
 
@@ -111,7 +171,7 @@ struct MokoProfileHero<Avatar: View>: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(Theme.Colors.surfaceWhite)
+                .foregroundStyle(theme.isDark ? theme.colors.primaryText : Theme.Colors.surfaceWhite)
                 .frame(width: Metric.navButton, height: Metric.navButton)
                 .background(Theme.Colors.heroButtonSurface, in: Circle())
         }

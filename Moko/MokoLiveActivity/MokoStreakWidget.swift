@@ -33,27 +33,81 @@ private struct MokoStreakTheme {
     let flame: Color
 
     static func resolve(_ scheme: ColorScheme) -> MokoStreakTheme {
-        // Theme-aware enough for widget; detailed MOKO theme selection lives in app.
-        if scheme == .dark {
+        // Widgets have no SwiftUI environment theme; read the app’s saved MOKO theme name.
+        let raw = UserDefaults.standard.string(forKey: "moko.theme.selected") ?? "default"
+        switch raw {
+        case "lavender":
             return MokoStreakTheme(
-                leftTop: Color(red: 0.18, green: 0.43, blue: 0.29),
-                leftBottom: Color(red: 0.10, green: 0.30, blue: 0.22),
+                leftTop: Color(red: 0.75, green: 0.60, blue: 0.95),
+                leftBottom: Color(red: 0.48, green: 0.23, blue: 0.93),
                 leftText: .white,
-                rightBg: Color(red: 0.11, green: 0.11, blue: 0.12),
+                rightBg: Color(red: 0.15, green: 0.13, blue: 0.20),
                 rightText: .white,
-                muted: Color.white.opacity(0.55),
-                flame: Color(red: 1.0, green: 0.55, blue: 0.2)
+                muted: Color.white.opacity(0.58),
+                flame: Color(red: 1.0, green: 0.55, blue: 0.30)
             )
-        } else {
+        case "ocean":
             return MokoStreakTheme(
-                leftTop: Color(red: 0.86, green: 0.95, blue: 0.73),
-                leftBottom: Color(red: 0.62, green: 0.82, blue: 0.52),
-                leftText: Color(red: 0.11, green: 0.26, blue: 0.18),
-                rightBg: Color(red: 0.10, green: 0.10, blue: 0.11),
+                leftTop: Color(red: 0.55, green: 0.75, blue: 0.67),
+                leftBottom: Color(red: 0.30, green: 0.49, blue: 0.67),
+                leftText: Color(red: 0.10, green: 0.18, blue: 0.24),
+                rightBg: Color(red: 0.12, green: 0.15, blue: 0.19),
                 rightText: .white,
                 muted: Color.white.opacity(0.55),
-                flame: Color(red: 1.0, green: 0.45, blue: 0.1)
+                flame: Color(red: 1.0, green: 0.55, blue: 0.25)
             )
+        case "blossom":
+            return MokoStreakTheme(
+                leftTop: Color(red: 0.99, green: 0.65, blue: 0.78),
+                leftBottom: Color(red: 0.76, green: 0.28, blue: 0.67),
+                leftText: .white,
+                rightBg: Color(red: 0.17, green: 0.12, blue: 0.15),
+                rightText: .white,
+                muted: Color.white.opacity(0.55),
+                flame: Color(red: 1.0, green: 0.60, blue: 0.20)
+            )
+        case "midnight":
+            return MokoStreakTheme(
+                leftTop: Color(red: 0.55, green: 0.68, blue: 1.0),
+                leftBottom: Color(red: 0.22, green: 0.29, blue: 0.68),
+                leftText: .white,
+                rightBg: Color(red: 0.09, green: 0.11, blue: 0.16),
+                rightText: .white,
+                muted: Color.white.opacity(0.55),
+                flame: Color(red: 1.0, green: 0.55, blue: 0.20)
+            )
+        case "batman":
+            return MokoStreakTheme(
+                leftTop: Color(red: 0.00, green: 0.75, blue: 0.70),
+                leftBottom: Color(red: 0.00, green: 0.42, blue: 0.38),
+                leftText: .white,
+                rightBg: Color(red: 0.07, green: 0.07, blue: 0.07),
+                rightText: .white,
+                muted: Color.white.opacity(0.55),
+                flame: Color(red: 1.0, green: 0.45, blue: 0.15)
+            )
+        default:
+            if scheme == .dark {
+                return MokoStreakTheme(
+                    leftTop: Color(red: 0.18, green: 0.43, blue: 0.29),
+                    leftBottom: Color(red: 0.10, green: 0.30, blue: 0.22),
+                    leftText: .white,
+                    rightBg: Color(red: 0.11, green: 0.11, blue: 0.12),
+                    rightText: .white,
+                    muted: Color.white.opacity(0.55),
+                    flame: Color(red: 1.0, green: 0.55, blue: 0.2)
+                )
+            } else {
+                return MokoStreakTheme(
+                    leftTop: Color(red: 0.86, green: 0.95, blue: 0.73),
+                    leftBottom: Color(red: 0.62, green: 0.82, blue: 0.52),
+                    leftText: Color(red: 0.11, green: 0.26, blue: 0.18),
+                    rightBg: Color(red: 0.10, green: 0.10, blue: 0.11),
+                    rightText: .white,
+                    muted: Color.white.opacity(0.55),
+                    flame: Color(red: 1.0, green: 0.45, blue: 0.1)
+                )
+            }
         }
     }
 }

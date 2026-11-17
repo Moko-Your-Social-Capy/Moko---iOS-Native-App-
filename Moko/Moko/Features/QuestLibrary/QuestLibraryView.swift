@@ -34,8 +34,6 @@ struct QuestLibraryView: View {
     // Card size that grows with the user's text size setting.
     @ScaledMetric(relativeTo: .body) private var cardWidth: CGFloat = 164
     @ScaledMetric(relativeTo: .body) private var cardHeight: CGFloat = 224
-    /// How far the library has scrolled (0 at rest), used to swap the large header for a compact title.
-    @State private var scrollOffset: CGFloat = 0
     /// Artwork URL of the library quest currently being opened. Passed to the
     /// detail screen so it shows the card's image instead of the category
     /// placeholder. Only set for quest library quests, never custom quests.
@@ -85,31 +83,28 @@ struct QuestLibraryView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    ScrollView(.vertical) {
-                        VStack(alignment: .leading, spacing: 22) {
-                            headerSection
+                    VStack(spacing: 12) {
+                        searchBar
 
-                            // Only show the chips once there is something to filter.
-                            if !store.sections.isEmpty {
-                                QuestLibraryFilterBar(
-                                    sections: store.sections,
-                                    selectedTitle: $selectedType
-                                )
+                        ScrollView(.vertical) {
+                            VStack(alignment: .leading, spacing: 22) {
+                                headerSection
+
+                                // Only show the chips once there is something to filter.
+                                if !store.sections.isEmpty {
+                                    QuestLibraryFilterBar(
+                                        sections: store.sections,
+                                        selectedTitle: $selectedType
+                                    )
+                                }
+
+                                libraryContent
                             }
-
-                            libraryContent
+                            .padding(.bottom, 16)
                         }
-                        .padding(.bottom, 16)
                     }
-                    // Reports how far the list has scrolled, so the small title can fade in.
-                    .onScrollGeometryChange(for: CGFloat.self) { geometry in
-                        geometry.contentOffset.y + geometry.contentInsets.top
-                    } action: { _, offset in
-                        scrollOffset = offset
-                    }
-                    .overlay(alignment: .top) {
-                        compactTitleBar
-                    }
+                    .padding(.horizontal, MokoScreenTheme.Space.page)
+                    .padding(.top, 8)
                 }
             }
             // `.task` runs when the screen appears. Downloads the library the first time only.
@@ -126,10 +121,6 @@ struct QuestLibraryView: View {
             .navigationTitle("Quest Library")
             .tint(MokoScreenTheme.Colors.dataVioletDeep)
             .toolbar(.hidden, for: .navigationBar)
-            .searchable(
-                text: $searchText,
-                placement: .navigationBarDrawer(displayMode: .always)
-            )
             // Pushes the briefing whenever `openedQuest` is set.
             .navigationDestination(item: $openedQuest) { quest in
                 QuestDetailScreen(quest: quest, libraryArtworkURL: libraryArtworkURL)
@@ -139,35 +130,45 @@ struct QuestLibraryView: View {
 
     // MARK: - Header
 
-    /// Small title pinned under the status bar. It fades in as the large in-content title scrolls
-    /// away, so the screen stays labelled without a navigation bar.
-    private var compactTitleBar: some View {
-        Text("Quest Library")
-            .font(.headline)
-            .foregroundStyle(MokoScreenTheme.Colors.textTitle)
-            .lineLimit(1)
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
-            // The backing runs up through the status bar so scrolled cards cannot show there.
-            .background {
-                MokoScreenTheme.Colors.canvasTop
-                    .ignoresSafeArea(edges: .top)
-            }
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(QuestStyle.title.opacity(0.12))
-                    .frame(height: 0.5)
-            }
-            .opacity(compactTitleOpacity)
-            .allowsHitTesting(false)
-            .accessibilityHidden(compactTitleOpacity < 0.5)
-    }
 
-    /// Cross-fades between 0 and 1 while the large title slides out of view (~55 pt tall).
-    private var compactTitleOpacity: Double {
-        let fadeStart: CGFloat = 24
-        let fadeEnd: CGFloat = 56
-        return Double(min(max((scrollOffset - fadeStart) / (fadeEnd - fadeStart), 0), 1))
+    /// Search field pinned at the top of the library, so it never appears only when the tab opens.
+    private var searchBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(MokoScreenTheme.Colors.textMuted)
+                .accessibilityHidden(true)
+
+            TextField(
+                "",
+                text: $searchText,
+                prompt: Text("Search quests")
+                    .foregroundStyle(MokoScreenTheme.Colors.textMuted)
+            )
+            .font(.body)
+            .foregroundStyle(MokoScreenTheme.Colors.textTitle)
+            .tint(MokoScreenTheme.Colors.ctaAccent)
+            .submitLabel(.search)
+            .accessibilityLabel("Search quests")
+
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(MokoScreenTheme.Colors.textMuted)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 48)
+        .background(MokoScreenTheme.Colors.surfaceWhite, in: Capsule())
+        .overlay {
+            Capsule().stroke(MokoScreenTheme.Colors.borderSubtle, lineWidth: 1)
+        }
     }
 
     private var headerSection: some View {
