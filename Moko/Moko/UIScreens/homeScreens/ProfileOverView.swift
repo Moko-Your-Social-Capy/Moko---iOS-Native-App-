@@ -104,6 +104,7 @@ struct ProfileOverView: View {
 
                         VStack(spacing: Theme.Space.gapCard) {
                             identityBlock
+                            levelProgressCard
                             statsRow
                             journeyCard
                             achievementsSection
@@ -173,10 +174,10 @@ struct ProfileOverView: View {
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Text(handle.map { "@\($0)" } ?? "\(animated(levelXP)) XP to level \(level + 1)")
+            // The handle sits under the name; the XP card below now owns the progress story.
+            Text(handle.map { "@\($0)" } ?? "Moko member")
                 .mokoText(Theme.Typeface.caption)
                 .foregroundStyle(Theme.Colors.textMuted)
-                .contentTransition(.numericText())
                 .padding(.top, Nudge.subtitleTop)
 
             MokoLevelChip(level: level)
@@ -186,7 +187,20 @@ struct ProfileOverView: View {
         .accessibilityElement(children: .contain)
     }
 
-    // MARK: - §5 Stats
+    // MARK: - §5 Level progress
+
+    /// Big total XP, a full level bar, and the exact XP left for the next level.
+    private var levelProgressCard: some View {
+        MokoLevelProgressCard(
+            xp: xp,
+            displayXP: animated(xp),
+            level: level,
+            displayLevelXP: animated(levelXP),
+            xpPerLevel: 400
+        )
+    }
+
+    // MARK: - §6 Stats
 
     private var statsRow: some View {
         MokoStatsRow(tiles: [
@@ -206,9 +220,9 @@ struct ProfileOverView: View {
                      tint: Theme.Colors.dataVioletDeep,
                      fill: Theme.Colors.surfaceLavender),
             MokoStat(id: 2,
-                     symbol: "bolt.fill",
-                     value: animated(xp).formatted(),
-                     label: "Total XP",
+                     symbol: "calendar",
+                     value: "\(animated(totalActiveDays))",
+                     label: "Active days",
                      plate: Theme.Colors.tileCream,
                      tint: Theme.Colors.forest,
                      fill: Theme.Colors.cream)
@@ -220,7 +234,7 @@ struct ProfileOverView: View {
         activeSheet = .streakDetail
     }
 
-    // MARK: - §6 Journey
+    // MARK: - §7 Journey
 
     private var journeyRange: JourneyRange { JourneyRange(rawValue: journeySelection) ?? .week }
 
@@ -302,7 +316,7 @@ struct ProfileOverView: View {
         return starts.map { JourneyBucket(start: $0, xp: sums[$0] ?? 0) }
     }
 
-    // MARK: - §7 Achievements
+    // MARK: - §8 Achievements
 
     private var badgeColumns: [GridItem] {
         dynamicTypeSize.isAccessibilitySize
@@ -374,7 +388,7 @@ struct ProfileOverView: View {
         }
     }
 
-    // MARK: - §8 Settings
+    // MARK: - §9 Settings
 
     private var settingsSection: some View {
         VStack(spacing: Theme.Space.s3) {

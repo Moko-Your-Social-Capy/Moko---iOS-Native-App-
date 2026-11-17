@@ -295,29 +295,112 @@ struct StreakDetailView: View {
     }
     
     private var activityChart: some View {
-        HStack(spacing: 4) {
-            ForEach(0..<7, id: \.self) { index in
-                let date = Calendar.current.date(byAdding: .day, value: -6 + index, to: Date())!
-                let isActive = Calendar.current.isDateInToday(date) || index % 2 == 0 // Simulated data
-                
-                VStack(spacing: 8) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(isActive ? MokoScreenTheme.Colors.dataVioletDeep : MokoScreenTheme.Colors.canvasTop.opacity(0.3))
-                        .frame(height: CGFloat.random(in: 20...60))
-                    
-                    Text(Calendar.current.shortWeekdaySymbols[index])
+        let buckets = activityBuckets
+        let peak = max(buckets.map(\.count).max() ?? 0, 1)
+
+        return HStack(alignment: .bottom, spacing: 8) {
+            ForEach(buckets) { bucket in
+                VStack(spacing: 6) {
+                    // A small number above each bar explains how much happened.
+                    Text(bucket.count > 0 ? "\(bucket.count)" : " ")
+                        .mokoText(MokoScreenTheme.Typeface.badge)
+                        .foregroundStyle(MokoScreenTheme.Colors.textMuted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(bucket.count > 0
+                              ? MokoScreenTheme.Colors.dataVioletDeep
+                              : MokoScreenTheme.Colors.canvasTop.opacity(0.25))
+                        .frame(height: max(6, 104 * CGFloat(bucket.count) / CGFloat(peak)))
+
+                    // Real period labels: Mon, W2, Jan — never a guessed weekday.
+                    Text(bucket.label)
                         .mokoText(MokoScreenTheme.Typeface.caption)
                         .foregroundStyle(MokoScreenTheme.Colors.textMuted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
                 }
+                .frame(maxWidth: .infinity)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(bucket.label), \(bucket.count) activities")
             }
         }
-        .frame(height: 100)
+        .frame(height: 160)
         .padding(.vertical, 12)
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 10)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(MokoScreenTheme.Colors.canvasTop.opacity(0.1))
         )
+    }
+
+    /// Real activity buckets for the Week, Month or Year picker.
+    private var activityBuckets: [StreakChartBucket] {
+        let calendar = Calendar.current
+        let now = Date()
+
+        switch selectedTimeRange {
+        case .week:
+            // Seven days ending today, labelled with their real weekdays.
+            let today = calendar.startOfDay(for: now)
+            return (0..<7).reversed().compactMap { offset in
+                guard let start = calendar.date(byAdding: .day, value: -offset, to: today),
+                      let end = calendar.date(byAdding: .day, value: 1, to: start) else {
+                    return nil
+                }
+                return StreakChartBucket(
+                    start: start,
+                    label: start.formatted(.dateTime.weekday(.abbreviated)),
+                    count: activityCount(from: start, to: end)
+                )
+            }
+
+        case .month:
+            // Each calendar week in this month, labelled W1, W2, and so on.
+            guard let month = calendar.dateInterval(of: .month, for: now) else { return [] }
+            var cursor = calendar.dateInterval(of: .weekOfYear, for: month.start)?.start ?? month.start
+            var weekNumber = 1
+            var buckets: [StreakChartBucket] = []
+
+            while cursor < month.end {
+                guard let next = calendar.date(byAdding: .weekOfYear, value: 1, to: cursor) else {
+                    break
+                }
+                let start = max(cursor, month.start)
+                let end = min(next, month.end)
+                buckets.append(
+                    StreakChartBucket(
+                        start: start,
+                        label: "W\(weekNumber)",
+                        count: activityCount(from: start, to: end)
+                    )
+                )
+                cursor = next
+                weekNumber += 1
+            }
+            return buckets
+
+        case .year:
+            // One bar per month, labelled with the real month name.
+            let year = calendar.component(.year, from: now)
+            return (1...12).compactMap { month in
+                guard let start = calendar.date(from: DateComponents(year: year, month: month, day: 1)),
+                      let end = calendar.date(byAdding: .month, value: 1, to: start) else {
+                    return nil
+                }
+                return StreakChartBucket(
+                    start: start,
+                    label: start.formatted(.dateTime.month(.abbreviated)),
+                    count: activityCount(from: start, to: end)
+                )
+            }
+        }
+    }
+
+    /// Counts saved activities inside one chart period.
+    private func activityCount(from start: Date, to end: Date) -> Int {
+        activityRecords.filter { $0.activityDate >= start && $0.activityDate < end }.count
     }
     
     private func milestoneRow(milestone: Int) -> some View {
@@ -473,6 +556,17 @@ struct StreakDetailView: View {
             showingMilestoneCelebration = true
         }
     }
+}
+
+// MARK: - Chart Data
+
+/// One real activity bar in the streak chart.
+private struct StreakChartBucket: Identifiable {
+    let start: Date
+    let label: String
+    let count: Int
+
+    var id: Date { start }
 }
 
 // MARK: - Time Range Enum
