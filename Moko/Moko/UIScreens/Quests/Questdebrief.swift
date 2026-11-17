@@ -4,15 +4,14 @@
 //
 //  The debrief: a chat with the on-device coach after a quest.
 //  1. The coach asks how the quest went (the "opening story").
-//  2. Then it asks 3 follow-up questions.
-//  Every answer (spoken or typed) gets a confidence score, and each follow-up also
-//  grades one of four parameters: Courage, Clarity, Presence and Warmth.
+//  2. AFM asks three follow-ups, targeting missing stats before weaker evidence.
+//  Accepted answers get separate evidence and scores for Courage, Clarity, Presence and Warmth.
+//  Unclear answers get a fresh AFM clarification and stay on the same question.
 //
 //  Who does what (good place to start debugging):
 //  - `DebriefSession` (@Observable) holds the whole conversation and drives each step.
 //  - `QuestDebriefScreen` draws it and saves the scores when it finishes.
-//  - The coach is `AFMDebriefCoach` (Apple Foundation Models) when the phone supports it,
-//    otherwise `DummyDebriefCoach` below, which scores answers with simple word rules.
+//  - `AFMDebriefCoach` always uses Apple Foundation Models; failures are shown with a retry.
 //  - Voice answers use AVFoundation + Speech for live microphone recording and real-time transcription.
 //  - Leaving with "Finish Later" saves a draft (`DebriefDraftStore`) so it can resume.
 //
@@ -96,183 +95,86 @@ struct DebriefQuestion {
     var focus: DebriefParameter
 }
 
-/// The coach's verdict on one answer.
-struct DebriefGrade: Equatable {
-    /// How confident the answer came across, 0...100 (shown on every answer).
-    var confidence: Int
-    /// Score for the parameter this answer was about, 0...100.
-    var score: Int
-    /// One kind sentence about the answer, shown when the bubble is expanded.
-    var note: String
-    /// The parameter this answer was about. nil for the opening story.
-    var focus: DebriefParameter?
-    /// Extra scores the coach gave for other parameters in the same answer.
-    var parameterScores: [DebriefParameter: Int] = [:]
+/// How much usable evidence one answer contains for a parameter.
+enum DebriefEvidenceLevel: String, Codable {
+    case missing
+    case partial
+    case clear
+
+    var weight: Double {
+        switch self {
+        case .missing: return 0
+        case .partial: return 0.6
+        case .clear: return 1
+        }
+    }
 }
 
-/// Anything that can run a debrief. `AFMDebriefCoach` and `DummyDebriefCoach` both follow it.
+/// AFM labels unusual inputs separately from its accept/retry decision.
+enum DebriefInputCategory: String, Codable {
+    case substantive
+    case weak
+    case noEvidence
+    case gibberish
+    case offTopic
+    case joke
+    case oneWord
+    case otherLanguage
+    case emojiOnly
+    case pastedText
+    case transcriptionUnclear
+}
+
+/// AFM's coverage estimate is saved for calibration and never skips a follow-up.
+enum DebriefCoverage: String, Codable {
+    case needsMore
+    case sufficient
+}
+
+/// The coach's verdict on one accepted answer.
+struct DebriefGrade: Equatable {
+    /// How closely the answer relates to the question and mission, not a social-skill score.
+    var confidence: Int
+    /// The selected target's score; Courage, Clarity and Confidence remain separate measures.
+    var score: Int
+    var note: String
+    var focus: DebriefParameter?
+    var parameterScores: [DebriefParameter: Int] = [:]
+    var parameterEvidence: [DebriefParameter: DebriefEvidenceLevel] = [:]
+    var category: DebriefInputCategory = .substantive
+    var coverage: DebriefCoverage = .needsMore
+}
+
+/// An unclear answer stays on the same question and never produces a grade.
+enum DebriefAssessment {
+    case accepted(DebriefGrade)
+    case retry(message: String, category: DebriefInputCategory)
+}
+
+/// The production coach always uses AFM. Errors reach the screen instead of triggering dummy content.
 protocol DebriefCoaching {
-    func greeting(for context: DebriefContext) async -> String
-    /// number is 1...3.
-    func question(number: Int, context: DebriefContext, previousAnswers: [String]) async -> DebriefQuestion
-    /// focus is nil for the opening story.
-    func grade(answer: String, focus: DebriefParameter?, context: DebriefContext) async -> DebriefGrade
-    /// Warm, encouraging closing message providing closure at the end of the debrief.
-    func closing(for context: DebriefContext, answers: [String], grades: [DebriefGrade]) async -> String
+    func greeting(for context: DebriefContext) async throws -> String
+    func question(number: Int, context: DebriefContext, previousAnswers: [String],
+                  previousQuestions: [String], grades: [DebriefGrade]) async throws -> DebriefQuestion
+    func assess(answer: String, question: String, focus: DebriefParameter?, context: DebriefContext,
+                previousAnswers: [String]) async throws -> DebriefAssessment
+    func closing(for context: DebriefContext, answers: [String], grades: [DebriefGrade]) async throws -> String
     func finalScores(from grades: [DebriefGrade], context: DebriefContext) -> [DebriefParameter: Int]
 }
 
 extension DebriefCoaching {
-    func closing(for context: DebriefContext, answers: [String], grades: [DebriefGrade]) async -> String {
-        DebriefSession.closingMessage(for: context, answers: answers, grades: grades)
-    }
-
-    /// Default end-of-debrief scores, used by every coach that doesn't write its own:
-    /// 1. Keep the best score seen for each parameter.
-    /// 2. Courage falls back to the average confidence if no answer scored it.
-    /// 3. Anything still under 40 is lifted to a gentle 48–76, so no score feels harsh.
     func finalScores(from grades: [DebriefGrade], context: DebriefContext) -> [DebriefParameter: Int] {
-        var scores: [DebriefParameter: Int] = [:]
-        for grade in grades {
-            if let focus = grade.focus {
-                scores[focus] = max(scores[focus] ?? 0, grade.score)
-            }
-            for (param, s) in grade.parameterScores {
-                scores[param] = max(scores[param] ?? 0, s)
-            }
-        }
-        let confidences = grades.map { $0.confidence }
-        let avgConf = confidences.isEmpty ? 68 : confidences.reduce(0, +) / confidences.count
-        if scores[.courage] == nil || scores[.courage] == 0 {
-            scores[.courage] = avgConf
-        }
-        for param in DebriefParameter.allCases {
-            let current = scores[param] ?? 0
-            if current < 40 {
-                scores[param] = max(48, min(avgConf, 76))
-            }
-        }
-        return scores
-    }
-}
-
-/// Fallback coach for phones without Apple Intelligence.
-/// Questions come from the Mission Bank; grades come from answer length and a few key words.
-struct DummyDebriefCoach: DebriefCoaching {
-    func greeting(for context: DebriefContext) async -> String {
-        DebriefSession.openingGreeting(for: context)
-    }
-
-    func question(number: Int, context: DebriefContext, previousAnswers: [String]) async -> DebriefQuestion {
-        let bankTemplates = MissionBank.templates(in: context.category)
-        let template = bankTemplates.first ?? MissionBank.all[0]
-
-        // Dynamically choose unaddressed dimension based on previous answers (no fixed order)
-        let lowerAnswers = previousAnswers.joined(separator: " ").lowercased()
-        let hasPresence = ["looked", "noticed", "saw", "smiled", "nodded", "reaction"].contains { lowerAnswers.contains($0) }
-        let hasWarmth = ["thank", "glad", "happy", "shared", "friend", "kind"].contains { lowerAnswers.contains($0) }
-        let hasClarity = ["clear", "direct", "exactly", "told", "said"].contains { lowerAnswers.contains($0) }
-
-        let stat: DebriefParameter
-        if !hasPresence && number == 1 {
-            stat = .presence
-        } else if !hasWarmth && (number == 2 || (hasPresence && number == 1)) {
-            stat = .warmth
-        } else if !hasClarity {
-            stat = .clarity
-        } else {
-            stat = number == 1 ? .presence : (number == 2 ? .clarity : .warmth)
-        }
-
-        let q = template.followUps[stat.stat] ?? "What is one specific thing you did or noticed in that moment?"
-        return DebriefQuestion(text: q, focus: stat)
-    }
-
-    func grade(answer: String, focus: DebriefParameter?, context: DebriefContext) async -> DebriefGrade {
-        let trimmed = answer.trimmingCharacters(in: .whitespacesAndNewlines)
-        let words = trimmed.split(separator: " ")
-        let wordCount = words.count
-
-        // Simple key-word checks.
-        let lower = trimmed.lowercased()
-        let hasActionVerb = ["said", "told", "asked", "went", "did", "decided", "started", "spoke"].contains { lower.contains($0) }
-        let hasDirectness = ["clear", "direct", "exactly", "honestly", "straight"].contains { lower.contains($0) }
-        let hasObservation = ["looked", "noticed", "saw", "smiled", "nodded", "listened", "reaction"].contains { lower.contains($0) }
-        let hasWarmthWords = ["thank", "glad", "happy", "shared", "appreciated", "friend", "kind"].contains { lower.contains($0) }
-        let hasAuthenticContent = ["my name", "yeah", "yes", "no", "first time", "busy", "meeting", "told", "said"].contains { lower.contains($0) }
-
-        // Content-based confidence: concise, genuine answers receive high confidence (82-96)
-        let confidence: Int
-        if wordCount < 3 {
-            confidence = Int.random(in: 42...55)
-        } else if hasAuthenticContent || hasActionVerb || wordCount >= 6 {
-            confidence = Int.random(in: 82...96)
-        } else {
-            confidence = Int.random(in: 65...78)
-        }
-
-        var score = max(60, min(94, 68 + (wordCount > 4 ? 10 : 4) + (hasActionVerb ? 8 : 0)))
-        let note: String
-        var paramScores: [DebriefParameter: Int] = [:]
-
-        switch focus {
-        case .presence:
-            if hasObservation {
-                score = min(96, score + 8)
-                note = "You tuned in to the room and noticed real details about their reaction."
-            } else {
-                note = "You stayed grounded in the moment instead of retreating inward."
-            }
-            paramScores[.presence] = score
-
-        case .clarity:
-            if hasDirectness || wordCount <= 25 {
-                score = min(96, score + 8)
-                note = "You communicated your thoughts concisely without circling around the point."
-            } else {
-                note = "You articulated what happened clearly, making your experience easy to follow."
-            }
-            paramScores[.clarity] = score
-
-        case .warmth:
-            if hasWarmthWords {
-                score = min(96, score + 8)
-                note = "You brought genuine openness and care to the interaction."
-            } else {
-                note = "You acknowledged the other person thoughtfully, creating space for connection."
-            }
-            paramScores[.warmth] = score
-
-        case .courage, .none:
-            let courageScore = max(62, min(95, score + (hasActionVerb ? 6 : 0)))
-            let clarityScore = max(60, min(94, score - (wordCount > 35 ? 4 : 0)))
-            if hasActionVerb {
-                note = "You stepped forward into the moment and took concrete action."
-            } else {
-                note = "You showed real willingness to lean into an uncomfortable situation."
-            }
-            paramScores[.courage] = courageScore
-            paramScores[.clarity] = clarityScore
-            score = courageScore
-        }
-
-        return DebriefGrade(
-            confidence: confidence,
-            score: score,
-            note: note,
-            focus: focus,
-            parameterScores: paramScores
-        )
+        DebriefScoring.finalScores(from: grades)
     }
 }
 
 // MARK: - Conversation data
 
-/// One row in the chat: a coach bubble, a user bubble, or a "Question n of 3" header.
+/// One row in the chat: a coach bubble, a user bubble, or a follow-up header.
 struct DebriefMessage: Identifiable {
     enum Kind {
         case ai(String)
-        case user(text: String, grade: DebriefGrade?)
+        case user(text: String, grade: DebriefGrade?, isBeingGraded: Bool)
         case divider(question: Int)
     }
 
@@ -295,7 +197,8 @@ struct DebriefResult {
 @MainActor
 @Observable
 final class DebriefSession {
-    static let followUpCount = 3
+    // Exactly three accepted follow-ups give every stat a chance to supply real evidence.
+    static let maxFollowUpCount = 3
 
     var context: DebriefContext
     private let coach: any DebriefCoaching
@@ -321,9 +224,14 @@ final class DebriefSession {
 
     /// What the current question is about (nil for the opening story).
     var focus: DebriefParameter?
-    /// 0 = the opening story, 1...3 = follow-ups.
+    /// The exact AFM-written question the current answer must address.
+    private(set) var currentQuestion = ""
+    /// 0 = the opening story; 1...3 = the required adaptive follow-ups.
     var questionNumber = 0
     var result: DebriefResult?
+    // The real AFM error is shown in an alert instead of being hidden by dummy coaching.
+    private(set) var coachingError: String?
+    private var failedStep: FailedStep?
     /// XP and streak to show when the debrief finishes.
     var reward = QuestReward(xp: 0, streak: 0)
 
@@ -342,10 +250,18 @@ final class DebriefSession {
     /// What a restored debrief does before it accepts an answer again.
     private enum ResumeStep: Equatable {
         case none
-        /// Ask follow-up `number`; `divider` adds the "Question n of 3" header when the
-        /// saved conversation stopped before it.
         case ask(number: Int, divider: Bool)
+        case closing
     }
+
+    /// The exact AFM job to repeat after an availability or generation error.
+    private enum FailedStep {
+        case opening
+        case assessment(text: String, question: String, focus: DebriefParameter?, messageID: UUID?)
+        case question(number: Int)
+        case closing
+    }
+
     // Running background jobs. Kept so `cancelAll()` can stop them when the screen closes.
     private var recordingTask: Task<Void, Never>?
     private var flowTask: Task<Void, Never>?
@@ -359,7 +275,7 @@ final class DebriefSession {
 
     /// True when the user may send an answer right now.
     var canAnswer: Bool {
-        !messages.isEmpty && !isCoachTyping && !isGrading && !isComplete
+        !messages.isEmpty && !currentQuestion.isEmpty && !isCoachTyping && !isGrading && !isComplete && failedStep == nil
     }
 
     /// Recording time as "m:ss".
@@ -369,12 +285,11 @@ final class DebriefSession {
 
     // MARK: Start
 
-    /// Shows the first question (or picks up a saved draft). Safe to call more than once.
+    /// Shows the AFM opening, or resumes the exact unfinished step.
     func start() async {
         guard !started else { return }
         started = true
 
-        // A saved debrief continues mid-conversation: no greeting and no replay.
         if isRestored {
             switch resumeStep {
             case .none:
@@ -386,87 +301,48 @@ final class DebriefSession {
                     append(.divider(question: number))
                 }
                 await askQuestion(number: number)
+            case .closing:
+                resumeStep = .none
+                await closeDebrief()
             }
             return
         }
 
-        // Let the coach generate its tailored opening question before displaying.
-        // The typing indicator shows briefly so there is no awkward text-swap glitch.
+        await performOpening()
+    }
+
+    /// Generates the opening with AFM. No canned greeting is used on failure.
+    private func performOpening() async {
         isCoachTyping = true
-        let text = await coach.greeting(for: context)
-        guard !Task.isCancelled, answers.isEmpty else { return }
-        isCoachTyping = false
-        append(.ai(text))
-    }
-
-    /// A topic-aware opening greeting tailored to the specific mission/event and user.
-    static func openingGreeting(for context: DebriefContext) -> String {
-        let name = context.userName.isEmpty ? "" : " \(context.userName)"
-        let titleLower = context.questTitle.lowercased()
-        let notesLower = context.questNotes.lowercased()
-
-        // 1. Specific situations and action patterns:
-        if titleLower.contains("name") || titleLower.contains("correct") || notesLower.contains("name") {
-            return "Hey\(name)! Great to see you. We were just getting introduced around here — did they catch your name right away, or did you have to step in and correct them?"
-        } else if titleLower.contains("decline") || titleLower.contains("say no") || titleLower.contains("dinner") || titleLower.contains("extra work") || notesLower.contains("say no") {
-            return "Hey\(name)! Good catching you. When that invite came up, how did things play out when you bowed out?"
-        } else if titleLower.contains("meeting") || titleLower.contains("speak up") || titleLower.contains("presentation") || notesLower.contains("meeting") {
-            return "Hey\(name)! That meeting sounded lively. When everyone was tossing ideas around, how did you chime in?"
-        } else if titleLower.contains("coffee") || titleLower.contains("lunch") || titleLower.contains("catch up") {
-            return "Hey\(name)! Always good connecting. When you two sat down together, what got the conversation rolling?"
-        } else if titleLower.contains("stranger") || titleLower.contains("introduce") || titleLower.contains("meet") {
-            return "Hey\(name)! Glad you stepped into that room. How did things start off when you introduced yourself?"
-        } else if titleLower.contains("text") || titleLower.contains("message") || titleLower.contains("reach out") {
-            return "Hey\(name)! It takes initiative to send that first note. After you hit send, how did they respond?"
-        } else if titleLower.contains("compliment") || titleLower.contains("praise") {
-            return "Hey\(name)! It's so nice brightening someone's day. When you gave that compliment, how did they take it?"
-        } else if titleLower.contains("distance") || titleLower.contains("awkward") || titleLower.contains("conflict") {
-            return "Hey\(name)! Clearing the air is never easy. When you opened that conversation, what was the first thing you shared?"
-        } else if !context.questNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Hey\(name)! Glad you took on \(context.questTitle). How did things start off when that moment came up?"
-        }
-
-        // 2. Category-tailored situational openings:
-        switch context.category {
-        case .work:
-            return "Hey\(name)! Great to connect with you. When that conversation came up at work, how did you step in to communicate what you needed?"
-        case .friends:
-            return "Hey\(name)! Good catching you. When you were with your friends, what was the moment that felt most genuine?"
-        case .dating:
-            return "Hey\(name)! Great to see you. When you two were together, how did you get the conversation started?"
-        case .family:
-            return "Hey\(name)! Family moments can be tricky to navigate. When you spoke up, how did the conversation go?"
-        case .others:
-            return "Hey\(name)! Glad you stepped into \(context.questTitle). How did things get started when that moment came up?"
+        failedStep = nil
+        coachingError = nil
+        do {
+            let text = try await coach.greeting(for: context)
+            guard !Task.isCancelled else { return }
+            currentQuestion = text
+            isCoachTyping = false
+            append(.ai(text))
+        } catch {
+            handle(error, failed: .opening)
         }
     }
 
-    /// A warm, subtle, encouraging closure line tailored to what the user accomplished in this situation.
-    static func closingMessage(for context: DebriefContext, answers: [String], grades: [DebriefGrade]) -> String {
-        let name = context.userName.isEmpty ? "" : context.userName
-        let namePrefix = name.isEmpty ? "" : "\(name), "
-        let titleLower = context.questTitle.lowercased()
+    /// Repeats only the AFM job that failed, without duplicating a chat row.
+    func retry() async {
+        guard let step = failedStep else { return }
+        failedStep = nil
+        coachingError = nil
 
-        // Topic and situation specific encouraging closures with friendly send-offs
-        if titleLower.contains("name") || titleLower.contains("correct") {
-            return "\(namePrefix)standing your ground and correcting that in the moment takes real presence. Glad you spoke up, and I'll see you on the next mission!"
-        } else if titleLower.contains("decline") || titleLower.contains("say no") || titleLower.contains("extra work") {
-            return "\(namePrefix)setting a clear boundary like that is never easy, but you protected your time calmly. Really proud of how you handled that."
-        } else if titleLower.contains("meeting") || titleLower.contains("speak up") || titleLower.contains("presentation") {
-            return "\(namePrefix)putting your voice out there in the room took genuine courage. You showed up with clarity, and that's how confidence builds."
-        } else if titleLower.contains("coffee") || titleLower.contains("catch up") || titleLower.contains("friend") || context.category == .friends {
-            return "\(namePrefix)reaching out and staying present in that conversation was really special. Genuine connection takes warmth, and you brought that today."
-        } else if titleLower.contains("stranger") || titleLower.contains("introduce") || titleLower.contains("meet") {
-            return "\(namePrefix)breaking the ice from scratch takes initiative and courage. Glad you took that leap today — enjoy the rest of your day!"
-        } else if context.category == .work {
-            return "\(namePrefix)navigating that work moment with clear communication is a big win. You handled it with real composure today."
-        } else if context.category == .dating {
-            return "\(namePrefix)putting yourself out there authentically is what builds real connection. Really glad you showed up as yourself today."
-        } else if context.category == .family {
-            return "\(namePrefix)bringing patience and presence into a family conversation takes genuine maturity. That was a great step today."
+        switch step {
+        case .opening:
+            await performOpening()
+        case .assessment(let text, let question, let focus, let messageID):
+            await assess(text, question: question, focus: focus, messageID: messageID)
+        case .question(let number):
+            await askQuestion(number: number)
+        case .closing:
+            await closeDebrief()
         }
-
-        return "It's really nice that you stepped up and completed this today, \(name.isEmpty ? "friend" : name). Taking action like this is exactly how lasting confidence grows!"
     }
 
     // MARK: Voice (AVFoundation + Speech)
@@ -555,74 +431,141 @@ final class DebriefSession {
 
     // MARK: Answering
 
-    /// Adds the user's answer, scores it, then asks the next question (or finishes).
+    /// Adds an answer for AFM assessment. Only accepted answers enter scoring and coverage history.
     func submit(_ rawText: String) {
         let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, canAnswer else { return }
 
+        let question = currentQuestion
         let answeredFocus = focus
-        append(.user(text: text, grade: nil))
+        append(.user(text: text, grade: nil, isBeingGraded: true))
         let messageID = messages.last?.id
-        answers.append(text)
-        isGrading = true
 
         flowTask = Task { [weak self] in
-            guard let self else { return }
-
-            let grade = await self.coach.grade(answer: text, focus: answeredFocus, context: self.context)
-            guard !Task.isCancelled else { return }
-            self.apply(grade, to: messageID)
-            self.isGrading = false
-
-            if self.questionNumber < DebriefSession.followUpCount {
-                self.questionNumber += 1
-                self.append(.divider(question: self.questionNumber))
-                await self.askQuestion(number: self.questionNumber)
-            } else {
-                // All follow-up questions answered — let the coach share a warm, encouraging closing message.
-                self.isCoachTyping = true
-                let closingMessage = await self.coach.closing(
-                    for: self.context,
-                    answers: self.answers,
-                    grades: self.grades
-                )
-                guard !Task.isCancelled else { return }
-                self.isCoachTyping = false
-                self.append(.ai(closingMessage))
-
-                // Short pause so the user can read the coach's encouraging words before the score panel appears.
-                try? await Task.sleep(for: .milliseconds(1400))
-                guard !Task.isCancelled else { return }
-                self.finish()
-            }
+            await self?.assess(text, question: question, focus: answeredFocus, messageID: messageID)
         }
     }
 
-    /// Asks the coach for the follow-up `number` and remembers what it is about.
+    /// Scores a useful answer or shows AFM's fresh clarification and waits on the same question.
+    private func assess(_ text: String, question: String, focus: DebriefParameter?, messageID: UUID?) async {
+        isGrading = true
+        isCoachTyping = true
+        failedStep = nil
+        coachingError = nil
+        markUser(messageID, isBeingGraded: true)
+
+        do {
+            let assessment = try await coach.assess(
+                answer: text,
+                question: question,
+                focus: focus,
+                context: context,
+                previousAnswers: answers
+            )
+            guard !Task.isCancelled else { return }
+
+            switch assessment {
+            case .retry(let message, _):
+                // Rejected text is deliberately absent from answers, grades and future AFM context.
+                isGrading = false
+                isCoachTyping = false
+                markUser(messageID, isBeingGraded: false)
+                append(.ai(message))
+
+            case .accepted(let grade):
+                answers.append(text)
+                apply(grade, to: messageID)
+                isGrading = false
+                isCoachTyping = false
+
+                if questionNumber >= Self.maxFollowUpCount {
+                    await closeDebrief()
+                } else {
+                    questionNumber += 1
+                    append(.divider(question: questionNumber))
+                    await askQuestion(number: questionNumber)
+                }
+            }
+        } catch {
+            markUser(messageID, isBeingGraded: false)
+            handle(error, failed: .assessment(text: text, question: question, focus: focus, messageID: messageID))
+        }
+    }
+
+    /// Asks AFM for a follow-up grounded in accepted answers and current evidence gaps.
     private func askQuestion(number: Int) async {
         isCoachTyping = true
-        let next = await coach.question(
-            number: number,
-            context: context,
-            previousAnswers: answers
-        )
-        guard !Task.isCancelled else { return }
-        isCoachTyping = false
-        focus = next.focus
-        append(.ai(next.text))
+        failedStep = nil
+        coachingError = nil
+        let previousQuestions = messages.compactMap { message -> String? in
+            if case .ai(let text) = message.kind { return text }
+            return nil
+        }
+
+        do {
+            let next = try await coach.question(
+                number: number,
+                context: context,
+                previousAnswers: answers,
+                previousQuestions: previousQuestions,
+                grades: grades
+            )
+            guard !Task.isCancelled else { return }
+            isCoachTyping = false
+            focus = next.focus
+            currentQuestion = next.text
+            append(.ai(next.text))
+        } catch {
+            handle(error, failed: .question(number: number))
+        }
     }
 
-    /// Saves the grade and shows it on the answer bubble with the matching `id`.
+    /// Generates AFM's closing before revealing the evidence-weighted scores.
+    private func closeDebrief() async {
+        isCoachTyping = true
+        failedStep = nil
+        coachingError = nil
+        do {
+            let closingMessage = try await coach.closing(for: context, answers: answers, grades: grades)
+            guard !Task.isCancelled else { return }
+            isCoachTyping = false
+            append(.ai(closingMessage))
+            finish()
+        } catch {
+            handle(error, failed: .closing)
+        }
+    }
+
+    /// Saves a grade and stops the matching bubble's grading spinner.
     private func apply(_ grade: DebriefGrade, to id: UUID?) {
         grades.append(grade)
-        persist()
-
-        guard let id, let index = messages.firstIndex(where: { $0.id == id }) else { return }
-        if case .user(let text, _) = messages[index].kind {
+        guard let id, let index = messages.firstIndex(where: { $0.id == id }) else {
+            persist()
+            return
+        }
+        if case .user(let text, _, _) = messages[index].kind {
             withAnimation(.easeOut(duration: 0.4)) {
-                messages[index].kind = .user(text: text, grade: grade)
+                messages[index].kind = .user(text: text, grade: grade, isBeingGraded: false)
             }
         }
+        persist()
+    }
+
+    /// Pending and rejected answers look different: rejected answers have no endless spinner.
+    private func markUser(_ id: UUID?, isBeingGraded: Bool) {
+        guard let id, let index = messages.firstIndex(where: { $0.id == id }),
+              case .user(let text, let grade, _) = messages[index].kind else { return }
+        messages[index].kind = .user(text: text, grade: grade, isBeingGraded: isBeingGraded)
+    }
+
+    /// Surfaces the real AFM problem and remembers exactly how to retry it.
+    private func handle(_ error: Error, failed step: FailedStep) {
+        if error is CancellationError { return }
+        isGrading = false
+        isCoachTyping = false
+        failedStep = step
+        coachingError = error.localizedDescription
+        Logger.afm.error("Debrief AFM step failed: \(error.localizedDescription, privacy: .public)")
     }
 
     /// Works out the final scores and shows the "Debrief Complete" panel.
@@ -670,7 +613,7 @@ final class DebriefSession {
             case .coach:
                 return DebriefMessage(kind: .ai(stored.text))
             case .user:
-                return DebriefMessage(kind: .user(text: stored.text, grade: stored.grade?.restored))
+                return DebriefMessage(kind: .user(text: stored.text, grade: stored.grade?.restored, isBeingGraded: false))
             case .divider:
                 return DebriefMessage(kind: .divider(question: stored.question))
             }
@@ -679,20 +622,32 @@ final class DebriefSession {
         grades = draft.grades.map { $0.restored }
         questionNumber = draft.questionNumber
         focus = draft.focus.flatMap(DebriefParameter.init(rawValue:))
+        currentQuestion = draft.currentQuestion ?? messages.compactMap({ message -> String? in
+            if case .ai(let text) = message.kind { return text }
+            return nil
+        }).last ?? ""
 
         isRestored = true
 
-        if answers.count > DebriefSession.followUpCount {
-            // Every answer was in before the debrief was left: show the scores.
+        // Drafts from the old fixed-flow version used four answers as their completion marker.
+        let completedLegacyDraft = draft.isComplete == nil && answers.count > 3
+        if draft.isComplete == true || completedLegacyDraft {
             finish()
         } else if let last = messages.last {
             switch last.kind {
             case .divider:
-                // The coach was still thinking about this follow-up.
                 resumeStep = .ask(number: questionNumber, divider: false)
-            case .user:
-                // The answer landed but its follow-up never started.
-                resumeStep = .ask(number: questionNumber + 1, divider: true)
+            case .user(_, let grade, _):
+                guard grade != nil else {
+                    // An interrupted or rejected answer can be replaced on the same question.
+                    resumeStep = .none
+                    return
+                }
+                if questionNumber >= Self.maxFollowUpCount {
+                    resumeStep = .closing
+                } else {
+                    resumeStep = .ask(number: questionNumber + 1, divider: true)
+                }
             case .ai:
                 resumeStep = .none
             }
@@ -712,7 +667,7 @@ final class DebriefSession {
                 switch message.kind {
                 case .ai(let text):
                     return DebriefDraft.Message(role: .coach, text: text)
-                case .user(let text, let grade):
+                case .user(let text, let grade, _):
                     return DebriefDraft.Message(
                         role: .user,
                         text: text,
@@ -725,7 +680,9 @@ final class DebriefSession {
             answers: answers,
             grades: grades.map { DebriefDraft.Grade($0) },
             questionNumber: questionNumber,
-            focus: focus?.rawValue
+            focus: focus?.rawValue,
+            currentQuestion: currentQuestion,
+            isComplete: isComplete
         )
     }
 }
@@ -753,9 +710,9 @@ struct QuestDebriefScreen: View {
     // True while the keyboard is up for the answer box.
     @FocusState private var isTyping: Bool
 
-    /// The real coach when Apple Intelligence is available, otherwise the simple fallback.
+    /// The production debrief has one coach: AFM. Failures are retried explicitly.
     private static func defaultCoach() -> any DebriefCoaching {
-        AFM.isAvailable ? AFMDebriefCoach() : DummyDebriefCoach()
+        AFMDebriefCoach()
     }
 
     /// For previews: a debrief without a saved quest.
@@ -869,6 +826,17 @@ struct QuestDebriefScreen: View {
         .sensoryFeedback(.impact(weight: .light), trigger: session.messages.count)
         .sensoryFeedback(.impact(weight: .medium), trigger: session.isRecording)
         .sensoryFeedback(.success, trigger: session.isComplete)
+        // AFM errors stay visible and retry the exact failed step instead of using dummy coaching.
+        .alert("Coach Unavailable", isPresented: Binding(
+            get: { session.coachingError != nil },
+            set: { _ in }
+        )) {
+            Button("Try Again") {
+                Task { await session.retry() }
+            }
+        } message: {
+            Text(session.coachingError ?? AFM.availabilityDescription)
+        }
         .alert("Microphone & Speech Access Needed", isPresented: $showMicSettingsAlert) {
             Button("Open Settings") {
                 if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
@@ -936,14 +904,18 @@ struct QuestDebriefScreen: View {
             session.result = updated
         }
 
-        // Dynamically update Insights parameter analysis
-        let courage = Double(result.scores[.courage] ?? 55)
-        let clarity = Double(result.scores[.clarity] ?? 55)
-        let presence = Double(result.scores[.presence] ?? 55)
-        let warmth = Double(result.scores[.warmth] ?? 55)
-        let scores = InsightsScores(clarity: clarity, courage: courage, presence: presence, warmth: warmth)
-        Task { @MainActor in
-            await DynamicParameterAnalysisStore.shared.refreshAnalysisIfNeeded(scores: scores, recentObservations: [quest.title])
+        // Insights are refreshed only from measured values, never invented 55-point baselines.
+        if let courage = result.scores[.courage], let clarity = result.scores[.clarity],
+           let presence = result.scores[.presence], let warmth = result.scores[.warmth] {
+            let scores = InsightsScores(
+                clarity: Double(clarity),
+                courage: Double(courage),
+                presence: Double(presence),
+                warmth: Double(warmth)
+            )
+            Task { @MainActor in
+                await DynamicParameterAnalysisStore.shared.refreshAnalysisIfNeeded(scores: scores, recentObservations: [quest.title])
+            }
         }
     }
 
@@ -984,12 +956,10 @@ struct QuestDebriefScreen: View {
             // Show one white completion card when the debrief is complete.
             if session.isComplete, let result = session.result {
                 ScoreReveal(
-                    scores: [
-                        .courage: result.scores[.courage] ?? 0,
-                        .clarity: result.scores[.clarity] ?? 0,
-                        .presence: result.scores[.presence] ?? 0,
-                        .warmth: result.scores[.warmth] ?? 0
-                    ],
+                    scores: Dictionary(uniqueKeysWithValues: result.scores.compactMap { parameter, score -> (StatParameter, Int)? in
+                        guard let stat = StatParameter(rawValue: parameter.rawValue.lowercased()) else { return nil }
+                        return (stat, score)
+                    }),
                     // The old green panel used a fixed +8; keep the same comparison line.
                     comparison: 8,
                     xp: result.xp,
@@ -1023,10 +993,10 @@ struct QuestDebriefScreen: View {
         switch message.kind {
         case .ai(let text):
             DebriefCoachBubble(text: text)
-        case .user(let text, let grade):
-            DebriefUserBubble(text: text, grade: grade)
+        case .user(let text, let grade, let isBeingGraded):
+            DebriefUserBubble(text: text, grade: grade, isBeingGraded: isBeingGraded)
         case .divider(let number):
-            DebriefQuestionHeader(number: number, total: DebriefSession.followUpCount)
+            DebriefQuestionHeader(number: number)
         }
     }
 
@@ -1271,6 +1241,7 @@ struct DebriefCoachBubble: View {
 struct DebriefUserBubble: View {
     let text: String
     let grade: DebriefGrade?
+    let isBeingGraded: Bool
 
     // True when the user has tapped to see the coach's note.
     @State private var expanded = false
@@ -1307,6 +1278,7 @@ struct DebriefUserBubble: View {
         }
         // `initial: true` also runs this once when the bubble first appears.
         .onChange(of: grade, initial: true) { _, _ in syncMeter() }
+        .onChange(of: isBeingGraded) { _, _ in syncMeter() }
     }
 
     /// Fills the bar to the grade's confidence, or marks it as waiting.
@@ -1317,7 +1289,8 @@ struct DebriefUserBubble: View {
                 meter = Double(grade.confidence) / 100
             }
         } else {
-            waiting = true
+            waiting = isBeingGraded
+            meter = 0
         }
     }
 
@@ -1341,8 +1314,12 @@ struct DebriefUserBubble: View {
                         .mokoText(MokoScreenTheme.Typeface.slider)
                         .foregroundStyle(DebriefStyle.accent)
                         .monospacedDigit()
-                } else {
+                } else if isBeingGraded {
                     MokoInlineLoader(size: 18)
+                } else {
+                    Text("Not scored")
+                        .mokoText(MokoScreenTheme.Typeface.caption)
+                        .foregroundStyle(DebriefStyle.subtext)
                 }
 
                 Image(systemName: "chevron.down")
@@ -1356,7 +1333,7 @@ struct DebriefUserBubble: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(grade.map { "Confidence \($0.confidence). Tap for details." } ?? "Grading")
+        .accessibilityLabel(grade.map { "Confidence \($0.confidence). Tap for details." } ?? (isBeingGraded ? "Grading" : "Not scored; clarification requested"))
     }
 
     private var meterBar: some View {
@@ -1417,10 +1394,9 @@ struct DebriefUserBubble: View {
     }
 }
 
-/// "Follow-up questions … Question 2 of 3" row between questions.
+/// A follow-up number within the required three-question sequence.
 struct DebriefQuestionHeader: View {
     let number: Int
-    let total: Int
 
     var body: some View {
         HStack {
@@ -1430,7 +1406,7 @@ struct DebriefQuestionHeader: View {
 
             Spacer()
 
-            Text("Question \(number) of \(total)")
+            Text("Question \(number) of \(DebriefSession.maxFollowUpCount)")
                 .mokoText(MokoScreenTheme.Typeface.caption)
                 .foregroundStyle(DebriefStyle.title)
                 .padding(.horizontal, 12)

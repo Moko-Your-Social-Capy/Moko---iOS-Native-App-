@@ -37,6 +37,9 @@ struct DebriefDraft: Codable {
         var note: String
         var focus: String?
         var parameterScores: [String: Int]
+        var parameterEvidence: [String: String]?
+        var category: String?
+        var coverage: String?
     }
 
     /// The conversation exactly as it was, including a trailing "FOLLOW-UP QUESTIONS" divider
@@ -44,10 +47,14 @@ struct DebriefDraft: Codable {
     var messages: [Message]
     var answers: [String]
     var grades: [Grade]
-    /// 0 = the opening story, 1...3 = the follow-ups
+    /// 0 = the opening story; 1...3 = the required adaptive follow-ups.
     var questionNumber: Int
-    /// The parameter the next answer is graded on (nil for the opening story)
+    /// The parameter the next answer is graded on (nil for the opening story).
     var focus: String?
+    /// The exact question to retry after resuming. Optional for older saved drafts.
+    var currentQuestion: String?
+    /// Optional so drafts saved by older app versions still decode.
+    var isComplete: Bool?
 }
 
 // MARK: - Converting to and from the live types
@@ -60,19 +67,42 @@ extension DebriefDraft.Grade {
         self.parameterScores = Dictionary(
             uniqueKeysWithValues: grade.parameterScores.map { ($0.key.rawValue, $0.value) }
         )
+        self.parameterEvidence = Dictionary(
+            uniqueKeysWithValues: grade.parameterEvidence.map { ($0.key.rawValue, $0.value.rawValue) }
+        )
+        self.category = grade.category.rawValue
+        self.coverage = grade.coverage.rawValue
     }
 
     var restored: DebriefGrade {
-        DebriefGrade(
+        let restoredScores = Dictionary(
+            uniqueKeysWithValues: parameterScores.compactMap { key, value in
+                DebriefParameter(rawValue: key).map { ($0, value) }
+            }
+        )
+        let restoredEvidence: [DebriefParameter: DebriefEvidenceLevel]
+        if let parameterEvidence {
+            restoredEvidence = Dictionary(
+                uniqueKeysWithValues: parameterEvidence.compactMap { key, value in
+                    guard let parameter = DebriefParameter(rawValue: key),
+                          let evidence = DebriefEvidenceLevel(rawValue: value) else { return nil }
+                    return (parameter, evidence)
+                }
+            )
+        } else {
+            // Older drafts stored scores without evidence labels; preserve their measured values.
+            restoredEvidence = Dictionary(uniqueKeysWithValues: restoredScores.keys.map { ($0, .clear) })
+        }
+
+        return DebriefGrade(
             confidence: confidence,
             score: score,
             note: note,
             focus: focus.flatMap(DebriefParameter.init(rawValue:)),
-            parameterScores: Dictionary(
-                uniqueKeysWithValues: parameterScores.compactMap { key, value in
-                    DebriefParameter(rawValue: key).map { ($0, value) }
-                }
-            )
+            parameterScores: restoredScores,
+            parameterEvidence: restoredEvidence,
+            category: category.flatMap(DebriefInputCategory.init(rawValue:)) ?? .substantive,
+            coverage: coverage.flatMap(DebriefCoverage.init(rawValue:)) ?? .needsMore
         )
     }
 }

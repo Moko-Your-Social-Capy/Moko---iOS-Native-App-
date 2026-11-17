@@ -2,20 +2,13 @@
 //  AFMDebriefCoach.swift
 //  Moko
 //
-//  The AI version of the debrief coach. It plugs into `QuestDebriefScreen(coach:)`
-//  because it follows the same `DebriefCoaching` protocol as `DummyDebriefCoach`.
-//
-//  Every method tries AFM first. If AFM is unavailable, errors, or returns text
-//  that fails a length check, the method falls back to the dummy coach or to the
-//  Mission Bank's hand-written question, so the debrief always continues.
+//  The AFM-only debrief coach. Every coach message and assessment comes from
+//  Apple Foundation Models; errors are thrown to the screen for an explicit retry.
 //
 
 import Foundation
 
 // MARK: - Stat <-> DebriefParameter Bridge
-
-// `Stat` (AFM side) and `DebriefParameter` (screen side) have the same four cases.
-// These two properties convert between them.
 
 extension Stat {
     var parameter: DebriefParameter {
@@ -39,251 +32,189 @@ extension DebriefParameter {
     }
 }
 
+// MARK: - AFM output bridges
+
+extension Evidence {
+    var debriefLevel: DebriefEvidenceLevel {
+        switch self {
+        case .missing: return .missing
+        case .partial: return .partial
+        case .clear: return .clear
+        }
+    }
+}
+
+extension DebriefInputKind {
+    var debriefCategory: DebriefInputCategory {
+        switch self {
+        case .substantive: return .substantive
+        case .weak: return .weak
+        case .noEvidence: return .noEvidence
+        case .gibberish: return .gibberish
+        case .offTopic: return .offTopic
+        case .joke: return .joke
+        case .oneWord: return .oneWord
+        case .otherLanguage: return .otherLanguage
+        case .emojiOnly: return .emojiOnly
+        case .pastedText: return .pastedText
+        case .transcriptionUnclear: return .transcriptionUnclear
+        }
+    }
+}
+
+extension DebriefCoverageDecision {
+    var debriefCoverage: DebriefCoverage {
+        switch self {
+        case .needsMore: return .needsMore
+        case .sufficient: return .sufficient
+        }
+    }
+}
+
 // MARK: - Coach
 
 @MainActor
 final class AFMDebriefCoach: DebriefCoaching {
-    /// Used whenever AFM can't help.
-    private let fallbackCoach = DummyDebriefCoach()
-
-    /// Short AFM notes about what the user did, fed back into later prompts.
-    private var recordedObservations: [String] = []
-
-    /// Every score AFM gave each stat during this debrief.
-    private var recordedScores: [Stat: [Int]] = [:]
-
-    /// The exact question shown for each stat, so `grade` judges the answer
-    /// against what the user actually heard.
-    private var askedQuestions: [Stat: String] = [:]
-
-    /// History of all asked questions in chronological order to prevent repetition.
-    private var allAskedQuestions: [String] = []
-
-    /// Moko's first message.
-    func greeting(for context: DebriefContext) async -> String {
-        guard AFM.isAvailable else {
-            return await fallbackCoach.greeting(for: context)
-        }
-
-        // `try?` turns an AFM error into nil, which skips straight to the fallback below.
-        if let opening = try? await AFM.generate(
+    func greeting(for context: DebriefContext) async throws -> String {
+        let opening = try await AFM.generate(
             DebriefOpening.self,
             instructions: DebriefPrompts.openingInstructions,
             prompt: DebriefPrompts.openingPrompt(context.afmContext),
             temperature: 0.5
-        ) {
-            let message = opening.message.trimmingCharacters(in: .whitespacesAndNewlines)
-            if (10...260).contains(message.count) {
-                allAskedQuestions.append(message)
-                return message
-            }
-        }
-
-        let fallbackGreeting = await fallbackCoach.greeting(for: context)
-        allAskedQuestions.append(fallbackGreeting)
-        return fallbackGreeting
+        )
+        return try validated(opening.message, requiresQuestion: true)
     }
 
-    /// Moko's closing encouraging message after all follow-ups are answered.
-    func closing(for context: DebriefContext, answers: [String], grades: [DebriefGrade]) async -> String {
-        guard AFM.isAvailable else {
-            return await fallbackCoach.closing(for: context, answers: answers, grades: grades)
-        }
-
-        let afmContext = context.afmContext
-        if let closing = try? await AFM.generate(
+    func closing(for context: DebriefContext, answers: [String], grades: [DebriefGrade]) async throws -> String {
+        let closing = try await AFM.generate(
             DebriefClosing.self,
             instructions: DebriefPrompts.closingInstructions,
-            prompt: DebriefPrompts.closingPrompt(afmContext, answers: answers, observations: recordedObservations),
+            prompt: DebriefPrompts.closingPrompt(context.afmContext, answers: answers, observations: []),
             temperature: 0.5
-        ) {
-            let message = closing.message.trimmingCharacters(in: .whitespacesAndNewlines)
-            if (10...280).contains(message.count) {
-                return message
-            }
-        }
-
-        return await fallbackCoach.closing(for: context, answers: answers, grades: grades)
+        )
+        return try validated(closing.message)
     }
 
-    /// Adaptive, non-repetitive follow-up question (1, 2, or 3).
-    /// Dynamically determines which social dimension to explore based on what the user
-    /// has already said, avoiding repetition and ignoring meta commentary.
-    func question(number: Int, context: DebriefContext, previousAnswers: [String]) async -> DebriefQuestion {
-        guard AFM.isAvailable else {
-            return await fallbackCoach.question(number: number, context: context, previousAnswers: previousAnswers)
-        }
-
-        let afmContext = context.afmContext
-        let coveredStatsList = recordedScores.keys.map { $0.title }
-
-        // Determine candidate stat if fallback is needed
-        let fallbackStat: Stat = {
-            let candidates: [Stat] = [.presence, .warmth, .clarity]
-            return candidates.min(by: { (recordedScores[$0]?.count ?? 0) < (recordedScores[$1]?.count ?? 0) }) ?? .presence
-        }()
-
-        if let adaptive = try? await AFM.generate(
+    /// Swift picks an uncovered stat; AFM writes around the latest accepted answer.
+    func question(number: Int, context: DebriefContext, previousAnswers: [String],
+                  previousQuestions: [String], grades: [DebriefGrade]) async throws -> DebriefQuestion {
+        let focus = DebriefScoring.nextFocus(from: grades)
+        let adaptive = try await AFM.generate(
             AdaptiveFollowUpQuestion.self,
             instructions: DebriefPrompts.adaptiveQuestionInstructions,
             prompt: DebriefPrompts.adaptiveQuestionPrompt(
-                afmContext,
-                previousQuestions: allAskedQuestions,
+                context.afmContext,
+                targetStat: focus.stat,
+                previousQuestions: previousQuestions,
                 answers: previousAnswers,
-                coveredStats: coveredStatsList
+                evidenceSummary: DebriefScoring.evidenceSummary(from: grades)
             ),
             temperature: 0.4
-        ) {
-            let candidateText = adaptive.question.trimmingCharacters(in: .whitespacesAndNewlines)
-            if (10...240).contains(candidateText.count) && candidateText.filter({ $0 == "?" }).count == 1 {
-                // Parse the chosen stat dynamically
-                let chosenStat: Stat
-                let lowerStat = adaptive.focusStat.lowercased()
-                if lowerStat.contains("warm") {
-                    chosenStat = .warmth
-                } else if lowerStat.contains("pres") {
-                    chosenStat = .presence
-                } else if lowerStat.contains("clar") {
-                    chosenStat = .clarity
-                } else if lowerStat.contains("cour") {
-                    chosenStat = .courage
-                } else {
-                    chosenStat = fallbackStat
-                }
-
-                askedQuestions[chosenStat] = candidateText
-                allAskedQuestions.append(candidateText)
-                return DebriefQuestion(text: candidateText, focus: chosenStat.parameter)
-            }
-        }
-
-        // Fallback: use template question for uncovered stat
-        let base = afmContext.template.followUps[fallbackStat] ?? "What is one specific thing you did or noticed?"
-        askedQuestions[fallbackStat] = base
-        allAskedQuestions.append(base)
-        return DebriefQuestion(text: base, focus: fallbackStat.parameter)
+        )
+        let text = try validated(adaptive.question, requiresQuestion: true, maximum: 240)
+        return DebriefQuestion(text: text, focus: focus)
     }
 
-    /// Scores one answer. `focus == nil` means the main story (Courage + Clarity);
-    /// otherwise it is the follow-up for that one stat, with secondary stat detection if demonstrated.
-    func grade(answer: String, focus: DebriefParameter?, context: DebriefContext) async -> DebriefGrade {
-        guard AFM.isAvailable else {
-            return await fallbackCoach.grade(answer: answer, focus: focus, context: context)
+    /// Classification happens before scoring. Rejected input produces no grade or coverage.
+    func assess(answer: String, question: String, focus: DebriefParameter?, context: DebriefContext,
+                previousAnswers: [String]) async throws -> DebriefAssessment {
+        let analysis = try await AFM.generate(
+            DebriefTurnAnalysis.self,
+            instructions: DebriefPrompts.analysisInstructions,
+            prompt: DebriefPrompts.turnAnalysisPrompt(
+                context.afmContext,
+                question: question,
+                answer: answer,
+                earlierAcceptedAnswers: previousAnswers,
+                targetStat: focus?.stat
+            ),
+            temperature: 0.2
+        )
+
+        let category = analysis.inputKind.debriefCategory
+        let evidence: [DebriefParameter: DebriefEvidenceLevel] = [
+            .courage: analysis.courageEvidence.debriefLevel,
+            .clarity: analysis.clarityEvidence.debriefLevel,
+            .presence: analysis.presenceEvidence.debriefLevel,
+            .warmth: analysis.warmthEvidence.debriefLevel
+        ]
+        let hasRequiredEvidence = DebriefScoring.hasRequiredEvidence(evidence, focus: focus)
+
+        if analysis.status == .needsClarification || !hasRequiredEvidence {
+            let message = try await clarification(
+                analysis.clarificationMessage,
+                context: context,
+                question: question,
+                answer: answer,
+                kind: analysis.inputKind
+            )
+            return .retry(message: message, category: category)
         }
 
-        let afmContext = context.afmContext
-        let wordCount = answer.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: " ").count
-
-        if let focus {
-            // Follow-up answer: target stat + potential secondary stat.
-            let targetStat = focus.stat
-            let question = askedQuestions[targetStat] ?? afmContext.template.followUps[targetStat] ?? ""
-            if let analysis = try? await AFM.generate(
-                FollowUpAnalysis.self,
-                instructions: DebriefPrompts.analysisInstructions,
-                prompt: DebriefPrompts.followUpAnalysisPrompt(afmContext, stat: targetStat, question: question,
-                                                              answer: answer, earlier: recordedObservations),
-                temperature: 0.2
-            ) {
-                recordedObservations.append(analysis.whatUserDid)
-                let score = Self.bounded(analysis.score)
-                recordedScores[targetStat, default: []].append(score)
-                var paramScores: [DebriefParameter: Int] = [focus: score]
-
-                // Secondary stat detection
-                let secLower = analysis.secondaryStat.lowercased()
-                let secondaryStat: Stat? = {
-                    if secLower.contains("warm") { return .warmth }
-                    if secLower.contains("pres") { return .presence }
-                    if secLower.contains("clar") { return .clarity }
-                    if secLower.contains("cour") { return .courage }
-                    return nil
-                }()
-                if let secondaryStat, secondaryStat != targetStat, analysis.secondaryScore >= 45 {
-                    let secScore = Self.bounded(analysis.secondaryScore)
-                    recordedScores[secondaryStat, default: []].append(secScore)
-                    paramScores[secondaryStat.parameter] = secScore
-                }
-
-                return DebriefGrade(
-                    confidence: calibrateConfidence(rawConfidence: analysis.confidence, wordCount: wordCount),
-                    score: score,
-                    note: sanitizeNote(analysis.confidenceNote, wordCount: wordCount),
-                    focus: focus,
-                    parameterScores: paramScores
-                )
-            }
-        } else {
-            // Main story: Courage and Clarity together.
-            if let analysis = try? await AFM.generate(
-                MainAnswerAnalysis.self,
-                instructions: DebriefPrompts.analysisInstructions,
-                prompt: DebriefPrompts.mainAnswerPrompt(afmContext, answer: answer),
-                temperature: 0.2
-            ) {
-                recordedObservations.append(analysis.whatUserDid)
-                let courage = Self.bounded(analysis.courage)
-                let clarity = Self.bounded(analysis.clarity)
-                recordedScores[.courage, default: []].append(courage)
-                recordedScores[.clarity, default: []].append(clarity)
-
-                return DebriefGrade(
-                    confidence: calibrateConfidence(rawConfidence: analysis.confidence, wordCount: wordCount),
-                    score: courage,
-                    note: sanitizeNote(analysis.confidenceNote, wordCount: wordCount,
-                                       defaultNote: "You showed up and spoke honestly. That takes courage."),
-                    focus: nil,
-                    parameterScores: [.courage: courage, .clarity: clarity]
-                )
-            }
+        var scores: [DebriefParameter: Int] = [:]
+        var measuredEvidence: [DebriefParameter: DebriefEvidenceLevel] = [:]
+        let rawScores: [DebriefParameter: Int] = [
+            .courage: analysis.courage,
+            .clarity: analysis.clarity,
+            .presence: analysis.presence,
+            .warmth: analysis.warmth
+        ]
+        for parameter in DebriefParameter.allCases where evidence[parameter] != .missing {
+            scores[parameter] = rawScores[parameter]
+            measuredEvidence[parameter] = evidence[parameter]
         }
 
-        return await fallbackCoach.grade(answer: answer, focus: focus, context: context)
+        let note = analysis.confidenceNote.trimmingCharacters(in: .whitespacesAndNewlines)
+        let observation = analysis.whatUserDid.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !note.isEmpty, !observation.isEmpty, !scores.isEmpty else {
+            throw AFMError.generationFailed("AFM returned an incomplete accepted-answer assessment. Please try again.")
+        }
+
+        let targetScore = focus.flatMap { scores[$0] } ?? scores[.courage] ?? scores[.clarity] ?? 0
+        let grade = DebriefGrade(
+            confidence: analysis.confidence,
+            score: targetScore,
+            note: note,
+            focus: focus,
+            parameterScores: scores,
+            parameterEvidence: measuredEvidence,
+            category: category,
+            coverage: analysis.coverage.debriefCoverage
+        )
+        DebriefCalibrationStore.record(grade, questCategory: context.category)
+        return .accepted(grade)
     }
 
-    /// The final 0–100 score per stat, shown on the results screen.
-    func finalScores(from grades: [DebriefGrade], context: DebriefContext) -> [DebriefParameter: Int] {
-        let confidences = grades.map(\.confidence)
-        let averageConfidence = confidences.isEmpty ? 75 : confidences.reduce(0, +) / confidences.count
+    /// Uses the analysis reply when present, otherwise asks AFM to write the missing reply.
+    private func clarification(_ candidate: String, context: DebriefContext, question: String,
+                               answer: String, kind: DebriefInputKind) async throws -> String {
+        let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+        if (10...280).contains(trimmed.count) { return trimmed }
 
-        var result: [DebriefParameter: Int] = [:]
-        for stat in Stat.allCases {
-            if let scores = recordedScores[stat], !scores.isEmpty {
-                // Average of what AFM gave this stat, kept in balanced 55...98.
-                let average = scores.reduce(0, +) / scores.count
-                result[stat.parameter] = max(55, min(average, 98))
-            } else {
-                // No explicit evidence for this stat: a balanced baseline from the session's confidence.
-                result[stat.parameter] = max(55, min(averageConfidence - 2, 90))
-            }
-        }
-        return result
+        let generated = try await AFM.generate(
+            DebriefClarification.self,
+            instructions: DebriefPrompts.clarificationInstructions,
+            prompt: DebriefPrompts.clarificationPrompt(
+                context.afmContext,
+                question: question,
+                answer: answer,
+                kind: kind
+            ),
+            temperature: 0.5
+        )
+        return try validated(generated.message, maximum: 280)
     }
 
-    // MARK: - Helpers
-
-    /// Keeps an AFM score in 45...100 so one rough answer never looks harsh.
-    private static func bounded(_ score: Int) -> Int {
-        max(45, min(score, 100))
-    }
-
-    /// Confidence is content-based and authenticity-based.
-    /// Concise, genuine answers receive full credit; only near-empty filler is dampened.
-    private func calibrateConfidence(rawConfidence: Int, wordCount: Int) -> Int {
-        if wordCount < 3 {
-            // 1-2 words with no meaningful substance
-            return max(42, min(rawConfidence, 58))
+    /// Rejects malformed model copy instead of replacing it with a canned coach message.
+    private func validated(_ rawText: String, requiresQuestion: Bool = false,
+                           maximum: Int = 280) throws -> String {
+        let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (10...maximum).contains(text.count) else {
+            throw AFMError.generationFailed("AFM returned an empty or malformed coach message. Please try again.")
         }
-        // Genuine responses get balanced, realistic confidence scores
-        return max(58, min(rawConfidence, 98))
-    }
-
-    /// The note under the confidence bar.
-    private func sanitizeNote(_ rawNote: String, wordCount: Int, defaultNote: String = "Honest and specific response.") -> String {
-        if wordCount < 3 {
-            return "A brief start — sharing a little more detail about what happened will help capture your progress."
+        if requiresQuestion && text.filter({ $0 == "?" }).count != 1 {
+            throw AFMError.generationFailed("AFM returned a malformed debrief question. Please try again.")
         }
-        let trimmed = rawNote.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? defaultNote : trimmed
+        return text
     }
 }

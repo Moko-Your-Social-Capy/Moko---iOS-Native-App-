@@ -247,10 +247,9 @@ enum QuestCardService {
 // ═══════════════════════════════════════════════════════════════
 // MARK: 4) VOICE DEBRIEF
 // ═══════════════════════════════════════════════════════════════
-// Flow (fixed, so it can't turn into a rumination chatbot):
-//   greeting + main question → user answer (confidence + note; courage & clarity read from it)
-//   → follow-up 1 (Presence) → follow-up 2 (Warmth) → follow-up 3 (stat with the weakest evidence so far)
-//   → closing → finished (input is rejected from here on)
+// AFM classifies each reply before scoring it. Unclear replies stay on the same question.
+// Accepted replies add independent evidence for all four stats. Three follow-ups target missing
+// stats first and weaker evidence second, then AFM writes the closing message.
 
 /// Everything the debrief prompts need to know about the mission being talked about.
 struct AFMDebriefContext: Sendable {
