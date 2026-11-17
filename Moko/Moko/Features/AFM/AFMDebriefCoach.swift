@@ -75,8 +75,29 @@ final class AFMDebriefCoach: DebriefCoaching {
             }
         }
 
-        let name = context.userName.isEmpty ? "" : " \(context.userName)"
-        return "Hey\(name)! How did it go — did you manage to do it?"
+        return await fallbackCoach.greeting(for: context)
+    }
+
+    /// Moko's closing encouraging message after all follow-ups are answered.
+    func closing(for context: DebriefContext, answers: [String], grades: [DebriefGrade]) async -> String {
+        guard AFM.isAvailable else {
+            return await fallbackCoach.closing(for: context, answers: answers, grades: grades)
+        }
+
+        let afmContext = context.afmContext
+        if let closing = try? await AFM.generate(
+            DebriefClosing.self,
+            instructions: DebriefPrompts.closingInstructions,
+            prompt: DebriefPrompts.closingPrompt(afmContext, answers: answers, observations: recordedObservations),
+            temperature: 0.5
+        ) {
+            let message = closing.message.trimmingCharacters(in: .whitespacesAndNewlines)
+            if (10...280).contains(message.count) {
+                return message
+            }
+        }
+
+        return await fallbackCoach.closing(for: context, answers: answers, grades: grades)
     }
 
     /// Follow-up question 1, 2 or 3. Each one targets a different stat:

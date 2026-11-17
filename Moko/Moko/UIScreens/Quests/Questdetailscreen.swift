@@ -294,7 +294,7 @@ struct QuestDetailScreen: View {
 
                 // Category + intensity
                 HStack(spacing: 8) {
-                    tag(icon: quest.category.symbol, text: quest.category.rawValue, dot: nil)
+                    categoryTag(quest.category)
                     tag(icon: nil, text: quest.intensity.rawValue, dot: intensityColor)
                 }
                 .padding(.top, 14)
@@ -455,6 +455,21 @@ struct QuestDetailScreen: View {
         .padding(.horizontal, 12)
         .frame(height: 30)
         .background(Capsule().fill(QuestStyle.screenBg))
+    }
+
+    /// The quest's category as a soft pill: icon and words share the category colour,
+    /// and the pale wash behind them keeps the colour gentle on the eyes.
+    private func categoryTag(_ category: QuestCategory) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: category.symbol)
+                .font(.system(size: 11, weight: .semibold))
+            Text(category.rawValue)
+                .mokoText(MokoScreenTheme.Typeface.caption)
+        }
+        .foregroundStyle(QuestStyle.categoryColor(for: category))
+        .padding(.horizontal, 12)
+        .frame(height: 30)
+        .background(Capsule().fill(QuestStyle.categoryTint(for: category)))
     }
 
     /// One step of the vertical timeline: a round icon on the left, text on the right.

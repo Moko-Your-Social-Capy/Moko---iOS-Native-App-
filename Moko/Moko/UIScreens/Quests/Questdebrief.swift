@@ -83,6 +83,8 @@ struct DebriefContext {
     var questTitle: String
     var category: QuestCategory
     var intensity: QuestIntensity
+    /// Any user-supplied notes, descriptions or situational details.
+    var questNotes: String = ""
     /// User's first name, used to personalise the opening greeting. Empty string = no name available.
     var userName: String = ""
 }
@@ -114,10 +116,16 @@ protocol DebriefCoaching {
     func question(number: Int, context: DebriefContext, previousAnswers: [String]) async -> DebriefQuestion
     /// focus is nil for the opening story.
     func grade(answer: String, focus: DebriefParameter?, context: DebriefContext) async -> DebriefGrade
+    /// Warm, encouraging closing message providing closure at the end of the debrief.
+    func closing(for context: DebriefContext, answers: [String], grades: [DebriefGrade]) async -> String
     func finalScores(from grades: [DebriefGrade], context: DebriefContext) -> [DebriefParameter: Int]
 }
 
 extension DebriefCoaching {
+    func closing(for context: DebriefContext, answers: [String], grades: [DebriefGrade]) async -> String {
+        DebriefSession.closingMessage(for: context, answers: answers, grades: grades)
+    }
+
     /// Default end-of-debrief scores, used by every coach that doesn't write its own:
     /// 1. Keep the best score seen for each parameter.
     /// 2. Courage falls back to the average confidence if no answer scored it.
@@ -371,30 +379,83 @@ final class DebriefSession {
             return
         }
 
-        // Show the opening question straight away so the composer is usable
-        // immediately. The coach's personalised greeting is generated in the
-        // background and swapped in only if the user has not answered yet.
-        append(.ai(Self.openingGreeting(for: context)))
-
+        // Let the coach generate its tailored opening question before displaying.
+        // The typing indicator shows briefly so there is no awkward text-swap glitch.
+        isCoachTyping = true
         let text = await coach.greeting(for: context)
-        // `case .ai = first.kind` checks the first row is still the coach's greeting.
-        guard !Task.isCancelled,
-              answers.isEmpty,
-              let first = messages.first,
-              case .ai = first.kind
-        else { return }
-
-        withAnimation(.easeOut(duration: 0.3)) {
-            messages[0].kind = .ai(text)
-        }
-        persist()
+        guard !Task.isCancelled, answers.isEmpty else { return }
+        isCoachTyping = false
+        append(.ai(text))
     }
 
-    /// The instant greeting, also used by `DummyDebriefCoach`.
+    /// A topic-aware opening greeting tailored to the specific mission/event and user.
     static func openingGreeting(for context: DebriefContext) -> String {
-        context.userName.isEmpty
-            ? "Hey! How did it go — did you manage to do it?"
-            : "Hey \(context.userName)! How did it go — did you manage to do it?"
+        let name = context.userName.isEmpty ? "" : " \(context.userName)"
+        let titleLower = context.questTitle.lowercased()
+        let notesLower = context.questNotes.lowercased()
+
+        // 1. Specific situations and action patterns:
+        if titleLower.contains("name") || titleLower.contains("correct") || notesLower.contains("name") {
+            return "Hey\(name)! When they got your name wrong, how did you correct them?"
+        } else if titleLower.contains("decline") || titleLower.contains("say no") || titleLower.contains("dinner") || titleLower.contains("extra work") || notesLower.contains("say no") {
+            return "Hey\(name)! When they invited or asked you, what did you tell them to turn it down?"
+        } else if titleLower.contains("meeting") || titleLower.contains("speak up") || titleLower.contains("presentation") || notesLower.contains("meeting") {
+            return "Hey\(name)! When everyone was talking, how did you chime in with your thought?"
+        } else if titleLower.contains("coffee") || titleLower.contains("lunch") || titleLower.contains("catch up") {
+            return "Hey\(name)! When you sat down to catch up, what was the first thing you talked about?"
+        } else if titleLower.contains("stranger") || titleLower.contains("introduce") || titleLower.contains("meet") {
+            return "Hey\(name)! When you saw them there, how did you break the ice?"
+        } else if titleLower.contains("text") || titleLower.contains("message") || titleLower.contains("reach out") {
+            return "Hey\(name)! After you hit send on that message, what happened next?"
+        } else if titleLower.contains("compliment") || titleLower.contains("praise") {
+            return "Hey\(name)! When you gave them that compliment, how did they react?"
+        } else if titleLower.contains("distance") || titleLower.contains("awkward") || titleLower.contains("conflict") {
+            return "Hey\(name)! Bringing up tension is never easy — how did you open that conversation?"
+        } else if !context.questNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Hey\(name)! When you stepped into that moment for \(context.questTitle), what was the first thing you said or did?"
+        }
+
+        // 2. Category-tailored situational openings:
+        switch context.category {
+        case .work:
+            return "Hey\(name)! When that moment came up at work, how did you communicate what you needed to say?"
+        case .friends:
+            return "Hey\(name)! When you were hanging out with your friends, what was the moment that felt most genuine?"
+        case .dating:
+            return "Hey\(name)! When you two were talking, how did you break the ice?"
+        case .family:
+            return "Hey\(name)! Being around family can bring up old patterns — how did you handle that conversation?"
+        case .others:
+            return "Hey\(name)! When you were in the middle of \(context.questTitle), what was the first thing you said or did?"
+        }
+    }
+
+    /// A warm, subtle, encouraging closure line tailored to what the user accomplished in this situation.
+    static func closingMessage(for context: DebriefContext, answers: [String], grades: [DebriefGrade]) -> String {
+        let name = context.userName.isEmpty ? "" : context.userName
+        let namePrefix = name.isEmpty ? "" : "\(name), "
+        let titleLower = context.questTitle.lowercased()
+
+        // Topic and situation specific encouraging closures with friendly send-offs
+        if titleLower.contains("name") || titleLower.contains("correct") {
+            return "\(namePrefix)standing your ground and correcting that in the moment takes real presence. Glad you spoke up, and I'll see you on the next mission!"
+        } else if titleLower.contains("decline") || titleLower.contains("say no") || titleLower.contains("extra work") {
+            return "\(namePrefix)setting a clear boundary like that is never easy, but you protected your time calmly. Really proud of how you handled that."
+        } else if titleLower.contains("meeting") || titleLower.contains("speak up") || titleLower.contains("presentation") {
+            return "\(namePrefix)putting your voice out there in the room took genuine courage. You showed up with clarity, and that's how confidence builds."
+        } else if titleLower.contains("coffee") || titleLower.contains("catch up") || titleLower.contains("friend") || context.category == .friends {
+            return "\(namePrefix)reaching out and staying present in that conversation was really special. Genuine connection takes warmth, and you brought that today."
+        } else if titleLower.contains("stranger") || titleLower.contains("introduce") || titleLower.contains("meet") {
+            return "\(namePrefix)breaking the ice from scratch takes initiative and courage. Glad you took that leap today — enjoy the rest of your day!"
+        } else if context.category == .work {
+            return "\(namePrefix)navigating that work moment with clear communication is a big win. You handled it with real composure today."
+        } else if context.category == .dating {
+            return "\(namePrefix)putting yourself out there authentically is what builds real connection. Really glad you showed up as yourself today."
+        } else if context.category == .family {
+            return "\(namePrefix)bringing patience and presence into a family conversation takes genuine maturity. That was a great step today."
+        }
+
+        return "It's really nice that you stepped up and completed this today, \(name.isEmpty ? "friend" : name). Taking action like this is exactly how lasting confidence grows!"
     }
 
     // MARK: Voice (AVFoundation + Speech)
@@ -507,7 +568,19 @@ final class DebriefSession {
                 self.append(.divider(question: self.questionNumber))
                 await self.askQuestion(number: self.questionNumber)
             } else {
-                try? await Task.sleep(for: .milliseconds(800))
+                // All follow-up questions answered — let the coach share a warm, encouraging closing message.
+                self.isCoachTyping = true
+                let closingMessage = await self.coach.closing(
+                    for: self.context,
+                    answers: self.answers,
+                    grades: self.grades
+                )
+                guard !Task.isCancelled else { return }
+                self.isCoachTyping = false
+                self.append(.ai(closingMessage))
+
+                // Short pause so the user can read the coach's encouraging words before the score panel appears.
+                try? await Task.sleep(for: .milliseconds(1400))
                 guard !Task.isCancelled else { return }
                 self.finish()
             }
@@ -693,7 +766,8 @@ struct QuestDebriefScreen: View {
             context: DebriefContext(
                 questTitle: quest.title,
                 category: quest.category,
-                intensity: quest.intensity
+                intensity: quest.intensity,
+                questNotes: quest.notes
                 // userName is filled in by `.task` once profiles load
             ),
             coach: coach ?? Self.defaultCoach()

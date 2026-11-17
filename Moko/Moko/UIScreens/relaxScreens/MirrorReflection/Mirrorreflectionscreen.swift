@@ -6,8 +6,7 @@
 //  explanation, and two choices (use a real mirror, or the front camera).
 //  RelaxScreen decides which screen comes next from the choice.
 //
-//  This file also holds `MirrorHero` and `MirrorFaceIcon`, which the other
-//  Mirror screens reuse.
+//  This file also holds `MirrorHero`, which the other Mirror screens reuse.
 //
 
 import SwiftUI
@@ -115,7 +114,7 @@ struct MirrorReflectionScreen: View {
     }
 }
 
-// MARK: - Hero: glowing arch mirror with a drawn face
+// MARK: - Hero: glowing arch mirror with Moko
 
 /// A rounded mirror with a soft glow behind it and three twinkling sparkles.
 struct MirrorHero: View {
@@ -181,8 +180,8 @@ struct MirrorHero: View {
                     .clipShape(RoundedRectangle(cornerRadius: 88, style: .continuous))
                 }
 
-            MirrorFaceIcon()
-                .frame(width: 72, height: 72)
+            // Moko stands in the mirror instead of the old drawn face.
+            MokoMirrorMascot(size: 126)
 
             // Sparkles around the mirror. Two fade in while the other fades out.
             sparkleIcon(size: 18, opacity: 0.55)
@@ -216,63 +215,6 @@ struct MirrorHero: View {
         Image(systemName: "sparkle")
             .font(.system(size: size, weight: .semibold))
             .foregroundStyle(accent.opacity(opacity))
-    }
-}
-
-// MARK: - Simple friendly face (closed eyes, soft smile)
-
-/// A small drawn face made only from circles. Drawn on a 72 x 72 frame.
-struct MirrorFaceIcon: View {
-    private let disc = Color(red: 232/255, green: 243/255, blue: 236/255)
-    private let skin = Color(red: 243/255, green: 206/255, blue: 182/255)
-    private let hair = Color(red: 92/255, green: 62/255, blue: 48/255)
-    private let cheek = Color(red: 236/255, green: 150/255, blue: 140/255)
-
-    var body: some View {
-        ZStack {
-            Circle().fill(disc)
-
-            // Hair bun
-            Circle()
-                .fill(hair)
-                .frame(width: 16, height: 16)
-                .offset(x: -16, y: -22)
-
-            // Face
-            Circle()
-                .fill(skin)
-                .frame(width: 40, height: 40)
-                .offset(y: 4)
-
-            // Hair cap: `.trim(from: 0.5, to: 1)` keeps only the top half of the circle.
-            Circle()
-                .trim(from: 0.5, to: 1)
-                .fill(hair)
-                .frame(width: 42, height: 42)
-                .offset(y: 3)
-
-            // Cheeks
-            Circle().fill(cheek.opacity(0.4)).frame(width: 8, height: 8).offset(x: -12, y: 12)
-            Circle().fill(cheek.opacity(0.4)).frame(width: 8, height: 8).offset(x: 12, y: 12)
-
-            // Closed eyes: small arcs from the bottom part of a circle.
-            eyeArc.offset(x: -8, y: 6)
-            eyeArc.offset(x: 8, y: 6)
-
-            // Smile
-            Circle()
-                .trim(from: 0.12, to: 0.38)
-                .stroke(hair, style: StrokeStyle(lineWidth: 1.8, lineCap: .round))
-                .frame(width: 16, height: 16)
-                .offset(y: 11)
-        }
-    }
-
-    private var eyeArc: some View {
-        Circle()
-            .trim(from: 0.05, to: 0.45)
-            .stroke(hair, style: StrokeStyle(lineWidth: 1.8, lineCap: .round))
-            .frame(width: 9, height: 9)
     }
 }
 

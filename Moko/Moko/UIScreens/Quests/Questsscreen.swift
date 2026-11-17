@@ -135,6 +135,18 @@ struct QuestsScreen: View {
 
     private func chip(for option: QuestCategory?) -> some View {
         let isSelected = filter == option
+        // A category keeps its own colour all the time; the "All" chip stays neutral.
+        let categoryColor = option.map(QuestStyle.categoryColor(for:))
+        // Words and icon share one colour, so each chip reads as a single calm pill.
+        let ink = categoryColor ?? (isSelected ? QuestStyle.title : QuestStyle.subtext)
+        // A selected chip gets a pale wash of its colour, never a heavy block.
+        let fill = isSelected
+            ? (option.map(QuestStyle.categoryTint(for:)) ?? QuestStyle.chipSelectedFill)
+            : Color.white
+        // The border only appears when selected, in the same colour as the words.
+        let border = isSelected
+            ? (categoryColor?.opacity(0.45) ?? QuestStyle.chipSelectedBorder)
+            : Color.clear
 
         return Button {
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -149,16 +161,18 @@ struct QuestsScreen: View {
                 Text(option?.rawValue ?? "All")
                     .mokoText(MokoScreenTheme.Typeface.caption)
             }
-            .foregroundStyle(isSelected ? MokoScreenTheme.Colors.textTitle : QuestStyle.subtext)
+            .foregroundStyle(ink)
             .padding(.horizontal, 12)
             .frame(minHeight: 44)
-            .background(Capsule().fill(isSelected ? QuestStyle.chipSelectedFill : Color.white))
-            .overlay(Capsule().stroke(isSelected ? QuestStyle.chipSelectedBorder : Color.clear, lineWidth: 1))
+            .background(Capsule().fill(fill))
+            .overlay(Capsule().stroke(border, lineWidth: 1))
+            // A soft glow under the selected chip ties the colour to the screen.
+            // It is faint on purpose so it calms the eye instead of drawing a box.
+            .shadow(color: isSelected ? (categoryColor ?? Color.clear).opacity(0.22) : Color.clear, radius: 6, y: 3)
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
     }
-
     // MARK: Content
     @ViewBuilder
     private var content: some View {

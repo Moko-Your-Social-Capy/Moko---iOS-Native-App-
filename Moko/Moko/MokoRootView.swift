@@ -111,6 +111,10 @@ struct MokoRootView: View {
                 } else {
                     PendingDebriefStore.clear()   // that quest no longer exists
                 }
+            } else if quests.contains(where: { Calendar.current.isDateInToday($0.date) && $0.isCompleted }) &&
+                      !quests.contains(where: { Calendar.current.isDateInToday($0.date) && !$0.isCompleted }) {
+                // If all of today's missions are completed, show the countdown to tomorrow's quest.
+                overviewMode = .debriefDone
             }
 
             // 2. Create today's daily mission (Apple Intelligence or the Mission Bank).

@@ -217,6 +217,45 @@ enum QuestStyle {
             return Color(red: 204 / 255, green: 68 / 255, blue: 74 / 255)
         }
     }
+
+    /// One calm colour for each category. The icon and the words share it, so a chip
+    /// feels like one object. These are deep enough to read easily on white.
+    static func categoryColor(for category: QuestCategory) -> Color {
+        switch category {
+        case .work:
+            // Calm office blue: steady and focused.
+            return Color(red: 52 / 255, green: 96 / 255, blue: 150 / 255)
+        case .dating:
+            // Soft rose: warm and gentle, not loud.
+            return Color(red: 176 / 255, green: 74 / 255, blue: 87 / 255)
+        case .friends:
+            // Quiet teal green: friendly and fresh.
+            return Color(red: 47 / 255, green: 110 / 255, blue: 80 / 255)
+        case .family:
+            // Mellow honey: cosy and bright without shouting.
+            return Color(red: 150 / 255, green: 98 / 255, blue: 31 / 255)
+        case .others:
+            // Dusty violet: curious and soft.
+            return Color(red: 104 / 255, green: 84 / 255, blue: 170 / 255)
+        }
+    }
+
+    /// A very pale wash of the category colour. It is used behind a selected chip
+    /// so the colour feels airy and restful, never like a bright block.
+    static func categoryTint(for category: QuestCategory) -> Color {
+        switch category {
+        case .work:
+            return Color(red: 233 / 255, green: 241 / 255, blue: 251 / 255)
+        case .dating:
+            return Color(red: 252 / 255, green: 237 / 255, blue: 239 / 255)
+        case .friends:
+            return Color(red: 232 / 255, green: 245 / 255, blue: 236 / 255)
+        case .family:
+            return Color(red: 251 / 255, green: 243 / 255, blue: 227 / 255)
+        case .others:
+            return Color(red: 240 / 255, green: 236 / 255, blue: 251 / 255)
+        }
+    }
 }
 
 // MARK: - Formatting
