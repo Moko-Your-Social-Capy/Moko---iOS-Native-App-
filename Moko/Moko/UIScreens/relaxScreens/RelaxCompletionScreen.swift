@@ -25,6 +25,8 @@ struct RelaxCompletionScreen: View {
     var onContinue: () -> Void = {}
     
     @State private var showCelebration = false
+    // Remembers whether the success sound has played, so it only happens once.
+    @State private var hasPlayedSound = false
 
     var body: some View {
         ZStack {
@@ -107,7 +109,10 @@ struct RelaxCompletionScreen: View {
         .onAppear {
             showCelebration = true
             // Play the celebration chime when the checkmark screen is displayed.
-            DebriefSoundPlayer.shared.playSuccess()
+            if !hasPlayedSound {
+                hasPlayedSound = true
+                DebriefSoundPlayer.shared.playSuccess()
+            }
         }
     }
 }

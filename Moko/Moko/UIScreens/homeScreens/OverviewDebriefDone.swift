@@ -56,6 +56,8 @@ struct OverviewDebriefDone: View {
             if !hasAppeared {
                 showConfetti = true
                 hasAppeared = true
+                // Play the GPay success sound when the debrief completion screen first shows.
+                DebriefSoundPlayer.shared.playSuccess()
             }
         }
     }

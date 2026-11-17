@@ -27,12 +27,139 @@ enum SummaryRange: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+// MARK: - Chart Scale
+
+/// The unit used on the chart's vertical axis.
+enum SummaryChartUnit: String, Equatable {
+    case seconds
+    case minutes
+    case hours
+
+    /// How many seconds one unit is worth.
+    var secondsPerUnit: Double {
+        switch self {
+        case .seconds: return 1
+        case .minutes: return 60
+        case .hours: return 3_600
+        }
+    }
+
+    /// The short word drawn after an axis number ("20 sec", "5 min", "2 hr").
+    var suffix: String {
+        switch self {
+        case .seconds: return "sec"
+        case .minutes: return "min"
+        case .hours: return "hr"
+        }
+    }
+
+    /// Picks the unit from the tallest bar. Short sessions get a seconds scale
+    /// and long ones get an hours scale, so the bars never look almost empty.
+    static func best(forPeakSeconds peak: Double) -> SummaryChartUnit {
+        if peak < 120 {
+            return .seconds
+        }
+
+        if peak < 3_600 {
+            return .minutes
+        }
+
+        return .hours
+    }
+
+    /// Turns saved seconds into the number the chart draws.
+    func value(fromSeconds seconds: Double) -> Double {
+        seconds / secondsPerUnit
+    }
+}
+
+/// The vertical scale of the chart: unit, top value and gridline ticks.
+/// Everything comes from the tallest bar, so the graph changes shape when the
+/// user logs 20 seconds instead of 3 hours.
+struct SummaryChartScale: Equatable {
+    let unit: SummaryChartUnit
+    let maxValue: Double
+    let ticks: [Double]
+
+    init(peakSeconds: Double) {
+        let unit = SummaryChartUnit.best(forPeakSeconds: peakSeconds)
+        self.unit = unit
+
+        let peak = unit.value(fromSeconds: max(0, peakSeconds))
+
+        guard peak > 0 else {
+            maxValue = 1
+            ticks = [0, 1]
+            return
+        }
+
+        // A little room above the tallest bar keeps it off the top gridline.
+        let target = peak * 1.1
+        let step = Self.step(for: target / 3, unit: unit)
+        let maxValue = max(step, (target / step).rounded(.up) * step)
+
+        self.maxValue = maxValue
+        ticks = Self.makeTicks(max: maxValue, step: step)
+    }
+
+    /// Round step sizes (1, 2, 5, 10 ...) so the labels stay easy to read.
+    private static func step(for raw: Double, unit: SummaryChartUnit) -> Double {
+        let candidates: [Double]
+
+        switch unit {
+        case .seconds, .minutes:
+            candidates = [1, 2, 5, 10, 15, 30, 60]
+        case .hours:
+            candidates = [1, 2, 3, 4, 6, 12, 24]
+        }
+
+        if let candidate = candidates.first(where: { $0 >= raw }) {
+            return candidate
+        }
+
+        // Very large totals (for example a whole year of sessions) need a
+        // bigger step, so grow the next round number by powers of ten.
+        let magnitude = pow(10, floor(log10(max(raw, 1))))
+        let fraction = raw / magnitude
+
+        let niceFraction: Double
+
+        switch fraction {
+        case ...1: niceFraction = 1
+        case ...2: niceFraction = 2
+        case ...5: niceFraction = 5
+        default: niceFraction = 10
+        }
+
+        return niceFraction * magnitude
+    }
+
+    /// Builds ticks at 0, step, 2 × step ... up to the top value.
+    private static func makeTicks(max: Double, step: Double) -> [Double] {
+        guard step > 0 else {
+            return [0, max]
+        }
+
+        var ticks: [Double] = []
+        var value = 0.0
+
+        // The tiny tolerance stops floating-point drift from adding a fifth tick.
+        while value <= max + step * 0.0001 {
+            ticks.append(value)
+            value += step
+        }
+
+        return ticks
+    }
+}
+
 /// One bar in the chart (one hour, day, week or month).
 struct SummaryBar: Identifiable {
     /// Where the bar sits on the time axis.
     let date: Date
     let label: String
-    let minutes: Double
+    /// Time saved for this bar, in seconds. The chart converts it to the picked unit.
+    let seconds: Double
     /// True for the current hour/day/week/month. Drawn in the darker colour.
     let isSelected: Bool
 
@@ -47,6 +174,13 @@ struct SummaryActivity: Identifiable {
     let duration: String
 }
 
+/// A snapshot of the chart's shape. When it changes, the bars and gridlines animate.
+struct SummaryChartAnimationKey: Equatable {
+    let unit: SummaryChartUnit
+    let maxValue: Double
+    let values: [Double]
+}
+
 // MARK: - Summary Data
 
 /// Everything the screen shows for one range, worked out from the saved sessions.
@@ -55,16 +189,33 @@ struct SummaryData {
 
     let totalText: String
     let bars: [SummaryBar]
-    let selectedDate: Date
     let chartStart: Date
     let chartEnd: Date
-    /// How much time fits on screen before the chart scrolls sideways.
-    let visibleDuration: TimeInterval
-    /// Top of the chart's y-axis.
-    let maxMinutes: Double
+    /// Unit, top value and gridlines, all based on the tallest bar.
+    let scale: SummaryChartScale
+    /// The x-axis labels. The day chart drops some hours so the text never overlaps.
+    let axisDates: [Date]
     let listTitle: String
     let sessionCount: Int
     let activities: [SummaryActivity]
+
+    /// Short way to write `data.scale.unit` in the view.
+    var unit: SummaryChartUnit { scale.unit }
+
+    /// Top of the chart's y-axis in the picked unit.
+    var maxValue: Double { scale.maxValue }
+
+    /// Gridline values in the picked unit.
+    var axisTicks: [Double] { scale.ticks }
+
+    /// A small snapshot used to animate the chart when the numbers change.
+    var animationKey: SummaryChartAnimationKey {
+        SummaryChartAnimationKey(
+            unit: scale.unit,
+            maxValue: scale.maxValue,
+            values: bars.map(\.seconds)
+        )
+    }
 
     var isEmpty: Bool {
         sessionCount == 0
@@ -104,13 +255,16 @@ struct SummaryData {
         )
 
         bars = chart.bars
-        selectedDate = chart.selectedDate
         chartStart = chart.start
         chartEnd = chart.end
-        visibleDuration = chart.visibleDuration
 
-        maxMinutes = Self.niceMax(
-            chart.bars.map(\.minutes).max() ?? 0
+        let peakSeconds = chart.bars.map(\.seconds).max() ?? 0
+        scale = SummaryChartScale(peakSeconds: peakSeconds)
+        axisDates = Self.axisDates(
+            for: range,
+            bars: chart.bars,
+            start: chart.start,
+            end: chart.end
         )
 
         listTitle = Self.listTitle(for: range)
@@ -157,27 +311,21 @@ struct SummaryData {
 
     // MARK: Chart Axis Text
 
-    func axisText(_ minutes: Double) -> String {
+    /// Draws an axis number in the chart's current unit ("30 sec", "5 min", "2 hr").
+    func axisText(_ value: Double) -> String {
 
-        if minutes == 0 {
+        if value == 0 {
             return "0"
         }
 
-        // Minutes stay readable up to two hours of logged time, then the axis switches to hours.
-        guard maxMinutes >= 120 else {
-            return "\(Int(minutes.rounded())) min"
+        let rounded = value.rounded()
+
+        if abs(value - rounded) < 0.0001 {
+            return "\(Int(rounded)) \(scale.unit.suffix)"
         }
 
-        let hours = minutes / 60
-
-        if hours == hours.rounded() {
-            return "\(Int(hours)) hr"
-        }
-
-        // One decimal, rounded away from the half-way ties (1.25 hr reads better as 1.3).
-        let tenths = (hours * 10).rounded() / 10
-
-        return String(format: "%.1f hr", tenths)
+        // One decimal is enough for the rare in-between value.
+        return String(format: "%.1f", value) + " \(scale.unit.suffix)"
     }
 
     // MARK: Helpers
@@ -224,7 +372,7 @@ struct SummaryData {
 
     // MARK: Generate Chart Bars
 
-    /// Builds the bars for one range, and tells the chart where to start, end and scroll to.
+    /// Builds the bars for one range, and tells the chart which slice of time to draw.
     private static func makeBars(
         for range: SummaryRange,
         records: [CalmDownModel],
@@ -232,14 +380,12 @@ struct SummaryData {
         now: Date
     ) -> (
         bars: [SummaryBar],
-        selectedDate: Date,
         start: Date,
-        end: Date,
-        visibleDuration: TimeInterval
+        end: Date
     ) {
 
-        // Total minutes logged between two dates (all sessions, not just this range).
-        func minutes(
+        // Total seconds logged between two dates (all sessions, not just this range).
+        func seconds(
             from start: Date,
             to end: Date
         ) -> Double {
@@ -250,7 +396,7 @@ struct SummaryData {
                 }
                 .reduce(0) {
                     $0 + $1.exerciseTime
-                } / 60
+                }
         }
 
         // MARK: DAY - 24 Hourly Bars
@@ -286,7 +432,7 @@ struct SummaryData {
                 return SummaryBar(
                     date: hourStart,
                     label: label,
-                    minutes: minutes(
+                    seconds: seconds(
                         from: hourStart,
                         to: hourEnd
                     ),
@@ -294,18 +440,23 @@ struct SummaryData {
                 )
             }
 
-            let selectedHour = calendar.date(
-                bySetting: .minute,
-                value: 0,
-                of: now
-            ) ?? now
+            // Only draw the hours around the sessions, so the bars are not lost
+            // among empty hours.
+            let window = dayWindow(
+                bars: bars,
+                day: interval
+            )
+
+            // Keep just the bars inside the window. Every session is inside it,
+            // so no saved time is hidden.
+            let visibleBars = bars.filter {
+                $0.date >= window.start && $0.date < window.end
+            }
 
             return (
-                bars,
-                selectedHour,
-                interval.start,
-                interval.end,
-                6 * 60 * 60
+                visibleBars,
+                window.start,
+                window.end
             )
         }
 
@@ -343,7 +494,7 @@ struct SummaryData {
                 return SummaryBar(
                     date: dayStart,
                     label: label,
-                    minutes: minutes(
+                    seconds: seconds(
                         from: dayStart,
                         to: dayEnd
                     ),
@@ -351,15 +502,10 @@ struct SummaryData {
                 )
             }
 
-            let selectedDay = calendar.startOfDay(for: now)
-
             return (
                 bars,
-                selectedDay,
                 interval.start,
-                interval.end,
-                // Show the whole week so every weekday label is on screen.
-                interval.duration
+                interval.end
             )
         }
 
@@ -375,7 +521,6 @@ struct SummaryData {
             var weekNumber = 1
 
             var bars: [SummaryBar] = []
-            var selectedDate = cursor
 
             while cursor < monthInterval.end {
 
@@ -410,15 +555,11 @@ struct SummaryData {
                     to: cursor
                 ) ?? cursor
 
-                if isSelected {
-                    selectedDate = axisDate
-                }
-
                 bars.append(
                     SummaryBar(
                         date: axisDate,
                         label: label,
-                        minutes: minutes(
+                        seconds: seconds(
                             from: effectiveStart,
                             to: effectiveEnd
                         ),
@@ -432,11 +573,8 @@ struct SummaryData {
 
             return (
                 bars,
-                selectedDate,
                 firstWeek.start,
-                cursor,
-                // Keep every week of the month visible, including a sixth week.
-                cursor.timeIntervalSince(firstWeek.start)
+                cursor
             )
         }
 
@@ -480,7 +618,7 @@ struct SummaryData {
             return SummaryBar(
                 date: axisDate,
                 label: label,
-                minutes: minutes(
+                seconds: seconds(
                     from: monthStart,
                     to: nextMonth
                 ),
@@ -488,69 +626,122 @@ struct SummaryData {
             )
         }
 
-        // Scroll the chart to this month's bar.
-        let selectedMonth = bars.first(where: \.isSelected)?.date ?? yearInterval.start
-
         return (
             bars,
-            selectedMonth,
             yearInterval.start,
-            yearInterval.end,
-            // All twelve months fit, so the labels are never cut off at the edges.
-            yearInterval.duration
+            yearInterval.end
         )
     }
 
-    // MARK: Maximum Chart Value
+    // MARK: Focus The Day Chart
 
-    /// The chart's top value, derived from the tallest bar so the graph grows and shrinks with the
-    /// time actually logged instead of sitting on a fixed 30/60 minute ceiling.
-    private static func niceMax(_ peak: Double) -> Double {
+    /// Picks the part of the day the chart should draw. It covers every hour
+    /// with a session, one hour of breathing room on each side, and never less
+    /// than four hours. Empty days show the whole day.
+    private static func dayWindow(
+        bars: [SummaryBar],
+        day: DateInterval
+    ) -> (start: Date, end: Date) {
 
-        guard peak > 0 else {
-            return 10
+        // The Day chart groups sessions into one-hour bars, so a bar is one hour wide.
+        let hour: TimeInterval = 60 * 60
+
+        // Four hours stops one short session from looking like a thin needle.
+        // A clock-change day can be shorter, so never ask for more than one day.
+        let minimumWindow = min(4 * hour, day.duration)
+
+        // Hours that hold saved time.
+        let activeBars = bars.filter { $0.seconds > 0 }
+        let activeDates = activeBars.map(\.date)
+
+        guard let firstActive = activeDates.min(),
+              let lastActive = activeDates.max() else {
+            // Nothing saved: there is no chart to draw, so show the whole day.
+            return (day.start, day.end)
         }
 
-        // A little headroom keeps the tallest bar off the top gridline.
-        let raw = peak * 1.2
+        // The last active bar covers its own full hour.
+        let dataEnd = min(lastActive + hour, day.end)
 
-        let magnitude = pow(10, floor(log10(raw)))
-        let fraction = raw / magnitude
+        // One empty hour on each side keeps the bars away from the card edges.
+        var start = firstActive - hour
+        var end = dataEnd + hour
 
-        let step: Double
-
-        switch fraction {
-
-        case ..<1.5:
-            step = 1.5
-
-        case ..<2:
-            step = 2
-
-        case ..<2.5:
-            step = 2.5
-
-        case ..<3:
-            step = 3
-
-        case ..<4:
-            step = 4
-
-        case ..<5:
-            step = 5
-
-        case ..<6:
-            step = 6
-
-        case ..<8:
-            step = 8
-
-        default:
-            step = 10
+        // Some days do not have four hours of data, so grow the window evenly.
+        let span = end.timeIntervalSince(start)
+        if span < minimumWindow {
+            let extra = (minimumWindow - span) / 2
+            start -= extra
+            end += extra
         }
 
-        // Never below two minutes, so the three gridline labels stay distinct.
-        return max(2, step * magnitude)
+        // Keep the window inside the day. When one side hits midnight, move the
+        // extra room to the other side so the window keeps its length.
+        if start < day.start {
+            end += day.start.timeIntervalSince(start)
+            start = day.start
+        }
+
+        if end > day.end {
+            start -= end.timeIntervalSince(day.end)
+            end = day.end
+        }
+
+        start = max(start, day.start)
+        end = min(end, day.end)
+
+        // Half an hour of blank space beside the first and last bar stops the
+        // chart edge from cutting a bar in half.
+        let edgeRoom = hour / 2
+
+        return (
+            max(day.start, start - edgeRoom),
+            min(day.end, end + edgeRoom)
+        )
+    }
+
+    // MARK: X-Axis Labels
+
+    /// The dates that get a label under the chart. The day view thins them out
+    /// when many hours are visible, and the year view skips every other month,
+    /// so the labels never overlap.
+    private static func axisDates(
+        for range: SummaryRange,
+        bars: [SummaryBar],
+        start: Date,
+        end: Date
+    ) -> [Date] {
+
+        guard range == .day else {
+
+            guard range == .year else {
+                return bars.map(\.date)
+            }
+
+            // Twelve month names are too wide for a phone, so show six.
+            return bars.enumerated().compactMap { index, bar in
+                index.isMultiple(of: 2) ? bar.date : nil
+            }
+        }
+
+        let visibleHours = max(end.timeIntervalSince(start) / 3_600, 1)
+        let labelStride = max(1, Int((visibleHours / 6).rounded(.up)))
+
+        // Labels need room on both sides, or the chart clips the first and last
+        // one. Twenty minutes is about the width of a short hour label.
+        let edgeGap: TimeInterval = 20 * 60
+
+        return bars.enumerated().compactMap { index, bar in
+
+            guard index.isMultiple(of: labelStride) else {
+                return nil
+            }
+
+            let before = bar.date.timeIntervalSince(start)
+            let after = end.timeIntervalSince(bar.date)
+
+            return before >= edgeGap && after >= edgeGap ? bar.date : nil
+        }
     }
 
     // MARK: Duration Formatting
@@ -559,24 +750,32 @@ struct SummaryData {
         _ seconds: TimeInterval
     ) -> String {
 
-        if seconds > 0 && seconds < 60 {
-            return "\(Int(seconds)) sec"
+        let totalSeconds = Int(max(0, seconds).rounded())
+
+        if totalSeconds < 60 {
+            return "\(totalSeconds) sec"
         }
 
-        let totalMinutes = Int((seconds / 60).rounded())
+        let hours = totalSeconds / 3_600
+        let minutes = (totalSeconds % 3_600) / 60
+        let remainingSeconds = totalSeconds % 60
 
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
+        if hours > 0 {
+            return minutes == 0
+                ? "\(hours) hr"
+                : "\(hours) hr \(minutes) min"
+        }
 
-        if hours == 0 {
+        if remainingSeconds == 0 {
             return "\(minutes) min"
         }
 
+        // A short minute count keeps its seconds ("1 min 30 sec"), so it never lies.
         if minutes == 0 {
-            return "\(hours) hr"
+            return "\(remainingSeconds) sec"
         }
 
-        return "\(hours) hr \(minutes) min"
+        return "\(minutes) min \(remainingSeconds) sec"
     }
 
     // MARK: Exercise Icons
@@ -617,6 +816,9 @@ struct SummaryView: View {
 
     // Which segment is picked: Day, Week, Month or Year.
     @State private var range: SummaryRange = .day
+
+    // The phone's "Reduce Motion" setting. When on, the chart changes without sliding.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private let accent = MokoScreenTheme.Colors.dataVioletDeep
     private let soft = MokoScreenTheme.Colors.surfaceLavender
@@ -713,60 +915,63 @@ struct SummaryView: View {
             Text(data.totalText)
                 .mokoText(MokoScreenTheme.Typeface.title1)
                 .foregroundStyle(MokoScreenTheme.Colors.dataNumeral)
+                // When the total changes, the number rolls to its new value.
+                .contentTransition(.numericText())
+                .animation(
+                    reduceMotion ? nil : .easeInOut(duration: 0.35),
+                    value: data.totalText
+                )
 
             Chart(data.bars) { bar in
 
+                // Saved seconds are turned into the chart's current unit
+                // (seconds, minutes or hours), so a 20-second session and a
+                // 3-hour session both get readable bars.
                 BarMark(
                     x: .value("Period", bar.date),
-                    y: .value("Minutes", bar.minutes)
+                    y: .value("Time", data.unit.value(fromSeconds: bar.seconds))
                 )
                 .foregroundStyle(
                     bar.isSelected ? accent : MokoScreenTheme.Colors.dataViolet
                 )
                 .cornerRadius(4)
             }
-            // The chart scrolls sideways and opens on the current hour/day/week/month.
+            // The day chart shows only the hours that hold sessions, so its bars
+            // fill the card. The other ranges show their whole period.
             .chartXScale(
                 domain: data.chartStart...data.chartEnd
             )
-            .chartScrollableAxes(.horizontal)
-            .chartXVisibleDomain(
-                length: data.visibleDuration
-            )
-            .chartScrollPosition(
-                initialX: data.selectedDate
-            )
+            // The top of the chart comes from the tallest bar, so the bars always
+            // use the full height instead of sitting on a fixed minute ceiling.
             .chartYScale(
-                domain: 0...data.maxMinutes
+                domain: 0...data.maxValue
             )
             .chartYAxis {
 
+                // Gridlines and labels use the same seconds / minutes / hours scale.
                 AxisMarks(
                     position: .trailing,
-                    values: [
-                        0,
-                        data.maxMinutes / 2,
-                        data.maxMinutes
-                    ]
+                    values: data.axisTicks
                 ) { value in
 
                     AxisGridLine()
                         .foregroundStyle(MokoScreenTheme.Colors.dataGrid)
 
                     AxisValueLabel {
-                        if let minutes = value.as(Double.self) {
-                            Text(data.axisText(minutes))
+                        if let number = value.as(Double.self) {
+                            Text(data.axisText(number))
                                 .mokoText(MokoScreenTheme.Typeface.caption)
                         }
                     }
                 }
             }
             // One label per bar, using the bar's own text ("9 AM", "Mon", "W2", "Jan").
+            // The day chart thins the hours and the year chart skips every other month.
             .chartXAxis {
 
                 AxisMarks(
                     preset: .aligned,
-                    values: data.bars.map(\.date)
+                    values: data.axisDates
                 ) { value in
 
                     AxisValueLabel {
@@ -793,6 +998,13 @@ struct SummaryView: View {
             }
             .frame(height: 160)
             .padding(.top, 12)
+            // Bars slide to their new height when a session arrives or the range changes.
+            .animation(
+                reduceMotion ? nil : .easeInOut(duration: 0.45),
+                value: data.animationKey
+            )
+            .accessibilityLabel("Calm down chart")
+            .accessibilityValue("\(data.totalText) in this period")
         }
         .padding(MokoScreenTheme.Space.cardHorizontal)
         .frame(maxWidth: .infinity, alignment: .leading)
