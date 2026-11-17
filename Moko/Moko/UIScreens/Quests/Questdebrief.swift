@@ -166,17 +166,25 @@ struct DummyDebriefCoach: DebriefCoaching {
         let bankTemplates = MissionBank.templates(in: context.category)
         let template = bankTemplates.first ?? MissionBank.all[0]
 
-        switch number {
-        case 1:
-            let q = template.followUps[.presence] ?? "What is one thing you noticed about their reaction while talking?"
-            return DebriefQuestion(text: q, focus: .presence)
-        case 2:
-            let q = template.followUps[.clarity] ?? "What exact words did you use to say what you meant?"
-            return DebriefQuestion(text: q, focus: .clarity)
-        default:
-            let q = template.followUps[.warmth] ?? "Did you acknowledge how they were feeling or ask about them?"
-            return DebriefQuestion(text: q, focus: .warmth)
+        // Dynamically choose unaddressed dimension based on previous answers (no fixed order)
+        let lowerAnswers = previousAnswers.joined(separator: " ").lowercased()
+        let hasPresence = ["looked", "noticed", "saw", "smiled", "nodded", "reaction"].contains { lowerAnswers.contains($0) }
+        let hasWarmth = ["thank", "glad", "happy", "shared", "friend", "kind"].contains { lowerAnswers.contains($0) }
+        let hasClarity = ["clear", "direct", "exactly", "told", "said"].contains { lowerAnswers.contains($0) }
+
+        let stat: DebriefParameter
+        if !hasPresence && number == 1 {
+            stat = .presence
+        } else if !hasWarmth && (number == 2 || (hasPresence && number == 1)) {
+            stat = .warmth
+        } else if !hasClarity {
+            stat = .clarity
+        } else {
+            stat = number == 1 ? .presence : (number == 2 ? .clarity : .warmth)
         }
+
+        let q = template.followUps[stat.stat] ?? "What is one specific thing you did or noticed in that moment?"
+        return DebriefQuestion(text: q, focus: stat)
     }
 
     func grade(answer: String, focus: DebriefParameter?, context: DebriefContext) async -> DebriefGrade {
@@ -184,30 +192,32 @@ struct DummyDebriefCoach: DebriefCoaching {
         let words = trimmed.split(separator: " ")
         let wordCount = words.count
 
-        // Confidence strictly reflects answer length — short answers can't score high.
-        let confidence: Int
-        switch wordCount {
-        case 0..<8:   confidence = Int.random(in: 40...50)   // too brief / incomplete
-        case 8..<20:  confidence = Int.random(in: 50...62)   // brief with no concrete detail
-        case 20..<40: confidence = Int.random(in: 63...75)   // decent description
-        default:      confidence = Int.random(in: 76...90)   // rich first-person account
-        }
-
-        // Simple key-word checks. Each one nudges a score up a little.
+        // Simple key-word checks.
         let lower = trimmed.lowercased()
         let hasActionVerb = ["said", "told", "asked", "went", "did", "decided", "started", "spoke"].contains { lower.contains($0) }
         let hasDirectness = ["clear", "direct", "exactly", "honestly", "straight"].contains { lower.contains($0) }
         let hasObservation = ["looked", "noticed", "saw", "smiled", "nodded", "listened", "reaction"].contains { lower.contains($0) }
         let hasWarmthWords = ["thank", "glad", "happy", "shared", "appreciated", "friend", "kind"].contains { lower.contains($0) }
+        let hasAuthenticContent = ["my name", "yeah", "yes", "no", "first time", "busy", "meeting", "told", "said"].contains { lower.contains($0) }
 
-        var score = max(55, min(92, 60 + (wordCount > 6 ? 12 : 4) + (hasActionVerb ? 8 : 0)))
+        // Content-based confidence: concise, genuine answers receive high confidence (82-96)
+        let confidence: Int
+        if wordCount < 3 {
+            confidence = Int.random(in: 42...55)
+        } else if hasAuthenticContent || hasActionVerb || wordCount >= 6 {
+            confidence = Int.random(in: 82...96)
+        } else {
+            confidence = Int.random(in: 65...78)
+        }
+
+        var score = max(60, min(94, 68 + (wordCount > 4 ? 10 : 4) + (hasActionVerb ? 8 : 0)))
         let note: String
         var paramScores: [DebriefParameter: Int] = [:]
 
         switch focus {
         case .presence:
             if hasObservation {
-                score = min(95, score + 8)
+                score = min(96, score + 8)
                 note = "You tuned in to the room and noticed real details about their reaction."
             } else {
                 note = "You stayed grounded in the moment instead of retreating inward."
@@ -216,7 +226,7 @@ struct DummyDebriefCoach: DebriefCoaching {
 
         case .clarity:
             if hasDirectness || wordCount <= 25 {
-                score = min(95, score + 8)
+                score = min(96, score + 8)
                 note = "You communicated your thoughts concisely without circling around the point."
             } else {
                 note = "You articulated what happened clearly, making your experience easy to follow."
@@ -225,7 +235,7 @@ struct DummyDebriefCoach: DebriefCoaching {
 
         case .warmth:
             if hasWarmthWords {
-                score = min(95, score + 8)
+                score = min(96, score + 8)
                 note = "You brought genuine openness and care to the interaction."
             } else {
                 note = "You acknowledged the other person thoughtfully, creating space for connection."
@@ -233,8 +243,8 @@ struct DummyDebriefCoach: DebriefCoaching {
             paramScores[.warmth] = score
 
         case .courage, .none:
-            let courageScore = max(58, min(95, score + (hasActionVerb ? 6 : 0)))
-            let clarityScore = max(55, min(92, score - (wordCount > 35 ? 4 : 0)))
+            let courageScore = max(62, min(95, score + (hasActionVerb ? 6 : 0)))
+            let clarityScore = max(60, min(94, score - (wordCount > 35 ? 4 : 0)))
             if hasActionVerb {
                 note = "You stepped forward into the moment and took concrete action."
             } else {
@@ -396,37 +406,37 @@ final class DebriefSession {
 
         // 1. Specific situations and action patterns:
         if titleLower.contains("name") || titleLower.contains("correct") || notesLower.contains("name") {
-            return "Hey\(name)! When they got your name wrong, how did you correct them?"
+            return "Hey\(name)! Great to see you. We were just getting introduced around here — did they catch your name right away, or did you have to step in and correct them?"
         } else if titleLower.contains("decline") || titleLower.contains("say no") || titleLower.contains("dinner") || titleLower.contains("extra work") || notesLower.contains("say no") {
-            return "Hey\(name)! When they invited or asked you, what did you tell them to turn it down?"
+            return "Hey\(name)! Good catching you. When that invite came up, how did things play out when you bowed out?"
         } else if titleLower.contains("meeting") || titleLower.contains("speak up") || titleLower.contains("presentation") || notesLower.contains("meeting") {
-            return "Hey\(name)! When everyone was talking, how did you chime in with your thought?"
+            return "Hey\(name)! That meeting sounded lively. When everyone was tossing ideas around, how did you chime in?"
         } else if titleLower.contains("coffee") || titleLower.contains("lunch") || titleLower.contains("catch up") {
-            return "Hey\(name)! When you sat down to catch up, what was the first thing you talked about?"
+            return "Hey\(name)! Always good connecting. When you two sat down together, what got the conversation rolling?"
         } else if titleLower.contains("stranger") || titleLower.contains("introduce") || titleLower.contains("meet") {
-            return "Hey\(name)! When you saw them there, how did you break the ice?"
+            return "Hey\(name)! Glad you stepped into that room. How did things start off when you introduced yourself?"
         } else if titleLower.contains("text") || titleLower.contains("message") || titleLower.contains("reach out") {
-            return "Hey\(name)! After you hit send on that message, what happened next?"
+            return "Hey\(name)! It takes initiative to send that first note. After you hit send, how did they respond?"
         } else if titleLower.contains("compliment") || titleLower.contains("praise") {
-            return "Hey\(name)! When you gave them that compliment, how did they react?"
+            return "Hey\(name)! It's so nice brightening someone's day. When you gave that compliment, how did they take it?"
         } else if titleLower.contains("distance") || titleLower.contains("awkward") || titleLower.contains("conflict") {
-            return "Hey\(name)! Bringing up tension is never easy — how did you open that conversation?"
+            return "Hey\(name)! Clearing the air is never easy. When you opened that conversation, what was the first thing you shared?"
         } else if !context.questNotes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Hey\(name)! When you stepped into that moment for \(context.questTitle), what was the first thing you said or did?"
+            return "Hey\(name)! Glad you took on \(context.questTitle). How did things start off when that moment came up?"
         }
 
         // 2. Category-tailored situational openings:
         switch context.category {
         case .work:
-            return "Hey\(name)! When that moment came up at work, how did you communicate what you needed to say?"
+            return "Hey\(name)! Great to connect with you. When that conversation came up at work, how did you step in to communicate what you needed?"
         case .friends:
-            return "Hey\(name)! When you were hanging out with your friends, what was the moment that felt most genuine?"
+            return "Hey\(name)! Good catching you. When you were with your friends, what was the moment that felt most genuine?"
         case .dating:
-            return "Hey\(name)! When you two were talking, how did you break the ice?"
+            return "Hey\(name)! Great to see you. When you two were together, how did you get the conversation started?"
         case .family:
-            return "Hey\(name)! Being around family can bring up old patterns — how did you handle that conversation?"
+            return "Hey\(name)! Family moments can be tricky to navigate. When you spoke up, how did the conversation go?"
         case .others:
-            return "Hey\(name)! When you were in the middle of \(context.questTitle), what was the first thing you said or did?"
+            return "Hey\(name)! Glad you stepped into \(context.questTitle). How did things get started when that moment came up?"
         }
     }
 
@@ -793,21 +803,26 @@ struct QuestDebriefScreen: View {
         ZStack {
             MokoBackdrop()
 
-            // ScrollViewReader lets us scroll to the invisible "bottom" marker from code.
-            ScrollViewReader { proxy in
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        conversation
-                        Color.clear.frame(height: 1).id("bottom")
+            VStack(spacing: 0) {
+                // Single-line top header with back button and centered quest title
+                headerBar
+
+                // ScrollViewReader lets us scroll to the invisible "bottom" marker from code.
+                ScrollViewReader { proxy in
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            conversation
+                            Color.clear.frame(height: 1).id("bottom")
+                        }
                     }
+                    .scrollDismissesKeyboard(.interactively)
+                    // Keep the newest message in view whenever the chat changes.
+                    .onChange(of: session.messages.count) { _, _ in scrollToBottom(proxy) }
+                    .onChange(of: session.isCoachTyping) { _, _ in scrollToBottom(proxy) }
+                    .onChange(of: session.isRecording) { _, _ in scrollToBottom(proxy) }
+                    .onChange(of: session.isComplete) { _, _ in scrollToBottom(proxy) }
+                    .onChange(of: isTyping) { _, _ in scrollToBottom(proxy) }
                 }
-                .scrollDismissesKeyboard(.interactively)
-                // Keep the newest message in view whenever the chat changes.
-                .onChange(of: session.messages.count) { _, _ in scrollToBottom(proxy) }
-                .onChange(of: session.isCoachTyping) { _, _ in scrollToBottom(proxy) }
-                .onChange(of: session.isRecording) { _, _ in scrollToBottom(proxy) }
-                .onChange(of: session.isComplete) { _, _ in scrollToBottom(proxy) }
-                .onChange(of: isTyping) { _, _ in scrollToBottom(proxy) }
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -865,6 +880,26 @@ struct QuestDebriefScreen: View {
         }
     }
 
+    // MARK: Header
+
+    /// Single-line top header bar displaying the quest title.
+    private var headerBar: some View {
+        HStack {
+            Spacer(minLength: 16)
+
+            Text(session.context.questTitle)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(MokoScreenTheme.Colors.textTitle)
+                .lineLimit(1)
+                .truncationMode(.tail)
+
+            Spacer(minLength: 16)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+    }
+
     private func scrollToBottom(_ proxy: ScrollViewProxy) {
         withAnimation(.easeOut(duration: 0.35)) {
             proxy.scrollTo("bottom", anchor: .bottom)
@@ -898,6 +933,16 @@ struct QuestDebriefScreen: View {
             updated.xp = reward.xp
             updated.streak = reward.streak
             session.result = updated
+        }
+
+        // Dynamically update Insights parameter analysis
+        let courage = Double(result.scores[.courage] ?? 55)
+        let clarity = Double(result.scores[.clarity] ?? 55)
+        let presence = Double(result.scores[.presence] ?? 55)
+        let warmth = Double(result.scores[.warmth] ?? 55)
+        let scores = InsightsScores(clarity: clarity, courage: courage, presence: presence, warmth: warmth)
+        Task { @MainActor in
+            await DynamicParameterAnalysisStore.shared.refreshAnalysisIfNeeded(scores: scores, recentObservations: [quest.title])
         }
     }
 

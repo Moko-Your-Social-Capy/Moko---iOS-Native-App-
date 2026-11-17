@@ -1,6 +1,13 @@
 # Changelog
 
-- 2026-11-17 — `ReflectionView.swift`: Removed extra 13 pt leading padding on "This is you, [name]" so the title aligns flush with the "Strengths" and "Areas to Grow" section headings.
+- 2026-11-17 — `Questdebrief.swift`: Removed back button from `QuestDebriefScreen` top header per user request, keeping the quest title centered as a clean, distraction-free single-line header.
+
+- 2026-11-17 — `Questdebrief.swift`, `AFMDebriefCoach.swift`, `MokoAFM.swift`, `Insightsview.swift`, `DynamicParameterAnalysisStore.swift` (new), `MokoLog.swift`:
+  - Added single-line top header bar to `QuestDebriefScreen` with `<` back chevron button and centered quest title (`.lineLimit(1)`, `.truncationMode(.tail)`) so users always know which quest they are debriefing.
+  - Revamped conversation opener to enter the conversation warmly and interactively like a scene partner or conversational companion, welcoming the user into dialogue and removing dry questionnaire/exam phrasing.
+  - Implemented dynamic, non-repetitive, adaptive follow-ups in `AFMDebriefCoach` and AFM prompts: reads all preceding answers, eliminates repetition of already addressed observations/details, ignores meta chatter or complaints, and dynamically probes the remaining social dimensions without rigid sequencing.
+  - Shifted confidence scoring to be content-based and authenticity-based: concise, authentic, direct responses receive high confidence (80–96), removing artificial word-length caps that previously penalized concise answers.
+  - Eliminated hardcoded parameter analyses in `Insightsview.swift` (Courage, Clarity, Presence, Warmth); replaced with `DynamicParameterAnalysisStore` which dynamically generates, caches, and updates AFM-based parameter analysis based on the user's actual scores and debrief progress.
 
 - 2026-11-17 — `OnboardingReflectionService.swift`, `ReflectionView.swift`, `SharedUI.swift`: Fixed category resolution so Strengths strictly resolve to positive strength categories and Areas to Grow strictly resolve to growth/weakness categories (preventing weakness categories like `emotional_guardedness` from ever appearing under Strengths). In `ReflectionView`, made all Strengths SF symbols green and all Areas to Grow SF symbols brown (replacing red rust tint), and made the bottom area around the Overview button transparent so the gradient vector backdrop shows through continuously without a white box.
 
