@@ -33,6 +33,8 @@ struct QuestsScreen: View {
 
     // The selected category chip. nil means "All".
     @State private var filter: QuestCategory?
+    // Shows placeholder cards while the quest list is loading.
+    @State private var isLoading = true
     // The open full-screen cover (new or edit), or nil when none is open.
     @State private var route: QuestsRoute?
     // Setting this pushes the quest briefing. Clearing it pops back.
@@ -106,6 +108,9 @@ struct QuestsScreen: View {
                 QuestDetailScreen(quest: quest)
             }
         }
+        .task {
+            isLoading = false
+        }
         .fullScreenCover(item: $route) { destination in
             switch destination {
             case .newQuest:
@@ -176,7 +181,14 @@ struct QuestsScreen: View {
     // MARK: Content
     @ViewBuilder
     private var content: some View {
-        if customQuests.isEmpty {
+        if isLoading {
+            VStack(alignment: .leading, spacing: 16) {
+                MokoSkeletonView(style: MokoScreenTheme.Typeface.body, lines: 1)
+                MokoSkeletonView(style: MokoScreenTheme.Typeface.body, lines: 2)
+                MokoSkeletonView(style: MokoScreenTheme.Typeface.body, lines: 2)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        } else if customQuests.isEmpty {
             emptyCard(
                 title: "No Active Quest",
                 message: "Tap below to add a Custom Quest, or use explore option to browse library of quests"

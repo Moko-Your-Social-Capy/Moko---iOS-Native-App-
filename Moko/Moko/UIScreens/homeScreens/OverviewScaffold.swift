@@ -40,6 +40,8 @@ struct OverviewScaffold<MissionCard: View>: View {
     @State private var openInsights: Bool = false       // set by the sheet's Continue button
     @State private var showInsights: Bool = false       // pushes InsightsView
     @State private var showProfile: Bool = false        // profile sheet
+    // Shows placeholder cards while the mission / growth data are loading.
+    @State private var isLoading = true
 
     /// Today's numbers for the two Growth cards.
     private var data: OverviewData {
@@ -56,15 +58,26 @@ struct OverviewScaffold<MissionCard: View>: View {
                     VStack(alignment: .leading, spacing: 0) {
                         headerSection
 
-                        missionSection
-                            .padding(.top, Theme.Space.s7)
+                        if isLoading {
+                            missionSkeleton
+                                .padding(.top, Theme.Space.s7)
 
-                        progressSection
-                            .padding(.top, Theme.Space.s7)
+                            progressSkeleton
+                                .padding(.top, Theme.Space.s7)
+                        } else {
+                            missionSection
+                                .padding(.top, Theme.Space.s7)
+
+                            progressSection
+                                .padding(.top, Theme.Space.s7)
+                        }
                     }
                     .padding(.horizontal, Theme.Space.page)
                     .padding(.bottom, Theme.Space.tabBand)
                 }
+            }
+            .task {
+                isLoading = false
             }
             // Overview keeps its own header; pushed screens get the default bar and back button.
             .toolbar(.hidden, for: .navigationBar)
@@ -87,6 +100,50 @@ struct OverviewScaffold<MissionCard: View>: View {
                     // The hero owns a close button, so the grabber would only
                     // collide with the centred title.
                     .presentationDragIndicator(.hidden)
+            }
+        }
+    }
+
+    // MARK: - Skeletons
+
+    /// Placeholder Mission card while the real mission is being prepared.
+    private var missionSkeleton: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.gapSection) {
+            Text("Mission")
+                .mokoText(Theme.Typeface.section)
+                .foregroundStyle(Theme.Colors.textTitle)
+
+            VStack(alignment: .leading, spacing: Theme.Space.gapCard) {
+                MokoSkeletonView(style: MokoScreenTheme.Typeface.body, lines: 2)
+                    .padding(.horizontal, Theme.Space.cardHorizontal)
+                    .padding(.vertical, Theme.Space.cardVertical)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .mokoCard(fill: MokoScreenTheme.Card.missionFill)
+            }
+        }
+    }
+
+    /// Placeholder Growth cards while insights / calm-down data are loading.
+    private var progressSkeleton: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.gapSection) {
+            Text("Growth")
+                .mokoText(Theme.Typeface.section)
+                .foregroundStyle(Theme.Colors.textTitle)
+
+            VStack(alignment: .leading, spacing: Theme.Space.gapCard) {
+                MokoSkeletonView(style: MokoScreenTheme.Typeface.body, lines: 2)
+                    .padding(.horizontal, Theme.Space.cardHorizontal)
+                    .padding(.vertical, Theme.Space.cardVertical)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .mokoCard()
+            }
+
+            VStack(alignment: .leading, spacing: Theme.Space.gapCard) {
+                MokoSkeletonView(style: MokoScreenTheme.Typeface.body, lines: 2)
+                    .padding(.horizontal, Theme.Space.cardHorizontal)
+                    .padding(.vertical, Theme.Space.cardVertical)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .mokoCard()
             }
         }
     }
