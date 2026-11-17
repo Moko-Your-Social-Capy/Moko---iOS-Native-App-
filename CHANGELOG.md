@@ -1,5 +1,6 @@
 # Changelog
 
+- 2026-11-18 — `Questdebrief.swift`: Removed the duplicate debrief typing indicator, leaving only the “Your coach is thinking…” loader.
 - 2026-11-17 — `MokoSkeletonView.swift` (new), `QuestsScreen.swift`, `OverviewScaffold.swift`, `RelaxScreen.swift`: Added reusable skeleton loading with 0.2s motion and wired it into the Overview, Quests and Relax tabs; Quest Library kept its previous Lottie loader.
 - 2026-11-17 — `MOKO_AFM_WIDGET_CHANGES.md` (new): Added an audit of the Apple Foundation Models backend and ActivityKit / WidgetKit integration covering hard-coded vs dynamic use, scoring logic, response-based follow-ups, and robustness for off-topic or gibberish answers.
 
