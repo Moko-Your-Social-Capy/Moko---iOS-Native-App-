@@ -3,7 +3,8 @@
 //  Moko
 //
 //  The Explore tab: ready-made quests from Supabase, grouped by category in
-//  horizontal rows, with a search bar that filters by title.
+//  horizontal rows, with a search bar that filters by title. Choosing one type
+//  in the filter bar swaps the rows for a vertical list of larger cards.
 //
 //  Flow: `QuestLibraryStore` downloads the sections → tapping a card finds (or
 //  creates) a hidden SwiftData `Quest` for it → `QuestDetailScreen` opens.
@@ -12,7 +13,6 @@
 
 import SwiftUI
 import SwiftData
-import UIKit
 import OSLog
 
 struct QuestLibraryView: View {
@@ -26,6 +26,8 @@ struct QuestLibraryView: View {
     @State private var store = QuestLibraryStore()
     // What the user typed in the search bar.
     @State private var searchText: String = ""
+    // Which type chip is picked. nil means "All" and keeps the sideways rows.
+    @State private var selectedType: String?
     // Setting this pushes the quest briefing.
     @State private var openedQuest: Quest?
     // Card size that grows with the user's text size setting.
@@ -40,22 +42,29 @@ struct QuestLibraryView: View {
 
     // MARK: - Filtered Data
 
-    /// Sections with only the quests whose title matches the search.
+    /// Sections after the search and the type filter.
     /// Curly apostrophes (’) are treated like straight ones (') so "don't" finds "don’t".
     private var filteredSections: [QuestSection] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else {
-            return store.sections
-        }
-        let normalizedQuery = query.replacingOccurrences(of: "’", with: "'")
-        return store.sections.compactMap { section in
-            let matchingQuests = section.quests.filter { quest in
-                let normalizedTitle = quest.title.replacingOccurrences(of: "’", with: "'")
-                return normalizedTitle.localizedCaseInsensitiveContains(normalizedQuery)
+        let searchedSections: [QuestSection]
+
+        if query.isEmpty {
+            searchedSections = store.sections
+        } else {
+            let normalizedQuery = query.replacingOccurrences(of: "’", with: "'")
+            searchedSections = store.sections.compactMap { section in
+                let matchingQuests = section.quests.filter { quest in
+                    let normalizedTitle = quest.title.replacingOccurrences(of: "’", with: "'")
+                    return normalizedTitle.localizedCaseInsensitiveContains(normalizedQuery)
+                }
+                guard !matchingQuests.isEmpty else { return nil }
+                return QuestSection(title: section.title, category: section.category, quests: matchingQuests)
             }
-            guard !matchingQuests.isEmpty else { return nil }
-            return QuestSection(title: section.title, category: section.category, quests: matchingQuests)
         }
+
+        // "All" (nil) keeps every section. One type keeps only its own section.
+        guard let selectedType else { return searchedSections }
+        return searchedSections.filter { $0.title == selectedType }
     }
 
     // MARK: - Body
@@ -76,8 +85,16 @@ struct QuestLibraryView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView(.vertical) {
-                        VStack(alignment: .leading, spacing: 30) {
+                        VStack(alignment: .leading, spacing: 22) {
                             headerSection
+
+                            // Only show the chips once there is something to filter.
+                            if !store.sections.isEmpty {
+                                QuestLibraryFilterBar(
+                                    sections: store.sections,
+                                    selectedTitle: $selectedType
+                                )
+                            }
 
                             libraryContent
                         }
@@ -97,6 +114,12 @@ struct QuestLibraryView: View {
             // `.task` runs when the screen appears. Downloads the library the first time only.
             .task {
                 await store.loadIfNeeded()
+            }
+            // If a refresh removes the picked type, quietly return to "All".
+            .onChange(of: store.sections.map(\.title)) { _, types in
+                if let selectedType, !types.contains(selectedType) {
+                    self.selectedType = nil
+                }
             }
             // Matches the Overview, Quests and Relax tab headers.
             .navigationTitle("Quest Library")
@@ -199,19 +222,41 @@ struct QuestLibraryView: View {
             .frame(maxWidth: .infinity)
             .padding(.top, 40)
         } else if filteredSections.isEmpty {
-            ContentUnavailableView.search(text: searchText)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 40)
+            emptyFilteredContent
         } else {
             // Some quests are already showing, but the latest refresh failed.
             if let error = store.errorMessage {
                 refreshFailedBanner(error)
             }
 
-            ForEach(Array(filteredSections.enumerated()), id: \.element.id) { sectionIndex, section in
-                sectionView(for: section, sectionIndex: sectionIndex)
+            // "All" keeps the sideways category rows. One type becomes a vertical list.
+            if selectedType == nil {
+                ForEach(Array(filteredSections.enumerated()), id: \.element.id) { sectionIndex, section in
+                    sectionView(for: section, sectionIndex: sectionIndex)
+                }
+            } else {
+                ForEach(Array(filteredSections.enumerated()), id: \.element.id) { sectionIndex, section in
+                    typeListSectionView(for: section, sectionIndex: sectionIndex)
+                }
             }
         }
+    }
+
+    /// Shown when the search or the picked type leaves nothing to display.
+    private var emptyFilteredContent: some View {
+        Group {
+            if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                ContentUnavailableView {
+                    Label("No \(selectedType ?? "") quests", systemImage: "sparkles")
+                } description: {
+                    Text("New quests will appear here as soon as they're added.")
+                }
+            } else {
+                ContentUnavailableView.search(text: searchText)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 40)
     }
 
     private func refreshFailedBanner(_ message: String) -> some View {
@@ -268,6 +313,48 @@ struct QuestLibraryView: View {
         }
     }
 
+    // MARK: - Type List Section View
+
+    /// One type shown as a vertical list: a small group heading and full-width cards.
+    /// This is the layout used after a type chip is picked.
+    private func typeListSectionView(for section: QuestSection, sectionIndex: Int) -> some View {
+        // How many cards come before this section. Keeps the entrance stagger in order.
+        let firstCardIndex = filteredSections.prefix(sectionIndex).reduce(0) { $0 + $1.quests.count }
+        // "1 quest" reads better than "1 quests".
+        let questCountText = section.quests.count == 1 ? "1 quest" : "\(section.quests.count) quests"
+
+        return VStack(alignment: .leading, spacing: 14) {
+            // A quiet heading groups the cards, like the day headings in the Quests tab.
+            HStack(spacing: 8) {
+                Image(systemName: section.category.symbol)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(QuestStyle.categoryColor(for: section.category))
+
+                Text(section.title)
+                    .mokoText(MokoScreenTheme.Typeface.body)
+                    .foregroundStyle(QuestStyle.subtext)
+
+                Spacer(minLength: 8)
+
+                Text(questCountText)
+                    .mokoText(MokoScreenTheme.Typeface.caption)
+                    .foregroundStyle(QuestStyle.subtext)
+            }
+            .padding(.horizontal, MokoScreenTheme.Space.page)
+
+            // The big cards stack vertically and use the full screen width.
+            LazyVStack(spacing: 16) {
+                ForEach(Array(section.quests.enumerated()), id: \.element.id) { questIndex, quest in
+                    QuestLibraryLargeCard(quest: quest, section: section) {
+                        open(quest, in: section)
+                    }
+                    .questCardEntrance(order: firstCardIndex + questIndex, reduceMotion: reduceMotion)
+                }
+            }
+            .padding(.horizontal, MokoScreenTheme.Space.page)
+        }
+    }
+
     // MARK: - Situation Card
 
     private func situationCard(for quest: LibraryQuest, in section: QuestSection) -> some View {
@@ -289,7 +376,7 @@ struct QuestLibraryView: View {
                 .fill(quest.tint)
                 .frame(width: cardWidth - 24, height: 106)
                 .overlay {
-                    artwork(for: quest, in: section)
+                    QuestLibraryArtwork(quest: quest, category: section.category)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: MokoScreenTheme.Radius.inner, style: .continuous))
 
@@ -314,46 +401,6 @@ struct QuestLibraryView: View {
         .padding(12)
         .frame(width: cardWidth, height: cardHeight)
         .mokoCard()
-    }
-
-    /// Card artwork from Supabase Storage. Until a file is uploaded, or while it
-    /// is loading, the category symbol keeps the card legible.
-    @ViewBuilder
-    private func artwork(for quest: LibraryQuest, in section: QuestSection) -> some View {
-        if let url = quest.artworkURL {
-            // AsyncImage downloads the picture. `phase` tells us loading / done / failed.
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                case .empty:
-                    ZStack {
-                        Color.white.opacity(0.25)
-                        MokoLoadingView()
-                            .frame(width: 44, height: 44)
-                    }
-                case .failure:
-                    categorySymbol(for: section.category)
-                @unknown default:
-                    categorySymbol(for: section.category)
-                }
-            }
-        } else if let imageName = quest.imageName, UIImage(named: imageName) != nil {
-            // Optional fallback for artwork bundled in Assets.xcassets.
-            Image(imageName)
-                .resizable()
-                .scaledToFill()
-        } else {
-            categorySymbol(for: section.category)
-        }
-    }
-
-    private func categorySymbol(for category: QuestCategory) -> some View {
-        Image(systemName: category.symbol)
-            .font(.system(size: 32, weight: .semibold))
-            .foregroundStyle(QuestStyle.accent.opacity(0.45))
     }
 
     // MARK: - Connections
