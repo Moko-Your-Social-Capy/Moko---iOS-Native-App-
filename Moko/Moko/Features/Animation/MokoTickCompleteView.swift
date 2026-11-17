@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Plays the supplied animated Moko Tick Complete SVG for completion moments.
-/// Uses the SVG's SMIL animation directly for smooth, blendable rendering.
+/// Plays the supplied Moko Tick Complete animation for completion moments.
+/// Prefers the bundled HTML animation; falls back to the SVG asset if needed.
 struct MokoTickCompleteView: View {
     // How big the animation should appear on screen.
     var size: CGFloat = 240
@@ -9,10 +9,16 @@ struct MokoTickCompleteView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        MokoSVGAnimationView(name: MokoAnimationAssets.tickCompleteSVG)
-            .frame(width: size, height: size)
-            .background(Color.clear)
-            .accessibilityHidden(true)
+        Group {
+            if MokoAnimationAssets.url(named: MokoAnimationAssets.tickCompleteHTML, extension: "html") != nil {
+                MokoHTMLAnimationView(fileName: MokoAnimationAssets.tickCompleteHTML)
+            } else {
+                MokoSVGAnimationView(name: MokoAnimationAssets.tickCompleteSVG)
+            }
+        }
+        .frame(width: size, height: size)
+        .background(Color.clear)
+        .accessibilityHidden(true)
     }
 }
 

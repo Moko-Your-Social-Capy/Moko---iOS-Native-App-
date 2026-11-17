@@ -12,48 +12,74 @@ enum MokoAnimationAssets {
 
     // Universal completion illustration (SVG with SMIL animation).
     static let tickCompleteSVG = "moko-tick-complete"
+    // Universal completion illustration (animated HTML file, preferred for tick).
+    static let tickCompleteHTML = "11-Tick-Complete-animated"
 
     /// Cached Lottie animation for the inline loader to avoid repeated decoding.
     static let inlineLoaderAnimation: LottieAnimation? = LottieAnimation.named(inlineLoaderName)
 
-    /// Cached SVG sources to avoid repeated disk reads.
+    /// Cached SVG/HTML sources to avoid repeated disk reads.
     private static var svgCache: [String: String] = [:]
-    private static let svgLock = NSLock()
+    private static var htmlCache: [String: String] = [:]
+    private static let cacheLock = NSLock()
+
+    /// Finds a bundled resource URL by trying common animation folders.
+    static func url(named name: String, extension ext: String) -> URL? {
+        if let url = Bundle.main.url(forResource: name, withExtension: ext) { return url }
+        let fm = FileManager.default
+        guard let bundlePath = Bundle.main.resourcePath else { return nil }
+        let candidates = [
+            (bundlePath as NSString).appendingPathComponent("\(name).\(ext)"),
+            (bundlePath as NSString).appendingPathComponent("Features/Animation/\(name).\(ext)"),
+            (bundlePath as NSString).appendingPathComponent("Animation/\(name).\(ext)")
+        ]
+        for path in candidates where fm.fileExists(atPath: path) {
+            return URL(fileURLWithPath: path)
+        }
+        return nil
+    }
 
     /// Loads an SVG file from the bundle as a String (cached).
     static func svgString(named name: String) -> String? {
-        svgLock.lock()
-        if let cached = svgCache[name] { svgLock.unlock(); return cached }
-        svgLock.unlock()
+        cacheLock.lock()
+        if let cached = svgCache[name] { cacheLock.unlock(); return cached }
+        cacheLock.unlock()
 
         var result: String?
-        if let url = Bundle.main.url(forResource: name, withExtension: "svg"),
+        if let url = url(named: name, extension: "svg"),
            let data = try? Data(contentsOf: url),
            let string = String(data: data, encoding: .utf8) {
             result = string
-        } else {
-            let fm = FileManager.default
-            if let bundlePath = Bundle.main.resourcePath {
-                let candidates = [
-                    (bundlePath as NSString).appendingPathComponent("\(name).svg"),
-                    (bundlePath as NSString).appendingPathComponent("Features/Animation/\(name).svg"),
-                    (bundlePath as NSString).appendingPathComponent("Animation/\(name).svg")
-                ]
-                for path in candidates where fm.fileExists(atPath: path) {
-                    if let string = try? String(contentsOfFile: path, encoding: .utf8) { result = string; break }
-                }
-            }
         }
         if let result {
-            svgLock.lock(); svgCache[name] = result; svgLock.unlock()
+            cacheLock.lock(); svgCache[name] = result; cacheLock.unlock()
         }
         return result
     }
 
-    /// Preloads commonly used animation SVGs to reduce first-render delay.
+    /// Loads an HTML animation file from the bundle as a String (cached).
+    static func htmlString(named name: String) -> String? {
+        cacheLock.lock()
+        if let cached = htmlCache[name] { cacheLock.unlock(); return cached }
+        cacheLock.unlock()
+
+        var result: String?
+        if let url = url(named: name, extension: "html"),
+           let data = try? Data(contentsOf: url),
+           let string = String(data: data, encoding: .utf8) {
+            result = string
+        }
+        if let result {
+            cacheLock.lock(); htmlCache[name] = result; cacheLock.unlock()
+        }
+        return result
+    }
+
+    /// Preloads commonly used animation assets to reduce first-render delay.
     static func preloadCommonSVGs() {
         _ = svgString(named: tickCompleteSVG)
         _ = svgString(named: fullScreenLoadingSVG)
+        _ = htmlString(named: tickCompleteHTML)
     }
 }
 
