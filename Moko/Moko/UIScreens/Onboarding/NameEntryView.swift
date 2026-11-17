@@ -2,24 +2,41 @@
 //  NameEntryView.swift
 //  Moko
 //
-//  Intro step 2: the user types the name Moko should call them.
+//  Intro step 2: the user types the name Moko should call them and picks their age.
 //  Continue stays disabled until the name has at least one non-space letter.
 //
 
 import SwiftUI
 
 struct NameEntryView: View {
-    /// How full the top progress bar is (0...1).
-    var progress: CGFloat = 0.677
-    /// Called with the cleaned-up name when the user continues.
-    var onContinue: (String) -> Void = { _ in }
+    var initialName = ""
+    var initialAge = 20
+    var ageRange: ClosedRange<Int> = 13...100
+    /// Called with the cleaned-up name and selected age when the user continues.
+    var onContinue: (String, Int) -> Void = { _, _ in }
 
-    /// What the user has typed so far.
+    @Environment(\.mokoTheme) private var theme
+
+    // Tracks what the user is typing before it is saved to the Profile model.
     @State private var name = ""
-    /// True while the keyboard is up for the name field.
+    // The age chosen in the native picker below the username field.
+    @State private var selectedAge = 20
+    // Lets only the username field take keyboard focus.
     @FocusState private var isFocused: Bool
 
-    private let placeholderColor = Color(hex: 0xD2C6B3)
+    init(
+        initialName: String = "",
+        initialAge: Int = 20,
+        ageRange: ClosedRange<Int> = 13...100,
+        onContinue: @escaping (String, Int) -> Void = { _, _ in }
+    ) {
+        self.initialName = initialName
+        self.initialAge = initialAge
+        self.ageRange = ageRange
+        self.onContinue = onContinue
+        _name = State(initialValue: initialName)
+        _selectedAge = State(initialValue: initialAge)
+    }
 
     /// The name without leading/trailing spaces or new lines.
     private var trimmedName: String {
@@ -28,69 +45,140 @@ struct NameEntryView: View {
     private var canContinue: Bool { !trimmedName.isEmpty }
 
     var body: some View {
-        VStack(spacing: 0) {
-            OnboardingProgressBar(progress: progress)
-                .padding(.horizontal, 20)
+        OnboardingJourneyScaffold(
+            currentPage: 1,
+            buttonTitle: "Continue",
+            footer: "You can update your name and age anytime in Profile.",
+            isEnabled: canContinue,
+            action: submit
+        ) {
+            VStack(alignment: .leading, spacing: 0) {
+                Label("ABOUT YOU", systemImage: "sparkles")
+                    .font(.caption.weight(.bold))
+                    .tracking(2.2)
+                    .foregroundStyle(theme.colors.ctaAccentText.opacity(0.75))
 
-            Text("What should we call you?")
-                .font(.system(size: 30, weight: .bold))
-                .tracking(-0.5)
-                .foregroundStyle(Color.ink)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
+                Text("What should\nMoko call you?")
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                    .tracking(-1.2)
+                    .lineSpacing(-2)
+                    .foregroundStyle(theme.colors.ctaAccentText)
+                    .padding(.top, 16)
 
-            nameField
-                .padding(.horizontal, 30)
-                .padding(.top, 35)
+                Text("Tell us a little about yourself so Moko can personalize your daily practice.")
+                    .font(.subheadline.weight(.medium))
+                    .lineSpacing(3)
+                    .foregroundStyle(theme.colors.ctaAccentText.opacity(0.82))
+                    .padding(.top, 12)
+                    .padding(.bottom, 22)
 
-            Spacer()
+                usernameField
 
-            OnboardingContinueButton(isEnabled: canContinue, action: submit)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 38)
+                agePicker
+                    .padding(.top, 12)
+            }
         }
-        .background(MokoBackdrop())
-        // Runs once when the screen appears: open the keyboard straight away.
-        .task { isFocused = true }
+        // Focuses the name field when this step opens, so the keyboard is ready immediately.
+        .task {
+            isFocused = true
+        }
+        .sensoryFeedback(.selection, trigger: selectedAge)
     }
 
-    // MARK: Name field
+    // MARK: Username field
 
-    private var nameField: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Your Name")
-                .font(.system(size: 15))
-                .foregroundStyle(Color.ink)
+    private var usernameField: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("USERNAME")
+                .font(.caption2.weight(.bold))
+                .tracking(1.6)
+                .foregroundStyle(theme.colors.ctaAccentText.opacity(0.78))
 
-            TextField(
-                "",
-                text: $name,
-                prompt: Text("e.g. John").foregroundStyle(placeholderColor)
-            )
-            .font(.system(size: 22, weight: .semibold))
-            .foregroundStyle(Color.ink)
-            .tint(Color.forest)                          // cursor color
-            .focused($isFocused)
-            .textInputAutocapitalization(.words)
-            .autocorrectionDisabled()
-            .submitLabel(.continue)                      // keyboard's return key says "continue"
-            .onSubmit(submit)
+            HStack(spacing: 12) {
+                Image(systemName: "person.crop.circle.fill")
+                    .font(.title2)
+                    .foregroundStyle(canContinue ? theme.colors.ctaAccent : theme.colors.secondaryText)
+                    .accessibilityHidden(true)
+
+                TextField(
+                    "",
+                    text: $name,
+                    prompt: Text("e.g. John")
+                        .foregroundStyle(theme.colors.placeholder)
+                )
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(theme.colors.primaryText)
+                .tint(theme.colors.ctaAccent)
+                .focused($isFocused)
+                .textInputAutocapitalization(.words)
+                .autocorrectionDisabled()
+                .submitLabel(.continue)
+                .onSubmit(submit)
+                .accessibilityLabel("Username")
+
+                if canContinue {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(theme.colors.success)
+                        .accessibilityHidden(true)
+                }
+            }
+            .frame(height: 60)
+            .padding(.horizontal, 14)
+            .background(theme.colors.cardSurface, in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 19, style: .continuous)
+                    .stroke(
+                        theme.colors.focusColor.opacity(isFocused ? 0.9 : 0.12),
+                        lineWidth: isFocused ? 2 : 1
+                    )
+            }
+            .shadow(color: theme.colors.cardShadow.opacity(0.12), radius: 8, y: 4)
+            .contentShape(RoundedRectangle(cornerRadius: 19, style: .continuous))
+            // Tapping anywhere in the field brings the keyboard back.
+            .onTapGesture { isFocused = true }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        // Make the whole area (not just the text) tappable to bring the keyboard back.
-        .contentShape(Rectangle())
-        .onTapGesture { isFocused = true }
+    }
+
+    // MARK: Age picker
+
+    private var agePicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("YOUR AGE")
+                .font(.caption2.weight(.bold))
+                .tracking(1.6)
+                .foregroundStyle(theme.colors.ctaAccentText.opacity(0.78))
+
+            Picker("Age", selection: $selectedAge) {
+                ForEach(Array(ageRange), id: \.self) { age in
+                    Text("\(age)")
+                        .font(.title3.weight(.semibold))
+                        .tag(age)
+                }
+            }
+            .pickerStyle(.wheel)
+            .labelsHidden()
+            .frame(height: 126)
+            .background(theme.colors.cardSurface, in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 19, style: .continuous)
+                    .stroke(theme.colors.cardBorder.opacity(0.72), lineWidth: 1)
+            }
+            .accessibilityLabel("Your age")
+            .accessibilityValue("\(selectedAge) years")
+        }
     }
 
     // MARK: Actions
 
     private func submit() {
         guard canContinue else { return }
-        onContinue(trimmedName)
+        onContinue(trimmedName, selectedAge)
     }
 }
 
 #Preview {
-    NameEntryView(onContinue: { _ in })
+    NavigationStack {
+        NameEntryView()
+    }
+    .mokoThemeRoot()
 }

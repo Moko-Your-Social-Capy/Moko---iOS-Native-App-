@@ -2,67 +2,80 @@
 //  WelcomeView.swift
 //  Moko
 //
-//  Intro step 4 (last): greets the user by name and starts the reflection questions.
+//  Personalized intro screen: greets the user by name and starts onboarding reflections.
 //
 
 import SwiftUI
 import Lottie
 
 struct WelcomeView: View {
-    /// The name the user typed on NameEntryView.
+    /// The name the user typed on the previous screen.
     let name: String
-    /// Called when the user taps "Start reflections".
+    /// Called when the user taps “Start reflections”.
     var onStart: () -> Void = {}
 
-    /// "Nice to meet you, Sam", or without the name if it is blank.
+    @Environment(\.mokoTheme) private var theme
+
+    /// “Nice to meet you, Sam”, or without the name if it is blank.
     private var greeting: String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? "Nice to meet you" : "Nice to meet you, \(trimmed)"
+        return trimmed.isEmpty ? "Nice to meet\nyou" : "Nice to meet\nyou, \(trimmed)"
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Last intro step, so the bar is full.
-            OnboardingProgressBar(progress: 1)
-                .padding(.horizontal, 20)
+        OnboardingJourneyScaffold(
+            currentPage: 2,
+            buttonTitle: "Start reflections",
+            footer: "Moko will shape the practice around your answers.",
+            action: onStart
+        ) {
+            VStack(alignment: .leading, spacing: 0) {
+                Label("WELCOME", systemImage: "sun.max.fill")
+                    .font(.caption.weight(.bold))
+                    .tracking(2.2)
+                    .foregroundStyle(theme.colors.ctaAccentText.opacity(0.75))
 
-            Text(greeting)
-                .font(.system(size: 25, weight: .semibold))
-                .tracking(-0.3)
-                .foregroundStyle(Color.ink)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 57)
+                Text(greeting)
+                    .font(.system(size: 42, weight: .bold, design: .rounded))
+                    .tracking(-1.2)
+                    .lineSpacing(-2)
+                    .foregroundStyle(theme.colors.ctaAccentText)
+                    .padding(.top, 16)
 
-            Text("Moko has a few quick questions to personalize your daily practice.")
-                .font(.system(size: 17))
-                .lineSpacing(3)
-                .foregroundStyle(Color.ink)
-                .frame(maxWidth: 300, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 20)
-                .padding(.top, 32)
+                Text("A few quick questions help Moko understand how you move through social moments.")
+                    .font(.subheadline.weight(.medium))
+                    .lineSpacing(3)
+                    .foregroundStyle(theme.colors.ctaAccentText.opacity(0.82))
+                    .padding(.top, 14)
 
-            // Mascot welcomes the user before reflections start.
-            VStack(spacing: 20) {
-                MokoLottieView(animation: .easterBunnyWaving, loopMode: .loop)
-                    .frame(width: 220, height: 220)
+                Spacer(minLength: 22)
+
+                // Lottie is Apple’s mascot animation; it is hidden from VoiceOver.
+                MokoLottieView(animation: .easterBunnyWaving)
+                    .frame(width: 205, height: 205)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityHidden(true)
+
+                Spacer(minLength: 22)
+
+                HStack(spacing: 10) {
+                    Image(systemName: "lock.fill")
+                        .font(.caption.weight(.bold))
+                    Text("Your answers stay personal to you.")
+                        .font(.caption.weight(.semibold))
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(theme.colors.ctaAccentText.opacity(0.86))
+                .padding(12)
+                .background(theme.colors.inverseText.opacity(0.10), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 20)
-            .padding(.top, 40)
-            .accessibilityHidden(true)
-
-            Spacer(minLength: 16)
-
-            OnboardingContinueButton(title: "Start reflections", action: onStart)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 36)
         }
-        .background(MokoBackdrop())
     }
 }
 
 #Preview {
-    WelcomeView(name: "Aditi")
+    NavigationStack {
+        WelcomeView(name: "Aditi")
+    }
+    .mokoThemeRoot()
 }
