@@ -43,6 +43,10 @@ struct OverviewScaffold<MissionCard: View>: View {
     // Shows placeholder cards while the mission / growth data are loading.
     @State private var isLoading = true
 
+    // Reads the session-end closure set by ContentView so we can dismiss the
+    // profile sheet before the root screen transitions away.
+    @Environment(\.endSession) private var endSession
+
     /// Today's numbers for the two Growth cards.
     private var data: OverviewData {
         OverviewData(insights: insights, calmDowns: calmDowns)
@@ -97,9 +101,17 @@ struct OverviewScaffold<MissionCard: View>: View {
             .sheet(isPresented: $showProfile) {
                 ProfileOverView()
                     .presentationDetents([.large])
-                    // The hero owns a close button, so the grabber would only
-                    // collide with the centred title.
                     .presentationDragIndicator(.hidden)
+                    // Intercept endSession: dismiss this sheet first, then let
+                    // ContentView switch the root screen once the sheet is gone.
+                    .environment(\.endSession) { reason in
+                        showProfile = false
+                        // Give the sheet dismiss animation a beat before the root
+                        // screen transitions, so there is no visual overlap.
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            endSession?(reason)
+                        }
+                    }
             }
         }
     }
