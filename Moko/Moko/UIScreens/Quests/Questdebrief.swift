@@ -933,14 +933,21 @@ struct QuestDebriefScreen: View {
                 .transition(.opacity)
             }
             
-            // Show animated score reveal when debrief is complete
+            // Show one white completion card when the debrief is complete.
             if session.isComplete, let result = session.result {
-                ScoreReveal(scores: [
-                    .courage: result.scores[.courage] ?? 0,
-                    .clarity: result.scores[.clarity] ?? 0,
-                    .presence: result.scores[.presence] ?? 0,
-                    .warmth: result.scores[.warmth] ?? 0
-                ])
+                ScoreReveal(
+                    scores: [
+                        .courage: result.scores[.courage] ?? 0,
+                        .clarity: result.scores[.clarity] ?? 0,
+                        .presence: result.scores[.presence] ?? 0,
+                        .warmth: result.scores[.warmth] ?? 0
+                    ],
+                    // The old green panel used a fixed +8; keep the same comparison line.
+                    comparison: 8,
+                    xp: result.xp,
+                    streak: result.streak,
+                    onContinue: { exit(.completed) }
+                )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
@@ -982,15 +989,11 @@ struct QuestDebriefScreen: View {
 
     // MARK: Bottom area
 
-    /// The answer box (plus the orb while recording), or the results panel at the end.
+    /// The answer box (plus the orb while recording). Hidden once the white results card shows.
+    @ViewBuilder
     private var bottomArea: some View {
-        VStack(spacing: 10) {
-            if session.isComplete, let result = session.result {
-                DebriefCompletionPanel(result: result) {
-                    exit(.completed)
-                }
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else {
+        if !session.isComplete {
+            VStack(spacing: 10) {
                 if session.isRecording {
                     DebriefOrb(level: session.orbLevel)
                         .frame(height: 128)
@@ -999,20 +1002,19 @@ struct QuestDebriefScreen: View {
 
                 composer
             }
-        }
-        .padding(.horizontal, MokoScreenTheme.Space.page)
-        .padding(.top, 10)
-        .padding(.bottom, 8)
-        .background(
-            LinearGradient(
-                colors: [DebriefStyle.screenBg.opacity(0), DebriefStyle.screenBg],
-                startPoint: .top,
-                endPoint: .center
+            .padding(.horizontal, MokoScreenTheme.Space.page)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
+            .background(
+                LinearGradient(
+                    colors: [DebriefStyle.screenBg.opacity(0), DebriefStyle.screenBg],
+                    startPoint: .top,
+                    endPoint: .center
+                )
+                .ignoresSafeArea()
             )
-            .ignoresSafeArea()
-        )
-        .animation(.spring(response: 0.5, dampingFraction: 0.85), value: session.isRecording)
-        .animation(.spring(response: 0.5, dampingFraction: 0.85), value: session.isComplete)
+            .animation(.spring(response: 0.5, dampingFraction: 0.85), value: session.isRecording)
+        }
     }
 
     private var placeholder: String {
@@ -1736,180 +1738,6 @@ struct DebriefLeaveOption: View {
     }
 }
 
-// MARK: - Debrief Complete
-
-/// The results panel: check mark, XP, streak and the four score bars.
-struct DebriefCompletionPanel: View {
-    let result: DebriefResult
-    var onContinue: () -> Void
-
-    // Flipped on appear: pops the check mark in and fills the score bars one by one.
-    @State private var animate = false
-    @State private var showConfetti = false
-
-    var body: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 14) {
-                ZStack {
-                    Circle().fill(DebriefStyle.soft.opacity(0.7)).frame(width: 58, height: 58)
-                    Circle().fill(DebriefStyle.accent).frame(width: 46, height: 46)
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(.white)
-                        .symbolEffect(.bounce, value: animate)
-                }
-                .scaleEffect(animate ? 1 : 0.5)
-                .opacity(animate ? 1 : 0)
-                .overlay(
-                    MokoLottieView(animation: .confetti, loopMode: .playOnce)
-                        .frame(width: 80, height: 80)
-                        .opacity(showConfetti ? 1 : 0)
-                        .allowsHitTesting(false)
-                )
-
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text("Debrief Complete")
-                            .mokoText(MokoScreenTheme.Typeface.cardTitle)
-                            .foregroundStyle(DebriefStyle.title)
-
-                        Text("+\(result.xp) XP")
-                            .mokoText(MokoScreenTheme.Typeface.caption)
-                            .foregroundStyle(DebriefStyle.accent)
-                            .padding(.horizontal, 9)
-                            .frame(height: 24)
-                            .background(Capsule().fill(DebriefStyle.soft.opacity(0.7)))
-                    }
-
-                    if result.streak > 0 {
-                        Text("\(result.streak)-day streak")
-                            .mokoText(MokoScreenTheme.Typeface.caption)
-                            .foregroundStyle(DebriefStyle.subtext)
-                    }
-                }
-
-                Spacer(minLength: 0)
-            }
-
-            Rectangle()
-                .fill(DebriefStyle.border)
-                .frame(height: 1)
-
-            // Yesterday's comparison header
-            HStack {
-                Text("Compared to yesterday")
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .foregroundStyle(DebriefStyle.subtext)
-                Spacer()
-                // Simulated yesterday's total (would come from actual data)
-                Text("+8")
-                    .mokoText(MokoScreenTheme.Typeface.numeral)
-                    .foregroundStyle(Color.green)
-                Text("points")
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .foregroundStyle(DebriefStyle.subtext)
-            }
-            .padding(.horizontal, 4)
-
-            // Sliding cards for 4 parameters (right-side layout)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(DebriefParameter.allCases, id: \.self) { parameter in
-                        scoreCard(parameter)
-                    }
-                }
-                .padding(.horizontal, 4)
-            }
-            .frame(height: 140)
-
-            Button(action: onContinue) {
-                Text("Continue")
-                    .mokoText(MokoScreenTheme.Typeface.cardTitle)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 58)
-                    .background(Capsule().fill(DebriefStyle.accent))
-                    .shadow(color: DebriefStyle.accent.opacity(0.25), radius: 10, x: 0, y: 5)
-            }
-            .buttonStyle(DebriefPressStyle())
-        }
-        .padding(18)
-        .mokoCard(fill: MokoScreenTheme.Colors.surfaceLavender)
-        .animation(.spring(response: 0.55, dampingFraction: 0.7), value: animate)
-        .onAppear {
-            animate = true
-            // Trigger confetti animation after a short delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                showConfetti = true
-            }
-        }
-    }
-
-    /// Score card for sliding cards layout
-    private func scoreCard(_ parameter: DebriefParameter) -> some View {
-        let value = result.scores[parameter] ?? 0
-        // Simulated yesterday's value (would come from actual data)
-        let yesterdayValue = max(0, value - Int.random(in: 5...15))
-        let change = value - yesterdayValue
-        let changeColor = change >= 0 ? Color.green : Color.red
-        
-        return VStack(spacing: 8) {
-            // Parameter icon and name
-            HStack {
-                Image(systemName: parameter.symbol)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(parameter.accent)
-                
-                Text(parameter.rawValue)
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .foregroundStyle(DebriefStyle.title)
-                    .lineLimit(1)
-                
-                Spacer()
-            }
-            
-            // Today's score (big number)
-            Text("\(value)")
-                .mokoText(MokoScreenTheme.Typeface.numeral)
-                .foregroundStyle(DebriefStyle.accent)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            // Yesterday comparison
-            HStack {
-                Text("Yesterday: \(yesterdayValue)")
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .foregroundStyle(DebriefStyle.subtext)
-                
-                Spacer()
-                
-                Text(change >= 0 ? "+\(change)" : "\(change)")
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .foregroundStyle(changeColor)
-            }
-            
-            // Mini progress bar
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(DebriefStyle.soft.opacity(0.4))
-                    
-                    Capsule()
-                        .fill(parameter.accent)
-                        .frame(width: geo.size.width * (animate ? Double(value) / 100 : 0))
-                        .animation(.easeOut(duration: 0.6), value: animate)
-                }
-            }
-            .frame(height: 4)
-        }
-        .padding(12)
-        .frame(width: 140)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(MokoScreenTheme.Colors.surfaceWhite)
-                .shadow(color: DebriefStyle.accent.opacity(0.1), radius: 8, x: 0, y: 4)
-        )
-    }
-}
-
 // MARK: - Previews
 #Preview("Debrief") {
     QuestDebriefScreen(
@@ -1932,12 +1760,16 @@ struct DebriefCompletionPanel: View {
     ZStack(alignment: .bottom) {
         MokoBackdrop()
 
-        DebriefCompletionPanel(
-            result: DebriefResult(
-                scores: [.courage: 82, .clarity: 70, .presence: 78, .warmth: 86],
-                xp: 50,
-                streak: 4
-            ),
+        ScoreReveal(
+            scores: [
+                .courage: 82,
+                .clarity: 70,
+                .presence: 78,
+                .warmth: 86
+            ],
+            comparison: 8,
+            xp: 50,
+            streak: 4,
             onContinue: {}
         )
         .padding(16)

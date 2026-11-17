@@ -1,5 +1,7 @@
 # Changelog
 
+- 2026-11-17 — `OverviewDebriefDone.swift`, `Questdebrief.swift`, `ScoreReveal.swift`: Removed the duplicate "Quest Complete!" popup so the Overview done screen shows one tick-mark completion card. After a debrief, the single white score card now includes the "+X points compared to yesterday" line, XP and streak, and the Continue button; deleted the green completion panel that overflowed below the screen.
+
 - 2026-11-17 — Settings (`SettingsStore.swift`, `LiveActivityController.swift`, `MokoActivityAttributes.swift`, `ProfileSettingsView.swift`, `Notifications.swift`, `MicrophonePermissionView.swift`, new `MokoLiveActivity` widget target): Replaced decorative switches with real status and behaviour for notifications, daily reminders, microphone, camera and Live Activities; added iOS Settings deep links, foreground refresh, reminder scheduling/cancellation/rescheduling, ActivityKit start/update/end plus a Live Activity widget, and real account/sign-out/delete/legal entries.
 
 - 2026-11-17 — `Moko.xcodeproj`: Removed the unused `Lottie-Dynamic` package product that stopped the app from linking; the code imports the regular `Lottie` product.
