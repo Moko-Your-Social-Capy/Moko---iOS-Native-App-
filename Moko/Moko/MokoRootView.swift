@@ -65,9 +65,9 @@ struct MokoRootView: View {
             // MARK: - Explore
 
             Tab(
-                "Explore",
+                "Library",
                 systemImage: "books.vertical.fill",
-                value: .search
+                value: .library
             ) {
                 QuestLibraryView()
             }

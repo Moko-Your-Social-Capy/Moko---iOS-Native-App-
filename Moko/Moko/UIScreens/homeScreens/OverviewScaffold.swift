@@ -305,8 +305,8 @@ struct OverviewScaffold<MissionCard: View>: View {
             )
         }
 
-        let pct    = ((current.overall - prev.overall) / prev.overall) * 100
-        let isUp   = pct >= 0
+        let diff   = current.overall - prev.overall
+        let isUp   = diff >= 0
         let symbol = isUp ? "arrow.up.right" : "arrow.down.right"
         let color: Color = isUp ? Theme.Colors.scoreExcellent : Theme.Colors.error
 
@@ -314,7 +314,7 @@ struct OverviewScaffold<MissionCard: View>: View {
             HStack(spacing: 4) {
                 Image(systemName: symbol)
                     .font(.system(size: 24, weight: .semibold))
-                Text("\(abs(Int(pct.rounded())))%")
+                Text("\(abs(Int(diff.rounded())))")
                     .font(.system(size: 30, weight: .bold))
             }
             .foregroundStyle(color)

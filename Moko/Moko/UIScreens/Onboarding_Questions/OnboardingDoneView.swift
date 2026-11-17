@@ -13,7 +13,9 @@ struct OnboardingDoneView: View {
     var completed: Int
     /// How many reflections onboarding asked in total.
     var total: Int
-    /// Called when the user taps “Get started”.
+    /// The user's name, shown in the heading.
+    var name: String
+    /// Called when the user taps "Get started".
     var onContinue: () -> Void
 
     @Environment(\.mokoTheme) private var theme
@@ -21,41 +23,42 @@ struct OnboardingDoneView: View {
     init(
         completed: Int = OnboardingCardQuestion.totalSteps,
         total: Int = OnboardingCardQuestion.totalSteps,
+        name: String = "",
         onContinue: @escaping () -> Void = {}
     ) {
         self.completed = completed
         self.total = total
+        self.name = name
         self.onContinue = onContinue
+    }
+
+    private var heading: String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "Welcome\naboard!" : "Welcome\naboard, \(trimmed)!"
     }
 
     var body: some View {
         VStack(spacing: 0) {
             Spacer(minLength: 68)
 
-            Text("WELCOME")
-                .font(.footnote.weight(.semibold))
-                .tracking(3)
-                .foregroundStyle(theme.colors.secondaryText)
-                .accessibilityAddTraits(.isHeader)
-
-            Text("Onboarding\ncompleted")
+            Text(heading)
                 .font(.system(size: 42, weight: .bold, design: .rounded))
                 .tracking(-1.2)
                 .multilineTextAlignment(.center)
                 .lineSpacing(-2)
                 .foregroundStyle(theme.colors.ctaAccent)
-                .padding(.top, 12)
+                .accessibilityAddTraits(.isHeader)
 
             OnboardingCompletedEmblem()
                 .padding(.top, 54)
                 .accessibilityLabel("Onboarding completed")
 
-            Text("You’re ready")
+            Text("You're ready")
                 .font(.title.bold())
                 .foregroundStyle(theme.colors.headingText)
                 .padding(.top, 42)
 
-            Text("You’re all set to begin your mindful journey.")
+            Text("You're all set to begin your mindful journey.")
                 .font(.body)
                 .foregroundStyle(theme.colors.secondaryText)
                 .multilineTextAlignment(.center)
@@ -98,7 +101,7 @@ private struct OnboardingCompletedEmblem: View {
 
     var body: some View {
         ZStack {
-            // Outer ring uses the theme’s neutral text/shadow tones for contrast.
+            // Outer ring uses the theme's neutral text/shadow tones for contrast.
             Circle()
                 .fill(
                     LinearGradient(
@@ -146,6 +149,6 @@ private struct OnboardingCompletedEmblem: View {
 }
 
 #Preview {
-    OnboardingDoneView()
+    OnboardingDoneView(name: "Sam")
         .mokoThemeRoot()
 }

@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import Lottie
 
 struct WelcomeView: View {
     /// The name the user typed on the previous screen.
@@ -50,9 +49,8 @@ struct WelcomeView: View {
 
                 Spacer(minLength: 22)
 
-                // Lottie is Apple’s mascot animation; it is hidden from VoiceOver.
-                MokoLottieView(animation: .easterBunnyWaving)
-                    .frame(width: 205, height: 205)
+                // Capybara mascot waving, hidden from VoiceOver.
+                WavingMokoMascot(size: 205)
                     .frame(maxWidth: .infinity)
                     .accessibilityHidden(true)
 

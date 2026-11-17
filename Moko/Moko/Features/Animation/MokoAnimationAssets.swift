@@ -20,8 +20,6 @@ enum MokoAnimationAssets {
     static let relaxCompletionConfetti = "Confetti 2"
     // Gentle breathing mascot animation (Lottie JSON).
     static let gentleBreathingLottie = "[BB] Brick breathing"
-    // Onboarding/intro waving mascot (Lottie JSON).
-    static let onboardingMascotLottie = "Easter Bunny Boy waving"
 
     /// Cached Lottie animation for the inline loader to avoid repeated decoding.
     static let inlineLoaderAnimation: LottieAnimation? = LottieAnimation.named(inlineLoaderName)
@@ -92,7 +90,6 @@ enum MokoAnimationAssets {
         _ = LottieAnimation.named(questLibraryLoadingLottie)
         _ = LottieAnimation.named(relaxCompletionConfetti)
         _ = LottieAnimation.named(gentleBreathingLottie)
-        _ = LottieAnimation.named(onboardingMascotLottie)
     }
 }
 

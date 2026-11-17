@@ -11,7 +11,7 @@ enum MokoTab: String, CaseIterable, Identifiable, Hashable {
     case overview
     case quests
     case relax
-    case search
+    case library
 
     var id: String { rawValue }
 }

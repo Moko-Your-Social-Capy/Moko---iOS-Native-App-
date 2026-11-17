@@ -11,11 +11,9 @@ enum MokoAnimation: String, CaseIterable {
     case empty = "empty"
     case streakFlame = "flame___streak"
     case sparkles = "sparkles"
-    case successCheck = "success_check"   // use your real file name
+    case successCheck = "success_check"
     case loading2 = "loading-2"
     case brickBreathing = "[BB] Brick breathing"
-    case easterBunnyWaving = "Easter Bunny Boy waving"
-    // add "strings" here only once strings.lottie is in the project
 
     // Placeholders: no raw value of their own
     case mokoWaving, mokoListening, breathing, grounding, guidedImagery, mirrorReflection, strings
@@ -25,7 +23,7 @@ enum MokoAnimation: String, CaseIterable {
 
     var defaultLoopMode: Lottie.LottieLoopMode {
         switch self {
-        case .streakFlame, .breathing, .loading2, .brickBreathing, .easterBunnyWaving:
+        case .streakFlame, .breathing, .loading2, .brickBreathing:
             return .loop
         case .confetti, .confetti2, .sparkles, .successCheck, .empty, .mokoWaving, .mokoListening,
              .grounding, .guidedImagery, .mirrorReflection, .strings:
@@ -54,7 +52,7 @@ enum MokoAnimation: String, CaseIterable {
             return .blue
         case .successCheck:
             return .green
-        case .mokoWaving, .mokoListening, .easterBunnyWaving:
+        case .mokoWaving, .mokoListening:
             return .orange
         case .breathing, .brickBreathing:
             return Color(hex: 0x365948) // forest green
@@ -78,7 +76,7 @@ enum MokoAnimation: String, CaseIterable {
         case .streakFlame: return "flame"
         case .sparkles: return "sparkles"
         case .successCheck: return "checkmark.circle"
-        case .mokoWaving, .easterBunnyWaving: return "hand.wave"
+        case .mokoWaving: return "hand.wave"
         case .mokoListening: return "ear"
         case .breathing, .brickBreathing: return "wind"
         case .loading2: return "arrow.2.circlepath"

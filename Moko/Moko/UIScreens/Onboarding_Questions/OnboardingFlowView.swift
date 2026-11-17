@@ -305,31 +305,32 @@ struct OnboardingFlowView: View {
         }
         try? await Task.sleep(for: .milliseconds(300))
 
-        // The nudge distance – enough to show visible tilt but nowhere near the commit threshold.
-        let nudge: CGFloat = 42
+        // The nudge distance – wide enough to show a clear tilt towards the edges.
+        let nudge: CGFloat = 90
 
-        // Run the swipe animation for two complete cycles.
-        for _ in 0..<2 {
-            guard index == 0 else { break }
+        // Run the swipe animation once.
+        // Tilt left (swipe-No side) so the user sees "you can swipe left for no".
+        withAnimation(.easeInOut(duration: 0.55)) { dragX = -nudge }
+        try? await Task.sleep(for: .milliseconds(580))
 
-            // Tilt left (swipe-No side) so the user sees "you can swipe left for no".
-            withAnimation(.easeInOut(duration: 0.32)) { dragX = -nudge }
-            try? await Task.sleep(for: .milliseconds(340))
+        // Spring back to centre.
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.75)) { dragX = 0 }
+        try? await Task.sleep(for: .milliseconds(420))
 
-            // Spring back to centre.
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) { dragX = 0 }
-            try? await Task.sleep(for: .milliseconds(280))
-
-            guard index == 0 else { break }
-
-            // Tilt right (swipe-Yes side) so the user sees "you can swipe right for yes".
-            withAnimation(.easeInOut(duration: 0.32)) { dragX = nudge }
-            try? await Task.sleep(for: .milliseconds(340))
-
-            // Spring back to centre.
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.75)) { dragX = 0 }
-            try? await Task.sleep(for: .milliseconds(280))
+        guard index == 0 else {
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) { hintOffsetY = 0 }
+            try? await Task.sleep(for: .milliseconds(380))
+            isBusy = false
+            return
         }
+
+        // Tilt right (swipe-Yes side) so the user sees "you can swipe right for yes".
+        withAnimation(.easeInOut(duration: 0.55)) { dragX = nudge }
+        try? await Task.sleep(for: .milliseconds(580))
+
+        // Spring back to centre.
+        withAnimation(.spring(response: 0.42, dampingFraction: 0.75)) { dragX = 0 }
+        try? await Task.sleep(for: .milliseconds(420))
 
         // 2. Put the card back down into its resting place.
         withAnimation(.spring(response: 0.38, dampingFraction: 0.8)) {

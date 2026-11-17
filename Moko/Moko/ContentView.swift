@@ -151,7 +151,7 @@ struct ContentView: View {
             // MARK: Onboarding Done
 
             case .done:
-                OnboardingDoneView(completed: answers.count) {
+                OnboardingDoneView(completed: answers.count, name: currentUserName) {
                     show(.reflection)
                 }
                 .transition(.opacity)

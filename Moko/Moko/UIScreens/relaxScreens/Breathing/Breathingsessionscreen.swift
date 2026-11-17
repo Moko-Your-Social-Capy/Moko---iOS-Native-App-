@@ -173,10 +173,18 @@ struct BreathingSessionScreen: View {
                         .accessibilityLabel("Session progress, \(Int(progress * 100)) percent")
 
                     // Brick breathing Lottie animates gently between inhale/exhale in the circle.
-                    MokoLottieView(animation: .brickBreathing, loopMode: .loop)
-                        .frame(width: 250, height: 250)
+                    Image("MokoMascot")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 200, height: 200)
                         // Grows from the feet up, so the mascot looks like it is filling with air.
                         .scaleEffect(breathScale, anchor: .bottom)
+                        .animation(
+                            isInhaling
+                                ? .easeInOut(duration: inhaleDuration)
+                                : .easeInOut(duration: exhaleDuration),
+                            value: breathScale
+                        )
                         .accessibilityHidden(true)
                         // Tapping the mascot starts, pauses or resumes the timer.
                         .overlay {

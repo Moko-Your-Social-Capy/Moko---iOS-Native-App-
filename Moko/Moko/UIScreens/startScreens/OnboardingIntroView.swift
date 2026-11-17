@@ -82,56 +82,6 @@ struct OnboardingIntroView: View {
     }
 }
 
-// MARK: - Waving Moko Mascot
-
-/// Shows MokoMascot.png with a continuous waving animation driven by TimelineView.
-/// The image sways left-right anchored at the bottom centre, like a figure waving.
-/// Entrance: scales up from 0.85 and fades in. Reduce Motion: entrance fades only, no sway.
-private struct WavingMokoMascot: View {
-    var size: CGFloat = 220
-
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var appeared = false
-
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 60.0)) { tl in
-            let t = reduceMotion ? 0.0
-                : tl.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 100)
-
-            // Cycle = 3.4 s: 2.4 s of waving (3 swings) then 1 s rest.
-            let cycle = t.truncatingRemainder(dividingBy: 3.4)
-            let waving = cycle < 2.4
-
-            // Smooth ramp-up / ramp-down in 0.15 s so the motion starts and ends softly.
-            let envelope: Double = waving
-                ? min(1.0, min(cycle / 0.15, (2.4 - cycle) / 0.15))
-                : 0.0
-
-            let angle = waving ? sin(cycle * .pi * 2.5) * 18.0 * envelope : 0.0
-
-            Image("MokoMascot")
-                .resizable()
-                .scaledToFit()
-                .frame(width: size, height: size)
-                // Rotate around the bottom-centre so the mascot sways upright.
-                .rotationEffect(.degrees(angle), anchor: .bottom)
-        }
-        // Entrance animation matching the original mascot view.
-        .scaleEffect(appeared ? 1.0 : 0.85)
-        .opacity(appeared ? 1.0 : 0.0)
-        .offset(y: appeared || reduceMotion ? 0 : size * 0.12)
-        .accessibilityLabel("Moko waves hello")
-        .onAppear {
-            withAnimation(reduceMotion
-                ? MokoScreenTheme.Motion.crossfade
-                : MokoScreenTheme.Motion.mascotEntrance
-            ) {
-                appeared = true
-            }
-        }
-    }
-}
-
 // MARK: - Rise-in modifier
 
 /// Fades a view in and lifts it up a few points. With Reduce Motion it only fades.
