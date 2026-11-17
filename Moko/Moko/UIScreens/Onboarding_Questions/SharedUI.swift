@@ -23,6 +23,8 @@ enum RColor {
     /// Soft circle backgrounds behind the Done screen's icons.
     static let mint    = Color(hex: 0xBFEDCF)
     static let peach   = Color(hex: 0xFFDEAB)
+    static let lilac   = Color(hex: 0xDDD6F3)
+    static let sky     = Color(hex: 0xCDE8F2)
 }
 
 /// Full-width dark-green capsule button with a soft double shadow.
