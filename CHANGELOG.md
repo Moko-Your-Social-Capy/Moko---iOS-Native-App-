@@ -1,5 +1,8 @@
 # Changelog
 
+- 2026-11-17 — `MokoSkeletonView.swift` (new), `QuestsScreen.swift`, `OverviewScaffold.swift`, `RelaxScreen.swift`: Added reusable skeleton loading with 0.2s motion and wired it into the Overview, Quests and Relax tabs; Quest Library kept its previous Lottie loader.
+- 2026-11-17 — `MOKO_AFM_WIDGET_CHANGES.md` (new): Added an audit of the Apple Foundation Models backend and ActivityKit / WidgetKit integration covering hard-coded vs dynamic use, scoring logic, response-based follow-ups, and robustness for off-topic or gibberish answers.
+
 - 2026-11-17 — `QuestLibraryView.swift`: Moved the custom Quest Library search bar below the title and into the scroll content, using a full-width capsule with a 14 pt content inset and the shared page gutter; removed the extra padded container that shifted the cards from the edge. Simulator build passed.
 
 - 2026-11-17 — `Questdebrief.swift`: Removed back button from `QuestDebriefScreen` top header per user request, keeping the quest title centered as a clean, distraction-free single-line header.

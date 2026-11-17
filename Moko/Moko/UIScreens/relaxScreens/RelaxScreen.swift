@@ -123,6 +123,8 @@ struct RelaxScreen: View {
     @State private var imageryStore = ImageryGuideStore()
     // Brief completion overlay shown on Relax home after an exercise finishes.
     @State private var homeCompletionTitle: String?
+    // Shows placeholder cards while the guided content is loading.
+    @State private var isLoading = true
 
     // Reads the user's text size so the grid can drop to one column for very large text.
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -152,23 +154,52 @@ struct RelaxScreen: View {
                 VStack(alignment: .leading, spacing: 24) {
                     headerSection
 
-                    breathingCard
-                        .padding(.horizontal, MokoScreenTheme.Space.page)
+                    if isLoading {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Breathing")
+                                .mokoText(MokoScreenTheme.Typeface.title2)
+                                .foregroundStyle(ink)
 
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("Guided Sessions")
-                            .mokoText(MokoScreenTheme.Typeface.title2)
-                            .foregroundStyle(ink)
+                            MokoSkeletonView(style: MokoScreenTheme.Typeface.body, lines: 2)
+                                .padding(.horizontal, MokoScreenTheme.Space.page)
 
-                        LazyVGrid(columns: gridColumns, spacing: MokoScreenTheme.Space.gapCard) {
-                            ForEach(RelaxSession.allCases) { session in
-                                sessionCard(session)
+                            LazyVGrid(columns: gridColumns, spacing: MokoScreenTheme.Space.gapCard) {
+                                ForEach(0..<2) { _ in
+                                    VStack(alignment: .leading, spacing: 10) {
+                                        MokoSkeletonView(style: MokoScreenTheme.Typeface.cardTitle, lines: 1)
+                                            .frame(height: 20, alignment: .leading)
+                                        MokoSkeletonView(style: MokoScreenTheme.Typeface.body, lines: 2)
+                                            .frame(height: 40, alignment: .leading)
+                                    }
+                                    .padding(MokoScreenTheme.Space.cardHorizontal)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .mokoCard()
+                                }
+                            }
+                            .padding(.horizontal, MokoScreenTheme.Space.page)
+                        }
+                    } else {
+                        breathingCard
+                            .padding(.horizontal, MokoScreenTheme.Space.page)
+
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Guided Sessions")
+                                .mokoText(MokoScreenTheme.Typeface.title2)
+                                .foregroundStyle(ink)
+
+                            LazyVGrid(columns: gridColumns, spacing: MokoScreenTheme.Space.gapCard) {
+                                ForEach(RelaxSession.allCases) { session in
+                                    sessionCard(session)
+                                }
                             }
                         }
+                        .padding(.horizontal, MokoScreenTheme.Space.page)
                     }
-                    .padding(.horizontal, MokoScreenTheme.Space.page)
                 }
                 .padding(.bottom, 24)
+            }
+            .task {
+                isLoading = false
             }
             .background { MokoBackdrop() }
             // Same header style as the Overview, Quests and Quest Library tabs.
