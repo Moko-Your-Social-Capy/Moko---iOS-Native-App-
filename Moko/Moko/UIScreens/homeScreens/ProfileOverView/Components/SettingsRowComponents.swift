@@ -62,7 +62,7 @@ struct SettingsReminderTimeSheet: View {
                         .frame(maxWidth: .infinity, minHeight: 50)
                 }
                 .buttonStyle(.borderedProminent)
-                .tint(ProfilePalette.accent)
+                .tint(MokoScreenTheme.Colors.ctaAccent)
                 .padding(.horizontal, 24)
                 .padding(.bottom, 24)
             }

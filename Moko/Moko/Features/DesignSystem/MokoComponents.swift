@@ -21,37 +21,41 @@ private typealias Theme = MokoScreenTheme
 
 // A ViewModifier is a reusable "recipe" of modifiers. We wrap it in `.mokoCard()` below.
 private struct MokoCardModifier: ViewModifier {
-    let fill: Color
+    let fill: Color?
     let radius: CGFloat
     /// Locked and disabled surfaces drop the lift so they read as set aside.
     var lift: Bool = true
 
+    @Environment(\.mokoTheme) private var theme
+
     func body(content: Content) -> some View {
+        let surface = fill ?? theme.colors.cardSurface
+        let shadow = theme.colors.cardShadow
+        let border = theme.colors.cardBorder
+        let glow = theme.colors.cardGlow
+
         content
             .background {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .fill(fill)
-                    .shadow(color: lift ? Theme.Elevation.nearColor : .clear,
-                            radius: Theme.Elevation.nearRadius,
-                            x: 0, y: Theme.Elevation.nearOffset)
-                    .shadow(color: lift ? Theme.Elevation.ambientColor : .clear,
-                            radius: Theme.Elevation.ambientRadius,
-                            x: 0, y: Theme.Elevation.ambientOffset)
+                    .fill(surface)
+                    .shadow(color: lift ? shadow.opacity(theme.isDark ? 0.45 : 0.12) : .clear,
+                            radius: lift ? (theme.isDark ? 10 : 13) : 0,
+                            x: 0, y: lift ? (theme.isDark ? 6 : 10) : 0)
+                    .shadow(color: lift && theme.isDark ? glow.opacity(0.06) : .clear,
+                            radius: lift && theme.isDark ? 14 : 0,
+                            x: 0, y: 0)
             }
             .overlay {
-                if Theme.Card.outline > 0 {
-                    RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .strokeBorder(Theme.Colors.strokeInk, lineWidth: Theme.Card.outline)
-                }
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .strokeBorder(border.opacity(theme.isDark ? 0.9 : 0.0), lineWidth: theme.isDark ? 1 : Theme.Card.outline)
             }
             .contentShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
     }
 }
 
 extension View {
-    /// The only card surface in the theme: continuous corners plus a two-layer
-    /// tinted lift. No outline — cards separate from the canvas by elevation alone.
-    func mokoCard(fill: Color = Theme.Card.fill,
+    /// Theme-aware card surface with elevation. Defaults to the active theme card surface.
+    func mokoCard(fill: Color? = nil,
                   radius: CGFloat = Theme.Radius.card,
                   lift: Bool = true) -> some View {
         modifier(MokoCardModifier(fill: fill, radius: radius, lift: lift))
@@ -60,51 +64,25 @@ extension View {
 
 // MARK: - Background (§5)
 
-/// Three-stop soft green gradient background with subtle vector strokes.
+/// Theme-aware app background (gradient + subtle vector strokes).
 struct MokoBackdrop: View {
-    @Environment(\.colorScheme) private var colorScheme
-    
-    private var isDarkMode: Bool { colorScheme == .dark }
-    
+    @Environment(\.mokoTheme) private var theme
+
     var body: some View {
         ZStack {
-            // Dark theme: dark green gradient, Light theme: soft green gradient
-            if isDarkMode {
-                // Dark theme gradient: dark forest green → dark sage → dark charcoal
-                LinearGradient(
-                    gradient: Gradient(stops: [
-                        .init(color: Color(hex: 0x1A231E), location: 0.0),
-                        .init(color: Color(hex: 0x25312A), location: 0.4),
-                        .init(color: Color(hex: 0x1E2D23), location: 1.0)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            } else {
-                // Light theme gradient: light sage → clean white
-                LinearGradient(
-                    gradient: Gradient(stops: [
-                        .init(color: Theme.Colors.lightSage, location: 0.4),
-                        .init(color: Theme.Colors.cleanWhite, location: 1.0)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
+            theme.colors.backgroundGradient
 
-            // Subtle vector decorations - reduced opacity to work with gradient
+            // Subtle vector decorations tinted by the active theme.
             GeometryReader { geo in
-                // Bush: bottom-left, 310 wide, 28pt bleed, rotated 6°.
                 VectorBushShape()
-                    .stroke(isDarkMode ? Color(hex: 0x3F6B54).opacity(0.05) : Theme.Colors.vectorBush.opacity(0.1), 
+                    .stroke(theme.colors.secondary.opacity(theme.isDark ? 0.06 : 0.12),
                             lineWidth: Theme.Line.data)
                     .frame(width: 310, height: 200)
                     .rotationEffect(.degrees(6), anchor: .bottomLeading)
                     .offset(x: -70, y: geo.size.height - 200 + 28)
 
-                // Leaf: right edge, mid-height, 44pt bleed, 12°, mirrored.
                 VectorLeafShape()
-                    .stroke(isDarkMode ? Color(hex: 0x4A9E7A).opacity(0.05) : Theme.Colors.vectorLeaf.opacity(0.1), 
+                    .stroke(theme.colors.accent.opacity(theme.isDark ? 0.05 : 0.10),
                             lineWidth: Theme.Line.data)
                     .frame(width: 96, height: 44)
                     .scaleEffect(x: -1, y: 1)
@@ -483,25 +461,28 @@ struct MokoRadarChart: View {
             let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
 
             ZStack {
-                ForEach(ringFactors, id: \.self) { factor in
+                // Outer/inner rings use different theme chart colors for a 2-3 color look.
+                ForEach(Array(ringFactors.enumerated()), id: \.offset) { idx, factor in
                     diamond(center: center, radius: radius * factor)
-                        .stroke(Theme.Colors.dataGrid, lineWidth: Theme.Line.data)
+                        .stroke(idx == ringFactors.count - 1 ? Theme.Colors.dataViolet : Theme.Colors.dataGrid, lineWidth: Theme.Line.data)
                 }
 
                 axes(center: center, radius: radius)
                     .stroke(Theme.Colors.dataGrid, lineWidth: Theme.Line.data)
 
                 dataPolygon(center: center, radius: radius)
-                    .fill(Theme.Colors.dataViolet.opacity(0.35))
+                    .fill(Theme.Colors.dataViolet.opacity(0.28))
 
                 dataPolygon(center: center, radius: radius)
                     .stroke(Theme.Colors.dataVioletDeep,
                             style: StrokeStyle(lineWidth: Theme.Line.data, lineJoin: .round))
 
-                ForEach(Array(vertexPoints(center: center, radius: radius).enumerated()), id: \.offset) { _, point in
+                ForEach(Array(vertexPoints(center: center, radius: radius).enumerated()), id: \.offset) { idx, point in
+                    // Vertex dots cycle theme chart colors so the graph shows 2-3 colors.
+                    let dotColors = [Theme.Colors.dataVioletDeep, Theme.Colors.dataViolet, Theme.Colors.chartTertiary, Theme.Colors.dataVioletDeep]
                     Circle()
-                        .fill(Theme.Colors.dataNode)
-                        .frame(width: 3, height: 3)
+                        .fill(dotColors[idx % dotColors.count])
+                        .frame(width: 4, height: 4)
                         .position(point)
                 }
             }
@@ -576,10 +557,12 @@ struct MokoBarChart: View {
                 ForEach(Array(values.enumerated()), id: \.offset) { index, value in
                     let isLast = index == count - 1
                     let emphasis: CGFloat = isLast ? 2 : 0
+                    // Mix 2-3 theme chart colors so each theme's graph feels distinct.
+                    let fillColor: Color = isLast ? Theme.Colors.dataVioletDeep : (index % 2 == 0 ? Theme.Colors.dataViolet : Theme.Colors.chartTertiary)
 
                     RoundedRectangle(cornerRadius: barWidth / 2, style: .continuous)
-                        .fill(isLast ? Theme.Colors.dataVioletDeep : Theme.Colors.dataViolet)
-                        .opacity(isLast ? 1 : opacity(at: index, of: count))
+                        .fill(fillColor)
+                        .opacity(isLast ? 1 : max(0.55, opacity(at: index, of: count)))
                         .frame(width: barWidth,
                                height: barHeight(value, peak: peak, available: geo.size.height) + emphasis)
                 }

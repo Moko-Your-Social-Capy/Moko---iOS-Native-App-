@@ -32,6 +32,11 @@ struct OnboardingDoneView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // The tick animation celebrates the completed onboarding.
+            MokoTickCompleteView(size: 180)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 4)
+
             // Headline and short summary share the left edge with the cards below.
             Text("You rock!!!")
                 .font(.system(size: 38, weight: .bold, design: .rounded))

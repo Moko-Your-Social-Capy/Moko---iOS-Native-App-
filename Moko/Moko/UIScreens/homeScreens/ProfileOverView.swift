@@ -177,7 +177,7 @@ struct ProfileOverView: View {
             // The handle sits under the name; the XP card below now owns the progress story.
             Text(handle.map { "@\($0)" } ?? "Moko member")
                 .mokoText(Theme.Typeface.caption)
-                .foregroundStyle(Theme.Colors.textMuted)
+                .foregroundStyle(Theme.Colors.textBody)
                 .padding(.top, Nudge.subtitleTop)
 
             MokoLevelChip(level: level)
@@ -209,7 +209,7 @@ struct ProfileOverView: View {
                      value: "\(animated(streak)) days",
                      label: "Day streak",
                      plate: Theme.Colors.tileSage,
-                     tint: Theme.Colors.brightGreen,
+                     tint: Theme.Colors.ctaAccent,
                      fill: Theme.Colors.surfaceWhite,
                      action: { showStreakDetail() }),
             MokoStat(id: 1,
@@ -218,14 +218,14 @@ struct ProfileOverView: View {
                      label: "Quests done",
                      plate: Theme.Colors.tileLilac,
                      tint: Theme.Colors.dataVioletDeep,
-                     fill: Theme.Colors.surfaceLavender),
+                     fill: Theme.Colors.surfaceWhite),
             MokoStat(id: 2,
                      symbol: "calendar",
                      value: "\(animated(totalActiveDays))",
                      label: "Active days",
                      plate: Theme.Colors.tileCream,
-                     tint: Theme.Colors.forest,
-                     fill: Theme.Colors.cream)
+                     tint: Theme.Colors.chartTertiary,
+                     fill: Theme.Colors.surfaceLavender)
         ])
     }
     
@@ -257,7 +257,7 @@ struct ProfileOverView: View {
             HStack(alignment: .firstTextBaseline, spacing: Nudge.journeyValueGap) {
                 Text("\(Int(total).formatted()) XP")
                     .mokoText(Theme.Typeface.journeyValue)
-                    .foregroundStyle(Theme.Colors.dataVioletDeep)
+                    .foregroundStyle(Theme.Colors.ctaAccent)
                     .contentTransition(.numericText())
 
                 Text(journeyRange.caption)
@@ -341,7 +341,7 @@ struct ProfileOverView: View {
                 } label: {
                     Text("View all")
                         .mokoText(Theme.Typeface.caption)
-                        .foregroundStyle(Theme.Colors.dataVioletDeep)
+                        .foregroundStyle(Theme.Colors.ctaAccent)
                         .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
                 }
                 .accessibilityLabel("View all achievements")

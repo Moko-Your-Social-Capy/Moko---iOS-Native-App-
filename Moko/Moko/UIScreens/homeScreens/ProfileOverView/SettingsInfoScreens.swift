@@ -15,10 +15,10 @@ import SwiftUI
 
 /// The colours used by every screen in this file.
 private enum InfoTheme {
-    static let screenBg = ProfilePalette.background
-    static let deepGreen = ProfilePalette.accent
-    static let cream = ProfilePalette.grouped
-    static let ink = ProfilePalette.text
+    static let screenBg = MokoScreenTheme.Colors.lightSage
+    static let deepGreen = MokoScreenTheme.Colors.ctaAccent
+    static let cream = MokoScreenTheme.Colors.surfaceLavender
+    static let ink = MokoScreenTheme.Colors.textTitle
 }
 
 /// A scrolling page with the standard padding and background.

@@ -14,6 +14,16 @@ struct ProfileOverViewSettingsOverview: View {
 
     var body: some View {
         List {
+            // Appearance: pick theme and light/dark mode (saved on device).
+            Section("Appearance") {
+                NavigationLink {
+                    AppearanceSettingsView()
+                } label: {
+                    Label("Theme & Appearance", systemImage: "paintpalette")
+                }
+            }
+            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
+
             Section("Account") {
                 NavigationLink {
                     ProfileOverViewAccountAndData()
@@ -92,7 +102,7 @@ struct ProfileOverViewSettingsOverview: View {
         }
         .listStyle(.insetGrouped)
         .labelStyle(MokoSettingsLabelStyle())
-        .foregroundStyle(ProfilePalette.text)
+        .foregroundStyle(MokoScreenTheme.Colors.textTitle)
         // Larger rows stay easy to find and grow further when text needs to wrap.
         .environment(\.defaultMinListRowHeight, 72)
         .scrollContentBackground(.hidden)
@@ -100,7 +110,7 @@ struct ProfileOverViewSettingsOverview: View {
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
         .toolbar(.visible, for: .navigationBar)
-        .tint(ProfilePalette.accent)
+        .tint(MokoScreenTheme.Colors.ctaAccent)
     }
 }
 

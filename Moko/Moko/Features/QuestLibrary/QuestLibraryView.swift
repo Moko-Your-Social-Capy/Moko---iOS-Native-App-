@@ -74,13 +74,13 @@ struct QuestLibraryView: View {
                 MokoBackdrop()
 
                 if store.isLoading || !store.hasAttemptedLoad {
-                    VStack(spacing: 14) {
-                        MokoLoadingView()
-                            .frame(width: 176, height: 176)
-
+                    // Moonwalk SVG shows while the quest library is loading (not inside cards).
+                    VStack(spacing: 12) {
+                        MokoSVGAnimationView(name: MokoAnimationAssets.fullScreenLoadingSVG)
+                            .frame(width: 260, height: 260)
                         Text("Loading quests…")
                             .mokoText(MokoScreenTheme.Typeface.body)
-                            .foregroundStyle(QuestStyle.title)
+                            .foregroundStyle(MokoScreenTheme.Colors.textBody)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {

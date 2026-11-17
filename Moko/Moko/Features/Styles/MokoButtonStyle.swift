@@ -41,10 +41,7 @@ struct MokoStyledButton: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: 8) {
             if isLoading {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .tint(foregroundColor)
-                    .scaleEffect(0.8)
+                MokoInlineLoader(size: 18, tint: foregroundColor)
             }
             
             configuration.label
@@ -282,4 +279,37 @@ struct IconButton: View {
         }
     }
     .padding()
+}
+
+// MARK: - Primary CTA (theme-aware, glows in dark mode)
+
+private struct MokoPrimaryCTAStyle: ViewModifier {
+    @Environment(\.mokoTheme) private var theme
+    @Environment(\.isEnabled) private var isEnabled
+
+    func body(content: Content) -> some View {
+        content
+            .font(.system(size: 17, weight: .semibold, design: .rounded))
+            .foregroundStyle(theme.colors.textOnPrimary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 56)
+            .background(
+                Capsule()
+                    .fill(isEnabled ? theme.colors.primary : theme.colors.placeholder.opacity(0.35))
+            )
+            .overlay(
+                Capsule()
+                    .stroke(theme.colors.border.opacity(theme.isDark ? 0.35 : 0.0), lineWidth: 1)
+            )
+            .shadow(color: theme.isDark ? theme.colors.glow.opacity(isEnabled ? 0.55 : 0.0) : .clear,
+                    radius: theme.isDark ? 16 : 0, x: 0, y: 0)
+            .shadow(color: theme.isDark ? theme.colors.primary.opacity(isEnabled ? 0.35 : 0.0) : .clear,
+                    radius: theme.isDark ? 6 : 0, x: 0, y: 2)
+    }
+}
+
+extension View {
+    /// Full-width primary call-to-action button styled by the active theme.
+    /// In dark mode it emits a soft glow using the theme glow color.
+    func mokoPrimaryCTA() -> some View { modifier(MokoPrimaryCTAStyle()) }
 }

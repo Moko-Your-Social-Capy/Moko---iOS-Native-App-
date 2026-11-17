@@ -1,0 +1,200 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <title>Moko lifts a tick mark</title>
+  <rect width="800" height="800" fill="transparent"/>
+  <circle cx="400" cy="450" r="340" fill="#D8F0D5"/>
+  <circle cx="400" cy="450" r="250" fill="#C9E9C5"/>
+
+  <!-- ground shadow -->
+  <ellipse cx="390" cy="684" rx="170" ry="20" fill="#4A2418" opacity="0.14">
+    <animate attributeName="rx" dur="4s" repeatCount="indefinite" calcMode="spline"
+      keyTimes="0;0.3125;0.3875;0.4875;1" values="170;170;145;170;170"
+      keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1"/>
+  </ellipse>
+
+  <g transform="translate(190,175)">
+    <!-- jump -->
+    <g>
+      <animateTransform attributeName="transform" type="translate" dur="4s" repeatCount="indefinite" calcMode="spline"
+        keyTimes="0;0.3125;0.3875;0.4875;0.6;0.7;0.8;0.9;1"
+        values="0 0;0 0;0 -34;0 0;0 -8;0 0;0 -8;0 0;0 0"
+        keySplines="0.4 0 0.2 1;0.2 0.8 0.4 1;0.6 0 0.8 0.4;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1"/>
+
+      <!-- squash and stretch, pivoting at his feet -->
+      <g transform="translate(200,500)">
+        <g>
+          <animateTransform attributeName="transform" type="scale" dur="4s" repeatCount="indefinite" calcMode="spline"
+            keyTimes="0;0.1875;0.2375;0.3125;0.375;0.4375;0.4875;0.5375;0.9;1"
+            values="1 1;1 1;1.05 0.93;1.05 0.93;0.96 1.06;1 1;1.04 0.96;1 1;1 1;1 1"
+            keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1"/>
+          <g transform="translate(-200,-500)">
+
+            <!-- ears, tuft, feet, body -->
+            <g stroke="#4A2418" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+              <ellipse cx="88" cy="52" rx="30" ry="32" fill="#E89A4B"/>
+              <ellipse cx="92" cy="58" rx="15" ry="19" fill="#8A5A3A" stroke="none"/>
+              <ellipse cx="312" cy="52" rx="30" ry="32" fill="#E89A4B"/>
+              <ellipse cx="308" cy="58" rx="15" ry="19" fill="#8A5A3A" stroke="none"/>
+              <path d="M185 30 L192 6 L202 24 L214 8 L218 32 Z" fill="#E89A4B"/>
+              <ellipse cx="115" cy="500" rx="46" ry="19" fill="#8A5A3A"/>
+              <ellipse cx="285" cy="500" rx="46" ry="19" fill="#8A5A3A"/>
+              <path d="M200 22 C292 22 352 84 356 172 C359 232 330 272 346 334 C361 400 362 462 322 496 L78 496 C38 462 39 400 54 334 C70 272 41 232 44 172 C48 84 108 22 200 22 Z" fill="#E89A4B"/>
+            </g>
+            <ellipse cx="200" cy="395" rx="98" ry="92" fill="#F7DDB2"/>
+            <circle cx="82" cy="158" r="27" fill="#F2958E" opacity="0.9"/>
+            <circle cx="318" cy="158" r="27" fill="#F2958E" opacity="0.9"/>
+            <path d="M146 124 C146 98 254 98 254 124 L258 178 C258 208 232 222 200 222 C168 222 142 208 142 178 Z" fill="#9A6540"/>
+            <g fill="none" stroke="#4A2418" stroke-width="5" stroke-linecap="round">
+              <path d="M172 128 q10 10 20 0"/>
+              <path d="M208 128 q10 10 20 0"/>
+              <path d="M200 150 L200 186"/>
+            </g>
+
+            <!-- calm face (before the lift) -->
+            <g>
+              <animate attributeName="opacity" dur="4s" repeatCount="indefinite" calcMode="discrete"
+                keyTimes="0;0.3125;0.925;1" values="1;0;1;1"/>
+              <ellipse cx="112" cy="100" rx="20" ry="25" fill="#3A1D14"/>
+              <ellipse cx="288" cy="100" rx="20" ry="25" fill="#3A1D14"/>
+              <circle cx="118" cy="91" r="7" fill="#fff"/>
+              <circle cx="294" cy="91" r="7" fill="#fff"/>
+              <circle cx="106" cy="110" r="3" fill="#fff"/>
+              <circle cx="282" cy="110" r="3" fill="#fff"/>
+              <path d="M168 190 Q200 214 232 190" fill="none" stroke="#4A2418" stroke-width="5" stroke-linecap="round"/>
+            </g>
+
+            <!-- happy face (during the lift) -->
+            <g opacity="0">
+              <animate attributeName="opacity" dur="4s" repeatCount="indefinite" calcMode="discrete"
+                keyTimes="0;0.3125;0.925;1" values="0;1;0;0"/>
+              <g fill="none" stroke="#3A1D14" stroke-width="7" stroke-linecap="round">
+                <path d="M92 106 Q112 80 132 106"/>
+                <path d="M268 106 Q288 80 308 106"/>
+              </g>
+              <path d="M164 186 Q200 232 236 186 Q200 196 164 186 Z" fill="#3A1D14" stroke="#4A2418" stroke-width="5" stroke-linejoin="round"/>
+              <ellipse cx="200" cy="202" rx="13" ry="7" fill="#F2958E"/>
+            </g>
+
+            <!-- left arm: down, then cheers -->
+            <path fill="none" stroke="#4A2418" stroke-width="46" stroke-linecap="round" d="M64 285 C36 330 36 372 58 405">
+              <animate attributeName="d" dur="4s" repeatCount="indefinite" calcMode="spline"
+                keyTimes="0;0.3125;0.425;0.9;1"
+                values="M64 285 C36 330 36 372 58 405;M64 285 C36 330 36 372 58 405;M64 285 C22 262 -4 210 14 152;M64 285 C22 262 -4 210 14 152;M64 285 C36 330 36 372 58 405"
+                keySplines="0.4 0 0.2 1;0.2 0.9 0.3 1;0.4 0 0.2 1;0.4 0 0.2 1"/>
+            </path>
+            <path fill="none" stroke="#E89A4B" stroke-width="34" stroke-linecap="round" d="M64 285 C36 330 36 372 58 405">
+              <animate attributeName="d" dur="4s" repeatCount="indefinite" calcMode="spline"
+                keyTimes="0;0.3125;0.425;0.9;1"
+                values="M64 285 C36 330 36 372 58 405;M64 285 C36 330 36 372 58 405;M64 285 C22 262 -4 210 14 152;M64 285 C22 262 -4 210 14 152;M64 285 C36 330 36 372 58 405"
+                keySplines="0.4 0 0.2 1;0.2 0.9 0.3 1;0.4 0 0.2 1;0.4 0 0.2 1"/>
+            </path>
+            <circle cx="58" cy="408" r="18" fill="#8A5A3A" stroke="#4A2418" stroke-width="5">
+              <animate attributeName="cx" dur="4s" repeatCount="indefinite" calcMode="spline"
+                keyTimes="0;0.3125;0.425;0.9;1" values="58;58;14;14;58"
+                keySplines="0.4 0 0.2 1;0.2 0.9 0.3 1;0.4 0 0.2 1;0.4 0 0.2 1"/>
+              <animate attributeName="cy" dur="4s" repeatCount="indefinite" calcMode="spline"
+                keyTimes="0;0.3125;0.425;0.9;1" values="408;408;150;150;408"
+                keySplines="0.4 0 0.2 1;0.2 0.9 0.3 1;0.4 0 0.2 1;0.4 0 0.2 1"/>
+            </circle>
+
+            <!-- right arm: reaches down to the badge, then lifts it -->
+            <path fill="none" stroke="#4A2418" stroke-width="46" stroke-linecap="round" d="M336 285 C364 330 364 372 342 405">
+              <animate attributeName="d" dur="4s" repeatCount="indefinite" calcMode="spline"
+                keyTimes="0;0.175;0.275;0.3125;0.4875;0.9;1"
+                values="M336 285 C364 330 364 372 342 405;M336 285 C364 330 364 372 342 405;M336 285 C380 300 415 370 428 436;M336 285 C380 300 415 370 428 436;M336 285 C392 270 440 235 440 150;M336 285 C392 270 440 235 440 150;M336 285 C364 330 364 372 342 405"
+                keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1"/>
+            </path>
+            <path fill="none" stroke="#E89A4B" stroke-width="34" stroke-linecap="round" d="M336 285 C364 330 364 372 342 405">
+              <animate attributeName="d" dur="4s" repeatCount="indefinite" calcMode="spline"
+                keyTimes="0;0.175;0.275;0.3125;0.4875;0.9;1"
+                values="M336 285 C364 330 364 372 342 405;M336 285 C364 330 364 372 342 405;M336 285 C380 300 415 370 428 436;M336 285 C380 300 415 370 428 436;M336 285 C392 270 440 235 440 150;M336 285 C392 270 440 235 440 150;M336 285 C364 330 364 372 342 405"
+                keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1"/>
+            </path>
+            <circle cx="342" cy="408" r="18" fill="#8A5A3A" stroke="#4A2418" stroke-width="5">
+              <animate attributeName="cx" dur="4s" repeatCount="indefinite" calcMode="spline"
+                keyTimes="0;0.175;0.275;0.3125;0.4875;0.9;1" values="342;342;428;428;440;440;342"
+                keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1"/>
+              <animate attributeName="cy" dur="4s" repeatCount="indefinite" calcMode="spline"
+                keyTimes="0;0.175;0.275;0.3125;0.4875;0.9;1" values="408;408;440;440;150;150;408"
+                keySplines="0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1"/>
+            </circle>
+          </g>
+        </g>
+      </g>
+
+      <!-- the tick badge: pops in on the ground, then rides up with his paw -->
+      <g>
+        <animateTransform attributeName="transform" type="translate" dur="4s" repeatCount="indefinite" calcMode="spline"
+          keyTimes="0;0.3125;0.4875;0.975;0.98;1"
+          values="475 446;475 446;440 96;440 96;475 446;475 446"
+          keySplines="0.4 0 0.2 1;0.2 0.9 0.3 1;0.4 0 0.2 1;0.4 0 0.2 1;0.4 0 0.2 1"/>
+        <g>
+          <animateTransform attributeName="transform" type="scale" dur="4s" repeatCount="indefinite" calcMode="spline"
+            keyTimes="0;0.0875;0.1375;0.9;0.975;1"
+            values="0;1.15;1;1;0;0"
+            keySplines="0.2 0.9 0.3 1;0.4 0 0.2 1;0.4 0 0.2 1;0.5 0 0.8 0.5;0.4 0 0.2 1"/>
+          <g>
+            <animateTransform attributeName="transform" type="rotate" dur="4s" repeatCount="indefinite"
+              keyTimes="0;0.4875;0.525;0.575;0.625;0.675;0.725;0.9;1"
+              values="0;0;-10;8;-5;3;0;0;0"/>
+            <circle r="52" fill="#5CC46B" stroke="#4A2418" stroke-width="6"/>
+            <path d="M-36 -18 A40 40 0 0 1 -10 -40" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0.55"/>
+            <path d="M-24 2 L-7 20 L26 -18" fill="none" stroke="#4A2418" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M-24 2 L-7 20 L26 -18" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+        </g>
+      </g>
+
+      <!-- sparkle burst when the badge reaches the top -->
+      <g>
+        <g opacity="0">
+          <animateTransform attributeName="transform" type="translate" dur="4s" repeatCount="indefinite" calcMode="spline"
+            keyTimes="0;0.4875;0.65;1" values="440 96;440 96;545 70;545 70"
+            keySplines="0.4 0 0.2 1;0.2 0.8 0.4 1;0.4 0 0.2 1"/>
+          <animate attributeName="opacity" dur="4s" repeatCount="indefinite" keyTimes="0;0.4875;0.525;0.65;1" values="0;0;1;0;0"/>
+          <path d="M0 -18 Q0 0 18 0 Q0 0 0 18 Q0 0 -18 0 Q0 0 0 -18Z" fill="#FFD23F" stroke="#4A2418" stroke-width="3" stroke-linejoin="round"/>
+        </g>
+        <g opacity="0">
+          <animateTransform attributeName="transform" type="translate" dur="4s" repeatCount="indefinite" calcMode="spline"
+            keyTimes="0;0.4875;0.65;1" values="440 96;440 96;500 10;500 10"
+            keySplines="0.4 0 0.2 1;0.2 0.8 0.4 1;0.4 0 0.2 1"/>
+          <animate attributeName="opacity" dur="4s" repeatCount="indefinite" keyTimes="0;0.4875;0.525;0.65;1" values="0;0;1;0;0"/>
+          <path d="M0 -14 Q0 0 14 0 Q0 0 0 14 Q0 0 -14 0 Q0 0 0 -14Z" fill="#FF6B8B" stroke="#4A2418" stroke-width="3" stroke-linejoin="round"/>
+        </g>
+        <g opacity="0">
+          <animateTransform attributeName="transform" type="translate" dur="4s" repeatCount="indefinite" calcMode="spline"
+            keyTimes="0;0.4875;0.65;1" values="440 96;440 96;440 -15;440 -15"
+            keySplines="0.4 0 0.2 1;0.2 0.8 0.4 1;0.4 0 0.2 1"/>
+          <animate attributeName="opacity" dur="4s" repeatCount="indefinite" keyTimes="0;0.4875;0.525;0.65;1" values="0;0;1;0;0"/>
+          <path d="M0 -16 Q0 0 16 0 Q0 0 0 16 Q0 0 -16 0 Q0 0 0 -16Z" fill="#5BC0EB" stroke="#4A2418" stroke-width="3" stroke-linejoin="round"/>
+        </g>
+        <g opacity="0">
+          <animateTransform attributeName="transform" type="translate" dur="4s" repeatCount="indefinite" calcMode="spline"
+            keyTimes="0;0.4875;0.65;1" values="440 96;440 96;550 140;550 140"
+            keySplines="0.4 0 0.2 1;0.2 0.8 0.4 1;0.4 0 0.2 1"/>
+          <animate attributeName="opacity" dur="4s" repeatCount="indefinite" keyTimes="0;0.4875;0.525;0.65;1" values="0;0;1;0;0"/>
+          <path d="M0 -12 Q0 0 12 0 Q0 0 0 12 Q0 0 -12 0 Q0 0 0 -12Z" fill="#FFD23F" stroke="#4A2418" stroke-width="3" stroke-linejoin="round"/>
+        </g>
+        <g opacity="0">
+          <animateTransform attributeName="transform" type="translate" dur="4s" repeatCount="indefinite" calcMode="spline"
+            keyTimes="0;0.4875;0.65;1" values="440 96;440 96;385 5;385 5"
+            keySplines="0.4 0 0.2 1;0.2 0.8 0.4 1;0.4 0 0.2 1"/>
+          <animate attributeName="opacity" dur="4s" repeatCount="indefinite" keyTimes="0;0.4875;0.525;0.65;1" values="0;0;1;0;0"/>
+          <path d="M0 -14 Q0 0 14 0 Q0 0 0 14 Q0 0 -14 0 Q0 0 0 -14Z" fill="#5BC0EB" stroke="#4A2418" stroke-width="3" stroke-linejoin="round"/>
+        </g>
+        <g opacity="0">
+          <animateTransform attributeName="transform" type="translate" dur="4s" repeatCount="indefinite" calcMode="spline"
+            keyTimes="0;0.4875;0.65;1" values="440 96;440 96;525 195;525 195"
+            keySplines="0.4 0 0.2 1;0.2 0.8 0.4 1;0.4 0 0.2 1"/>
+          <animate attributeName="opacity" dur="4s" repeatCount="indefinite" keyTimes="0;0.4875;0.525;0.65;1" values="0;0;1;0;0"/>
+          <path d="M0 -16 Q0 0 16 0 Q0 0 0 16 Q0 0 -16 0 Q0 0 0 -16Z" fill="#FF6B8B" stroke="#4A2418" stroke-width="3" stroke-linejoin="round"/>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- caption -->
+  <text x="400" y="756" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="40" font-weight="800" fill="#3E8E4C" opacity="0">
+    All done!
+    <animate attributeName="opacity" dur="4s" repeatCount="indefinite" keyTimes="0;0.5;0.575;0.9;0.95;1" values="0;0;1;1;0;0"/>
+  </text>
+</svg>

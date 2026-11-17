@@ -24,13 +24,10 @@ struct OverviewDebriefDone: View {
                     .foregroundStyle(Theme.Colors.textTitle)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Completion icon (decoration only, so VoiceOver skips it).
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 42, weight: .regular))
-                    .foregroundStyle(Theme.Colors.dataVioletDeep)
-                    .padding(12)
-                    .background(Theme.Colors.dataVioletDeep.opacity(0.10), in: Circle())
-                    .padding(.top, 24)
+                // The tick animation celebrates the completed debrief.
+                MokoTickCompleteView(size: 200)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
                     .accessibilityHidden(true)
 
                 Text("All quests completed!")

@@ -12,18 +12,7 @@
 		297922943089E3990016BAEE /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 297922933089E3990016BAEE /* Supabase */; };
 		297922A33089EFF00016BAEE /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 297922A23089EFF00016BAEE /* GoogleSignIn */; };
 		297922A53089EFF00016BAEE /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 297922A43089EFF00016BAEE /* GoogleSignInSwift */; };
-		A10000000000000000000008 /* MokoLiveActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A10000000000000000000001 /* MokoLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		A1000000000000000000000A /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 177E22EB3089D968002C18EB /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = A10000000000000000000003;
-			remoteInfo = MokoLiveActivity;
-		};
-/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		177E5CE730AB481800FD0E95 /* Embed Frameworks */ = {
@@ -34,17 +23,6 @@
 			files = (
 			);
 			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		A10000000000000000000007 /* Embed Foundation Extensions */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 13;
-			files = (
-				A10000000000000000000008 /* MokoLiveActivity.appex in Embed Foundation Extensions */,
-			);
-			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -142,12 +120,10 @@
 				177E22F03089D968002C18EB /* Frameworks */,
 				177E22F13089D968002C18EB /* Resources */,
 				177E5CE730AB481800FD0E95 /* Embed Frameworks */,
-				A10000000000000000000007 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				A10000000000000000000009 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				177E22F53089D968002C18EB /* Moko */,
@@ -262,14 +238,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		A10000000000000000000009 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = A10000000000000000000003 /* MokoLiveActivity */;
-			targetProxy = A1000000000000000000000A /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		177E22FE3089D969002C18EB /* Debug */ = {
@@ -402,7 +370,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 599ALZV448;
+				DEVELOPMENT_TEAM = 6A9JD4ZQX5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Moko/Info.plist;
@@ -440,7 +408,7 @@
 				CODE_SIGN_ENTITLEMENTS = "";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 599ALZV448;
+				DEVELOPMENT_TEAM = 6A9JD4ZQX5;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Moko/Info.plist;

@@ -49,19 +49,9 @@ struct RelaxCompletionScreen: View {
 
                 Spacer(minLength: 20)
 
-                // Animated completion with ripples, breathing mascot, and centered checkmark
-                ZStack {
-                    // Ripples and mascot from RelaxCompleteView
-                    RelaxCompleteView()
-                        .transition(.opacity)
-                    
-                    // Centered checkmark overlaid on ripples
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 72, weight: .bold))
-                        .foregroundStyle(accent)
-                        .shadow(color: Color.black.opacity(0.15), radius: 8, y: 4)
-                }
-                .frame(height: 280)
+                // The tick animation celebrates the completed relax session.
+                MokoTickCompleteView(size: 260)
+                    .frame(height: 280)
 
                 Spacer(minLength: 28)
 
