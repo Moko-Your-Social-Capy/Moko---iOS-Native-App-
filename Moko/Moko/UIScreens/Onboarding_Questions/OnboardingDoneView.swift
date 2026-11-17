@@ -3,7 +3,9 @@
 //  Moko
 //
 //  The "You rock!!!" celebration after the last swipe question.
-//  Shows two status rows, then sends the user on to ReflectionView.
+//  The illustrated valley is the whole backdrop; text sits in the pale sky
+//  at the top and the button rests at the bottom, so the art stays visible.
+//  Then the user moves on to ReflectionView.
 //
 
 import SwiftUI
@@ -24,47 +26,100 @@ struct OnboardingDoneView: View {
         self.onContinue = onContinue
     }
 
+    // Colours picked to stay readable on the pale mint sky.
+    private let ink = Color(hex: 0x1C3A33)
+    private let cardFill = Color(hex: 0xFBF8EF).opacity(0.95)
+
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 0)
-
-            Image("capybara_celebrate")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 257, height: 257)
-                .accessibilityHidden(true)
-
+        VStack(alignment: .leading, spacing: 0) {
+            // Headline and short summary share the left edge with the cards below.
             Text("You rock!!!")
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 38, weight: .bold, design: .rounded))
                 .tracking(-1)
-                .foregroundStyle(RColor.text)
-                .padding(.top, 20)
+                .foregroundStyle(ink)
 
-            VStack(spacing: 30) {
-                OnboardingStatusRow(icon: "checkmark",
-                          iconBackground: RColor.mint,
-                          title: "\(completed) of \(total) reflections completed",
-                          status: "100%",
-                          statusColor: RColor.green)
-                OnboardingStatusRow(icon: "list.clipboard",
-                          iconBackground: RColor.peach,
-                          title: "Baseline calculated",
-                          status: "READY",
-                          statusColor: RColor.body)
+            Text("All \(total) cards complete.")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(ink.opacity(0.72))
+                .padding(.top, 6)
+
+            // Four short result cards, in the same order as the next screens.
+            VStack(spacing: 12) {
+                OnboardingStatusRow(
+                    icon: "checkmark",
+                    iconBackground: RColor.mint,
+                    title: "\(completed) of \(total) reflections completed",
+                    status: "100%",
+                    statusColor: RColor.green,
+                    fill: cardFill,
+                    stroke: ink
+                )
+                OnboardingStatusRow(
+                    icon: "list.clipboard",
+                    iconBackground: RColor.peach,
+                    title: "Baseline calculated",
+                    status: "READY",
+                    statusColor: RColor.body,
+                    fill: cardFill,
+                    stroke: ink
+                )
+                OnboardingStatusRow(
+                    icon: "sparkles",
+                    iconBackground: RColor.lilac,
+                    title: "Your strengths mapped",
+                    status: "3 FOUND",
+                    statusColor: RColor.green,
+                    fill: cardFill,
+                    stroke: ink
+                )
+                OnboardingStatusRow(
+                    icon: "flag.fill",
+                    iconBackground: RColor.sky,
+                    title: "First quest unlocked",
+                    status: "OPEN",
+                    statusColor: RColor.green,
+                    fill: cardFill,
+                    stroke: ink
+                )
             }
-            .padding(.top, 55)
-            .padding(.horizontal, 48)
+            .padding(.top, 20)
 
-            Spacer(minLength: 0)
+            // Empty middle lets the valley and Moko mascot show through.
+            Spacer(minLength: 24)
 
             PillButton(title: "Continue to your strengths", action: onContinue)
-                .padding(.horizontal, 48)
-                .padding(.bottom, 55)
+                // A soft shadow lifts the button off the water.
+                .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(MokoBackdrop())
-        // Open the mint panels once to celebrate finishing the questions.
-        .mokoCompletionReveal()
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(.horizontal, 24)
+        .padding(.top, 12)
+        .padding(.bottom, 20)
+        // The artwork is light, so keep status bar text dark even in dark mode.
+        .preferredColorScheme(.light)
+        // Background artwork is a separate layer, so it never pushes the text around.
+        .background {
+            ZStack {
+                // The full colour illustration fills the whole screen.
+                Image("onboarding_complete_bg")
+                    .resizable()
+                    .scaledToFill()
+                    .accessibilityHidden(true)
+
+                // A soft cream wash at the very top keeps the title crisp.
+                LinearGradient(
+                    stops: [
+                        .init(color: Color(hex: 0xF4F1E4).opacity(0.55), location: 0),
+                        .init(color: Color(hex: 0xF4F1E4).opacity(0.15), location: 0.28),
+                        .init(color: .clear, location: 0.42)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .allowsHitTesting(false)
+            }
+            .ignoresSafeArea()
+        }
     }
 }
 
@@ -78,6 +133,8 @@ private struct OnboardingStatusRow: View {
     let title: String
     let status: String
     let statusColor: Color
+    let fill: Color
+    let stroke: Color
 
     var body: some View {
         HStack(spacing: 12) {
@@ -106,10 +163,15 @@ private struct OnboardingStatusRow: View {
         .padding(.horizontal, 14)
         .frame(height: 60)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(OBColor.cardFill)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(fill)
+                .overlay(
+                    // A faint outline separates the card from the pale sky.
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .strokeBorder(stroke.opacity(0.08), lineWidth: 1)
+                )
         )
-        .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+        .shadow(color: .black.opacity(0.10), radius: 10, y: 4)
         // VoiceOver reads the row as one item: "Baseline calculated, READY".
         .accessibilityElement(children: .combine)
     }

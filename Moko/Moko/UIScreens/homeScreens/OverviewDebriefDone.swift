@@ -14,6 +14,7 @@ private typealias Theme = MokoScreenTheme
 
 struct OverviewDebriefDone: View {
     @State private var showConfetti = false
+    @State private var hasAppeared = false
 
     var body: some View {
         OverviewScaffold {
@@ -52,10 +53,10 @@ struct OverviewDebriefDone: View {
         }
         .celebration($showConfetti, style: .confetti, duration: 3.5)
         .onAppear {
-            // One confetti burst celebrates the single completion card below.
-            showConfetti = true
-            // Play success chime when the debrief completion checkmark screen is displayed.
-            DebriefSoundPlayer.shared.playSuccess()
+            if !hasAppeared {
+                showConfetti = true
+                hasAppeared = true
+            }
         }
     }
 
