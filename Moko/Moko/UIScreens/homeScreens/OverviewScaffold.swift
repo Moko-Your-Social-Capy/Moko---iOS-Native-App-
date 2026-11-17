@@ -218,7 +218,7 @@ struct OverviewScaffold<MissionCard: View>: View {
             // Not enough data yet
             return AnyView(
                 Text("Try out one quest.")
-                    .font(.system(size: 18, weight: .medium))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(Theme.Colors.textMuted)
             )
         }
@@ -281,7 +281,7 @@ struct OverviewScaffold<MissionCard: View>: View {
         let title = calmDowns.max(by: { $0.date < $1.date })?.exerciseTitle
 
         return Text(title ?? "Try Relax")
-            .font(.system(size: 20, weight: .medium))
+            .font(.system(size: 18, weight: .medium))
             .foregroundStyle(title != nil ? Theme.Colors.textTitle : Theme.Colors.textMuted)
             .lineLimit(1)
     }

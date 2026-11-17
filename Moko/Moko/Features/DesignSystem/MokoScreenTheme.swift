@@ -293,7 +293,7 @@ enum MokoScreenTheme {
                                           tracking: 0, relativeTo: .footnote)
         static let section = TextStyle(size: 21, leading: 26, weight: .semibold,
                                        tracking: 0, relativeTo: .title3)
-        static let cardTitle = TextStyle(size: 22, leading: 26, weight: .semibold,
+        static let cardTitle = TextStyle(size: 18, leading: 26, weight: .semibold,
                                          tracking: -0.2, relativeTo: .title2)
         static let body = TextStyle(size: 15, leading: 22, weight: .regular,
                                     tracking: 0, relativeTo: .subheadline)
