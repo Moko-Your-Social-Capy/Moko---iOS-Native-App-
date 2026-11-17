@@ -242,6 +242,7 @@ struct ContentView: View {
     /// Clears in-memory session state and returns to the signed-out flow.
     private func finishSession(_ reason: SessionEndReason) {
         PendingDebriefStore.clear()
+        OnboardingReflectionService.clear()
         signedInEmail = ""
         answers = [:]
         isSignedOut = true
@@ -300,6 +301,9 @@ struct ContentView: View {
         // The first Insights record: plain-Swift scores from the answers (see OnboardingScoring).
         let baselineScores = OnboardingScoring.scores(from: results)
         modelContext.insert(baselineScores.makeInsightsModel(date: .now))
+
+        // Deterministic onboarding reflection assessment: generates and persists exactly 4 strengths & 4 areas to grow.
+        try? OnboardingReflectionService.generateAndSave(from: results)
 
         if let state = onboardingStates.first {
             state.isCompleted = true

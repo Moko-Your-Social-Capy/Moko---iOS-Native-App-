@@ -14,6 +14,9 @@ struct MokoApp: App {
 
     init() {
         styleSegmentedPickers()
+        #if DEBUG
+        OnboardingReflectionServiceTests.runAllTests()
+        #endif
     }
 
     var body: some Scene {
