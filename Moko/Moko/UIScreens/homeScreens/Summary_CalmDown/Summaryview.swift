@@ -358,7 +358,8 @@ struct SummaryData {
                 selectedDay,
                 interval.start,
                 interval.end,
-                5 * 24 * 60 * 60
+                // Show the whole week so every weekday label is on screen.
+                interval.duration
             )
         }
 
@@ -400,7 +401,8 @@ struct SummaryData {
                 let isSelected = now >= effectiveStart
                     && now < effectiveEnd
 
-                let label = "Week \(weekNumber)"
+                // Short "W1" fits under a bar; the full "Week 1" was clipping.
+                let label = "W\(weekNumber)"
 
                 let axisDate = calendar.date(
                     byAdding: .day,
@@ -433,7 +435,8 @@ struct SummaryData {
                 selectedDate,
                 firstWeek.start,
                 cursor,
-                5 * 7 * 24 * 60 * 60
+                // Keep every week of the month visible, including a sixth week.
+                cursor.timeIntervalSince(firstWeek.start)
             )
         }
 
@@ -493,7 +496,8 @@ struct SummaryData {
             selectedMonth,
             yearInterval.start,
             yearInterval.end,
-            6 * 30.5 * 24 * 60 * 60
+            // All twelve months fit, so the labels are never cut off at the edges.
+            yearInterval.duration
         )
     }
 
@@ -757,10 +761,11 @@ struct SummaryView: View {
                     }
                 }
             }
-            // One label per bar, using the bar's own text ("9 AM", "Mon", "Week 2", "Jan").
+            // One label per bar, using the bar's own text ("9 AM", "Mon", "W2", "Jan").
             .chartXAxis {
 
                 AxisMarks(
+                    preset: .aligned,
                     values: data.bars.map(\.date)
                 ) { value in
 
@@ -775,16 +780,18 @@ struct SummaryView: View {
                                }
                            ) {
 
+                            // Short labels stay centred under their bar instead of clipping.
                             Text(bar.label)
                                 .mokoText(MokoScreenTheme.Typeface.caption)
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.75)
+                                .minimumScaleFactor(0.6)
+                                .fixedSize(horizontal: true, vertical: false)
                                 .foregroundStyle(subtextGray)
                         }
                     }
                 }
             }
-            .frame(height: 150)
+            .frame(height: 160)
             .padding(.top, 12)
         }
         .padding(MokoScreenTheme.Space.cardHorizontal)

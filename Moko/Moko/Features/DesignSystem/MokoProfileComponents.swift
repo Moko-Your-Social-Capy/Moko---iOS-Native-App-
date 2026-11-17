@@ -179,6 +179,89 @@ struct MokoLevelChip: View {
     }
 }
 
+/// Big XP number with a full-width bar that explains how close the next level is.
+struct MokoLevelProgressCard: View {
+    /// Final XP total, used for the spoken accessibility value.
+    let xp: Int
+    /// XP shown right now. It counts up from zero when Profile opens.
+    let displayXP: Int
+    /// The level the XP total belongs to.
+    let level: Int
+    /// XP inside the current level, also counting up.
+    let displayLevelXP: Int
+    /// XP needed to finish one level.
+    let xpPerLevel: Int
+
+    // How much of the current level is complete, kept between 0 and 1.
+    private var progress: Double {
+        guard xpPerLevel > 0 else { return 0 }
+        return min(max(Double(displayLevelXP) / Double(xpPerLevel), 0), 1)
+    }
+
+    // XP still needed for the next level.
+    private var remainingXP: Int {
+        max(0, xpPerLevel - displayLevelXP)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s3) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                // The big number is the total XP, and it counts up with the rest of Profile.
+                Text(displayXP.formatted())
+                    .font(.system(size: 54, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.Colors.dataVioletDeep)
+                    .contentTransition(.numericText(value: Double(displayXP)))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                    .accessibilityLabel("\(xp) total XP")
+
+                Text("XP")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Theme.Colors.textMuted)
+
+                Spacer(minLength: Theme.Space.s2)
+
+                MokoLevelChip(level: level)
+            }
+
+            // A full-width track shows the whole 400 XP journey, not a short preview.
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Theme.Colors.dataVioletLight)
+
+                    Capsule()
+                        .fill(Theme.Colors.dataVioletDeep)
+                        .frame(width: max(8, proxy.size.width * progress))
+                }
+            }
+            .frame(height: 12)
+            .animation(Theme.Motion.tap, value: displayLevelXP)
+            .accessibilityElement()
+            .accessibilityLabel("Level \(level) progress")
+            .accessibilityValue("\(displayLevelXP) of \(xpPerLevel) XP")
+
+            HStack(alignment: .firstTextBaseline) {
+                Text("\(displayLevelXP) / \(xpPerLevel) XP")
+                    .mokoText(Theme.Typeface.caption)
+                    .foregroundStyle(Theme.Colors.textMuted)
+
+                Spacer(minLength: Theme.Space.s2)
+
+                Text(remainingXP == 0
+                     ? "Ready for Level \(level + 1)"
+                     : "\(remainingXP) XP to Level \(level + 1)")
+                    .mokoText(Theme.Typeface.caption)
+                    .foregroundStyle(Theme.Colors.dataVioletDeep)
+                    .multilineTextAlignment(.trailing)
+            }
+        }
+        .padding(Theme.Space.profileCard)
+        .mokoCard(fill: Theme.Colors.surfaceWhite)
+        .accessibilityElement(children: .contain)
+    }
+}
+
 // MARK: - Stats (§5)
 
 /// The data for one small stat tile (for example "12 Quests").

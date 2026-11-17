@@ -42,6 +42,14 @@ enum StatParameter: String, CaseIterable {
 /// Score reveal view showing animated stat bars and average.
 struct ScoreReveal: View {
     let scores: [StatParameter: Int]  // 0...100 per stat
+    /// How today's average compares with yesterday, in points. Nil hides the row.
+    var comparison: Int? = nil
+    /// XP earned for this debrief. Zero hides the badge.
+    var xp: Int = 0
+    /// Current streak, shown beside the XP badge. Zero hides it.
+    var streak: Int = 0
+    /// When set, a Continue button appears inside the same white card.
+    var onContinue: (() -> Void)? = nil
     @State private var fills: [StatParameter: Double] = [:]
     @State private var average = 0
     @State private var tick = 0
@@ -63,6 +71,26 @@ struct ScoreReveal: View {
             Divider()
                 .padding(.vertical, 8)
 
+            // A single comparison line keeps the "better than yesterday" story.
+            if let comparison {
+                HStack(spacing: 4) {
+                    Text("Compared to yesterday")
+                        .font(.caption)
+                        .foregroundStyle(MokoScreenTheme.Colors.textMuted)
+
+                    Spacer(minLength: 8)
+
+                    Text(comparison >= 0 ? "+\(comparison)" : "\(comparison)")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(comparison >= 0 ? MokoScreenTheme.Colors.scoreExcellent : MokoScreenTheme.Colors.error)
+
+                    Text("points")
+                        .font(.caption)
+                        .foregroundStyle(MokoScreenTheme.Colors.textMuted)
+                }
+                .accessibilityElement(children: .combine)
+            }
+
             // Color-coded stat bars
             ForEach(StatParameter.allCases, id: \.self) { stat in
                 StatBarRow(
@@ -70,6 +98,44 @@ struct ScoreReveal: View {
                     value: scores[stat] ?? 0,
                     fill: fills[stat] ?? 0
                 )
+            }
+
+            // XP and streak sit together so the card still explains the reward.
+            if xp > 0 || streak > 0 {
+                HStack(spacing: 8) {
+                    if xp > 0 {
+                        Text("+\(xp) XP")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(MokoScreenTheme.Colors.dataVioletDeep)
+                            .padding(.horizontal, 10)
+                            .frame(height: 26)
+                            .background(MokoScreenTheme.Colors.surfaceLavender, in: Capsule())
+                    }
+
+                    if streak > 0 {
+                        Text("\(streak)-day streak")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(MokoScreenTheme.Colors.dataVioletDeep)
+                            .padding(.horizontal, 10)
+                            .frame(height: 26)
+                            .background(MokoScreenTheme.Colors.surfaceLavender, in: Capsule())
+                    }
+                }
+                .frame(maxWidth: .infinity)
+            }
+
+            // One button finishes the debrief from inside the same card.
+            if let onContinue {
+                Button(action: onContinue) {
+                    Text("Continue")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(MokoScreenTheme.Colors.dataVioletDeep, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 4)
             }
         }
         .padding(24)

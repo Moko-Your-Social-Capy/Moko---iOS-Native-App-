@@ -13,25 +13,11 @@ import SwiftData
 private typealias Theme = MokoScreenTheme
 
 struct OverviewDebriefDone: View {
-    @State private var showCelebration = false
     @State private var showConfetti = false
 
     var body: some View {
         OverviewScaffold {
             VStack(spacing: 0) {
-                // Celebration card at top (fades in on appear)
-                if showCelebration {
-                    CompletionCard(
-                        title: "Quest Complete!",
-                        message: "Great job completing today's mission.",
-                        button: "Continue"
-                    ) {
-                        showCelebration = false
-                    }
-                    .padding(.bottom, 20)
-                    .transition(.scale(scale: 0.8).combined(with: .opacity))
-                }
-
                 Text("No Active Quest")
                     .mokoText(Theme.Typeface.cardTitle)
                     .foregroundStyle(Theme.Colors.textTitle)
@@ -66,8 +52,8 @@ struct OverviewDebriefDone: View {
         }
         .celebration($showConfetti, style: .confetti, duration: 3.5)
         .onAppear {
+            // One confetti burst celebrates the single completion card below.
             showConfetti = true
-            showCelebration = true
         }
     }
 
