@@ -15,6 +15,7 @@ import ActivityKit
 struct MokoLiveActivityBundle: WidgetBundle {
     var body: some Widget {
         MokoLiveActivityWidget()
+        MokoStreakWidget()
     }
 }
 

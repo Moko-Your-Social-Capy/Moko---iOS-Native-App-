@@ -11,36 +11,41 @@ import SwiftUI
 struct ProfileOverViewSettingsOverview: View {
     // SwiftUI's way to open a link (a website or the Settings app).
     @Environment(\.openURL) private var openURL
+    @Environment(\.mokoTheme) private var theme
 
     var body: some View {
         List {
             // Appearance: pick theme and light/dark mode (saved on device).
-            Section("Appearance") {
+            Section {
                 NavigationLink {
                     AppearanceSettingsView()
                 } label: {
                     Label("Theme & Appearance", systemImage: "paintpalette")
                 }
             }
-            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
+           
 
-            Section("Account") {
+            Section {
                 NavigationLink {
                     ProfileOverViewAccountAndData()
                 } label: {
                     Label("Account & Data", systemImage: "person.crop.circle")
                 }
+            } header: {
+                sectionTitle("Account")
             }
-            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
+            .listRowBackground(theme.colors.cardSurface)
 
-            Section("Reminders") {
+            Section {
                 NavigationLink {
                     ProfileOverViewNotifications()
                 } label: {
                     Label("Reminders & Notifications", systemImage: "bell")
                 }
+            } header: {
+                sectionTitle("Reminders")
             }
-            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
+            .listRowBackground(theme.colors.cardSurface)
 
             Section {
                 NavigationLink {
@@ -55,13 +60,14 @@ struct ProfileOverViewSettingsOverview: View {
                     Label("Manage Permissions", systemImage: "lock")
                 }
             } header: {
-                Text("Permissions")
+                sectionTitle("Permissions")
             } footer: {
                 Text("Access is requested only when a supported feature needs it.")
+                    .foregroundStyle(theme.colors.secondaryText)
             }
-            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
+            .listRowBackground(theme.colors.cardSurface)
 
-            Section("Privacy and legal") {
+            Section {
                 NavigationLink {
                     ProfileOverViewPrivacyPolicy()
                 } label: {
@@ -83,10 +89,12 @@ struct ProfileOverViewSettingsOverview: View {
                     Label("Delete Account", systemImage: "trash")
                         .labelStyle(MokoSettingsLabelStyle(isDestructive: true))
                 }
+            } header: {
+                sectionTitle("Privacy and legal")
             }
-            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
+            .listRowBackground(theme.colors.cardSurface)
 
-            Section("Support") {
+            Section {
                 NavigationLink {
                     ProfileOverViewHelpSupport()
                 } label: {
@@ -97,12 +105,14 @@ struct ProfileOverViewSettingsOverview: View {
                 } label: {
                     Label("About Moko", systemImage: "info.circle")
                 }
+            } header: {
+                sectionTitle("Support")
             }
-            .listRowBackground(MokoScreenTheme.Colors.surfaceWhite)
+            .listRowBackground(theme.colors.cardSurface)
         }
         .listStyle(.insetGrouped)
         .labelStyle(MokoSettingsLabelStyle())
-        .foregroundStyle(MokoScreenTheme.Colors.textTitle)
+        .foregroundStyle(theme.colors.primaryText)
         // Larger rows stay easy to find and grow further when text needs to wrap.
         .environment(\.defaultMinListRowHeight, 72)
         .scrollContentBackground(.hidden)
@@ -110,7 +120,13 @@ struct ProfileOverViewSettingsOverview: View {
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.large)
         .toolbar(.visible, for: .navigationBar)
-        .tint(MokoScreenTheme.Colors.ctaAccent)
+        .tint(theme.colors.ctaAccent)
+    }
+
+    private func sectionTitle(_ text: String) -> some View {
+        // Section titles must stay readable in dark mode.
+        Text(text)
+            .foregroundStyle(theme.colors.secondaryText)
     }
 }
 

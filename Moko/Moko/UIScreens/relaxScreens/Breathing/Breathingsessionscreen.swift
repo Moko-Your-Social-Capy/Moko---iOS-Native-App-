@@ -15,6 +15,7 @@
 
 import SwiftUI
 import SwiftData
+import Lottie
 
 struct BreathingSessionScreen: View {
     let minutes: Int
@@ -105,55 +106,35 @@ struct BreathingSessionScreen: View {
 
     // MARK: - Body
 
+    @State private var didFinish = false
+
     var body: some View {
-        ZStack {
-            // Show the shared completion screen when done, overlaid on the session UI.
-            if runState == .completed {
-                // Gentle Breathing specific content passed to the shared completion screen.
-                // RelaxCompletionScreen plays the GPay sound automatically on appear.
-                RelaxCompletionScreen(
-                    title: "Well done",
-                    subtitle: "You breathed mindfully for \(minutes) min. Every breath was a step toward calm.",
-                    accent: accent,
-                    onContinue: {
-                        if let onFinish {
-                            onFinish()
-                        } else {
-                            dismiss()
-                        }
-                    }
-                )
-                .transition(.opacity)
-            } else {
-                VStack(spacing: 0) {
-                    header
-                    Spacer(minLength: 12)
-                    breathingFocus
-                    Spacer(minLength: 12)
-                }
-                .padding(.horizontal, MokoScreenTheme.Space.page)
-                .padding(.top, 8)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(MokoBackdrop())
-                // Pins the timer card to the bottom, above the home indicator.
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    bottomPanel
-                }
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbarBackground(.hidden, for: .navigationBar)
-                // Immersive session: keep the tab bar out of the way.
-                .toolbar(.hidden, for: .tabBar)
-                .transition(.opacity)
-            }
+        VStack(spacing: 0) {
+            header
+            Spacer(minLength: 12)
+            breathingFocus
+            Spacer(minLength: 12)
         }
-        // Reveal the finished session once, without interrupting breathing cues.
-        .mokoCompletionReveal(isPresented: runState == .completed)
+        .padding(.horizontal, MokoScreenTheme.Space.page)
+        .padding(.top, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(MokoBackdrop())
+        // Pins the timer card to the bottom, above the home indicator.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            bottomPanel
+        }
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         // Immersive session: keep the tab bar out of the way.
         .toolbar(.hidden, for: .tabBar)
         // Restarts every time `runState` changes. See `runClock()`.
         .task(id: runState) { await runClock() }
+        // Return to Relax home once; completion overlay is shown there (single animation).
+        .onChange(of: runState) { _, newValue in
+            guard newValue == .completed, !didFinish else { return }
+            didFinish = true
+            if let onFinish { onFinish() } else { dismiss() }
+        }
         // A buzz on start, pause/resume, and a "success" buzz when done.
         .sensoryFeedback(trigger: runState) { oldState, newState in
             switch (oldState, newState) {
@@ -162,7 +143,6 @@ struct BreathingSessionScreen: View {
             default: return .impact(weight: .light)
             }
         }
-        .animation(.easeInOut(duration: 0.35), value: runState == .completed)
     }
 
     /// The mascot inside the progress ring, with the phase text under it.
@@ -192,10 +172,8 @@ struct BreathingSessionScreen: View {
                         .animation(.linear(duration: 1.0 / 30.0), value: progress)
                         .accessibilityLabel("Session progress, \(Int(progress * 100)) percent")
 
-                    Image("MokoMascot")
-                        .resizable()
-                        .scaledToFit()
-                        .padding(18)
+                    // Brick breathing Lottie animates gently between inhale/exhale in the circle.
+                    MokoLottieView(animation: .brickBreathing, loopMode: .loop)
                         .frame(width: 250, height: 250)
                         // Grows from the feet up, so the mascot looks like it is filling with air.
                         .scaleEffect(breathScale, anchor: .bottom)

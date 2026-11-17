@@ -2,125 +2,24 @@
 //  SessionCompleteView.swift
 //  Moko
 //
-//  The "well done" screen after an imagery session. All the text comes from
-//  Supabase through `ImageryGuideStore`, so it shows a spinner or an error
-//  if that text has not loaded yet.
-//
-//  The GPay success sound plays once when the completion screen appears.
+//  Brief completion overlay after an imagery session, then returns to Relax home.
 //
 
 import SwiftUI
 
 struct SessionCompleteView: View {
-    // The guide's own goodbye message. Empty means "use the default text".
+    // The guide's own title/message context isn't required by overlay spec; show exercise title.
     var message: String = ""
-    // Runs when the user taps Done (goes back to the guide list).
+    var exerciseTitle: String = "Guided Imagery"
+    // Runs when the overlay auto-dismisses.
     var onDone: () -> Void = {}
 
-    // The shared store that RelaxFlow put in the environment.
     @Environment(ImageryGuideStore.self) private var store
-    // Remembers whether the success sound has played, so it only happens once.
-    @State private var hasPlayedSound = false
-
-    private let accent = MokoScreenTheme.Colors.dataVioletDeep
-    private let titleBrown = MokoScreenTheme.Colors.textTitle
 
     var body: some View {
-        Group {
-            // Three states: text loaded, still loading, or failed.
-            if let screen = store.screen {
-                ScrollView {
-                    content(screen)
-                }
-            } else if store.isLoading {
-                MokoInlineLoader(size: 48, tint: accent)
-            } else {
-                ContentUnavailableView {
-                    Label(store.screen?.errorTitle ?? "Couldn't load guides", systemImage: store.screen?.errorIcon ?? "wifi.exclamationmark")
-                } description: {
-                    Text(store.errorMessage ?? "")
-                } actions: {
-                    Button(store.screen?.retryButtonTitle ?? "Try Again") {
-                        Task { await store.load() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(accent)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(MokoBackdrop())
-        // Celebrate only when the goodbye text is ready, never over an error.
-        .mokoCompletionReveal(isPresented: store.screen != nil)
-        // Stays immersive until Done returns to the guide list.
-        .toolbar(.hidden, for: .tabBar)
-        // `.task` runs when the screen appears. Loads the text only if it is not loaded yet.
-        .task { await store.loadIfNeeded() }
-        // The text is often already loaded, so play the sound as soon as the screen appears.
-        .onAppear { playSuccessSoundIfReady() }
-        // If the text is still loading, play the sound once it arrives.
-        .onChange(of: store.screen != nil) { _, _ in
-            playSuccessSoundIfReady()
-        }
-    }
-
-    /// Plays the GPay success chime once, but only when the completion content is visible.
-    private func playSuccessSoundIfReady() {
-        guard !hasPlayedSound, store.screen != nil else { return }
-        hasPlayedSound = true
-        DebriefSoundPlayer.shared.playSuccess()
-    }
-
-    private func content(_ screen: ImageryGuideScreenContent) -> some View {
-        VStack(spacing: 0) {
-            Text(screen.completeTitle)
-                .mokoText(MokoScreenTheme.Typeface.title2)
-                .tracking(-0.4)
-                .foregroundStyle(titleBrown)
-                .padding(.top, 10)
-
-            Text(screen.completeSubtitle)
-                .mokoText(MokoScreenTheme.Typeface.caption)
-                .foregroundStyle(MokoScreenTheme.Colors.textMuted)
-                .padding(.top, 4)
-
-            // The tick animation celebrates the completed imagery session.
-            MokoTickCompleteView(size: 220)
-                .padding(.top, 12)
-
-            Text(screen.completeHeadline)
-                .mokoText(MokoScreenTheme.Typeface.title1)
-                .tracking(-0.4)
-                .foregroundStyle(titleBrown)
-                .padding(.top, 54)
-
-            Text(resolvedMessage(screen))
-                .mokoText(MokoScreenTheme.Typeface.body)
-                .foregroundStyle(MokoScreenTheme.Colors.textBody)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, MokoScreenTheme.Space.page)
-                .padding(.top, 24)
-
-            Spacer(minLength: 24)
-
-            // Done button – hands off to the caller.
-            Button(action: onDone) {
-                Text(screen.completeDoneButton)
-                    .mokoText(MokoScreenTheme.Typeface.cardTitle)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity, minHeight: MokoScreenTheme.Control.trackHeight)
-                    .background(accent, in: Capsule())
-            }
-            .padding(.horizontal, MokoScreenTheme.Space.page)
-            .padding(.bottom, 12)
-        }
-        .multilineTextAlignment(.center)
-    }
-
-    /// The guide's message, or the default one if the guide has none.
-    private func resolvedMessage(_ screen: ImageryGuideScreenContent) -> String {
-        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? screen.completeDefaultMessage : trimmed
+        // Completion overlay appears briefly and automatically returns to Relax home.
+        RelaxCompletionScreen(exerciseTitle: exerciseTitle, onContinue: onDone)
+            .task { await store.loadIfNeeded() }
     }
 }
 

@@ -140,20 +140,13 @@ struct BoxBreathingView: View {
 
     // MARK: Body
 
+    @State private var didFinish = false
+
     var body: some View {
         ZStack {
             MokoBackdrop()
-
-            VStack(spacing: 0) {
-                if state == .complete {
-                    completeContent.transition(.opacity)
-                } else {
-                    breathingContent.transition(.opacity)
-                }
-            }
+            breathingContent
         }
-        // The panels open only after the final breathing cycle finishes.
-        .mokoCompletionReveal(isPresented: state == .complete)
         .navigationBarTitleDisplayMode(.inline)
         // Immersive session: keep the tab bar out of the way.
         .toolbar(.hidden, for: .tabBar)
@@ -162,6 +155,12 @@ struct BoxBreathingView: View {
         // If the app leaves the screen (phone call, home button), pause the session.
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase != .active && state == .running { pause() }
+        }
+        // Return to Relax home once; completion overlay is shown there (single animation).
+        .onChange(of: state) { _, newValue in
+            guard newValue == .complete, !didFinish else { return }
+            didFinish = true
+            onComplete()
         }
         // A light buzz at the start of each new phase.
         .sensoryFeedback(trigger: stepIndex) { old, new in
@@ -324,9 +323,7 @@ struct BoxBreathingView: View {
     // RelaxCompletionScreen plays the GPay sound automatically on appear.
     private var completeContent: some View {
         RelaxCompletionScreen(
-            title: "You did it!",
-            subtitle: "You took a moment to pause, breathe, and find your calm. Be proud of yourself for showing up!",
-            accent: BBColor.button,
+            exerciseTitle: "Box Breathing",
             onContinue: onComplete
         )
     }

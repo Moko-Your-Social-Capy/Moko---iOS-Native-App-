@@ -47,26 +47,60 @@ struct MokoProfileHero<Avatar: View>: View {
     // @ViewBuilder lets the caller pass in any view (here, the avatar) using `{ ... }`.
     @ViewBuilder var avatar: () -> Avatar
 
+    // The active MOKO theme lets the banner stay soft instead of neon in dark mode.
+    @Environment(\.mokoTheme) private var theme
+
     var body: some View {
         ZStack {
+            // A themed gradient keeps the banner calm in light mode and muted in dark mode.
             LinearGradient(
-                colors: [Theme.Colors.heroTop, Theme.Colors.heroMid, Theme.Colors.heroBottom],
+                colors: bannerColors,
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
 
             GeometryReader { geo in
+                // Large soft glows add depth without using hard neon fills.
+                Circle()
+                    .fill(theme.colors.inverseText.opacity(theme.isDark ? 0.06 : 0.10))
+                    .frame(width: 260, height: 260)
+                    .blur(radius: 4)
+                    .offset(x: geo.size.width - 220, y: -90)
+
+                Circle()
+                    .fill(theme.colors.ctaAccent.opacity(theme.isDark ? 0.08 : 0.10))
+                    .frame(width: 210, height: 210)
+                    .blur(radius: 4)
+                    .offset(x: -80, y: geo.size.height - 130)
+
                 VectorBushShape()
-                    .stroke(Theme.Colors.heroVectorBush, lineWidth: Theme.Line.data)
+                    .stroke(bannerVectorColor, lineWidth: Theme.Line.data)
                     .frame(width: 220, height: 142)
                     .rotationEffect(.degrees(-6))
                     .offset(x: -70, y: geo.size.height - 142 + 34)
 
                 VectorLeafShape()
-                    .stroke(Theme.Colors.heroVectorLeaf, lineWidth: Theme.Line.data)
+                    .stroke(bannerVectorColor, lineWidth: Theme.Line.data)
                     .frame(width: 150, height: 69)
                     .rotationEffect(.degrees(14))
                     .offset(x: geo.size.width - 60, y: 34)
+
+                // Small dots and sparkles read as quiet theme texture.
+                ForEach(0..<7, id: \.self) { index in
+                    Circle()
+                        .fill(theme.colors.inverseText.opacity(theme.isDark ? 0.10 : 0.14))
+                        .frame(width: index.isMultiple(of: 2) ? 5 : 7)
+                        .offset(
+                            x: bannerDotOffset(index: index, width: geo.size.width),
+                            y: bannerDotOffset(index: index, height: geo.size.height)
+                        )
+                }
+
+                Image(systemName: "sparkle")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(theme.colors.inverseText.opacity(theme.isDark ? 0.22 : 0.28))
+                    .rotationEffect(.degrees(18))
+                    .offset(x: geo.size.width - 96, y: 92)
             }
             .allowsHitTesting(false)
             .accessibilityHidden(true)
@@ -87,6 +121,32 @@ struct MokoProfileHero<Avatar: View>: View {
         }
     }
 
+    /// Dark themes use deep muted tones; light themes keep the brighter MOKO accent.
+    private var bannerColors: [Color] {
+        if theme.isDark {
+            return [
+                theme.colors.elevatedCardBackground,
+                theme.colors.cardSurface,
+                theme.colors.secondaryBackground
+            ]
+        }
+        return [Theme.Colors.heroTop, Theme.Colors.heroMid, Theme.Colors.heroBottom]
+    }
+
+    private var bannerVectorColor: Color {
+        theme.isDark ? theme.colors.secondaryText.opacity(0.34) : Theme.Colors.heroVectorBush
+    }
+
+    private func bannerDotOffset(index: Int, width: CGFloat) -> CGFloat {
+        let positions: [CGFloat] = [28, 72, 118, 166, 205, 242, 274]
+        return positions[index % positions.count]
+    }
+
+    private func bannerDotOffset(index: Int, height: CGFloat) -> CGFloat {
+        let positions: [CGFloat] = [48, 88, 128, 66, 104, 76, 118]
+        return positions[index % positions.count].scaled(by: height / 240)
+    }
+
     private var navigationRow: some View {
         HStack(spacing: Theme.Space.s2) {
             circleButton(symbol: "xmark", action: onClose, label: "Close profile")
@@ -95,7 +155,7 @@ struct MokoProfileHero<Avatar: View>: View {
 
             Text(title)
                 .mokoText(Theme.Typeface.cardTitle)
-                .foregroundStyle(Theme.Colors.heroInk)
+                .foregroundStyle(theme.isDark ? theme.colors.primaryText : Theme.Colors.heroInk)
 
             Spacer(minLength: 0)
 
@@ -111,7 +171,7 @@ struct MokoProfileHero<Avatar: View>: View {
         Button(action: action) {
             Image(systemName: symbol)
                 .font(.title3.weight(.semibold))
-                .foregroundStyle(Theme.Colors.surfaceWhite)
+                .foregroundStyle(theme.isDark ? theme.colors.primaryText : Theme.Colors.surfaceWhite)
                 .frame(width: Metric.navButton, height: Metric.navButton)
                 .background(Theme.Colors.heroButtonSurface, in: Circle())
         }
@@ -303,19 +363,46 @@ private struct MokoStatTile: View {
     let stat: MokoStat
     // The icon's backing grows with its symbol when larger text is selected.
     @ScaledMetric(relativeTo: .body) private var iconSize = Metric.statPlate
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var showReflection = false
 
     var body: some View {
+        Group {
+            if let action = stat.action {
+                Button(action: action) { tileContent }
+                    .buttonStyle(.plain)
+            } else {
+                tileContent
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(stat.value), \(stat.label)")
+        .accessibilityHint(stat.action != nil ? "Opens streak details" : "")
+        .accessibilityAddTraits(stat.action != nil ? .isButton : [])
+    }
+
+    private var tileContent: some View {
         VStack(alignment: .leading, spacing: Theme.Space.s1) {
-            Image(systemName: stat.symbol)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(stat.tint)
-                .frame(width: iconSize, height: iconSize)
-                .background(stat.plate, in: Circle())
-                .padding(.bottom, 5)
+            HStack(alignment: .top) {
+                Image(systemName: stat.symbol)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(stat.tint)
+                    .frame(width: iconSize, height: iconSize)
+                    .background(stat.plate, in: Circle())
+                Spacer()
+                // Chevron makes tappable streak card discoverable.
+                if stat.action != nil {
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.Colors.textBody)
+                        .accessibilityHidden(true)
+                }
+            }
+            .padding(.bottom, 5)
 
             Text(stat.value)
                 .font(.title2.weight(.bold))
-                .foregroundStyle(Theme.Colors.dataVioletDeep)
+                .foregroundStyle(Theme.Colors.textTitle)
                 .fixedSize(horizontal: false, vertical: true)
 
             Text(stat.label)
@@ -326,22 +413,35 @@ private struct MokoStatTile: View {
         .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
         .padding(Metric.statFill)
         .mokoCard(fill: stat.fill, radius: Theme.Radius.tile)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            stat.action?()
+        .overlay {
+            if stat.action != nil {
+                RoundedRectangle(cornerRadius: Theme.Radius.tile, style: .continuous)
+                    .stroke(Theme.Colors.ctaAccent.opacity(0.16), lineWidth: 1)
+            }
         }
-        .opacity(stat.action != nil ? 1.0 : 0.95)
-        .overlay(
-            Group {
-                if stat.action != nil {
-                    RoundedRectangle(cornerRadius: Theme.Radius.tile)
-                        .stroke(stat.tint.opacity(0.2), lineWidth: 1)
+        // Subtle repeating reflection every ~4 seconds to hint the card is tappable.
+        .overlay {
+            if stat.action != nil, !reduceMotion {
+                TimelineView(.periodic(from: .now, by: 4)) { context in
+                    let t = context.date.timeIntervalSinceReferenceDate
+                    let phase = (t.truncatingRemainder(dividingBy: 4)) / 4
+                    GeometryReader { geo in
+                        LinearGradient(
+                            colors: [.clear, Color.white.opacity(0.20), .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .rotationEffect(.degrees(18))
+                        .frame(width: geo.size.width * 0.35)
+                        .offset(x: -geo.size.width + (geo.size.width * 2.2) * phase)
+                        .blendMode(.softLight)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.tile, style: .continuous))
+                    .allowsHitTesting(false)
                 }
             }
-        )
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(stat.value), \(stat.label)")
-        .accessibilityHint(stat.action != nil ? "Double tap to view streak details" : "")
+        }
+        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.tile, style: .continuous))
     }
 }
 
@@ -364,16 +464,15 @@ struct MokoSegmented: View {
                     Text(title)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(selection == index
-                                         ? Theme.Colors.forest
-                                         : Theme.Colors.textMuted)
+                                         ? Theme.Colors.textOnBrand
+                                         : Theme.Colors.textBody)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 4)
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .background {
                             if selection == index {
                                 Capsule()
-                                    .fill(Theme.Colors.surfaceWhite)
-                                    .shadow(color: Theme.Elevation.nearColor, radius: 1.5, y: 1)
+                                    .fill(Theme.Colors.ctaAccent)
                             }
                         }
                         .contentShape(Capsule())
@@ -384,15 +483,19 @@ struct MokoSegmented: View {
             }
         }
         .padding(3)
-        .background(Theme.Colors.trackCream,
+        .background(Theme.Colors.surfaceLavender,
                     in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .stroke(Theme.Colors.borderSubtle, lineWidth: 1)
+        )
         .accessibilityElement(children: .contain)
     }
 }
 
 // MARK: - Week bars (§6)
 
-/// Seven bars, diagonal hatch, the peak solid in forest.
+/// XP/activity bars for Profile "My Journey" graph. Uses theme chart tokens for light/dark.
 struct MokoWeekBars: View {
     /// The bar gap, exposed so an axis row can align to the same columns.
     static let spacing = Metric.weekBarGap
@@ -401,50 +504,50 @@ struct MokoWeekBars: View {
     let values: [Double]
     /// Index drawn solid instead of hatched.
     let peak: Int
+    var barHeight: CGFloat = Metric.weekBarHeight
+
+    @Environment(\.mokoTheme) private var theme
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: Metric.weekBarGap) {
-            ForEach(Array(values.enumerated()), id: \.offset) { index, value in
-                bar(isPeak: index == peak)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: max(4, Metric.weekBarHeight * value))
+        VStack(spacing: 6) {
+            // Subtle gridlines improve readability without clutter.
+            ZStack(alignment: .bottom) {
+                VStack {
+                    ForEach(0..<3, id: \.self) { _ in
+                        Rectangle()
+                            .fill(theme.colors.chartGrid.opacity(theme.isDark ? 0.7 : 0.5))
+                            .frame(height: 1)
+                        Spacer()
+                    }
+                }
+                .frame(height: barHeight)
+
+                HStack(alignment: .bottom, spacing: Self.spacing) {
+                    ForEach(Array(values.enumerated()), id: \.offset) { index, value in
+                        bar(isPeak: index == peak, value: value)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: max(value > 0.001 ? 8 : 4, barHeight * value), alignment: .bottom)
+                    }
+                }
+                .frame(height: barHeight, alignment: .bottom)
             }
         }
-        .frame(height: Metric.weekBarHeight, alignment: .bottom)
         .accessibilityElement()
-        .accessibilityLabel("Weekly experience points")
+        .accessibilityLabel("Experience points over time")
     }
 
     @ViewBuilder
-    private func bar(isPeak: Bool) -> some View {
+    private func bar(isPeak: Bool, value: Double) -> some View {
+        let base = RoundedRectangle(cornerRadius: Metric.weekBarRadius, style: .continuous)
         if isPeak {
-            RoundedRectangle(cornerRadius: Metric.weekBarRadius, style: .continuous)
-//                .fill(Theme.Colors.forest)
+            base
+                .fill(theme.colors.chartPrimary)
         } else {
-            RoundedRectangle(cornerRadius: Metric.weekBarRadius, style: .continuous)
-                .fill(Theme.Colors.dataViolet.opacity(0.18))
+            base
+                .fill(theme.colors.chartSecondary.opacity(theme.isDark ? 0.55 : 0.35))
                 .overlay {
-                    HatchedFill()
-                        .clipShape(RoundedRectangle(cornerRadius: Metric.weekBarRadius,
-                                                    style: .continuous))
+                    base.stroke(theme.colors.chartSecondary.opacity(0.45), lineWidth: 1)
                 }
-        }
-    }
-}
-
-/// 45° stripes, 2pt wide, 5pt apart. One shape, never a tiled image.
-private struct HatchedFill: View {
-    var body: some View {
-        // Canvas draws with code, like a tiny paint program. Here we draw diagonal lines.
-        Canvas { context, size in
-            var x = -size.height
-            while x < size.width + size.height {
-                var path = Path()
-                path.move(to: CGPoint(x: x, y: size.height))
-                path.addLine(to: CGPoint(x: x + size.height, y: 0))
-                context.stroke(path, with: .color(Theme.Colors.dataViolet), lineWidth: 2)
-                x += 5
-            }
         }
     }
 }

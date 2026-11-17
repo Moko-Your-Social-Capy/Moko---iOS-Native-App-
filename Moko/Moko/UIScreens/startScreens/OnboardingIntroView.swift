@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import Lottie
 
 struct OnboardingIntroView: View {
     /// Called when the user taps "Let's Begin".
@@ -24,8 +25,11 @@ struct OnboardingIntroView: View {
             VStack(spacing: 0) {
                 Spacer(minLength: 20)
 
-                MokoAnimatedMascotView(size: min(geometry.size.width * 0.62, 250))
+                // Rabbit wave animation welcomes the user on the intro screen.
+                MokoLottieView(animation: .easterBunnyWaving, loopMode: .loop)
+                    .frame(width: min(geometry.size.width * 0.62, 250), height: min(geometry.size.width * 0.62, 250))
                     .padding(.bottom, 16)
+                    .accessibilityLabel("Moko waves hello")
 
                 Text("Hello, I’m Moko.")
                     .font(.system(.largeTitle, design: .rounded, weight: .bold))

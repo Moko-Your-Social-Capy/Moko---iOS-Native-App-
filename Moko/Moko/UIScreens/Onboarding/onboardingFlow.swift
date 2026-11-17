@@ -2,9 +2,9 @@
 //  onboardingFlow.swift
 //  Moko
 //
-//  The four intro screens shown right after sign-in:
+//  The onboarding screens shown right after sign-in:
 //
-//      FamiliarCarouselView → NameEntryView → AgeEntryView → WelcomeView
+//      FamiliarCarouselView → NameEntryView (name + age) → WelcomeView
 //
 //  Also holds the small pieces those screens share (progress bar, continue
 //  button, nav-bar style) so each screen file only contains its own content.
@@ -14,17 +14,15 @@
 //
 
 import SwiftUI
+import SwiftData
 
 // MARK: - Steps
 
 /// One pushed screen in the intro flow. The carousel is the root, so it has no case.
 enum OnboardingStep: Hashable {
     case nameEntry
-    case ageEntry
     case welcome
 }
-
-// MARK: - Flow container
 
 /// Hosts the intro screens in a NavigationStack and reports name + age when done.
 struct OnboardingFlowContainer: View {
@@ -37,6 +35,10 @@ struct OnboardingFlowContainer: View {
     // @AppStorage = a value saved in UserDefaults, so it survives app restarts.
     @AppStorage("userName") private var userName = ""
     @AppStorage("userAge") private var userAge = 20
+
+    // SwiftData is Apple’s storage. It saves the Profile on the phone.
+    @Environment(\.modelContext) private var modelContext
+    @Query private var profiles: [Profile]
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -57,19 +59,143 @@ struct OnboardingFlowContainer: View {
     private func destination(for step: OnboardingStep) -> some View {
         switch step {
         case .nameEntry:
-            NameEntryView { name in
+            NameEntryView(initialName: userName, initialAge: userAge) { name, age in
                 userName = name
-                path.append(.ageEntry)
-            }
-        case .ageEntry:
-            AgeEntryView(initialAge: userAge) { age in
                 userAge = age
+
+                // Keep one saved Profile, so onboarding edits the same model the Profile tab uses.
+                if let profile = profiles.first {
+                    profile.username = name
+                    profile.age = age
+                    profile.updatedAt = .now
+                } else {
+                    modelContext.insert(Profile(username: name, age: age))
+                }
+                modelContext.saveOrLog("onboarding name and age")
+
                 path.append(.welcome)
             }
         case .welcome:
             WelcomeView(name: userName) {
                 onComplete(userName, userAge)
             }
+        }
+    }
+}
+
+// MARK: - Shared screen scaffold
+
+/// Rounded hero card used by both personalized onboarding screens.
+struct OnboardingJourneyCard<Content: View>: View {
+    @Environment(\.mokoTheme) private var theme
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ZStack {
+            // Soft decorative glow behind the card content.
+            Circle()
+                .fill(theme.colors.inverseText.opacity(0.10))
+                .frame(width: 220, height: 220)
+                .offset(x: -110, y: -130)
+
+            Circle()
+                .fill(theme.colors.inverseText.opacity(0.08))
+                .frame(width: 170, height: 170)
+                .offset(x: 120, y: 150)
+
+            content()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .padding(28)
+        .background {
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [theme.colors.profileAccent, theme.colors.ctaAccent],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .stroke(theme.colors.inverseText.opacity(0.28), lineWidth: 2)
+        }
+        .shadow(color: theme.colors.cardShadow.opacity(0.18), radius: 18, y: 10)
+    }
+}
+
+/// Small two-dot indicator shown below the card.
+struct OnboardingJourneyDots: View {
+    let currentPage: Int
+    @Environment(\.mokoTheme) private var theme
+
+    var body: some View {
+        HStack(spacing: 7) {
+            ForEach(1...2, id: \.self) { page in
+                Circle()
+                    .fill(page == currentPage ? theme.colors.ctaAccent : theme.colors.separator.opacity(0.7))
+                    .frame(width: page == currentPage ? 8 : 6, height: page == currentPage ? 8 : 6)
+            }
+        }
+        .accessibilityLabel("Step \(currentPage) of 2")
+    }
+}
+
+/// Card, dots, primary CTA and quiet footer assembled in one shared layout.
+struct OnboardingJourneyScaffold<Content: View>: View {
+    let currentPage: Int
+    let buttonTitle: String
+    let footer: String
+    var isEnabled = true
+    let action: () -> Void
+    @ViewBuilder let content: () -> Content
+
+    @Environment(\.mokoTheme) private var theme
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                OnboardingJourneyCard(content: content)
+                    .frame(minHeight: 500)
+                    .padding(.horizontal, 14)
+                    .padding(.top, 12)
+
+                OnboardingJourneyDots(currentPage: currentPage)
+                    .padding(.top, 18)
+
+                Button(action: action) {
+                    Text(buttonTitle)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(theme.colors.primaryButtonText)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 58)
+                        .background(theme.colors.primaryButton, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(!isEnabled)
+                .opacity(isEnabled ? 1 : 0.45)
+                .padding(.horizontal, 22)
+                .padding(.top, 22)
+
+                Text(footer)
+                    .font(.caption)
+                    .foregroundStyle(theme.colors.secondaryText)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 12)
+                    .padding(.horizontal, 32)
+                    .padding(.bottom, 24)
+            }
+        }
+        .scrollIndicators(.hidden)
+        // A themed completion gradient keeps the screen consistent in Light and Dark mode.
+        .background {
+            LinearGradient(
+                colors: [theme.colors.completionBackground, theme.colors.screenBackground],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
         }
     }
 }

@@ -1233,14 +1233,14 @@ struct SummaryView: View {
                         )
 
                     Text(activity.name)
-                        .mokoText(MokoScreenTheme.Typeface.slider)
-                        .foregroundStyle(titleDark)
+                        .mokoText(MokoScreenTheme.Typeface.body)
+                        .foregroundStyle(CalmDownExercisePalette.ink(for: activity.name))
 
                     Spacer()
 
                     Text(activity.duration)
                         .mokoText(MokoScreenTheme.Typeface.caption)
-                        .foregroundStyle(titleDark)
+                        .foregroundStyle(subtextGray)
                 }
                 .padding(.vertical, 12)
             }

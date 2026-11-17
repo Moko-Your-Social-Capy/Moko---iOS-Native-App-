@@ -2,28 +2,21 @@
 //  StreakCalendarView.swift
 //  Moko
 //
-//  Calendar view showing daily activity streak with visual indicators.
-//  All data comes from StreakService (ActivityRecord rows) — the single source
-//  of truth — so the calendar, profile streak and detail screen always match.
+//  Monthly streak calendar used in the Streak Detail screen.
+//  Data comes from StreakService (ActivityRecord rows) — the single source of truth.
 //
 
 import SwiftUI
 import SwiftData
 
 struct StreakCalendarView: View {
-    // The day the user tapped. The view owns its own selection.
+    // The day the user tapped.
     @State private var selectedDate: Date = Date()
     // SwiftData rows — the single source of truth for streak data.
     @Query private var activityRecords: [ActivityRecord]
 
-    // Streak stats computed from ActivityRecord rows via StreakService.
-    private var stats: StreakStats {
-        StreakService.shared.stats(from: activityRecords)
-    }
-
-    private var activeDates: Set<Date> { stats.activeDates }
-    private var currentStreak: Int { stats.currentStreak }
-    private var longestStreak: Int { stats.longestStreak }
+    // Active days computed from ActivityRecord rows via StreakService.
+    private var activeDates: Set<Date> { StreakService.shared.stats(from: activityRecords).activeDates }
 
     @State private var currentMonth: Date = Date()
     @State private var showingMonthPicker = false
@@ -32,28 +25,19 @@ struct StreakCalendarView: View {
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
 
     var body: some View {
-        VStack(spacing: 20) {
-            // Month header with navigation
+        VStack(spacing: 16) {
             monthHeader
-
-            // Weekday headers
             weekdayHeaders
-
-            // Calendar grid
             calendarGrid
-
-            // Streak stats
-            streakStats
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 20)
+        .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(MokoScreenTheme.Colors.canvasTop.opacity(0.05))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(MokoScreenTheme.Colors.borderSubtle, lineWidth: 1)
-                )
+            RoundedRectangle(cornerRadius: MokoScreenTheme.Radius.card, style: .continuous)
+                .fill(MokoScreenTheme.Colors.surfaceWhite)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: MokoScreenTheme.Radius.card, style: .continuous)
+                .stroke(MokoScreenTheme.Colors.borderSubtle, lineWidth: 1)
         )
         .sheet(isPresented: $showingMonthPicker) {
             monthPickerSheet
@@ -66,30 +50,30 @@ struct StreakCalendarView: View {
         HStack {
             Button(action: previousMonth) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .medium))
-                    .frame(width: 44, height: 44)
-                    .foregroundStyle(MokoScreenTheme.Colors.dataVioletDeep)
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 36, height: 36)
+                    .foregroundStyle(MokoScreenTheme.Colors.ctaAccent)
             }
-            .mokoButtonStyle(.icon)
+            .buttonStyle(.plain)
 
             Spacer()
 
             Button(action: { showingMonthPicker = true }) {
                 Text(monthYearString(from: currentMonth))
-                    .mokoText(MokoScreenTheme.Typeface.title3)
+                    .mokoText(MokoScreenTheme.Typeface.cardTitle)
                     .foregroundStyle(MokoScreenTheme.Colors.textTitle)
             }
-            .mokoButtonStyle(.secondary)
+            .buttonStyle(.plain)
 
             Spacer()
 
             Button(action: nextMonth) {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 18, weight: .medium))
-                    .frame(width: 44, height: 44)
-                    .foregroundStyle(MokoScreenTheme.Colors.dataVioletDeep)
+                    .font(.system(size: 16, weight: .semibold))
+                    .frame(width: 36, height: 36)
+                    .foregroundStyle(MokoScreenTheme.Colors.ctaAccent)
             }
-            .mokoButtonStyle(.icon)
+            .buttonStyle(.plain)
         }
     }
 
@@ -110,7 +94,7 @@ struct StreakCalendarView: View {
 
     private var calendarGrid: some View {
         LazyVGrid(columns: columns, spacing: 8) {
-            ForEach(daysInMonth(), id: \.self) { date in
+            ForEach(Array(daysInMonth().enumerated()), id: \.offset) { _, date in
                 if let date = date {
                     CalendarDayView(
                         date: date,
@@ -119,54 +103,12 @@ struct StreakCalendarView: View {
                         isToday: calendar.isDateInToday(date),
                         isInCurrentMonth: calendar.isDate(date, equalTo: currentMonth, toGranularity: .month)
                     )
-                    .onTapGesture {
-                        selectedDate = date
-                    }
+                    .onTapGesture { selectedDate = date }
                 } else {
-                    // Empty cell for days outside the month
-                    Color.clear
-                        .frame(height: 44)
+                    Color.clear.frame(height: 40)
                 }
             }
         }
-    }
-
-    // MARK: - Streak Stats
-
-    private var streakStats: some View {
-        HStack(spacing: 20) {
-            VStack(spacing: 4) {
-                Text("\(currentStreak)")
-                    .mokoText(MokoScreenTheme.Typeface.title1)
-                    .foregroundStyle(MokoScreenTheme.Colors.dataVioletDeep)
-
-                Text("Current Streak")
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .foregroundStyle(MokoScreenTheme.Colors.textBody)
-            }
-            .frame(maxWidth: .infinity)
-
-            Divider()
-                .frame(height: 40)
-                .background(MokoScreenTheme.Colors.borderSubtle)
-
-            VStack(spacing: 4) {
-                Text("\(longestStreak)")
-                    .mokoText(MokoScreenTheme.Typeface.title1)
-                    .foregroundStyle(MokoScreenTheme.Colors.dataMagenta)
-
-                Text("Longest Streak")
-                    .mokoText(MokoScreenTheme.Typeface.caption)
-                    .foregroundStyle(MokoScreenTheme.Colors.textBody)
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(MokoScreenTheme.Colors.canvasTop.opacity(0.1))
-        )
     }
 
     // MARK: - Month Picker Sheet
@@ -175,25 +117,20 @@ struct StreakCalendarView: View {
         NavigationStack {
             List {
                 ForEach(0..<12) { monthOffset in
-                    let date = calendar.date(byAdding: .month, value: monthOffset - 6, to: Date())!
+                    let date = calendar.date(byAdding: .month, value: monthOffset - 6, to: Date()) ?? Date()
                     Button(action: {
                         currentMonth = startOfMonth(for: date)
                         showingMonthPicker = false
                     }) {
                         HStack {
                             Text(monthYearString(from: date))
-                                .mokoText(MokoScreenTheme.Typeface.body)
-                                .foregroundStyle(MokoScreenTheme.Colors.textBody)
-
+                                .foregroundStyle(MokoScreenTheme.Colors.textTitle)
                             Spacer()
-
                             if calendar.isDate(date, equalTo: currentMonth, toGranularity: .month) {
                                 Image(systemName: "checkmark")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundStyle(MokoScreenTheme.Colors.dataVioletDeep)
+                                    .foregroundStyle(MokoScreenTheme.Colors.ctaAccent)
                             }
                         }
-                        .padding(.vertical, 8)
                     }
                 }
             }
@@ -201,10 +138,7 @@ struct StreakCalendarView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", role: .cancel) {
-                        showingMonthPicker = false
-                    }
-                    .foregroundStyle(MokoScreenTheme.Colors.dataVioletDeep)
+                    Button("Cancel", role: .cancel) { showingMonthPicker = false }
                 }
             }
         }
@@ -221,13 +155,11 @@ struct StreakCalendarView: View {
 
         var days: [Date?] = []
         let totalDays = 42 // 6 weeks × 7 days
-
         for offset in 0..<totalDays {
             if let date = calendar.date(byAdding: .day, value: offset, to: monthFirstWeek.start) {
                 days.append(date)
             }
         }
-
         return days
     }
 
@@ -270,43 +202,43 @@ struct CalendarDayView: View {
             Text("\(calendar.component(.day, from: date))")
                 .mokoText(isToday ? MokoScreenTheme.Typeface.button : MokoScreenTheme.Typeface.body)
                 .foregroundStyle(dayTextColor)
-                .frame(width: 36, height: 36)
+                .frame(width: 34, height: 34)
                 .background(dayBackground)
                 .clipShape(Circle())
         }
-        .frame(height: 50)
-        .opacity(isInCurrentMonth ? 1 : 0.3)
+        .frame(height: 42)
+        .opacity(isInCurrentMonth ? 1 : 0.25)
+        .accessibilityLabel(accessibilityLabel)
     }
 
     private var dayTextColor: Color {
-        if isSelected {
-            return MokoScreenTheme.Colors.textOnBrand
-        } else if isToday {
-            return MokoScreenTheme.Colors.dataVioletDeep
-        } else if isActive {
-            return MokoScreenTheme.Colors.textBody
-        } else {
-            return MokoScreenTheme.Colors.textMuted
-        }
+        if isSelected { return MokoScreenTheme.Colors.textOnBrand }
+        if isToday { return MokoScreenTheme.Colors.ctaAccent }
+        if isActive { return MokoScreenTheme.Colors.textTitle }
+        return MokoScreenTheme.Colors.textMuted
     }
 
     private var dayBackground: some View {
         Group {
             if isSelected {
-                Circle()
-                    .fill(MokoScreenTheme.Colors.dataVioletDeep)
+                Circle().fill(MokoScreenTheme.Colors.ctaAccent)
             } else if isToday {
                 Circle()
-                    .stroke(MokoScreenTheme.Colors.dataVioletDeep, lineWidth: 2)
-                    .background(Circle().fill(MokoScreenTheme.Colors.canvasTop))
+                    .stroke(MokoScreenTheme.Colors.ctaAccent, lineWidth: 2)
+                    .background(Circle().fill(MokoScreenTheme.Colors.surfaceWhite))
             } else if isActive {
-                Circle()
-                    .fill(MokoScreenTheme.Colors.dataVioletLight.opacity(0.2))
+                Circle().fill(MokoScreenTheme.Colors.ctaAccent.opacity(0.18))
             } else {
-                Circle()
-                    .fill(Color.clear)
+                Circle().fill(Color.clear)
             }
         }
+    }
+
+    private var accessibilityLabel: String {
+        let day = calendar.component(.day, from: date)
+        if isActive { return "Day \(day), active" }
+        if isToday { return "Day \(day), today" }
+        return "Day \(day)"
     }
 }
 

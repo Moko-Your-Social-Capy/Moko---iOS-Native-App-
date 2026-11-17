@@ -9,6 +9,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>moko</string>
 				<string>com.googleusercontent.apps.431501174320-7d0a18atrmlqedt15le8039j21qdkdih</string>
 			</array>
 		</dict>

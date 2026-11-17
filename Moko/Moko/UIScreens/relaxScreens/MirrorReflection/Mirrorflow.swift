@@ -668,10 +668,7 @@ struct MirrorCompletionScreen: View {
         // The shared completion screen with mirror-reflection-specific content.
         // RelaxCompletionScreen plays the GPay sound automatically on appear.
         RelaxCompletionScreen(
-            title: "You did it!",
-            subtitle: "You took a moment to look at yourself with kindness and appreciate the person you are.",
-            buttonLabel: "Done",
-            accent: MirrorPalette.accent,
+            exerciseTitle: "Mirror Reflection",
             onContinue: onDone
         )
         // Open the mint panels once to mark this moment of kindness.
