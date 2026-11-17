@@ -293,14 +293,14 @@ enum MokoScreenTheme {
                                           tracking: 0, relativeTo: .footnote)
         static let section = TextStyle(size: 21, leading: 26, weight: .semibold,
                                        tracking: 0, relativeTo: .title3)
-        static let cardTitle = TextStyle(size: 17, leading: 22, weight: .semibold,
-                                         tracking: 0, relativeTo: .body)
+        static let cardTitle = TextStyle(size: 18, leading: 26, weight: .semibold,
+                                         tracking: -0.2, relativeTo: .title2)
         static let body = TextStyle(size: 15, leading: 22, weight: .regular,
                                     tracking: 0, relativeTo: .subheadline)
         static let caption = TextStyle(size: 13, leading: 18, weight: .medium,
                                        tracking: 0, relativeTo: .footnote)
-        static let numeral = TextStyle(size: 44, leading: 44, weight: .bold,
-                                       tracking: -1.0, relativeTo: .largeTitle,
+        static let numeral = TextStyle(size: 44, leading: 34, weight: .bold,
+                                       tracking: -0.8, relativeTo: .largeTitle,
                                        tabularFigures: true)
         static let unit = TextStyle(size: 15, leading: 20, weight: .medium,
                                     tracking: 0, relativeTo: .subheadline)
