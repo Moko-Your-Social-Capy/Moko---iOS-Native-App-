@@ -153,17 +153,107 @@ struct SummaryChartScale: Equatable {
     }
 }
 
+/// One exercise's share of a chart bar. A bar can hold several of these when
+/// the user did more than one exercise in the same hour, day, week or month.
+struct SummaryBarSegment: Identifiable {
+    let exerciseTitle: String
+    let seconds: Double
+
+    var id: String { exerciseTitle }
+}
+
 /// One bar in the chart (one hour, day, week or month).
 struct SummaryBar: Identifiable {
     /// Where the bar sits on the time axis.
     let date: Date
     let label: String
-    /// Time saved for this bar, in seconds. The chart converts it to the picked unit.
-    let seconds: Double
-    /// True for the current hour/day/week/month. Drawn in the darker colour.
+    /// The exercises inside this bar. The chart stacks them so each exercise
+    /// keeps its own colour.
+    let segments: [SummaryBarSegment]
+    /// True for the current hour/day/week/month. Drawn a little stronger.
     let isSelected: Bool
 
+    /// Time saved for this bar, in seconds. The chart converts it to the picked unit.
+    var seconds: Double {
+        segments.reduce(0) { $0 + $1.seconds }
+    }
+
     var id: Date { date }
+}
+
+/// One calm-down exercise colour for the chart. Every bar segment uses the
+/// exercise's own light colour, and the activities list uses the same one.
+enum CalmDownExercisePalette {
+    /// A pale fill for bars and icon plates, plus a deeper ink so small icons
+    /// and legend dots stay readable on a white card.
+    private struct ExerciseColor {
+        let fill: Color
+        let ink: Color
+    }
+
+    // Clear, separate hues so exercises never blend together.
+    private static let colors: [ExerciseColor] = [
+        ExerciseColor(
+            fill: MokoScreenTheme.Colors.dataGreenLight,
+            ink: MokoScreenTheme.Colors.dataVioletDeep
+        ),
+        ExerciseColor(
+            fill: MokoScreenTheme.Colors.dataGoldLight,
+            ink: MokoScreenTheme.Colors.dataGoldDeep
+        ),
+        ExerciseColor(
+            fill: MokoScreenTheme.Colors.dataBlueLight,
+            ink: MokoScreenTheme.Colors.accentBlue
+        ),
+        ExerciseColor(
+            fill: MokoScreenTheme.Colors.dataIndigoLight,
+            ink: MokoScreenTheme.Colors.dataIndigo
+        ),
+        ExerciseColor(
+            fill: MokoScreenTheme.Colors.dataRoseLight,
+            ink: MokoScreenTheme.Colors.scoreNeedsImprovementDark
+        ),
+        ExerciseColor(
+            fill: MokoScreenTheme.Colors.dataTealLight,
+            ink: MokoScreenTheme.Colors.dataTeal
+        ),
+        ExerciseColor(
+            fill: MokoScreenTheme.Colors.dataRustLight,
+            ink: MokoScreenTheme.Colors.error
+        )
+    ]
+
+    /// The light fill used in the chart and the activity icon plate.
+    static func color(for exercise: String) -> Color {
+        entry(for: exercise).fill
+    }
+
+    /// The deeper version of the same hue, used for the small icon glyph.
+    static func ink(for exercise: String) -> Color {
+        entry(for: exercise).ink
+    }
+
+    /// Known exercises keep the same colour every time; a new exercise gets a
+    /// stable fallback colour.
+    private static func entry(for exercise: String) -> ExerciseColor {
+        switch exercise {
+        case "Box Breathing":
+            return colors[0]
+        case "Grounding Exercise":
+            return colors[1]
+        case "Gentle Breathing":
+            return colors[2]
+        case "Imagery Guide":
+            return colors[3]
+        case "Mirror Reflection":
+            return colors[4]
+        default:
+            // Add the letters together instead of using hashValue, because
+            // hashValue changes on every app launch and the colour would jump.
+            let seed = exercise.unicodeScalars.reduce(0) { $0 + Int($1.value) }
+            return colors[seed % colors.count]
+        }
+    }
 }
 
 /// One row in the "All Activities" list.
@@ -215,6 +305,13 @@ struct SummaryData {
             maxValue: scale.maxValue,
             values: bars.map(\.seconds)
         )
+    }
+
+    /// Every exercise that appears in the current chart, in a stable order.
+    /// The legend and the colour scale are built from this list.
+    var exerciseTitles: [String] {
+        Set(bars.flatMap { $0.segments.map(\.exerciseTitle) })
+            .sorted()
     }
 
     var isEmpty: Bool {
@@ -384,19 +481,35 @@ struct SummaryData {
         end: Date
     ) {
 
-        // Total seconds logged between two dates (all sessions, not just this range).
-        func seconds(
+        // Sessions between two dates, grouped by exercise so one bar can stack
+        // every exercise done in that hour, day, week or month.
+        func segments(
             from start: Date,
             to end: Date
-        ) -> Double {
+        ) -> [SummaryBarSegment] {
 
-            records
-                .filter {
-                    $0.date >= start && $0.date < end
-                }
-                .reduce(0) {
-                    $0 + $1.exerciseTime
-                }
+            let inRange = records.filter {
+                $0.date >= start && $0.date < end
+            }
+
+            let byExercise = Dictionary(
+                grouping: inRange,
+                by: \.exerciseTitle
+            )
+
+            return byExercise.map { title, sessions in
+                SummaryBarSegment(
+                    exerciseTitle: title,
+                    seconds: sessions.reduce(0) {
+                        $0 + $1.exerciseTime
+                    }
+                )
+            }
+            // A stable order keeps the stacked colours in the same order
+            // from one bar to the next.
+            .sorted {
+                $0.exerciseTitle < $1.exerciseTitle
+            }
         }
 
         // MARK: DAY - 24 Hourly Bars
@@ -432,7 +545,7 @@ struct SummaryData {
                 return SummaryBar(
                     date: hourStart,
                     label: label,
-                    seconds: seconds(
+                    segments: segments(
                         from: hourStart,
                         to: hourEnd
                     ),
@@ -494,7 +607,7 @@ struct SummaryData {
                 return SummaryBar(
                     date: dayStart,
                     label: label,
-                    seconds: seconds(
+                    segments: segments(
                         from: dayStart,
                         to: dayEnd
                     ),
@@ -559,7 +672,7 @@ struct SummaryData {
                     SummaryBar(
                         date: axisDate,
                         label: label,
-                        seconds: seconds(
+                        segments: segments(
                             from: effectiveStart,
                             to: effectiveEnd
                         ),
@@ -618,7 +731,7 @@ struct SummaryData {
             return SummaryBar(
                 date: axisDate,
                 label: label,
-                seconds: seconds(
+                segments: segments(
                     from: monthStart,
                     to: nextMonth
                 ),
@@ -820,8 +933,6 @@ struct SummaryView: View {
     // The phone's "Reduce Motion" setting. When on, the chart changes without sliding.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let accent = MokoScreenTheme.Colors.dataVioletDeep
-    private let soft = MokoScreenTheme.Colors.surfaceLavender
     private let titleDark = MokoScreenTheme.Colors.textTitle
     private let subtextGray = MokoScreenTheme.Colors.textBody
 
@@ -906,7 +1017,15 @@ struct SummaryView: View {
         _ data: SummaryData
     ) -> some View {
 
-        VStack(alignment: .leading, spacing: 4) {
+        // Every exercise in this range gets its own colour. The bars and the
+        // legend use this same list, so a colour always means one exercise.
+        let exerciseTitles = data.exerciseTitles
+        // Work out the colours once before the chart reads them.
+        let exerciseColors = exerciseTitles.map { exercise in
+            CalmDownExercisePalette.color(for: exercise)
+        }
+
+        return VStack(alignment: .leading, spacing: 4) {
 
             Text("Total time")
                 .mokoText(MokoScreenTheme.Typeface.caption)
@@ -924,18 +1043,33 @@ struct SummaryView: View {
 
             Chart(data.bars) { bar in
 
-                // Saved seconds are turned into the chart's current unit
-                // (seconds, minutes or hours), so a 20-second session and a
-                // 3-hour session both get readable bars.
-                BarMark(
-                    x: .value("Period", bar.date),
-                    y: .value("Time", data.unit.value(fromSeconds: bar.seconds))
-                )
-                .foregroundStyle(
-                    bar.isSelected ? accent : MokoScreenTheme.Colors.dataViolet
-                )
-                .cornerRadius(4)
+                // One mark per exercise. When an hour, day, week or month holds
+                // more than one exercise, the marks stack into one bar.
+                ForEach(bar.segments) { segment in
+
+                    // Saved seconds are turned into the chart's current unit
+                    // (seconds, minutes or hours), so a 20-second session and a
+                    // 3-hour session both get readable bars.
+                    BarMark(
+                        x: .value("Period", bar.date),
+                        y: .value("Time", data.unit.value(fromSeconds: segment.seconds))
+                    )
+                    .foregroundStyle(
+                        by: .value("Exercise", segment.exerciseTitle)
+                    )
+                    // The current bar stays a little stronger than the rest.
+                    .opacity(bar.isSelected ? 1 : 0.9)
+                    .cornerRadius(3)
+                }
             }
+            // Replace the default chart colours with one distinct colour per exercise.
+            .chartForegroundStyleScale(
+                domain: exerciseTitles,
+                range: exerciseColors
+            )
+            // The custom key under the chart replaces Charts' default legend,
+            // so the labels match the app's type styles.
+            .chartLegend(.hidden)
             // The day chart shows only the hours that hold sessions, so its bars
             // fill the card. The other ranges show their whole period.
             .chartXScale(
@@ -996,7 +1130,8 @@ struct SummaryView: View {
                     }
                 }
             }
-            .frame(height: 160)
+            // Extra height leaves room for the x-axis labels.
+            .frame(height: 170)
             .padding(.top, 12)
             // Bars slide to their new height when a session arrives or the range changes.
             .animation(
@@ -1004,11 +1139,44 @@ struct SummaryView: View {
                 value: data.animationKey
             )
             .accessibilityLabel("Calm down chart")
-            .accessibilityValue("\(data.totalText) in this period")
+            .accessibilityValue(
+                "\(data.totalText) in this period from \(exerciseTitles.joined(separator: ", "))"
+            )
+
+            // Names the colours under the chart so each colour has a meaning.
+            exerciseLegend(exerciseTitles)
+                .padding(.top, 10)
         }
         .padding(MokoScreenTheme.Space.cardHorizontal)
         .frame(maxWidth: .infinity, alignment: .leading)
         .mokoCard()
+    }
+
+    /// A small key under the chart: one colour dot and name per exercise.
+    private func exerciseLegend(
+        _ titles: [String]
+    ) -> some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 136), alignment: .leading)],
+            alignment: .leading,
+            spacing: 8
+        ) {
+            ForEach(titles, id: \.self) { title in
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(CalmDownExercisePalette.color(for: title))
+                        .frame(width: 8, height: 8)
+
+                    Text(title)
+                        .mokoText(MokoScreenTheme.Typeface.caption)
+                        .foregroundStyle(subtextGray)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                // VoiceOver reads the dot and name as one item.
+                .accessibilityElement(children: .combine)
+            }
+        }
     }
 
     // MARK: Activities
@@ -1044,16 +1212,20 @@ struct SummaryView: View {
 
             ForEach(data.activities) { activity in
 
+                // Same light fill as the chart, with a deeper ink so the icon reads.
+                let exerciseColor = CalmDownExercisePalette.color(for: activity.name)
+                let exerciseInk = CalmDownExercisePalette.ink(for: activity.name)
+
                 Divider()
 
                 HStack(spacing: 12) {
 
                     Image(systemName: activity.icon)
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(accent)
+                        .foregroundStyle(exerciseInk)
                         .frame(width: 36, height: 36)
                         .background(
-                            soft,
+                            exerciseColor,
                             in: RoundedRectangle(
                                 cornerRadius: 12,
                                 style: .continuous
