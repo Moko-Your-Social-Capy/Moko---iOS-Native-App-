@@ -96,7 +96,18 @@ enum MokoScreenTheme {
         static var dataMagenta: Color { c.chart3 }
         static var dataGold: Color { c.accent }
         static var dataTeal: Color { c.secondary }
-        static var dataVioletLight: Color { c.secondary.opacity(0.4) }
+        static var dataVioletLight: Color { c.chartSecondary.opacity(0.4) }
+
+        // Legacy chart palette aliases used by summary/insights screens.
+        static var dataGreenLight: Color { c.chartSecondary.opacity(0.22) }
+        static var dataGoldLight: Color { c.chartTertiary.opacity(0.22) }
+        static var dataGoldDeep: Color { c.chartTertiary }
+        static var dataBlueLight: Color { c.chartQuaternary.opacity(0.22) }
+        static var dataIndigo: Color { c.chartQuaternary }
+        static var dataIndigoLight: Color { c.chartQuaternary.opacity(0.22) }
+        static var dataRoseLight: Color { c.error.opacity(0.16) }
+        static var dataTealLight: Color { c.chartSecondary.opacity(0.22) }
+        static var dataRustLight: Color { c.error.opacity(0.16) }
 
         // MARK: Parameter-specific colors
         static var parameterCourage: Color { c.chart1 }
@@ -166,18 +177,21 @@ enum MokoScreenTheme {
         static let tabBand: CGFloat = 96
     }
 
-    /// The card surface. Mission card is white, progress cards are light lavender-blue.
+    /// The card surface. Mission cards stay white in light; growth cards transparent in light.
     enum Card {
-        /// Mission card fill (white/light in light, themed surface in dark)
-        static var missionFill: Color { Colors.surfaceWhite }
-        /// Progress cards fill (Insights and Calm Down)
-        static var progressFill: Color { Colors.surfaceLavender }
+        /// Mission card fill (white in light, themed surface in dark)
+        static var missionFill: Color {
+            MokoThemeManager.shared.current.isDark ? Colors.surfaceWhite : Color.white
+        }
+        /// Progress/growth cards: white in light, themed in dark.
+        static var progressFill: Color {
+            MokoThemeManager.shared.current.isDark ? Colors.surfaceLavender : Color.white
+        }
         /// Default/standard card fill
         static var fill: Color { Colors.surfaceWhite }
-        /// §1 registers a 2pt ink outline. It is suppressed: cards separate by
-        /// lift instead of line. Raise this to bring the outline back.
+        /// §1 registers a 2pt ink outline. It is suppressed: cards separate by lift instead of line.
         static let outline: CGFloat = 0
-        /// Debrief affordance wash — deliberately lighter than accent.blue.tint at full strength.
+        /// Debrief affordance wash — deliberately lighter than accent tint at full strength.
         static let wash = Colors.accentBlueTint.opacity(0.55)
     }
 

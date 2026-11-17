@@ -193,14 +193,15 @@ enum MokoDatabase {
 
 /// Quest screen colours, all taken from the shared Moko theme.
 enum QuestStyle {
-    static let screenBg = MokoScreenTheme.Colors.canvasTop
-    static let accent   = MokoScreenTheme.Colors.dataVioletDeep   // buttons, XP, icons
-    static let title    = MokoScreenTheme.Colors.textTitle
+    static var screenBg: Color { MokoScreenTheme.Colors.canvasTop }
+    // Use the theme's primary/CTA color so buttons match the active theme (not purple everywhere).
+    static var accent: Color { MokoScreenTheme.Colors.ctaAccent }
+    static var title: Color { MokoScreenTheme.Colors.textTitle }
     /// The warm brand brown from `MokoTheme`, used for the quest's own title.
-    static let titleBrown = MokoTheme.titleBrown
-    static let subtext  = MokoScreenTheme.Colors.textBody
-    static let chipSelectedFill = MokoScreenTheme.Colors.surfaceLavender
-    static let chipSelectedBorder = MokoScreenTheme.Colors.dataGrid
+    static var titleBrown: Color { MokoTheme.titleBrown }
+    static var subtext: Color { MokoScreenTheme.Colors.textBody }
+    static var chipSelectedFill: Color { MokoScreenTheme.Colors.surfaceLavender }
+    static var chipSelectedBorder: Color { MokoScreenTheme.Colors.dataGrid }
     static var divider: Color { MokoScreenTheme.Colors.strokeInk.opacity(0.35) }
 
     /// Distinct colors for each XP tier (100, 150, 200) for clear visibility across all quest cards.

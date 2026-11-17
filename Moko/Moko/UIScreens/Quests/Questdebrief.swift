@@ -37,13 +37,14 @@ enum DebriefOutcome {
 
 /// The debrief's colours, all taken from the shared Moko theme.
 enum DebriefStyle {
-    static let screenBg = MokoScreenTheme.Colors.canvasTop
-    static let accent   = MokoScreenTheme.Colors.dataVioletDeep   // buttons, scores, icons
-    static let title    = MokoScreenTheme.Colors.textTitle
-    static let subtext  = MokoScreenTheme.Colors.textBody
-    static let soft     = MokoScreenTheme.Colors.surfaceLavender  // tracks, chips, icon tiles
-    static let border   = MokoScreenTheme.Colors.dataGrid
-    static let danger   = MokoScreenTheme.Colors.error            // stop, discard, leave
+    static var screenBg: Color { MokoScreenTheme.Colors.canvasTop }
+    // Match the active theme's accent instead of a fixed purple.
+    static var accent: Color { MokoScreenTheme.Colors.ctaAccent }
+    static var title: Color { MokoScreenTheme.Colors.textTitle }
+    static var subtext: Color { MokoScreenTheme.Colors.textBody }
+    static var soft: Color { MokoScreenTheme.Colors.surfaceLavender }
+    static var border: Color { MokoScreenTheme.Colors.dataGrid }
+    static var danger: Color { MokoScreenTheme.Colors.error }
 }
 
 // MARK: - The four parameters

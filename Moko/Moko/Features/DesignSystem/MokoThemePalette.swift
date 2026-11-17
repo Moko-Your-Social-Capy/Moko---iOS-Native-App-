@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Seven MOKO palettes with independent light and dark variants.
+/// Six MOKO palettes with independent light and dark variants.
 /// This is the centralized palette backing the semantic theme tokens.
 enum MokoThemePalette {
 
@@ -13,13 +13,13 @@ enum MokoThemePalette {
     static func lightColors(for theme: MokoThemeID) -> MokoThemeColors {
         switch theme {
         case .default:
-            // User-provided Default palette (light).
+            // Default light: gradient from green to white, white cards, themed accents.
             return MokoThemeColors(
                 screenBackground: Color(hex: 0xCBE6D3),
                 primaryBackground: Color(hex: 0xCBE6D3),
-                secondaryBackground: Color(hex: 0xE8F5EB),
+                secondaryBackground: Color(hex: 0xFFFFFF),
                 cardBackground: Color(hex: 0xFFFFFF),
-                elevatedCardBackground: Color(hex: 0xE8F5EB),
+                elevatedCardBackground: Color(hex: 0xFFFFFF),
                 modalBackground: Color(hex: 0xFFFFFF),
                 sheetBackground: Color(hex: 0xFFFFFF),
                 navigationBackground: Color(hex: 0xCBE6D3),
@@ -49,8 +49,8 @@ enum MokoThemePalette {
                 cardGlow: Color(hex: 0x2F6E4A),
                 divider: Color(hex: 0xDCE8DF),
                 separator: Color(hex: 0xD7E6DB),
-                chartPrimary: Color(hex: 0x5F7E68),
-                chartSecondary: Color(hex: 0x2F6E4A),
+                chartPrimary: Color(hex: 0x2F6E4A),
+                chartSecondary: Color(hex: 0x5F7E68),
                 chartTertiary: Color(hex: 0xE3A72F),
                 chartQuaternary: Color(hex: 0x3B9A8C),
                 chartGrid: Color(hex: 0xD7E6DB),
@@ -76,12 +76,12 @@ enum MokoThemePalette {
                 unselectedTab: Color(hex: 0x5E6D63),
                 glow: Color(hex: 0x2F6E4A),
                 loadingBackground: Color(hex: 0xCBE6D3),
-                completionBackground: Color(hex: 0xE8F5EB)
+                completionBackground: Color(hex: 0xFFFFFF)
             )
         case .lavender:
             return make(
-                screenBackground: 0xF7F4FB, primaryBackground: 0xF7F4FB, secondaryBackground: 0xF1ECF8,
-                cardBackground: 0xFFFFFF, elevatedCardBackground: 0xF3EEFA, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
+                screenBackground: 0xF7F4FB, primaryBackground: 0xF7F4FB, secondaryBackground: 0xFFFFFF,
+                cardBackground: 0xFFFFFF, elevatedCardBackground: 0xFFFFFF, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
                 navigationBackground: 0xF7F4FB, tabBarBackground: 0xFFFFFF,
                 primaryText: 0x241F33, secondaryText: 0x5E5873, tertiaryText: 0x8E88A3, disabledText: 0xAEA8BF, inverseText: 0xFFFFFF,
                 headingText: 0x241F33, buttonText: 0xFFFFFF, captionText: 0x5E5873,
@@ -97,8 +97,8 @@ enum MokoThemePalette {
             )
         case .ocean:
             return make(
-                screenBackground: 0xF3F8FB, primaryBackground: 0xF3F8FB, secondaryBackground: 0xEAF3F8,
-                cardBackground: 0xFFFFFF, elevatedCardBackground: 0xEEF6FA, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
+                screenBackground: 0xF3F8FB, primaryBackground: 0xF3F8FB, secondaryBackground: 0xFFFFFF,
+                cardBackground: 0xFFFFFF, elevatedCardBackground: 0xFFFFFF, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
                 navigationBackground: 0xF3F8FB, tabBarBackground: 0xFFFFFF,
                 primaryText: 0x132433, secondaryText: 0x4A6072, tertiaryText: 0x7E93A3, disabledText: 0xA5B6C3, inverseText: 0xFFFFFF,
                 headingText: 0x132433, buttonText: 0xFFFFFF, captionText: 0x4A6072,
@@ -112,27 +112,11 @@ enum MokoThemePalette {
                 inputBackground: 0xF2F7FA, placeholder: 0x7E93A3, icon: 0x0F5C8C, selectedTab: 0x0F5C8C, unselectedTab: 0x7E93A3, glow: 0x2E8C8A,
                 loadingBackground: 0xF3F8FB, completionBackground: 0xEAF3F8, dark: false
             )
-        case .sunset:
-            return make(
-                screenBackground: 0xFFF7F0, primaryBackground: 0xFFF7F0, secondaryBackground: 0xFFF0E6,
-                cardBackground: 0xFFFFFF, elevatedCardBackground: 0xFFF3EB, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
-                navigationBackground: 0xFFF7F0, tabBarBackground: 0xFFFFFF,
-                primaryText: 0x3A2720, secondaryText: 0x6E5246, tertiaryText: 0xA0887C, disabledText: 0xBFAAA0, inverseText: 0xFFFFFF,
-                headingText: 0x3A2720, buttonText: 0xFFFFFF, captionText: 0x6E5246,
-                primaryButton: 0xD45A4A, primaryButtonText: 0xFFFFFF, secondaryButton: 0xF7E4D8, secondaryButtonText: 0xC47A4A,
-                destructiveButton: 0xB9583F, disabledButton: 0xE8D9CE, selectedControl: 0xD45A4A, unselectedControl: 0xA0887C, focusColor: 0xFF7A5C,
-                ctaAccent: 0xF2A93B, ctaAccentText: 0x3A2720,
-                cardSurface: 0xFFFFFF, cardBorder: 0xF0DDD1, cardShadow: 0x3A2720, cardGlow: 0xFF7A5C, divider: 0xF5E6DC, separator: 0xF0DDD1,
-                chartPrimary: 0xD45A4A, chartSecondary: 0xF2A93B, chartTertiary: 0xC47A4A, chartQuaternary: 0xE07A5F, chartGrid: 0xEEDDD1, chartLabel: 0x6E5246, chartPositive: 0x3D8B5A, chartNegative: 0xB9583F,
-                success: 0x3D8B5A, warning: 0xD97706, error: 0xB9583F, information: 0xD45A4A,
-                mokoMascotBackground: 0xFCE8DC, mokoMascotAccent: 0xD45A4A, missionAccent: 0xF2A93B, questAccent: 0xD45A4A, growthAccent: 0xC47A4A, relaxAccent: 0xE07A5F, debriefAccent: 0x3D8B5A, profileAccent: 0xD45A4A,
-                inputBackground: 0xFFF6F0, placeholder: 0xA0887C, icon: 0xD45A4A, selectedTab: 0xD45A4A, unselectedTab: 0xA0887C, glow: 0xFF7A5C,
-                loadingBackground: 0xFFF7F0, completionBackground: 0xFFF0E6, dark: false
-            )
+
         case .blossom:
             return make(
-                screenBackground: 0xFFF5F7, primaryBackground: 0xFFF5F7, secondaryBackground: 0xFDEEF2,
-                cardBackground: 0xFFFFFF, elevatedCardBackground: 0xFFF1F4, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
+                screenBackground: 0xFFF5F7, primaryBackground: 0xFFF5F7, secondaryBackground: 0xFFFFFF,
+                cardBackground: 0xFFFFFF, elevatedCardBackground: 0xFFFFFF, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
                 navigationBackground: 0xFFF5F7, tabBarBackground: 0xFFFFFF,
                 primaryText: 0x35212A, secondaryText: 0x6B4E59, tertiaryText: 0xA48793, disabledText: 0xBDA8B1, inverseText: 0xFFFFFF,
                 headingText: 0x35212A, buttonText: 0xFFFFFF, captionText: 0x6B4E59,
@@ -148,8 +132,8 @@ enum MokoThemePalette {
             )
         case .midnight:
             return make(
-                screenBackground: 0xF4F6FB, primaryBackground: 0xF4F6FB, secondaryBackground: 0xEDF0F8,
-                cardBackground: 0xFFFFFF, elevatedCardBackground: 0xF0F3FB, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
+                screenBackground: 0xF4F6FB, primaryBackground: 0xF4F6FB, secondaryBackground: 0xFFFFFF,
+                cardBackground: 0xFFFFFF, elevatedCardBackground: 0xFFFFFF, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
                 navigationBackground: 0xF4F6FB, tabBarBackground: 0xFFFFFF,
                 primaryText: 0x1A2238, secondaryText: 0x4A5678, tertiaryText: 0x8590AD, disabledText: 0xA8B0C7, inverseText: 0xFFFFFF,
                 headingText: 0x1A2238, buttonText: 0xFFFFFF, captionText: 0x4A5678,
@@ -166,20 +150,20 @@ enum MokoThemePalette {
         case .batman:
             // Light counterpart: warm ivory/beige surfaces, deep brown/near-black text, teal/coral accents.
             return make(
-                screenBackground: 0xE6DDD6, primaryBackground: 0xF3EEE8, secondaryBackground: 0xDDD2C8,
-                cardBackground: 0xF8F4EF, elevatedCardBackground: 0xEFE7DF, modalBackground: 0xF8F4EF, sheetBackground: 0xF3EEE8,
-                navigationBackground: 0xE6DDD6, tabBarBackground: 0xF3EEE8,
+                screenBackground: 0xE6DDD6, primaryBackground: 0xE6DDD6, secondaryBackground: 0xFFFFFF,
+                cardBackground: 0xFFFFFF, elevatedCardBackground: 0xFFFFFF, modalBackground: 0xFFFFFF, sheetBackground: 0xFFFFFF,
+                navigationBackground: 0xE6DDD6, tabBarBackground: 0xFFFFFF,
                 primaryText: 0x1C1713, secondaryText: 0x4A4138, tertiaryText: 0x6E6358, disabledText: 0x9A8F84, inverseText: 0xF2F2F2,
                 headingText: 0x14110E, buttonText: 0xFFFFFF, captionText: 0x4A4138,
                 primaryButton: 0x2D69E0, primaryButtonText: 0xFFFFFF, secondaryButton: 0xE7DED4, secondaryButtonText: 0x008F8A,
                 destructiveButton: 0xEC6746, disabledButton: 0xD8CFC6, selectedControl: 0x008F8A, unselectedControl: 0x6E6358, focusColor: 0x00A39E,
                 ctaAccent: 0x008F8A, ctaAccentText: 0xFFFFFF,
-                cardSurface: 0xF8F4EF, cardBorder: 0xD2C6BC, cardShadow: 0x1C1713, cardGlow: 0x00A39E, divider: 0xD8CDC3, separator: 0xD2C6BC,
+                cardSurface: 0xFFFFFF, cardBorder: 0xD2C6BC, cardShadow: 0x1C1713, cardGlow: 0x00A39E, divider: 0xD8CDC3, separator: 0xD2C6BC,
                 chartPrimary: 0x008F8A, chartSecondary: 0x2D69E0, chartTertiary: 0xEC6746, chartQuaternary: 0x4A4138, chartGrid: 0xD8CDC3, chartLabel: 0x4A4138, chartPositive: 0x008F8A, chartNegative: 0xEC6746,
                 success: 0x3D8B5A, warning: 0xC8871E, error: 0xEC6746, information: 0x2D69E0,
                 mokoMascotBackground: 0xE9E1D8, mokoMascotAccent: 0x008F8A, missionAccent: 0x00A39E, questAccent: 0x2D69E0, growthAccent: 0x008F8A, relaxAccent: 0x6E6358, debriefAccent: 0xEC6746, profileAccent: 0x008F8A,
-                inputBackground: 0xEFE7DF, placeholder: 0x7A6F64, icon: 0x1C1713, selectedTab: 0x008F8A, unselectedTab: 0x6E6358, glow: 0x00A39E,
-                loadingBackground: 0xE6DDD6, completionBackground: 0xF3EEE8, dark: false
+                inputBackground: 0xF5F5F5, placeholder: 0x7A6F64, icon: 0x1C1713, selectedTab: 0x008F8A, unselectedTab: 0x6E6358, glow: 0x00A39E,
+                loadingBackground: 0xE6DDD6, completionBackground: 0xFFFFFF, dark: false
             )
         }
     }
@@ -193,7 +177,7 @@ enum MokoThemePalette {
             return MokoThemeColors(
                 screenBackground: Color(hex: 0x121A15),
                 primaryBackground: Color(hex: 0x121A15),
-                secondaryBackground: Color(hex: 0x18221B),
+                secondaryBackground: Color(hex: 0x1C2A21),
                 cardBackground: Color(hex: 0x1E2A22),
                 elevatedCardBackground: Color(hex: 0x243228),
                 modalBackground: Color(hex: 0x1E2A22),
@@ -256,7 +240,7 @@ enum MokoThemePalette {
             )
         case .lavender:
             return make(
-                screenBackground: 0x14121A, primaryBackground: 0x14121A, secondaryBackground: 0x191622,
+                screenBackground: 0x14121A, primaryBackground: 0x14121A, secondaryBackground: 0x1D1828,
                 cardBackground: 0x201C2B, elevatedCardBackground: 0x282337, modalBackground: 0x201C2B, sheetBackground: 0x191622,
                 navigationBackground: 0x14121A, tabBarBackground: 0x1C1826,
                 primaryText: 0xF4F1FA, secondaryText: 0xC0B8D6, tertiaryText: 0x958CAC, disabledText: 0x756C8C, inverseText: 0x14121A,
@@ -273,7 +257,7 @@ enum MokoThemePalette {
             )
         case .ocean:
             return make(
-                screenBackground: 0x0F1418, primaryBackground: 0x0F1418, secondaryBackground: 0x131A20,
+                screenBackground: 0x0F1418, primaryBackground: 0x0F1418, secondaryBackground: 0x162129,
                 cardBackground: 0x182229, elevatedCardBackground: 0x1F2B34, modalBackground: 0x182229, sheetBackground: 0x131A20,
                 navigationBackground: 0x0F1418, tabBarBackground: 0x151D23,
                 primaryText: 0xEEF6FA, secondaryText: 0xAFC4D1, tertiaryText: 0x8AA5B4, disabledText: 0x6C8593, inverseText: 0x0F1418,
@@ -288,26 +272,10 @@ enum MokoThemePalette {
                 inputBackground: 0x1C2830, placeholder: 0x7C94A3, icon: 0x4FC3F7, selectedTab: 0x4FC3F7, unselectedTab: 0x7C94A3, glow: 0x4DB6AC,
                 loadingBackground: 0x0F1418, completionBackground: 0x131A20, dark: true
             )
-        case .sunset:
-            return make(
-                screenBackground: 0x171312, primaryBackground: 0x171312, secondaryBackground: 0x1D1715,
-                cardBackground: 0x241C19, elevatedCardBackground: 0x2C221E, modalBackground: 0x241C19, sheetBackground: 0x1D1715,
-                navigationBackground: 0x171312, tabBarBackground: 0x1F1917,
-                primaryText: 0xFFF3EC, secondaryText: 0xD4C0B6, tertiaryText: 0xA89085, disabledText: 0x806A60, inverseText: 0x171312,
-                headingText: 0xFFF8F3, buttonText: 0x171312, captionText: 0xD4C0B6,
-                primaryButton: 0xFF8A70, primaryButtonText: 0x171312, secondaryButton: 0x2C221E, secondaryButtonText: 0xFFB74D,
-                destructiveButton: 0xD07A5E, disabledButton: 0x312622, selectedControl: 0xFF8A70, unselectedControl: 0x9C857A, focusColor: 0xFF8A70,
-                ctaAccent: 0xFFB74D, ctaAccentText: 0x171312,
-                cardSurface: 0x241C19, cardBorder: 0x372B27, cardShadow: 0x000000, cardGlow: 0xFF8A70, divider: 0x312622, separator: 0x372B27,
-                chartPrimary: 0xFF8A70, chartSecondary: 0xFFB74D, chartTertiary: 0xE08A5A, chartQuaternary: 0xF29C85, chartGrid: 0x372B27, chartLabel: 0xD4C0B6, chartPositive: 0x6FD1A3, chartNegative: 0xD07A5E,
-                success: 0x6FD1A3, warning: 0xFFB74D, error: 0xD07A5E, information: 0xFF8A70,
-                mokoMascotBackground: 0x2A211D, mokoMascotAccent: 0xFF8A70, missionAccent: 0xFFB74D, questAccent: 0xFF8A70, growthAccent: 0xE08A5A, relaxAccent: 0xF29C85, debriefAccent: 0x6FD1A3, profileAccent: 0xFFB74D,
-                inputBackground: 0x2A211D, placeholder: 0x9C857A, icon: 0xFF8A70, selectedTab: 0xFF8A70, unselectedTab: 0x9C857A, glow: 0xFF8A70,
-                loadingBackground: 0x171312, completionBackground: 0x1D1715, dark: true
-            )
+
         case .blossom:
             return make(
-                screenBackground: 0x171316, primaryBackground: 0x171316, secondaryBackground: 0x1D181C,
+                screenBackground: 0x171316, primaryBackground: 0x171316, secondaryBackground: 0x221A21,
                 cardBackground: 0x241E23, elevatedCardBackground: 0x2C242B, modalBackground: 0x241E23, sheetBackground: 0x1D181C,
                 navigationBackground: 0x171316, tabBarBackground: 0x201A1F,
                 primaryText: 0xFFF2F6, secondaryText: 0xD8C0CA, tertiaryText: 0xAD93A0, disabledText: 0x846D78, inverseText: 0x171316,
@@ -324,7 +292,7 @@ enum MokoThemePalette {
             )
         case .midnight:
             return make(
-                screenBackground: 0x0E1118, primaryBackground: 0x0E1118, secondaryBackground: 0x121622,
+                screenBackground: 0x0E1118, primaryBackground: 0x0E1118, secondaryBackground: 0x161B2C,
                 cardBackground: 0x171C2B, elevatedCardBackground: 0x1E2436, modalBackground: 0x171C2B, sheetBackground: 0x121622,
                 navigationBackground: 0x0E1118, tabBarBackground: 0x141927,
                 primaryText: 0xEEF2FF, secondaryText: 0xB7C0D9, tertiaryText: 0x919CB8, disabledText: 0x6F7994, inverseText: 0x0E1118,
@@ -342,7 +310,7 @@ enum MokoThemePalette {
         case .batman:
             // Batman dark (spec): near-black bg, charcoal cards, teal/coral accents, blue action.
             return make(
-                screenBackground: 0x0D0D0D, primaryBackground: 0x0D0D0D, secondaryBackground: 0x121212,
+                screenBackground: 0x0D0D0D, primaryBackground: 0x0D0D0D, secondaryBackground: 0x1A1A1A,
                 cardBackground: 0x222222, elevatedCardBackground: 0x303030, modalBackground: 0x222222, sheetBackground: 0x121212,
                 navigationBackground: 0x0D0D0D, tabBarBackground: 0x121212,
                 primaryText: 0xF5F5F5, secondaryText: 0xC4C4C4, tertiaryText: 0x999999, disabledText: 0x6B6B6B, inverseText: 0x0D0D0D,
