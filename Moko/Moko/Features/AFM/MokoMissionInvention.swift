@@ -264,6 +264,8 @@ enum MissionInventor {
                                                 focusStat: focusStat,
                                                 recentTitles: recentTitles, feedback: feedback),
                 temperature: attempt == 0 ? 0.8 : 0.5,
+                priority: .low,
+                timeoutSeconds: 8.0,
                 retries: 0
             ) else { continue }
 
@@ -279,6 +281,8 @@ enum MissionInventor {
                 instructions: InventionPrompts.reviewInstructions,
                 prompt: InventionPrompts.reviewPrompt(anchor: anchor, mission: m),
                 temperature: 0.1,
+                priority: .low,
+                timeoutSeconds: 8.0,
                 retries: 0
             ) else { continue }
 

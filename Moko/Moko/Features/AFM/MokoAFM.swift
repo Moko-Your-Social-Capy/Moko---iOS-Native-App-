@@ -31,6 +31,16 @@ import FoundationModels
 
 // MARK: - Runtime helper
 
+/// Priority for AFM generation requests: high for user-facing interactive debrief, low for background seeding.
+enum AFMPriority: Int, Comparable {
+    case low = 0
+    case high = 1
+
+    static func < (lhs: AFMPriority, rhs: AFMPriority) -> Bool {
+        lhs.rawValue < rhs.rawValue
+    }
+}
+
 /// Errors `AFM.generate` can throw itself (the model can throw its own errors too).
 enum AFMError: Error, LocalizedError {
     case unavailable(reason: String?)
@@ -48,35 +58,73 @@ enum AFMError: Error, LocalizedError {
 
 // MARK: - Generation gate
 
+/// A queued waiter waiting for AFMGenerationGate access.
+private struct AFMWaiter {
+    let id: UUID
+    let priority: AFMPriority
+    let continuation: CheckedContinuation<Void, Never>
+}
+
 /// FoundationModels serves **one generation at a time per process**. Overlapping requests — a
 /// fire-and-forget daily-mission seed racing a debrief turn, or a preview scene re-running its
 /// `.task` — leave the framework's session bookkeeping inconsistent and it trips its own assertion
 /// in `LanguageModelFeedback.swift` ("observe `isResponding` … before submitting another prompt").
 /// `AFM.generate` therefore queues here, process-wide, before touching the model.
+/// High-priority interactive requests jump ahead of background seeding waiters.
 private actor AFMGenerationGate {
     static let shared = AFMGenerationGate()
 
     private var isBusy = false
-    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private var waiters: [AFMWaiter] = []
 
     /// Takes the single slot, suspending until it is free.
-    func acquire() async {
+    /// Supports priority queuing and clean task cancellation so stalled waiters never leak.
+    func acquire(priority: AFMPriority = .high) async throws {
+        try Task.checkCancellation()
+
         guard isBusy else {
             isBusy = true
             return
         }
-        await withCheckedContinuation { continuation in
-            waiters.append(continuation)
+
+        let waiterID = UUID()
+        try await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                let waiter = AFMWaiter(id: waiterID, priority: priority, continuation: continuation)
+                if priority == .high {
+                    // Place ahead of any low-priority background tasks
+                    if let firstLowIndex = waiters.firstIndex(where: { $0.priority == .low }) {
+                        waiters.insert(waiter, at: firstLowIndex)
+                    } else {
+                        waiters.append(waiter)
+                    }
+                } else {
+                    waiters.append(waiter)
+                }
+            }
+            try Task.checkCancellation()
+        } onCancel: {
+            Task { [weak self] in
+                await self?.cancelWaiter(id: waiterID)
+            }
         }
-        // Ownership was handed over by `release()`; `isBusy` stays true.
     }
 
-    /// Frees the slot, or passes it straight to the oldest waiter.
+    /// Removes a cancelled waiter so it doesn't take up slots or leak.
+    private func cancelWaiter(id: UUID) {
+        if let index = waiters.firstIndex(where: { $0.id == id }) {
+            let waiter = waiters.remove(at: index)
+            waiter.continuation.resume()
+        }
+    }
+
+    /// Frees the slot, or passes it straight to the highest-priority oldest waiter.
     func release() {
         if waiters.isEmpty {
             isBusy = false
         } else {
-            waiters.removeFirst().resume()
+            let next = waiters.removeFirst()
+            next.continuation.resume()
         }
     }
 }
@@ -130,18 +178,20 @@ enum AFM {
                                        instructions: String,
                                        prompt: String,
                                        temperature: Double = 0.3,
+                                       priority: AFMPriority = .high,
+                                       timeoutSeconds: Double = 16.0,
                                        retries: Int = 1) async throws -> T {
         guard isAvailable else { throw AFMError.unavailable(reason: availabilityDescription) }
 
-        // Wait our turn. The slot is released on both the success and the error path
-        // below (`defer` can't be used because `release()` needs `await`).
-        await AFMGenerationGate.shared.acquire()
+        // Wait our turn with priority. The slot is released on both success and error paths.
+        try await AFMGenerationGate.shared.acquire(priority: priority)
         do {
             let content = try await runAttempts(
                 type,
                 instructions: instructions,
                 prompt: prompt,
                 temperature: temperature,
+                timeoutSeconds: timeoutSeconds,
                 retries: max(retries, 0)
             )
             await AFMGenerationGate.shared.release()
@@ -157,6 +207,7 @@ enum AFM {
                                                   instructions: String,
                                                   prompt: String,
                                                   temperature: Double,
+                                                  timeoutSeconds: Double,
                                                   retries: Int) async throws -> T {
         let attempts = retries + 1
         for attempt in 0..<attempts {
@@ -164,12 +215,13 @@ enum AFM {
             do {
                 // A brand-new session each time, so no earlier chat history fills the small context window.
                 let session = LanguageModelSession(instructions: instructions)
-                let response = try await session.respond(
-                    to: prompt,
-                    generating: type,
-                    options: GenerationOptions(temperature: temperature)
+                return try await runSingleAttempt(
+                    type,
+                    session: session,
+                    prompt: prompt,
+                    temperature: temperature,
+                    timeoutSeconds: timeoutSeconds
                 )
-                return response.content
             } catch {
                 if error is CancellationError { throw CancellationError() }
                 guard isTransient(error), attempt + 1 < attempts else { throw error }
@@ -180,9 +232,46 @@ enum AFM {
         throw AFMError.generationFailed("Generation did not run.")
     }
 
+    /// Executes a single generation attempt with a strict device timeout to prevent indefinite hangs.
+    private static func runSingleAttempt<T: Generable>(_ type: T.Type,
+                                                       session: LanguageModelSession,
+                                                       prompt: String,
+                                                       temperature: Double,
+                                                       timeoutSeconds: Double) async throws -> T {
+        try await withThrowingTaskGroup(of: T.self) { group in
+            group.addTask {
+                let response = try await session.respond(
+                    to: prompt,
+                    generating: type,
+                    options: GenerationOptions(temperature: temperature)
+                )
+                return response.content
+            }
+
+            group.addTask {
+                try await Task.sleep(for: .seconds(timeoutSeconds))
+                throw AFMError.generationFailed("AFM generation timed out on device after \(Int(timeoutSeconds))s.")
+            }
+
+            guard let result = try await group.next() else {
+                throw AFMError.generationFailed("Generation failed unexpectedly.")
+            }
+            group.cancelAll()
+            return result
+        }
+    }
+
     /// A model-side rejection is deterministic; only a parse hiccup or a transport timeout is worth
     /// another try. Handles the iOS 26 `GenerationError` and the iOS 27 error enums.
     private static func isTransient(_ error: Error) -> Bool {
+        if let afmError = error as? AFMError {
+            switch afmError {
+            case .generationFailed(let message) where message.contains("timed out"):
+                return false // Timeout already burned seconds; fail fast rather than hang again
+            default:
+                return false
+            }
+        }
         if let generationError = error as? LanguageModelSession.GenerationError {
             switch generationError {
             case .decodingFailure:

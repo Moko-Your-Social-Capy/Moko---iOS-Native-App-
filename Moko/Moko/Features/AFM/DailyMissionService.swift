@@ -243,6 +243,7 @@ enum DailyMissionService {
         guard !remaining.isEmpty else { return }
 
         for (offset, category) in remaining.enumerated() {
+            guard !Task.isCancelled else { return }
             let pool = MissionBank.all.filter { $0.category == category }
             guard !pool.isEmpty else { continue }
             // A different offset per category, so each one gets a different bank mission.
@@ -255,6 +256,8 @@ enum DailyMissionService {
                 dayNumber: dayOfYear + offset + 1
             )
             modelContext.insert(makeQuest(from: card))
+            // Brief pause between background category generations to yield to interactive turns.
+            try? await Task.sleep(for: .milliseconds(300))
         }
         modelContext.saveOrLog("category quests")
     }

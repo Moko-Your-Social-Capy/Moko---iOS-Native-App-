@@ -1,5 +1,14 @@
 # Changelog
 
+- 2026-11-19 — `MokoAFM.swift`, `AFMDebriefCoach.swift`, `DailyMissionService.swift`, `MokoMissionInvention.swift`, `Questdebrief.swift`:
+  - Resolved on-device debrief hangs and "Coach Unavailable" errors on physical hardware.
+  - Implemented priority queuing in `AFMGenerationGate`: high priority for user-interactive debrief turns and low priority for background daily-mission seeding cards, preventing background generations from blocking the debrief.
+  - Added cancellation handling in `AFMGenerationGate` with `withTaskCancellationHandler` to prevent orphaned continuation slots.
+  - Added strict on-device timeouts to `AFM.generate` using structured concurrency (16s for interactive debrief turns, 8s for background seeding) to prevent `generatived` stalls from hanging indefinitely.
+  - Relaxed question-mark validation in `AFMDebriefCoach.validated` so multi-question openings or prompts ending without `?` are automatically handled without throwing `generationFailed`.
+  - Added `GuidedDebriefCoach` fallback conforming to `DebriefCoaching` with situational mission-bank questions and calibrated scoring.
+  - Updated the "Coach Unavailable" alert to be dismissible with options for "Try Again", "Continue with Guided Coach", or "Cancel". Added `AFM.prewarm` on debrief screen appearance and cooperative yield pauses between background mission seedings.
+
 - 2026-11-18 — `MokoAFM.swift`, `DebriefRegressionTests.swift`: Fixed valid negative answers such as “Nothing” and “I have done nothing yet but I am planning to ditch her” being rejected as no evidence. Inaction, avoidance, failure and negative plans now count as behavioral evidence and can produce genuine low or zero stat scores without blocking completion. Added calibrated Confidence relevance bands so ordinary concise answers normally fall around 70–84, while 95–100 is reserved for exceptional complete context rather than direct or positive wording. Gibberish clarifications no longer invent emotions or quote nonsense. Confirmed every AFM call already uses a fresh session. The full third-follow-up retry → valid negative answer → conclusion regression, simulator build and all debug tests passed without changing the three-follow-up flow.
 
 - 2026-11-18 — `MokoAFM.swift`, `DebriefScoring.swift`, `Questdebrief.swift`, `DebriefRegressionTests.swift`: Clarified that answer length never determines weakness or evidence strength. Concise answers can be substantive with clear evidence and high stat scores. Confidence now measures only relatedness to the current question and mission situation, separate from Courage, Clarity, authenticity, intelligibility and answer quality; Confidence weights accepted evidence without scaling an individual stat score. Added concise strong-answer and score-independence regressions. Full simulator build and all debug regression tests passed.

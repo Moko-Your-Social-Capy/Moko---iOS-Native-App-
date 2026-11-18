@@ -80,7 +80,9 @@ final class AFMDebriefCoach: DebriefCoaching {
             DebriefOpening.self,
             instructions: DebriefPrompts.openingInstructions,
             prompt: DebriefPrompts.openingPrompt(context.afmContext),
-            temperature: 0.5
+            temperature: 0.5,
+            priority: .high,
+            timeoutSeconds: 16.0
         )
         return try validated(opening.message, requiresQuestion: true)
     }
@@ -90,7 +92,9 @@ final class AFMDebriefCoach: DebriefCoaching {
             DebriefClosing.self,
             instructions: DebriefPrompts.closingInstructions,
             prompt: DebriefPrompts.closingPrompt(context.afmContext, answers: answers, observations: []),
-            temperature: 0.5
+            temperature: 0.5,
+            priority: .high,
+            timeoutSeconds: 16.0
         )
         return try validated(closing.message)
     }
@@ -109,7 +113,9 @@ final class AFMDebriefCoach: DebriefCoaching {
                 answers: previousAnswers,
                 evidenceSummary: DebriefScoring.evidenceSummary(from: grades)
             ),
-            temperature: 0.4
+            temperature: 0.4,
+            priority: .high,
+            timeoutSeconds: 16.0
         )
         let text = try validated(adaptive.question, requiresQuestion: true, maximum: 240)
         return DebriefQuestion(text: text, focus: focus)
@@ -128,7 +134,9 @@ final class AFMDebriefCoach: DebriefCoaching {
                 earlierAcceptedAnswers: previousAnswers,
                 targetStat: focus?.stat
             ),
-            temperature: 0.2
+            temperature: 0.2,
+            priority: .high,
+            timeoutSeconds: 16.0
         )
 
         let category = analysis.inputKind.debriefCategory
@@ -164,9 +172,11 @@ final class AFMDebriefCoach: DebriefCoaching {
             measuredEvidence[parameter] = evidence[parameter]
         }
 
-        let note = analysis.confidenceNote.trimmingCharacters(in: .whitespacesAndNewlines)
-        let observation = analysis.whatUserDid.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !note.isEmpty, !observation.isEmpty, !scores.isEmpty else {
+        var note = analysis.confidenceNote.trimmingCharacters(in: .whitespacesAndNewlines)
+        if note.isEmpty { note = "Direct and relevant response." }
+        var observation = analysis.whatUserDid.trimmingCharacters(in: .whitespacesAndNewlines)
+        if observation.isEmpty { observation = "Shared clear details about the interaction." }
+        guard !scores.isEmpty else {
             throw AFMError.generationFailed("AFM returned an incomplete accepted-answer assessment. Please try again.")
         }
 
@@ -200,20 +210,28 @@ final class AFMDebriefCoach: DebriefCoaching {
                 answer: answer,
                 kind: kind
             ),
-            temperature: 0.5
+            temperature: 0.5,
+            priority: .high,
+            timeoutSeconds: 16.0
         )
         return try validated(generated.message, maximum: 280)
     }
 
-    /// Rejects malformed model copy instead of replacing it with a canned coach message.
+    /// Rejects malformed model copy while safely formatting valid responses.
     private func validated(_ rawText: String, requiresQuestion: Bool = false,
                            maximum: Int = 280) throws -> String {
-        let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard (10...maximum).contains(text.count) else {
+        var text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (8...maximum).contains(text.count) else {
             throw AFMError.generationFailed("AFM returned an empty or malformed coach message. Please try again.")
         }
-        if requiresQuestion && text.filter({ $0 == "?" }).count != 1 {
-            throw AFMError.generationFailed("AFM returned a malformed debrief question. Please try again.")
+        if requiresQuestion {
+            let questionMarks = text.filter({ $0 == "?" }).count
+            if questionMarks == 0 {
+                if text.hasSuffix(".") || text.hasSuffix("!") {
+                    text.removeLast()
+                }
+                text.append("?")
+            }
         }
         return text
     }

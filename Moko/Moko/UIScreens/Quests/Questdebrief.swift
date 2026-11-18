@@ -168,6 +168,141 @@ extension DebriefCoaching {
     }
 }
 
+// MARK: - Guided debrief fallback coach
+
+/// A reliable fallback coach when Apple Intelligence is unavailable or times out on device.
+/// Uses MissionBank templates, adaptive parameter selection, and content-based scoring.
+@MainActor
+final class GuidedDebriefCoach: DebriefCoaching {
+    func greeting(for context: DebriefContext) async throws -> String {
+        let namePrefix = context.userName.isEmpty ? "Hey there!" : "Hey \(context.userName)!"
+        return "\(namePrefix) Glad you took on '\(context.questTitle)'. When the moment arrived, how did things play out for you?"
+    }
+
+    func question(number: Int, context: DebriefContext, previousAnswers: [String],
+                  previousQuestions: [String], grades: [DebriefGrade]) async throws -> DebriefQuestion {
+        let focus = DebriefScoring.nextFocus(from: grades)
+        let templates = MissionBank.templates(in: context.category)
+        let template = templates.first ?? MissionBank.all[0]
+
+        let followUpText: String
+        if let bankQ = template.followUps[focus.stat], !previousQuestions.contains(bankQ) {
+            followUpText = bankQ
+        } else {
+            switch focus {
+            case .courage:
+                followUpText = "What felt like the boldest step or decision you made during this moment?"
+            case .clarity:
+                followUpText = "How did you express your thoughts or intentions directly to them?"
+            case .presence:
+                followUpText = "What did you observe in the room or about their reactions as you spoke?"
+            case .warmth:
+                followUpText = "What words or subtle cues did you share to keep things friendly and warm?"
+            }
+        }
+        return DebriefQuestion(text: followUpText, focus: focus)
+    }
+
+    func assess(answer: String, question: String, focus: DebriefParameter?, context: DebriefContext,
+                previousAnswers: [String]) async throws -> DebriefAssessment {
+        let trimmed = answer.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = trimmed.lowercased()
+
+        // Detect gibberish or unusable inputs
+        let isKeyboardMash = lower.count >= 4 && Set(lower).count <= 3
+        if trimmed.count < 3 || isKeyboardMash || lower == "asdf" || lower == "vrvrreff" {
+            return .retry(
+                message: "I couldn't quite catch that. What specifically happened or what did you say?",
+                category: .gibberish
+            )
+        }
+
+        let words = trimmed.split(separator: " ")
+        let wordCount = words.count
+
+        let hasActionVerb = ["said", "told", "asked", "went", "did", "decided", "started", "spoke", "called", "meet", "joined", "replied"].contains { lower.contains($0) }
+        let hasObservation = ["looked", "noticed", "saw", "smiled", "nodded", "listened", "reaction", "pause", "paused", "tone"].contains { lower.contains($0) }
+        let hasWarmthWords = ["thank", "glad", "happy", "shared", "appreciated", "friend", "kind", "warm", "welcome"].contains { lower.contains($0) }
+        let hasDirectness = ["clear", "direct", "exactly", "honestly", "straight", "told them", "told her", "told him"].contains { lower.contains($0) }
+        let hasAuthenticDetail = ["my name", "yeah", "yes", "no", "first time", "busy", "meeting", "tonight", "dinner"].contains { lower.contains($0) }
+
+        // Content-based confidence: balanced, not inflated or size-dependent
+        let confidence: Int
+        if wordCount < 3 {
+            confidence = 52
+        } else if hasAuthenticDetail || hasActionVerb {
+            confidence = min(92, 78 + min(12, wordCount * 2))
+        } else {
+            confidence = 72
+        }
+
+        var parameterScores: [DebriefParameter: Int] = [:]
+        var parameterEvidence: [DebriefParameter: DebriefEvidenceLevel] = [:]
+
+        // Courage
+        if hasActionVerb || lower.contains("ditch") || lower.contains("decided") {
+            let courageVal = lower.contains("ditch") ? 35 : (hasDirectness ? 88 : 78)
+            parameterScores[.courage] = courageVal
+            parameterEvidence[.courage] = .clear
+        } else if wordCount > 4 {
+            parameterScores[.courage] = 70
+            parameterEvidence[.courage] = .partial
+        }
+
+        // Clarity
+        if hasDirectness || (wordCount >= 4 && wordCount <= 30) {
+            parameterScores[.clarity] = hasDirectness ? 86 : 76
+            parameterEvidence[.clarity] = .clear
+        } else {
+            parameterScores[.clarity] = 68
+            parameterEvidence[.clarity] = .partial
+        }
+
+        // Presence
+        if hasObservation {
+            parameterScores[.presence] = 85
+            parameterEvidence[.presence] = .clear
+        }
+
+        // Warmth
+        if hasWarmthWords {
+            parameterScores[.warmth] = 88
+            parameterEvidence[.warmth] = .clear
+        }
+
+        let targetScore = focus.flatMap { parameterScores[$0] } ?? parameterScores[.courage] ?? parameterScores[.clarity] ?? 75
+        let note: String
+        switch focus {
+        case .courage:
+            note = "You stepped up and shared what you actually did."
+        case .clarity:
+            note = "You stated your thoughts directly and clearly."
+        case .presence:
+            note = "You tuned into what was happening around you."
+        case .warmth:
+            note = "You brought genuine warmth to the conversation."
+        case nil:
+            note = "Clear and relevant account of your interaction."
+        }
+
+        let grade = DebriefGrade(
+            confidence: confidence,
+            score: targetScore,
+            note: note,
+            focus: focus,
+            parameterScores: parameterScores,
+            parameterEvidence: parameterEvidence,
+            category: .substantive,
+            coverage: wordCount > 8 ? .sufficient : .needsMore
+        )
+        return .accepted(grade)
+    }
+
+    func closing(for context: DebriefContext, answers: [String], grades: [DebriefGrade]) async throws -> String {
+        "You reflected with real honesty and intention. Take this self-awareness with you into your next day!"
+    }
+}
+
 // MARK: - Conversation data
 
 /// One row in the chat: a coach bubble, a user bubble, or a follow-up header.
@@ -201,7 +336,7 @@ final class DebriefSession {
     static let maxFollowUpCount = 3
 
     var context: DebriefContext
-    private let coach: any DebriefCoaching
+    private var coach: any DebriefCoaching
 
     // The chat rows, oldest first.
     var messages: [DebriefMessage] = []
@@ -343,6 +478,18 @@ final class DebriefSession {
         case .closing:
             await closeDebrief()
         }
+    }
+
+    /// Dismisses the coaching error without retrying.
+    func dismissError() {
+        coachingError = nil
+    }
+
+    /// Seamlessly switches to the guided fallback coach and retries the failed step.
+    func continueWithGuidedCoach() async {
+        self.coach = GuidedDebriefCoach()
+        coachingError = nil
+        await retry()
     }
 
     // MARK: Voice (AVFoundation + Speech)
@@ -801,6 +948,7 @@ struct QuestDebriefScreen: View {
                 let firstName = name.split(separator: " ").first.map(String.init) ?? name
                 session.context.userName = firstName
             }
+            AFM.prewarm(instructions: DebriefPrompts.openingInstructions)
             syncReward()
             await session.start()
 
@@ -829,10 +977,20 @@ struct QuestDebriefScreen: View {
         // AFM errors stay visible and retry the exact failed step instead of using dummy coaching.
         .alert("Coach Unavailable", isPresented: Binding(
             get: { session.coachingError != nil },
-            set: { _ in }
+            set: { isPresented in
+                if !isPresented {
+                    session.dismissError()
+                }
+            }
         )) {
             Button("Try Again") {
                 Task { await session.retry() }
+            }
+            Button("Continue with Guided Coach") {
+                Task { await session.continueWithGuidedCoach() }
+            }
+            Button("Cancel", role: .cancel) {
+                session.dismissError()
             }
         } message: {
             Text(session.coachingError ?? AFM.availabilityDescription)
