@@ -25,13 +25,13 @@ struct OverviewResumeScreen: View {
             return "Pick up where you left off and share how it went."
         }
 
-        // The opening story plus the follow-up questions.
-        let total = DebriefSession.followUpCount + 1
-        let answered = min(draft.answers.count, total)
+        // Only accepted answers count; rejected gibberish never looks like completed coverage.
+        let answered = draft.answers.count
         if answered == 0 {
             return "Your debrief is saved. Slide to answer the first question."
         }
-        return "\(answered) of \(total) answers saved. Slide to pick up where you left off."
+        let label = answered == 1 ? "answer" : "answers"
+        return "\(answered) \(label) saved. Slide to pick up where you left off."
     }
 
     var body: some View {

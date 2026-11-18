@@ -73,21 +73,20 @@ enum QuestProgress {
 
         guard !quest.debriefRecorded else { return reward }
 
-        // Guarantee all parameters have a meaningful measurement (no zero scores)
-        let courageScore = max(45, result.scores[.courage] ?? 55)
-        let clarityScore = max(45, result.scores[.clarity] ?? 55)
-        let presenceScore = max(45, result.scores[.presence] ?? 55)
-        let warmthScore = max(45, result.scores[.warmth] ?? 55)
-
-        context.insert(
-            InsightsModel(
-                courage: courageScore,
-                clarity: clarityScore,
-                presence: presenceScore,
-                warmth: warmthScore,
-                date: date
+        // Insights stores a debrief only when every stat has real evidence. Partial
+        // score distributions remain available in the calibration store; no baseline is invented.
+        if let courage = result.scores[.courage], let clarity = result.scores[.clarity],
+           let presence = result.scores[.presence], let warmth = result.scores[.warmth] {
+            context.insert(
+                InsightsModel(
+                    courage: courage,
+                    clarity: clarity,
+                    presence: presence,
+                    warmth: warmth,
+                    date: date
+                )
             )
-        )
+        }
         quest.debriefRecorded = true
         save(context)
 

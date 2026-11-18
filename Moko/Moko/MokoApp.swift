@@ -17,6 +17,10 @@ struct MokoApp: App {
         MokoAnimationAssets.preloadCommonSVGs()
         #if DEBUG
         OnboardingReflectionServiceTests.runAllTests()
+        // Async debrief checks use a scripted coach, never the live model or user data.
+        Task { @MainActor in
+            await DebriefRegressionTests.runAllTests()
+        }
         #endif
     }
 

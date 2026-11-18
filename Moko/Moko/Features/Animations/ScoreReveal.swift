@@ -95,7 +95,7 @@ struct ScoreReveal: View {
             ForEach(StatParameter.allCases, id: \.self) { stat in
                 StatBarRow(
                     stat: stat,
-                    value: scores[stat] ?? 0,
+                    value: scores[stat],
                     fill: fills[stat] ?? 0
                 )
             }
@@ -177,7 +177,7 @@ struct ScoreReveal: View {
 /// Individual colored stat bar row with title, capsule fill, and numeric value.
 struct StatBarRow: View {
     let stat: StatParameter
-    let value: Int
+    let value: Int?
     let fill: Double
 
     var body: some View {
@@ -201,12 +201,13 @@ struct StatBarRow: View {
             }
             .frame(height: 12)
 
-            Text(fill > 0 ? "\(value)" : "0")
-                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            Text(value.map(String.init) ?? "No evidence")
+                .font(value == nil ? .caption : .system(.subheadline, design: .rounded).weight(.semibold))
                 .contentTransition(.numericText())
                 .animation(MokoMotion.snappy, value: fill)
-                .frame(width: 34, alignment: .trailing)
-                .foregroundStyle(stat.color)
+                .frame(width: 76, alignment: .trailing)
+                .foregroundStyle(value == nil ? MokoScreenTheme.Colors.textMuted : stat.color)
+                .accessibilityLabel(value == nil ? "No evidence for \(stat.title)" : "\(stat.title) \(value ?? 0)")
         }
     }
 }
