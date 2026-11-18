@@ -33,7 +33,7 @@ struct DebriefRegressionTests {
         assert(scores[.presence] == nil, "Missing presence evidence must stay missing")
         assert(scores[.warmth] == nil, "Missing warmth evidence must stay missing")
 
-        let relevant = makeGrade(scores: [.clarity: 100], evidence: [.clarity: .clear], confidence: 100)
+        let relevant = makeGrade(scores: [.clarity: 100], evidence: [.clarity: .clear], confidence: 90)
         let lessRelevant = makeGrade(scores: [.clarity: 100], evidence: [.clarity: .clear], confidence: 10)
         assert(DebriefScoring.finalScores(from: [relevant]) == DebriefScoring.finalScores(from: [lessRelevant]),
                "Confidence must not scale an independent Clarity score")
@@ -41,7 +41,7 @@ struct DebriefRegressionTests {
                "Confidence remains a separate relevance measurement")
     }
 
-    /// Clear 100 and partial 0 at equal full confidence produce 62.5, rounded once to 63.
+    /// Clear 100 and partial 0 at equal relevance confidence produce 62.5, rounded once to 63.
     private static func testEvidenceWeightingAndMissingScores() {
         let strong = makeGrade(scores: [.courage: 100], evidence: [.courage: .clear])
         let weak = makeGrade(scores: [.courage: 0], evidence: [.courage: .partial], category: .weak)
@@ -132,7 +132,7 @@ struct DebriefRegressionTests {
         session.cancelAll()
     }
 
-    /// A concise direct answer can be substantive with maximum relevance and strong stats.
+    /// A concise direct answer can be substantive with strong stats without automatic maximum Confidence.
     private static func testConciseStrongAnswerAdvances() async {
         let coach = ScriptedDebriefCoach()
         coach.assessments = [
@@ -140,7 +140,7 @@ struct DebriefRegressionTests {
                 scores: [.courage: 95, .clarity: 100],
                 evidence: [.courage: .clear, .clarity: .clear],
                 category: .substantive,
-                confidence: 100
+                confidence: 82
             ))
         ]
         let session = DebriefSession(context: testContext, coach: coach)
@@ -158,7 +158,7 @@ struct DebriefRegressionTests {
             return nil
         }.first
         assert(grade?.category == .substantive, "Brevity must not make an answer weak")
-        assert(grade?.confidence == 100, "A directly related short answer can have Confidence 100")
+        assert(grade?.confidence == 82, "A concise answer should not default to Confidence 100")
         assert(grade?.parameterScores[.courage] == 95, "Courage is scored independently")
         assert(grade?.parameterScores[.clarity] == 100, "A short answer can have strong Clarity")
         assert(coach.questionAnswers == [[answer]], "The concise accepted answer enters follow-up context")
@@ -177,7 +177,13 @@ struct DebriefRegressionTests {
             )),
             .accepted(makeGrade(scores: [.presence: 65], evidence: [.presence: .clear])),
             .accepted(makeGrade(scores: [.warmth: 75], evidence: [.warmth: .clear])),
-            .accepted(makeGrade(scores: [.courage: 85], evidence: [.courage: .clear]))
+            .retry(message: "I did not catch a clear answer; what action did you take?", category: .gibberish),
+            .accepted(makeGrade(
+                scores: [.courage: 5],
+                evidence: [.courage: .clear],
+                category: .substantive,
+                confidence: 84
+            ))
         ]
         let session = DebriefSession(context: testContext, coach: coach)
         await session.start()
@@ -204,7 +210,16 @@ struct DebriefRegressionTests {
         }
         assert(coach.questionFocuses == [.presence, .warmth, .courage], "The weakest measured evidence should be revisited")
 
-        session.submit("I told her directly that I wanted to call and meet sooner.")
+        session.submit("Vrvrreff")
+        guard await waitUntil({ coach.assessmentCalls == 4 && session.canAnswer }) else {
+            assertionFailure("The third-question gibberish retry did not finish")
+            return
+        }
+        assert(!session.isComplete && session.questionNumber == 3, "Gibberish must not complete the debrief")
+        assert(coach.questionCalls == 3, "A rejected retry must not add another follow-up")
+
+        let negativeAnswer = "Well I have done nothing yet but I am planning to ditch her and do nothing"
+        session.submit(negativeAnswer)
         guard await waitUntil({ session.isComplete }) else {
             assertionFailure("The third accepted follow-up did not finish the debrief")
             return
@@ -213,8 +228,17 @@ struct DebriefRegressionTests {
         assert(coach.questionCalls == 3, "No follow-up may be skipped or added")
         assert(coach.questionAnswers.map(\.count) == [1, 2, 3], "Each question needs the accepted conversation so far")
         assert(coach.closingCalls == 1, "Completion should use the coach's AFM closing path")
+        assert(coach.closingAnswers.count == 4 && coach.closingAnswers.last == negativeAnswer,
+               "The valid negative answer must reach the accepted closing context")
+        assert(!coach.closingAnswers.contains("Vrvrreff"), "Rejected gibberish must stay out of the closing context")
         assert(session.result?.scores.count == 4, "All four stats need real evidence before completion")
         assert(DebriefParameter.allCases.allSatisfy { session.result?.scores[$0] != nil }, "No stat should be left unanswered")
+        assert((session.result?.scores[.courage] ?? 100) < 70, "Clear avoidance should lower rather than erase Courage evidence")
+        let finalGrade = session.messages.compactMap { message -> DebriefGrade? in
+            if case .user(_, let grade, _) = message.kind { return grade }
+            return nil
+        }.last
+        assert(finalGrade?.confidence == 84, "The calibrated AFM Confidence score must not be inflated by Swift")
         session.cancelAll()
     }
 
@@ -237,7 +261,7 @@ struct DebriefRegressionTests {
     private static func makeGrade(scores: [DebriefParameter: Int],
                                   evidence: [DebriefParameter: DebriefEvidenceLevel],
                                   category: DebriefInputCategory = .substantive,
-                                  confidence: Int = 100,
+                                  confidence: Int = 80,
                                   coverage: DebriefCoverage = .needsMore) -> DebriefGrade {
         DebriefGrade(
             confidence: confidence,
@@ -268,6 +292,7 @@ private final class ScriptedDebriefCoach: DebriefCoaching {
     private(set) var assessmentCalls = 0
     private(set) var questionCalls = 0
     private(set) var closingCalls = 0
+    private(set) var closingAnswers: [String] = []
     private(set) var questionAnswers: [[String]] = []
     private(set) var questionFocuses: [DebriefParameter] = []
 
@@ -294,6 +319,7 @@ private final class ScriptedDebriefCoach: DebriefCoaching {
 
     func closing(for context: DebriefContext, answers: [String], grades: [DebriefGrade]) async throws -> String {
         closingCalls += 1
+        closingAnswers = answers
         return "You communicated with care and courage."
     }
 }

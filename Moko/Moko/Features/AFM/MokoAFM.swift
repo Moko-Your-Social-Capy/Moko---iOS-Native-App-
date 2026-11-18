@@ -246,9 +246,9 @@ extension String {
 /// How strongly an answer shows a stat.
 @Generable
 enum Evidence {
-    case missing   // nothing about the user's own behavior for this stat
-    case partial   // vague or implied
-    case clear     // a concrete action/detail from the user
+    case missing   // the answer gives no relevant account for this stat
+    case partial   // vague or implied action, inaction or observation
+    case clear     // concrete action, inaction, avoidance or detail from the user
 }
 
 extension Evidence {
@@ -365,30 +365,31 @@ enum DebriefCoverageDecision {
 struct DebriefTurnAnalysis {
     @Guide(description: "Use weak only for genuinely vague, avoidant or low-quality relevant evidence. Never infer weakness from brevity, reported speech, paraphrase or grammar. Use noEvidence only when no relevant evidence can be understood.")
     var inputKind: DebriefInputKind
-    @Guide(description: "Accept every understandable relevant answer, even if indirect or grammatically imperfect. Request clarification only when its relevant meaning cannot be understood.")
+    @Guide(description: "Accept every understandable relevant answer, including inaction, avoidance, failure and negative plans. Request clarification only when its relevant meaning cannot be understood.")
     var status: DebriefResponseStatus
     @Guide(description: "When clarification is needed, a fresh warm reply that responds to this exact input and re-asks the current question naturally. Empty for an accepted answer.")
     var clarificationMessage: String
     @Guide(description: "For an accepted answer, one sentence using the user's concrete details. Empty when clarification is needed.")
     var whatUserDid: String
 
+    @Guide(description: "Action, inaction, avoidance and stated intentions can all be courage evidence. Missing means the question was not answered, never that the user did nothing or chose avoidance.")
     var courageEvidence: Evidence
-    @Guide(description: "Courage score using the rubric. Use 0 only when courageEvidence is missing; otherwise the full 0...100 range is allowed.", .range(0...100))
+    @Guide(description: "Courage score using the rubric. With evidence, use the full 0...100 range including a genuine measured 0. Missing evidence uses placeholder 0, which Swift ignores.", .range(0...100))
     var courage: Int
     @Guide(description: "Reported speech and paraphrased messages can provide partial or clear clarity evidence. Base the level on specificity and understandability, not length; a verbatim quote is not required.")
     var clarityEvidence: Evidence
-    @Guide(description: "Clarity score using the rubric. Use 0 only when clarityEvidence is missing; otherwise the full 0...100 range is allowed.", .range(0...100))
+    @Guide(description: "Clarity score using the rubric. With evidence, use the full 0...100 range including a genuine measured 0. Missing evidence uses placeholder 0, which Swift ignores.", .range(0...100))
     var clarity: Int
     var presenceEvidence: Evidence
-    @Guide(description: "Presence score using the rubric. Use 0 only when presenceEvidence is missing; otherwise the full 0...100 range is allowed.", .range(0...100))
+    @Guide(description: "Presence score using the rubric. With evidence, use the full 0...100 range including a genuine measured 0. Missing evidence uses placeholder 0, which Swift ignores.", .range(0...100))
     var presence: Int
     var warmthEvidence: Evidence
-    @Guide(description: "Warmth score using the rubric. Use 0 only when warmthEvidence is missing; otherwise the full 0...100 range is allowed.", .range(0...100))
+    @Guide(description: "Warmth score using the rubric. With evidence, use the full 0...100 range including a genuine measured 0. Missing evidence uses placeholder 0, which Swift ignores.", .range(0...100))
     var warmth: Int
 
-    @Guide(description: "How directly the answer relates to the current question and mission situation. This is independent of length, authenticity, intelligibility, Courage, Clarity and social-skill quality. A short direct answer can score 100.", .range(0...100))
+    @Guide(description: "Relatedness to the current question and mission only. Usually 70-84 for an ordinary direct concise answer, 85-94 for specific complete relevance, and 95-99 only for exceptional precision. Reserve 100 for a truly ideal answer; never default to it. Independent of Courage and Clarity.", .range(0...100))
     var confidence: Int
-    @Guide(description: "For an accepted answer, one warm specific sentence explaining its relevance to the current question and mission, not its Courage or Clarity. Empty when clarification is needed.")
+    @Guide(description: "For an accepted answer, one warm specific sentence explaining its calibrated relevance to the current question and mission, not its Courage or Clarity. Do not call relevance perfect unless the score is genuinely exceptional. Empty when clarification is needed.")
     var confidenceNote: String
     var coverage: DebriefCoverageDecision
 }
@@ -597,11 +598,11 @@ enum DebriefPrompts {
     FIRST CLASSIFY THE INPUT, INDEPENDENT OF USABILITY
     - substantive: relevant conversational evidence. Short answers can be substantive and strong.
     - weak: relevant but genuinely vague, avoidant or low-quality evidence. Never classify an answer as weak merely because it is short, indirect, paraphrased, reported speech or grammatically imperfect. ACCEPT and score weak answers honestly; weak is not the same as no evidence.
-    - noEvidence: understandable words but no relevant first-person action, communication or observation. Never use this category when the user reports something they said or communicated. Ask for a concrete answer only when relevant evidence is absent.
+    - noEvidence: understandable words but no relevant first-person account of action, inaction, intention, communication or observation. Never use this category when the user reports doing nothing, avoiding someone, planning not to act, or saying something. Ask for a concrete answer only when the question was not answered.
     - gibberish: meaningless characters or word salad. Ask for clarification.
     - offTopic: understandable but unrelated to the mission or current question. Acknowledge it and redirect naturally.
     - joke: humorous input. ACCEPT if it still supplies relevant evidence; never reject humour by itself.
-    - oneWord: a one-word reply. ACCEPT words such as "yes", "listened" or "avoided" when they answer the question; otherwise clarify.
+    - oneWord: a one-word reply. ACCEPT words such as "yes", "nothing", "none", "listened" or "avoided" when they answer the question. "Nothing" is direct evidence of inaction, not missing evidence; otherwise clarify.
     - otherLanguage: primarily another language. ACCEPT and evaluate it if you understand it; otherwise ask conversationally for a version you can understand.
     - emojiOnly: only emoji or symbols. ACCEPT only if their meaning directly answers the question; otherwise clarify.
     - pastedText: copied article, chat or other pasted material. ACCEPT only relevant first-person evidence; do not treat someone else's words as the user's actions.
@@ -609,8 +610,11 @@ enum DebriefPrompts {
 
     DECISION
     - status accepted means the answer is understandable, relevant and supplies evidence for the current question. It can then be scored and counted as coverage.
-    - status needsClarification means it cannot answer the current question. Write a NEW warm, context-specific clarificationMessage. Do not use a canned phrase, score the input or quote it as evidence.
+    - status needsClarification means it cannot answer the current question. Write a NEW warm, context-specific clarificationMessage. Do not use a canned phrase, score the input or quote it as evidence. For gibberish, do not infer emotions or intentions and do not quote the gibberish; say you did not catch a clear answer and re-ask the current question.
     - A follow-up answer must contain evidence for its TARGET STAT to be accepted. The opening answer needs usable evidence for at least one of the four stats.
+    - Inaction, avoidance, failure and negative plans are valid behavioral evidence. Never require success, contact, promise-keeping or a courageous action before accepting an answer. Score the reported behavior honestly instead.
+    - EXAMPLE: For "What action did you take to keep the promise?", "Nothing" is an ACCEPTED direct answer with evidence of inaction and a low Courage score, not noEvidence.
+    - EXAMPLE: "Well I have done nothing yet but I am planning to ditch her and do nothing" is ACCEPTED relevant evidence of inaction and planned avoidance. Give Courage evidence and a low score supported by the rubric; do not request clarification merely because the behavior is undesirable.
     - Reported speech, indirect answers and paraphrases count. Do not demand a verbatim quote, perfect chronology or a completed outcome when the user clearly reports what they communicated.
     - If the user says they told someone a plan or promise, the reported message is clarity evidence and the act of telling them may be courage evidence. The plan itself does not need to have happened yet.
     - EXAMPLE: For "What did you say?", the answer "Well I told her that. I will call her and meet her sooner" is ACCEPTED, not noEvidence. Its meaning is clear: the user told her they would call and meet sooner. Choose substantive or weak from its actual specificity, never its length. Clarity evidence may be partial or clear; evaluate all stats independently.
@@ -622,7 +626,17 @@ enum DebriefPrompts {
     - When evidence exists, use the full 0...100 rubric without a kindness floor or ceiling. A weak answer can score low; exceptional evidence can score 100.
     - Never use answer length as evidence of weakness or strength. A concise answer can be substantive, have clear evidence and earn high stat scores.
     - Confidence measures ONLY relatedness to the current question and mission situation. It is separate from Courage, Clarity, answer quality, authenticity and intelligibility. Do not copy it from or cap it by any stat score.
-    - Courage and Clarity evaluate different social skills from each other and from Confidence. A short direct answer can have Confidence 100 and strong stat scores.
+    - Courage and Clarity evaluate different social skills from each other and from Confidence. Negative behavior can be highly relevant and receive high Confidence while receiving low Courage.
+
+    CONFIDENCE CALIBRATION — USE THE FULL SCALE, NOT A HIGH-SCORE DEFAULT
+    - 1-49: barely or loosely related but still contains usable evidence.
+    - 50-69: partially related; addresses the broad situation but misses the main requested detail.
+    - 70-84: directly answers the main question but is concise, general or leaves secondary aspects unaddressed. Most ordinary accepted answers belong here.
+    - 85-94: direct, specific and clearly connected to both the question and mission context.
+    - 95-99: exceptional, complete and precise relevance to every part of the question with rich situational context.
+    - 100: reserved for a truly ideal, exhaustive answer. Never use it as a default and virtually never for a one-sentence or one-word response.
+    - Do not inflate Confidence for positive claims, good grammar, brevity or words such as courage, present or listened. Do not default to 90, 95 or 100.
+    - EXAMPLE: "I said long time no see" directly answers "What did you say first?" but is brief and context-light, so Confidence should ordinarily be 75-85, not 100. Its Clarity score remains independent and can still be high.
     - Coverage records whether all four stats have useful evidence. It is calibration metadata only: the session still asks all three follow-ups.
 
     STAT ANCHORS
@@ -649,6 +663,7 @@ enum DebriefPrompts {
     static let clarificationInstructions = """
     You are Moko, a warm conversational coach. Write a fresh reply to one unclear debrief answer.
     Respond naturally to the actual input, briefly explain what you need without blaming the user, and invite a concrete answer to the current question.
+    For gibberish, never infer feelings, anxiety, intentions or meaning and never quote the gibberish. Say only that you did not catch a clear answer, then re-ask the current question naturally.
     Do not score, praise, give advice, invent details or use a fixed stock phrase. No emojis.
     """
 
