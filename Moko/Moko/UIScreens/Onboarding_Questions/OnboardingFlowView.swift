@@ -64,21 +64,21 @@ struct OnboardingFlowView: View {
     var body: some View {
         // GeometryReader gives us the screen width so cards can fly fully off-screen.
         GeometryReader { geo in
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(spacing: 0) {
                 header
 
-                Text("Does this sound like you?")
-                    .font(.system(size: 28, weight: .bold))
-                    .tracking(-0.5)
-                    .foregroundStyle(OBColor.ink)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                    .padding(.leading, 36)
-                    .padding(.top, 46)
-
                 card(width: geo.size.width)
-                    .padding(.horizontal, 40)
-                    .padding(.top, 21)
+                    .padding(.horizontal, 26)
+                    .padding(.top, 18)
+
+                pager
+                    .padding(.top, 18)
+
+                // Small hint so the swipe gesture is discoverable.
+                Text("Swipe the card or tap an answer")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(OBDeck.ink.opacity(0.55))
+                    .padding(.top, 10)
 
                 Spacer(minLength: 0)
             }
@@ -88,7 +88,8 @@ struct OnboardingFlowView: View {
                 screenWidth = newWidth
             }
         }
-        .background(MokoBackdrop())
+        // Flat lavender canvas from the Stitch screen.
+        .background(OBDeck.screen.ignoresSafeArea())
         .sensoryFeedback(.impact(weight: .light), trigger: hapticTick)
         // After the first card settles, nudge it left then right to show the user
         // they can swipe. Only plays once, only on card 0.
@@ -116,41 +117,52 @@ struct OnboardingFlowView: View {
     // MARK: - Static header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            counter
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.trailing, 53)
-
-            // One capsule per question; filled up to the current one.
-            HStack(spacing: 4) {
-                ForEach(0..<totalSteps, id: \.self) { i in
-                    Capsule()
-                        .fill(i <= step ? OBColor.progressOn : OBColor.progressOff)
-                        .frame(height: 6)
-                }
+        HStack(spacing: 10) {
+            // Left pill: brand marker from the Stitch screen.
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(OBDeck.lime)
+                    .frame(width: 8, height: 8)
+                Text("SELF INSIGHTS")
+                    .font(.system(size: 11, weight: .heavy))
+                    .tracking(0.6)
+                    .foregroundStyle(.white)
             }
-            .padding(.top, 10)
-            .padding(.leading, 36)
-            .padding(.trailing, 52)
-        }
-    }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(OBDeck.ink, in: Capsule())
 
-    /// "3 of 8"
-    private var counter: some View {
-        HStack(spacing: 0) {
-            Text("\(step + 1)")
-                .bold()
-                .foregroundStyle(OBColor.progressOn)
-            Text(" of ")
-                .foregroundStyle(OBColor.muted)
-            Text("\(totalSteps)")
-                .bold()
-                .foregroundStyle(OBColor.progressOn)
+            Spacer()
+
+            // Right pill: "QUESTION 3 OF 8".
+            Text("QUESTION \(step + 1) OF \(totalSteps)")
+                .font(.system(size: 11, weight: .heavy))
+                .tracking(0.6)
+                .foregroundStyle(OBDeck.ink)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.white, in: Capsule())
+                .overlay {
+                    Capsule().strokeBorder(OBDeck.ink, lineWidth: 2)
+                }
         }
-        .font(.system(size: 15, weight: .semibold))
-        // VoiceOver reads one clear sentence instead of three fragments.
+        .padding(.horizontal, 26)
+        .padding(.top, 6)
+        // VoiceOver reads one clear sentence instead of separate words.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Question \(step + 1) of \(totalSteps)")
+    }
+
+    /// Pager dots: the current question is a long black capsule.
+    private var pager: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<totalSteps, id: \.self) { i in
+                Capsule()
+                    .fill(i == step ? OBDeck.ink : OBDeck.ink.opacity(0.22))
+                    .frame(width: i == step ? 20 : 6, height: 6)
+            }
+        }
+        .accessibilityHidden(true)
     }
 
     // MARK: - Swipeable card

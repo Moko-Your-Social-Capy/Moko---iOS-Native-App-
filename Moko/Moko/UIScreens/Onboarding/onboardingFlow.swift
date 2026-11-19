@@ -4,7 +4,7 @@
 //
 //  The onboarding screens shown right after sign-in:
 //
-//      FamiliarCarouselView → NameEntryView (name + age) → WelcomeView
+//      FamiliarIntroView (5 pages) → NameEntryView (name + age) → WelcomeView
 //
 //  Also holds the small pieces those screens share (progress bar, continue
 //  button, nav-bar style) so each screen file only contains its own content.
@@ -18,8 +18,10 @@ import SwiftData
 
 // MARK: - Steps
 
-/// One pushed screen in the intro flow. The carousel is the root, so it has no case.
+/// One pushed screen in the intro flow. The first familiar page is the root, so it has no case.
 enum OnboardingStep: Hashable {
+    /// A familiar situation page, by its place in the list (1...4).
+    case familiar(Int)
     case nameEntry
     case welcome
 }
@@ -42,7 +44,10 @@ struct OnboardingFlowContainer: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            FamiliarCarouselView(onContinue: { path.append(.nameEntry) })
+            FamiliarIntroView(
+                onAdvance: { advance(from: $0) },
+                onSkip: { path.append(.nameEntry) }
+            )
                 // The first screen has no Back button, so hide the bar entirely.
                 .toolbar(.hidden, for: .navigationBar)
                 // Which view to show for each step pushed onto `path`.
@@ -55,9 +60,30 @@ struct OnboardingFlowContainer: View {
         .tint(MokoTheme.forestGreen)
     }
 
+    /// The arrow pushes the next familiar page, or the name step after the last one.
+    private func advance(from index: Int) {
+        if index + 1 < FamiliarSituation.all.count {
+            path.append(.familiar(index + 1))
+        } else {
+            path.append(.nameEntry)
+        }
+    }
+
     @ViewBuilder
     private func destination(for step: OnboardingStep) -> some View {
         switch step {
+        case .familiar(let index):
+            // Each page is pushed, so it gets the system back button and edge swipe.
+            FamiliarScreen(
+                situation: FamiliarSituation.all[index],
+                step: index,
+                total: FamiliarSituation.all.count,
+                isLast: index == FamiliarSituation.all.count - 1,
+                onAdvance: { advance(from: index) },
+                onSkip: { path.append(.nameEntry) }
+            )
+                .onboardingNavigationBar()
+
         case .nameEntry:
             NameEntryView(initialName: userName, initialAge: userAge) { name, age in
                 userName = name

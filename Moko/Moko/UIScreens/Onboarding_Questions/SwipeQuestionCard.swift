@@ -2,10 +2,13 @@
 //  SwipeQuestionCard.swift
 //  Moko
 //
-//  Draws one question card: peeking mascot, illustration, question and NO / YES.
+//  Draws one question card in the Stitch "Swipe Deck" style: a thick black
+//  border, a hard offset shadow, a lime category chip, the Purist mascot scene,
+//  a purple reflection box and NOT REALLY / VS / DEFINITELY YES.
+//
 //  It does not handle swiping itself — OnboardingFlowView moves it around and
-//  passes `swipeProgress` in so the card can tint, outline, shadow, and grow the
-//  matching label as the user drags.
+//  passes `swipeProgress` in so the card can glow and grow the matching button
+//  as the user drags.
 //
 
 import SwiftUI
@@ -17,147 +20,201 @@ struct SwipeQuestionCard: View {
     var onNo: () -> Void = {}
     var onYes: () -> Void = {}
 
-    private let cornerRadius: CGFloat = 20
-    /// Same height on every card so the layout never jumps between questions.
-    private let cardHeight: CGFloat = 430
-    private let mascotSize = CGSize(width: 85, height: 80.7)
-    /// The card starts this far down so the mascot can peek over its top edge.
-    private let cardTopInset: CGFloat = 52
+    private let cornerRadius: CGFloat = 28
+    /// Same minimum height on every card so the layout never jumps.
+    private let cardMinHeight: CGFloat = 470
 
-    // MARK: - Computed swipe colours
-
-    /// The active side's colour: green for Yes (right), red for No (left).
-    /// At zero the card rests on the neutral stroke colour.
+    /// The active side's colour: lime for Yes (right), terracotta for No (left).
     private var swipeColor: Color {
-        swipeProgress >= 0 ? OBColor.yes : OBColor.no
+        swipeProgress >= 0 ? OBDeck.lime : OBColor.no
     }
 
     /// How strongly the swiped colour shows: 0 at rest, 1 at full drag.
     private var swipeStrength: Double { Double(abs(swipeProgress)) }
 
-    /// Stroke colour blends from the resting neutral into the swipe colour as the drag grows.
-    private var borderColor: Color {
-        OBColor.cardStroke.mix(with: swipeColor, by: swipeStrength)
-    }
-
-    /// Border thickness grows from 1 pt at rest up to 2.5 pt at full drag.
-    private var borderWidth: CGFloat { 1 + CGFloat(swipeStrength) * 1.5 }
-
-    /// Shadow radius grows from 0 at rest to 14 pt at full drag.
-    private var shadowRadius: CGFloat { CGFloat(swipeStrength) * 14 }
-
-    /// Shadow opacity mirrors the drag strength.
-    private var shadowOpacity: Double { swipeStrength * 0.45 }
-
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            card
-                .padding(.top, cardTopInset)
-
-            Image("capybara_peek")
-                .resizable()
-                .scaledToFit()
-                .frame(width: mascotSize.width, height: mascotSize.height)
-                .padding(.leading, 2)
-                .accessibilityHidden(true)
-        }
+        // One clean card — no coloured cards peeking behind it.
+        card
     }
 
-    // MARK: Card
+    // MARK: - Main card
 
     private var card: some View {
-        // Illustration + question, pinned to the top…
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 12) {
+            chips
+            questionTitle
             illustration
-                .padding(.horizontal, 16)
-                .padding(.top, 33)
-
-            Text(question.text)
-                .font(.system(size: 20))
-                .foregroundStyle(OBColor.ink)
-                .multilineTextAlignment(.center)
-                // Room for 4 lines, so short and long questions sit at the same height.
-                .frame(maxWidth: .infinity, minHeight: 96, alignment: .center)
-                .padding(.horizontal, 36)
-                .padding(.top, 30)
+            reflectionBox
+            // Thin divider keeps the answer row visually separate.
+            Rectangle()
+                .fill(Color.white.opacity(0.35))
+                .frame(height: 1)
+            answerButtons
         }
-        .frame(maxWidth: .infinity, minHeight: cardHeight, alignment: .top)
-        // …and the NO / YES buttons pinned to the bottom.
-        .overlay(alignment: .bottom) { answerButtons }
-        .background(
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: cardMinHeight, alignment: .top)
+        .background(OBDeck.purple, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay {
+            // Soft colour wash shows which way the card is being dragged.
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(OBColor.cardFill)
-        )
-        // Soft green (Yes) or red (No) wash that gets stronger as you drag.
-        .overlay(
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill((swipeProgress >= 0 ? OBColor.yes : OBColor.no)
-                    .opacity(Double(abs(swipeProgress)) * 0.12))
-                .allowsHitTesting(false)                 // let taps pass through to the buttons
-        )
-        // Coloured outline: blends from the neutral resting stroke to the swipe colour.
-        // Grows from 1 pt at rest to 2.5 pt at full drag so the border is clearly visible.
-        .overlay(
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .strokeBorder(borderColor, lineWidth: borderWidth)
+                .fill(swipeColor.opacity(swipeStrength * 0.10))
                 .allowsHitTesting(false)
-        )
-        // Coloured glow shadow that matches the border colour, growing with the drag.
-        .shadow(
-            color: swipeColor.opacity(shadowOpacity),
-            radius: shadowRadius,
-            x: 0,
-            y: 4
-        )
+        }
+        .overlay {
+            // Thick black border is the heart of the look.
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(OBDeck.ink, lineWidth: 3)
+        }
+        // Coloured glow grows with the drag.
+        .shadow(color: swipeColor.opacity(swipeStrength * 0.55), radius: 18, x: 0, y: 8)
+        // Hard offset shadow, like a sticker peeled off the page.
+        .shadow(color: OBDeck.ink.opacity(0.30), radius: 0, x: 6, y: 6)
     }
 
-    /// NO on the left, YES on the right. The label on the drag side grows up to 20%.
+    /// Category tag on the left, XP reward on the right.
+    private var chips: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(OBDeck.ink)
+                    .frame(width: 7, height: 7)
+                Text(question.category)
+                    .font(.system(size: 10, weight: .heavy))
+                    .tracking(0.6)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .foregroundStyle(OBDeck.ink)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(OBDeck.lime, in: Capsule())
+            .overlay {
+                Capsule().strokeBorder(OBDeck.ink, lineWidth: 2)
+            }
+
+            Spacer(minLength: 4)
+
+            Text("+\(question.xp) XP")
+                .font(.system(size: 10, weight: .heavy))
+                .tracking(0.4)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(OBDeck.ink, in: Capsule())
+        }
+    }
+
+    /// Big all-caps question with a hard black drop shadow.
+    private var questionTitle: some View {
+        Text(question.text)
+            .font(.system(size: 19, weight: .black, design: .rounded))
+            .tracking(-0.3)
+            .textCase(.uppercase)
+            .foregroundStyle(.white)
+            .lineLimit(5)
+            .minimumScaleFactor(0.72)
+            .shadow(color: OBDeck.ink, radius: 0, x: 2, y: 2)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Just the Purist mascot vectors, transparent background, filling the middle of the card.
+    private var illustration: some View {
+        Image(question.imageName)
+            .resizable()
+            .scaledToFill()
+            .frame(maxWidth: .infinity)
+            .frame(height: question.imageHeight)
+            .clipShape(Rectangle())
+            .accessibilityHidden(true)
+    }
+
+    /// Dark purple note that gives the question a calm, reflective frame.
+    private var reflectionBox: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("REFLECT")
+                .font(.system(size: 9, weight: .heavy))
+                .tracking(1.4)
+                .foregroundStyle(OBDeck.lime)
+            Text(question.reflectionTitle)
+                .font(.system(size: 12, weight: .heavy))
+                .textCase(.uppercase)
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(question.reflectionBody)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.white.opacity(0.78))
+                // Let the sentence wrap to as many lines as it needs.
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(OBDeck.purpleDeep, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(OBDeck.ink, lineWidth: 2)
+        }
+    }
+
+    /// NO on the left, YES on the right. The matching side grows while dragging.
     private var answerButtons: some View {
-        HStack {
+        HStack(spacing: 8) {
             Button(action: onNo) {
-                Text("NO")
-                    .foregroundStyle(OBColor.no)
-                    .scaleEffect(1 + max(0, -swipeProgress) * 0.2, anchor: .leading)
-                    .padding(.vertical, 6)
-                    .padding(.trailing, 20)
-                    .contentShape(Rectangle())           // bigger tap area than the text
+                HStack(spacing: 5) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .black))
+                    Text("NOT REALLY")
+                        .font(.system(size: 11, weight: .heavy))
+                        .tracking(0.3)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .background(OBDeck.ink, in: Capsule())
+                .scaleEffect(1 + max(0, -swipeProgress) * 0.1, anchor: .leading)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("No")
+            .accessibilityLabel("Not really")
 
-            Spacer()
+            Text("VS")
+                .font(.system(size: 11, weight: .black))
+                .foregroundStyle(OBDeck.ink)
+                .frame(width: 38, height: 38)
+                .background(.white, in: Circle())
+                .overlay {
+                    Circle().strokeBorder(OBDeck.ink, lineWidth: 2)
+                }
 
             Button(action: onYes) {
-                Text("YES")
-                    .foregroundStyle(OBColor.yes)
-                    .scaleEffect(1 + max(0, swipeProgress) * 0.2, anchor: .trailing)
-                    .padding(.vertical, 6)
-                    .padding(.leading, 20)
-                    .contentShape(Rectangle())
+                HStack(spacing: 5) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .black))
+                    Text("DEFINITELY YES")
+                        .font(.system(size: 11, weight: .heavy))
+                        .tracking(0.2)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .foregroundStyle(OBDeck.ink)
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .background(OBDeck.lime, in: Capsule())
+                .overlay {
+                    Capsule().strokeBorder(OBDeck.ink, lineWidth: 2)
+                }
+                .scaleEffect(1 + max(0, swipeProgress) * 0.1, anchor: .trailing)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Yes")
+            .accessibilityLabel("Definitely yes")
         }
-        .font(.system(size: 22, weight: .bold))
-        .padding(.horizontal, 28)
-        .padding(.bottom, 18)
-    }
-
-    /// Fixed-height frame that the image fills and gets cropped to.
-    private var illustration: some View {
-        Color.clear
-            .frame(maxWidth: .infinity, minHeight: question.imageHeight, maxHeight: question.imageHeight)
-            .overlay(
-                Image(question.imageName)
-                    .resizable()
-                    .scaledToFill()
-            )
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .accessibilityHidden(true)
     }
 }
 
 #Preview {
-    SwipeQuestionCard(question: OnboardingCardQuestion.all[4])
-        .padding(.horizontal, 40)
+    SwipeQuestionCard(question: OnboardingCardQuestion.all[0])
+        .padding(.horizontal, 28)
+        .padding(.vertical, 24)
+        .background(OBDeck.screen)
 }

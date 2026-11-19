@@ -1,0 +1,171 @@
+{
+  "$schema": "moko.purist.card-placement/v1",
+  "generatedAt": "2026-11-19",
+  "source": {
+    "provider": "purist",
+    "fileId": "tKVhkoGWxBdCJDqH",
+    "fileName": "Moko – Onboarding Mascots",
+    "pageId": "design",
+    "pageName": "Design",
+    "url": "https://purist.design/file/tKVhkoGWxBdCJDqH",
+    "coordinateSpace": "artboard-local, origin top-left, pixels"
+  },
+  "tokens": {
+    "--color-green": "#B8F500",
+    "--color-yellow": "#FFE81A",
+    "--color-lavender": "#C3A6FF",
+    "--color-ink": "#1B1B1B",
+    "--color-paper": "#FFFFFF",
+    "--font-display": "Archivo"
+  },
+  "reference": {
+    "provider": "stitch",
+    "projectId": "9954504988876779994",
+    "projectTitle": "Hinge Swipe Onboarding Screens",
+    "screenId": "786a017d26c5439e93e6d4621baa789e",
+    "screenTitle": "Mindful Situations: Interactive Swipe Deck",
+    "canvas": { "width": 780, "height": 1768, "deviceType": "MOBILE" },
+    "files": {
+      "screenshot": "DesignReference/Stitch/9954504988876779994/screen.png",
+      "html": "DesignReference/Stitch/9954504988876779994/screen.html"
+    }
+  },
+  "cards": [
+    {
+      "id": "mcp-fa997756-4211-401d-be32-39eb6ae9d4e7-1",
+      "name": "onboarding_q1 · Rabbit",
+      "mascot": "rabbit",
+      "questionIndex": 1,
+      "frame": { "x": 0, "y": 0, "width": 600, "height": 400 },
+      "background": "#E8F0E3",
+      "layers": [
+        { "nodeId": "mcp-be2f3064-7220-438d-bec3-b042e99c9e08-2", "role": "background-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 0 },
+        { "nodeId": "mcp-be2f3064-7220-438d-bec3-b042e99c9e08-3", "role": "mascot", "box": { "x": 60, "y": 56, "width": 236, "height": 300 }, "viewBox": "200 140 590 750", "z": 1 },
+        { "nodeId": "mcp-be2f3064-7220-438d-bec3-b042e99c9e08-4", "role": "prop", "box": { "x": 390, "y": 170, "width": 156, "height": 182 }, "viewBox": "0 0 120 140", "z": 2 },
+        { "nodeId": "mcp-be2f3064-7220-438d-bec3-b042e99c9e08-5", "role": "foreground-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 3 }
+      ]
+    },
+    {
+      "id": "mcp-6c1ed09d-a460-4cb0-b588-3b05dd1a6b15-1",
+      "name": "onboarding_q2 · Hedgehog",
+      "mascot": "hedgehog",
+      "questionIndex": 2,
+      "frame": { "x": 720, "y": 0, "width": 600, "height": 400 },
+      "background": "#E8F0E3",
+      "layers": [
+        { "nodeId": "mcp-748694aa-f9d3-4b6c-bacc-814c3b0c5d13-2", "role": "background-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 0 },
+        { "nodeId": "mcp-748694aa-f9d3-4b6c-bacc-814c3b0c5d13-3", "role": "mascot", "box": { "x": 150, "y": 56, "width": 236, "height": 300 }, "viewBox": "200 140 590 750", "z": 1 },
+        { "nodeId": "mcp-748694aa-f9d3-4b6c-bacc-814c3b0c5d13-4", "role": "prop", "box": { "x": 450, "y": 262, "width": 100, "height": 92 }, "viewBox": "0 0 100 92", "z": 2 },
+        { "nodeId": "mcp-748694aa-f9d3-4b6c-bacc-814c3b0c5d13-5", "role": "foreground-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 3 }
+      ]
+    },
+    {
+      "id": "mcp-f43e1b0e-c702-4df8-afcc-cb8b096cd532-1",
+      "name": "onboarding_q3 · Owl",
+      "mascot": "owl",
+      "questionIndex": 3,
+      "frame": { "x": 1440, "y": 0, "width": 600, "height": 400 },
+      "background": "#E8F0E3",
+      "layers": [
+        { "nodeId": "mcp-7de2137d-8b8f-4e92-bb50-0d46e64de098-2", "role": "background-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 0 },
+        { "nodeId": "mcp-7de2137d-8b8f-4e92-bb50-0d46e64de098-3", "role": "mascot", "box": { "x": 30, "y": 56, "width": 236, "height": 300 }, "viewBox": "200 140 590 750", "z": 1 },
+        { "nodeId": "mcp-7de2137d-8b8f-4e92-bb50-0d46e64de098-4", "role": "prop", "box": { "x": 345, "y": 198, "width": 132, "height": 154 }, "viewBox": "0 0 120 140", "z": 2 },
+        { "nodeId": "mcp-7de2137d-8b8f-4e92-bb50-0d46e64de098-5", "role": "prop", "box": { "x": 465, "y": 212, "width": 130, "height": 140 }, "viewBox": "0 0 130 140", "z": 3 }
+      ]
+    },
+    {
+      "id": "mcp-88c9ef64-c0e0-441e-9e3b-abcf37f7867c-1",
+      "name": "onboarding_q4 · Fox",
+      "mascot": "fox",
+      "questionIndex": 4,
+      "frame": { "x": 2160, "y": 0, "width": 600, "height": 400 },
+      "background": "#E8F0E3",
+      "layers": [
+        { "nodeId": "mcp-51d944aa-4788-405a-a3b8-5ce83bd4b632-2", "role": "background-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 0 },
+        { "nodeId": "mcp-51d944aa-4788-405a-a3b8-5ce83bd4b632-3", "role": "prop", "box": { "x": 400, "y": 255, "width": 80, "height": 93 }, "viewBox": "0 0 120 140", "z": 2 },
+        { "nodeId": "mcp-51d944aa-4788-405a-a3b8-5ce83bd4b632-4", "role": "foreground-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 3 },
+        { "nodeId": "mcp-51d944aa-4788-405a-a3b8-5ce83bd4b632-5", "role": "mascot", "box": { "x": 30, "y": 56, "width": 236, "height": 300 }, "viewBox": "200 140 590 750", "z": 1 }
+      ]
+    },
+    {
+      "id": "mcp-bf2d9300-fae2-47ca-907e-0873f67af56e-1",
+      "name": "onboarding_q5 · Penguin",
+      "mascot": "penguin",
+      "questionIndex": 5,
+      "frame": { "x": 2880, "y": 0, "width": 600, "height": 400 },
+      "background": "#E8F0E3",
+      "layers": [
+        { "nodeId": "mcp-799dca69-c2da-44ac-8470-0b97331d0ce3-2", "role": "background-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 0 },
+        { "nodeId": "mcp-799dca69-c2da-44ac-8470-0b97331d0ce3-3", "role": "prop", "box": { "x": 20, "y": 198, "width": 143, "height": 154 }, "viewBox": "0 0 130 140", "z": 2 },
+        { "nodeId": "mcp-799dca69-c2da-44ac-8470-0b97331d0ce3-4", "role": "mascot", "box": { "x": 190, "y": 56, "width": 236, "height": 300 }, "viewBox": "200 140 590 750", "z": 1 },
+        { "nodeId": "mcp-799dca69-c2da-44ac-8470-0b97331d0ce3-5", "role": "prop", "box": { "x": 440, "y": 198, "width": 132, "height": 154 }, "viewBox": "0 0 120 140", "z": 3 },
+        { "nodeId": "mcp-799dca69-c2da-44ac-8470-0b97331d0ce3-6", "role": "foreground-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 4 }
+      ]
+    },
+    {
+      "id": "mcp-6fe460a7-5d5d-4d6e-b37a-c3d5126a75d6-1",
+      "name": "onboarding_q6 · Bear",
+      "mascot": "bear",
+      "questionIndex": 6,
+      "frame": { "x": 3600, "y": 0, "width": 600, "height": 400 },
+      "background": "#E8F0E3",
+      "layers": [
+        { "nodeId": "mcp-f6bdba6e-475e-4570-8e03-8a403620a59f-2", "role": "background-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 0 },
+        { "nodeId": "mcp-f6bdba6e-475e-4570-8e03-8a403620a59f-3", "role": "mascot", "box": { "x": 40, "y": 56, "width": 236, "height": 300 }, "viewBox": "200 140 590 750", "z": 1 },
+        { "nodeId": "mcp-f6bdba6e-475e-4570-8e03-8a403620a59f-4", "role": "prop", "box": { "x": 410, "y": 170, "width": 156, "height": 182 }, "viewBox": "0 0 120 140", "z": 2 },
+        { "nodeId": "mcp-f6bdba6e-475e-4570-8e03-8a403620a59f-5", "role": "foreground-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 3 }
+      ]
+    },
+    {
+      "id": "mcp-cd53f476-3c42-42b0-a22f-4c692eff3693-1",
+      "name": "onboarding_q7 · Cat",
+      "mascot": "cat",
+      "questionIndex": 7,
+      "frame": { "x": 4320, "y": 0, "width": 600, "height": 400 },
+      "background": "#E8F0E3",
+      "layers": [
+        { "nodeId": "mcp-9ba02cfd-e9bb-4908-8efc-de5f09a02dde-2", "role": "background-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 0 },
+        { "nodeId": "mcp-9ba02cfd-e9bb-4908-8efc-de5f09a02dde-3", "role": "mascot", "box": { "x": 170, "y": 56, "width": 236, "height": 300 }, "viewBox": "200 140 590 750", "z": 1 },
+        { "nodeId": "mcp-9ba02cfd-e9bb-4908-8efc-de5f09a02dde-4", "role": "prop", "box": { "x": 445, "y": 198, "width": 132, "height": 154 }, "viewBox": "0 0 120 140", "z": 2 }
+      ]
+    },
+    {
+      "id": "mcp-31a659d7-d526-4738-abe5-53dcf559b066-1",
+      "name": "onboarding_q8 · Turtle",
+      "mascot": "turtle",
+      "questionIndex": 8,
+      "frame": { "x": 5040, "y": 0, "width": 600, "height": 400 },
+      "background": "#E8F0E3",
+      "layers": [
+        { "nodeId": "mcp-d8f3a5f5-fb70-4109-8ecc-f72ebe70e1fd-2", "role": "background-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 0 },
+        { "nodeId": "mcp-d8f3a5f5-fb70-4109-8ecc-f72ebe70e1fd-3", "role": "mascot", "box": { "x": 15, "y": 56, "width": 236, "height": 300 }, "viewBox": "200 140 590 750", "z": 1 },
+        { "nodeId": "mcp-d8f3a5f5-fb70-4109-8ecc-f72ebe70e1fd-4", "role": "prop", "box": { "x": 285, "y": 224, "width": 108, "height": 126 }, "viewBox": "0 0 120 140", "z": 2 },
+        { "nodeId": "mcp-d8f3a5f5-fb70-4109-8ecc-f72ebe70e1fd-5", "role": "prop", "box": { "x": 440, "y": 270, "width": 112, "height": 80 }, "viewBox": "0 0 140 100", "z": 3 },
+        { "nodeId": "mcp-d8f3a5f5-fb70-4109-8ecc-f72ebe70e1fd-6", "role": "foreground-scene", "box": { "x": 0, "y": 0, "width": 600, "height": 400 }, "viewBox": "0 0 600 400", "z": 4 }
+      ]
+    }
+  ],
+  "familiarCards": [
+    { "id": "mcp-45f8b851-d19e-40a8-8484-3803e3df41f0-1", "name": "Familiar · Someone took credit", "frame": { "x": 7480, "y": 0, "width": 390, "height": 780 } },
+    { "id": "mcp-cb133f9e-bf7a-46d4-af8c-a82261eca479-1", "name": "Familiar · Frozen at the party", "frame": { "x": 7990, "y": 0, "width": 390, "height": 780 } },
+    { "id": "mcp-c96c4116-ec36-45c0-93dd-b5ce188aa1f2-1", "name": "Familiar · Greeted in the hallway", "frame": { "x": 8500, "y": 0, "width": 390, "height": 780 } },
+    { "id": "mcp-536c325d-8984-4108-97a3-567812a2db23-1", "name": "Familiar · Could not find an opening", "frame": { "x": 9010, "y": 0, "width": 390, "height": 780 } },
+    { "id": "mcp-dca435a4-ad59-44a8-bd76-b35d8d5f7ff8-1", "name": "Familiar · Phone left unsent", "frame": { "x": 9520, "y": 0, "width": 390, "height": 780 } }
+  ],
+  "deckLayout": {
+    "cardAspect": "600:400 (3:2)",
+    "sourceCanvas": { "width": 780, "height": 1768 },
+    "stitchCardStack": {
+      "class": "card-stack",
+      "perspective": "1000px",
+      "card": {
+        "position": "absolute",
+        "top": 0,
+        "left": 0,
+        "width": "100%",
+        "height": "100%",
+        "transformOrigin": "50% 120%"
+      }
+    }
+  }
+}

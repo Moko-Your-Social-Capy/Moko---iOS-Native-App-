@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Onboarding - Communication &amp; Connection Quiz</title>
+<!-- Tailwind CSS CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Space+Grotesk:wght@600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Config -->
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              purple: '#A855F7',
+              lavender: '#C084FC',
+              lilacLight: '#F3E8FF',
+              sky: '#38BDF8',
+              lime: '#A3E635',
+              terracotta: '#F59E0B',
+              charcoal: '#18181B'
+            }
+          },
+          fontFamily: {
+            impact: ['Impact', 'Space Grotesk', 'Arial Black', 'sans-serif'],
+            grotesk: ['Space Grotesk', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', '-apple-system', 'sans-serif']
+          },
+          boxShadow: {
+            'brutal': '6px 6px 0px 0px #000000',
+            'brutal-sm': '3px 3px 0px 0px #000000',
+            'brutal-lg': '8px 8px 0px 0px #000000',
+            'brutal-pressed': '1px 1px 0px 0px #000000'
+          }
+        }
+      }
+    };
+</script>
+<!-- Custom Styles -->
+<style data-purpose="base-layout">
+    body {
+      background-color: #EDE9FE;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      touch-action: pan-y;
+      overflow-x: hidden;
+    }
+    
+    .ios-shell {
+      min-height: 100vh;
+      max-width: 420px;
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background-color: #FAF8FF;
+      box-shadow: 0 25px 50px -12px rgba(76, 29, 149, 0.25);
+    }
+
+    .headline-mega {
+      font-family: 'Space Grotesk', 'Impact', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+    }
+
+    /* Swipe Card Interactive Layering */
+    .card-stack {
+      perspective: 1000px;
+    }
+
+    .deck-card {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transform-origin: 50% 120%;
+      will-change: transform, opacity;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    .deck-card:active {
+      cursor: grabbing;
+    }
+
+    /* Floating XP Notification Pop */
+    @keyframes xpPop {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, 15px) scale(0.6) rotate(-8deg);
+      }
+      35% {
+        opacity: 1;
+        transform: translate(-50%, -24px) scale(1.15) rotate(4deg);
+      }
+      75% {
+        opacity: 1;
+        transform: translate(-50%, -36px) scale(1) rotate(0deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -55px) scale(0.9) rotate(2deg);
+      }
+    }
+
+    .xp-float {
+      animation: xpPop 0.85s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+      pointer-events: none;
+    }
+</style>
+</head>
+<body class="flex items-center justify-center p-0 sm:p-4 min-h-screen text-zinc-900 font-sans antialiased selection:bg-brand-lime">
+<!-- BEGIN: MobileContainer -->
+<main class="ios-shell w-full overflow-hidden border-x-0 sm:border-4 sm:border-black sm:rounded-[44px] justify-between relative" data-purpose="mobile-viewport">
+<!-- Floating XP Toast Container -->
+<div class="absolute top-24 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center" id="xp-toast-container"></div>
+<!-- BEGIN: TopBar -->
+<header class="pt-3 px-6 pb-2 shrink-0 z-30 select-none" data-purpose="ios-top-bar">
+<!-- iOS Status Bar Elements -->
+<div class="flex justify-between items-center text-xs font-semibold tracking-tight text-zinc-800">
+<span class="text-sm font-bold pl-1 font-grotesk">9:41</span>
+<div class="flex items-center space-x-1.5 pr-1">
+<!-- Signal Icon -->
+<svg class="w-4 h-4 fill-current" viewbox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L12 22l7.03-4.39C20.26 16.07 21 14.12 21 12c0-4.97-4.03-9-9-9z" opacity="0.3"></path><path d="M12 7c-2.76 0-5 2.24-5 5 0 1.34.53 2.56 1.39 3.47L12 18l3.61-2.53C16.47 14.56 17 13.34 17 12c0-2.76-2.24-5-5-5z"></path></svg>
+<!-- Wifi Icon -->
+<svg class="w-4 h-4 fill-current" viewbox="0 0 24 24"><path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98A16.88 16.88 0 0 0 12 4zm0 4c3.42 0 6.55 1.25 8.98 3.32L12 19.34 3.02 11.32C5.45 9.25 8.58 8 12 8z"></path></svg>
+<!-- Battery Icon -->
+<div class="w-5 h-2.5 border-[1.5px] border-black rounded-sm p-0.5 flex items-center">
+<div class="w-full h-full bg-black rounded-[1px]"></div>
+</div>
+</div>
+</div>
+<!-- Header Meta & Deck Counter -->
+<div class="flex items-center justify-between mt-3">
+<!-- Logo / Label Tag -->
+<div class="inline-flex items-center space-x-1.5 px-3 py-1 bg-black text-white rounded-full font-extrabold text-xs uppercase tracking-wider font-grotesk shadow-brutal-sm">
+<span class="inline-block w-2 h-2 rounded-full bg-brand-lime animate-pulse"></span>
+<span>SELF INSIGHTS</span>
+</div>
+<!-- Step Indicator Pill -->
+<div class="text-xs font-black uppercase tracking-wider px-3.5 py-1 bg-white border-2 border-black rounded-full shadow-brutal-sm font-grotesk">
+        QUESTION <span id="card-counter-display">1</span> OF 3
+      </div>
+</div>
+</header>
+<!-- END: TopBar -->
+<!-- BEGIN: CardDeckArea -->
+<section class="flex-1 flex flex-col justify-center items-center px-4 relative my-1 z-10 w-full" data-purpose="interactive-swipe-stack">
+<!-- Interactive Deck Container -->
+<div class="w-full max-w-[340px] h-[510px] relative card-stack select-none" id="deck-wrapper">
+<!-- Underlay Decorative Neo-Brutalist Frame -->
+<div class="absolute inset-0 bg-brand-lime border-4 border-black rounded-3xl -z-20 translate-y-3.5 translate-x-1.5 rotate-2 transition-all duration-300 pointer-events-none" id="deck-shadow-underlay"></div>
+<!-- CARD 4: CELEBRATION / COMPLETION INSIGHT CARD (Revealed after Card 3) -->
+<article class="deck-card bg-[#18181B] border-4 border-black rounded-3xl shadow-brutal flex flex-col justify-between p-4 z-10 text-white" data-card-index="3" id="step-card-4">
+<div class="relative z-10">
+<div class="flex justify-between items-center mb-2">
+<span class="inline-block bg-brand-lime text-black font-black text-[11px] px-2.5 py-1 rounded-md border-2 border-black uppercase tracking-wider font-grotesk shadow-brutal-sm">
+              COMPLETED • INSIGHT READY
+            </span>
+<span class="inline-flex items-center gap-1 bg-white border-2 border-black px-2 py-0.5 rounded-full font-black text-xs text-black shadow-brutal-sm font-grotesk">
+              ✨ 3/3 REFLECTIONS
+            </span>
+</div>
+<h2 class="headline-mega text-xl sm:text-2xl text-brand-lime drop-shadow-[2px_2px_0px_#000] leading-tight mb-2">
+            YOUR CONNECTION PROFILE IS READY!
+          </h2>
+<!-- Badge / Summary illustration snippet -->
+<div class="w-full h-36 rounded-xl border-2 border-black overflow-hidden shadow-brutal-sm bg-[#faf8ff] mb-2 relative flex items-center justify-center p-3 text-zinc-900">
+<div class="absolute inset-0 bg-gradient-to-tr from-brand-lime/20 via-purple-500/10 to-transparent"></div>
+<div class="relative text-center">
+<div class="inline-flex items-center justify-center w-12 h-12 bg-brand-lime border-2 border-black rounded-2xl shadow-brutal-sm mb-1.5 text-2xl">
+                🌱
+              </div>
+<p class="font-extrabold text-sm uppercase tracking-wide font-grotesk text-black">Archetype: The Empathetic Guardian</p>
+<p class="text-[11px] font-semibold text-zinc-600 mt-0.5">High empathy • Developing firm personal boundaries</p>
+</div>
+</div>
+<div class="bg-zinc-800/90 backdrop-blur-xs p-2.5 rounded-xl border border-zinc-700 text-white text-xs leading-snug mb-2 font-medium">
+<p class="font-bold text-white mb-0.5">
+              "Honesty and boundaries aren't walls—they're the doorways to real closeness."
+            </p>
+<p class="text-[10px] text-zinc-400">
+              Review your customized communication guide and reflection exercises.
+            </p>
+</div>
+</div>
+<!-- In-card Choice Buttons -->
+<div class="flex items-center gap-2 pt-2 border-t-2 border-zinc-800 relative z-20">
+<button class="flex-1 py-2.5 px-2 bg-zinc-800 hover:bg-zinc-700 active:translate-y-0.5 text-zinc-300 font-extrabold text-xs uppercase tracking-wider border-2 border-black rounded-xl shadow-brutal-sm flex items-center justify-center gap-1 transition-all font-grotesk" onclick="triggerCardAction(3, 'left')" type="button">
+<span>Retake Quiz</span>
+</button>
+<div class="w-6 h-6 rounded-full bg-brand-lime border-2 border-black flex items-center justify-center text-[10px] font-black text-black shrink-0 font-grotesk">
+            VS
+          </div>
+<button class="flex-1 py-2.5 px-2 bg-brand-lime hover:bg-lime-300 active:translate-y-0.5 text-black font-black text-xs uppercase tracking-wider border-2 border-black rounded-xl shadow-brutal-sm flex items-center justify-center gap-1 transition-all font-grotesk" onclick="triggerCardAction(3, 'right')" type="button">
+<span>View Report 🎉</span>
+</button>
+</div>
+</article>
+<!-- CARD 3 / SITUATION 3: BOUNDARIES & FAMILY -->
+<article class="deck-card bg-[#F59E0B] border-4 border-black rounded-3xl shadow-brutal flex flex-col justify-between p-4 z-20 text-white" data-card-index="2" id="step-card-3">
+<div class="relative z-10">
+<div class="flex justify-between items-center mb-1.5">
+<span class="inline-block bg-white text-black font-black text-[10px] px-2.5 py-0.5 rounded-md border-2 border-black uppercase tracking-wider font-grotesk shadow-brutal-sm">
+              BOUNDARIES &amp; FAMILY
+            </span>
+<span class="inline-flex items-center gap-1 bg-brand-lime border-2 border-black px-2 py-0.5 rounded-full font-black text-[11px] text-black shadow-brutal-sm font-grotesk">
+              +150 XP
+            </span>
+</div>
+<h2 class="headline-mega text-base sm:text-lg text-white drop-shadow-[2px_2px_0px_#000] leading-snug mb-2">
+            DO YOU FIND IT HARD TO SAY NO TO FAMILY, EVEN WHEN SOMETHING DOESN'T WORK FOR YOU?
+          </h2>
+<!-- Image: IMAGE_2 (Capybara with sweat drop next to stacked blocks and small bear) -->
+<div class="w-full h-32 rounded-xl border-2 border-black overflow-hidden shadow-brutal-sm bg-white mb-2 relative flex items-center justify-center">
+<img alt="Capybara feeling pressure next to stacked blocks and small bear" class="w-full h-full object-contain pointer-events-none" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_wD5HCZ5SjGaI-slNG6prRajvHRL0nwF50P_fuJxGwnH4Aq_RWpsZQGhoiUTuNJHl5XOukKQadU_q6F8fTKhLb1C4TKxP1p1U0pQT9BNhdlws33BUvs9QDTFVeG93aRhixE73wAYb1i7Fac3rtQR1ySHHIlu9QC2H2rOqbZwVpyPxxKogtX7jTgntrWEgyQyAKxc89-dRKCGenTMD3xr9BaeaBfO3uOdcKftuQJJqCTQ3W1MWYtfq"/>
+</div>
+<div class="bg-black/40 backdrop-blur-xs p-2.5 rounded-xl border border-white/25 text-white leading-snug mb-1">
+<p class="text-xs font-bold text-white mb-0.5">
+              "Setting loving boundaries protects your emotional well-being without diminishing how much you care."
+            </p>
+<p class="text-[10px] text-zinc-200 opacity-90">
+              Saying yes out of obligation often leads to hidden resentment.
+            </p>
+</div>
+</div>
+<!-- In-card Choice Buttons -->
+<div class="flex items-center gap-2 pt-2 border-t-2 border-black/30 relative z-20">
+<button class="flex-1 py-2.5 px-2 bg-zinc-900 hover:bg-black active:translate-y-0.5 text-white font-extrabold text-[11px] uppercase tracking-wider border-2 border-black rounded-xl shadow-brutal-sm flex items-center justify-center gap-1 transition-all font-grotesk text-center" onclick="triggerCardAction(2, 'left')" type="button">
+<svg class="w-3.5 h-3.5 text-rose-400 stroke-current stroke-2 shrink-0" fill="none" viewbox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span>NO, I SAY NO</span>
+</button>
+<div class="w-6 h-6 rounded-full bg-white border-2 border-black flex items-center justify-center text-[10px] font-black text-black shrink-0 font-grotesk">
+            VS
+          </div>
+<button class="flex-1 py-2.5 px-2 bg-brand-lime hover:bg-lime-400 active:translate-y-0.5 text-black font-black text-[11px] uppercase tracking-wider border-2 border-black rounded-xl shadow-brutal-sm flex items-center justify-center gap-1 transition-all font-grotesk text-center" onclick="triggerCardAction(2, 'right')" type="button">
+<span>YES, IT'S HARD</span>
+<svg class="w-3.5 h-3.5 text-black stroke-current stroke-3 shrink-0" fill="none" viewbox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
+</button>
+</div>
+</article>
+<!-- CARD 2 / SITUATION 2: GROUP DYNAMICS & VOICE -->
+<article class="deck-card bg-[#38BDF8] border-4 border-black rounded-3xl shadow-brutal flex flex-col justify-between p-4 z-30 text-zinc-900" data-card-index="1" id="step-card-2">
+<div class="relative z-10">
+<div class="flex justify-between items-center mb-1.5">
+<span class="inline-block bg-white text-black font-black text-[10px] px-2.5 py-0.5 rounded-md border-2 border-black uppercase tracking-wider font-grotesk shadow-brutal-sm">
+              GROUP DYNAMICS &amp; VOICE
+            </span>
+<span class="inline-flex items-center gap-1 bg-brand-lime border-2 border-black px-2 py-0.5 rounded-full font-black text-[11px] text-black shadow-brutal-sm font-grotesk">
+              +150 XP
+            </span>
+</div>
+<h2 class="headline-mega text-base sm:text-lg text-black drop-shadow-[1px_1px_0px_#fff] leading-snug mb-2">
+            IN A GROUP SETTING, DO YOU USUALLY WAIT FOR OTHERS TO SPEAK FIRST BEFORE SHARING YOUR OWN OPINION?
+          </h2>
+<!-- Image: IMAGE_3 (Capybara with thought bubble next to owl and cat with speech bubbles) -->
+<div class="w-full h-32 rounded-xl border-2 border-black overflow-hidden shadow-brutal-sm bg-white mb-2 relative flex items-center justify-center">
+<img alt="Capybara with thought bubble next to owl and cat speaking" class="w-full h-full object-contain pointer-events-none" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDP3_qgoh1-MdHno_uetuE3nqy1eR6vGp6w-wPJhKMvO-1rqaWvm41RDrePO9ajglqD6e6cJUIvZoVwFQz-eIxZv-ujj3dMN4klMw1IQCs1irPo6VSe-wTItuOZWeudu7j3TxrrDWxz3OT4ASXbPFQYHrIKjZEvB0ubyVp-DR_uHufL4xt9JDVJeT8DcLcY_mrMeCcRmYDdfWVpGpbVgeDgNChMpJWtpRA8TzEEABTL4_tfW98SMKqM"/>
+</div>
+<div class="bg-black/60 backdrop-blur-xs p-2.5 rounded-xl border border-white/20 text-white leading-snug mb-1">
+<p class="text-xs font-bold text-white mb-0.5">
+              "Observing group rhythm can be thoughtful, but your voice and perspective deserve equal room in the conversation."
+            </p>
+<p class="text-[10px] text-zinc-200 opacity-90">
+              Stepping forward with your viewpoint brings valuable diversity of thought.
+            </p>
+</div>
+</div>
+<!-- In-card Choice Buttons -->
+<div class="flex items-center gap-2 pt-2 border-t-2 border-black/30 relative z-20">
+<button class="flex-1 py-2.5 px-2 bg-zinc-900 hover:bg-black active:translate-y-0.5 text-white font-extrabold text-[11px] uppercase tracking-wider border-2 border-black rounded-xl shadow-brutal-sm flex items-center justify-center gap-1 transition-all font-grotesk text-center" onclick="triggerCardAction(1, 'left')" type="button">
+<svg class="w-3.5 h-3.5 text-sky-300 stroke-current stroke-2 shrink-0" fill="none" viewbox="0 0 24 24"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>I SPEAK UP</span>
+</button>
+<div class="w-6 h-6 rounded-full bg-white border-2 border-black flex items-center justify-center text-[10px] font-black text-black shrink-0 font-grotesk">
+            VS
+          </div>
+<button class="flex-1 py-2.5 px-2 bg-brand-lime hover:bg-lime-400 active:translate-y-0.5 text-black font-black text-[11px] uppercase tracking-wider border-2 border-black rounded-xl shadow-brutal-sm flex items-center justify-center gap-1 transition-all font-grotesk text-center" onclick="triggerCardAction(1, 'right')" type="button">
+<span>I WAIT FIRST</span>
+<svg class="w-3.5 h-3.5 text-black stroke-current stroke-3 shrink-0" fill="none" viewbox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
+</button>
+</div>
+</article>
+<!-- CARD 1 / SITUATION 1: COMMUNICATION & HONESTY -->
+<article class="deck-card bg-[#A855F7] border-4 border-black rounded-3xl shadow-brutal flex flex-col justify-between p-4 z-40 text-white" data-card-index="0" id="step-card-1">
+<div class="relative z-10">
+<div class="flex justify-between items-center mb-1.5">
+<span class="inline-block bg-white text-black font-black text-[10px] px-2.5 py-0.5 rounded-md border-2 border-black uppercase tracking-wider font-grotesk shadow-brutal-sm">
+              COMMUNICATION &amp; HONESTY
+            </span>
+<span class="inline-flex items-center gap-1 bg-brand-lime border-2 border-black px-2 py-0.5 rounded-full font-black text-[11px] text-black shadow-brutal-sm font-grotesk">
+              +150 XP
+            </span>
+</div>
+<h2 class="headline-mega text-base sm:text-lg text-white drop-shadow-[2px_2px_0px_#000] leading-snug mb-2">
+            IS THERE SOMETHING YOU'VE WANTED TO TELL A CLOSE FRIEND OR FAMILY MEMBER, BUT HAVEN'T SAID YET?
+          </h2>
+<!-- Image: IMAGE_4 (Capybara holding envelope with thought dots next to rabbit) -->
+<div class="w-full h-32 rounded-xl border-2 border-black overflow-hidden shadow-brutal-sm bg-white mb-2 relative flex items-center justify-center">
+<img alt="Capybara holding envelope with thought dots next to rabbit" class="w-full h-full object-contain pointer-events-none" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbsgGjaxz2_0yDWzlFFT_Png9Z-hhu_uC4dHR34DTe8xBHmelvzDYwrdSWpBCpT475sLF6kN1ZNnlodmU5TYfxKc7K9iQzyBdXdtwoqe8fOGjcAbPo0oH1h_-YRzTAi76hBW6x84IHyelnNMcoZTYMVNaHx5wr1M3qK6Kppi3DYAu5FZj2y2m1XaSqUGORPnS_JUPvEy8EwQYQkKSqAW2xyzO_wDqSIEbUHEZCLsfiP8lBugEsnrBF"/>
+</div>
+<div class="bg-black/40 backdrop-blur-xs p-2.5 rounded-xl border border-white/20 text-white leading-snug mb-1">
+<p class="text-xs font-bold text-white mb-0.5">
+              "Unspoken thoughts often build emotional distance. Acknowledging them is the first step to genuine connection."
+            </p>
+<p class="text-[10px] text-zinc-200 opacity-90">
+              Sharing what is on your mind clears misunderstandings before they grow.
+            </p>
+</div>
+</div>
+<!-- In-card Choice Buttons -->
+<div class="flex items-center gap-2 pt-2 border-t-2 border-black/30 relative z-20">
+<button class="flex-1 py-2.5 px-2 bg-zinc-900 hover:bg-black active:translate-y-0.5 text-white font-extrabold text-[11px] uppercase tracking-wider border-2 border-black rounded-xl shadow-brutal-sm flex items-center justify-center gap-1 transition-all font-grotesk text-center" onclick="triggerCardAction(0, 'left')" type="button">
+<svg class="w-3.5 h-3.5 text-rose-400 stroke-current stroke-2 shrink-0" fill="none" viewbox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+<span>NOT REALLY</span>
+</button>
+<div class="w-6 h-6 rounded-full bg-white border-2 border-black flex items-center justify-center text-[10px] font-black text-black shrink-0 font-grotesk">
+            VS
+          </div>
+<button class="flex-1 py-2.5 px-2 bg-brand-lime hover:bg-lime-400 active:translate-y-0.5 text-black font-black text-[11px] uppercase tracking-wider border-2 border-black rounded-xl shadow-brutal-sm flex items-center justify-center gap-1 transition-all font-grotesk text-center" onclick="triggerCardAction(0, 'right')" type="button">
+<span>DEFINITELY YES</span>
+<svg class="w-3.5 h-3.5 text-black stroke-current stroke-3 shrink-0" fill="none" viewbox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
+</button>
+</div>
+</article>
+</div>
+</section>
+<!-- END: CardDeckArea -->
+<!-- BEGIN: BottomNavigation -->
+<footer class="p-5 bg-white border-t-3 border-black shrink-0 z-30 flex flex-col items-center select-none" data-purpose="onboarding-controls">
+<!-- Stepper / 3-Question Pagination Dots -->
+<div class="flex items-center space-x-2.5 mb-3" data-purpose="pagination-dots" id="pagination-indicator-row">
+<button aria-label="Step 1" class="w-8 h-2.5 bg-black rounded-full transition-all duration-300 shadow-xs" id="dot-0" onclick="jumpToCard(0)" type="button"></button>
+<button aria-label="Step 2" class="w-2.5 h-2.5 bg-zinc-300 border border-black rounded-full transition-all duration-300" id="dot-1" onclick="jumpToCard(1)" type="button"></button>
+<button aria-label="Step 3" class="w-2.5 h-2.5 bg-zinc-300 border border-black rounded-full transition-all duration-300" id="dot-2" onclick="jumpToCard(2)" type="button"></button>
+</div>
+<!-- Main Continue / Next Step Button -->
+<button class="w-full py-3.5 bg-brand-charcoal hover:bg-black active:translate-y-1 active:shadow-none text-white font-extrabold text-base uppercase tracking-wider rounded-2xl border-3 border-black shadow-brutal transition-all flex items-center justify-center space-x-2 font-grotesk" id="btn-continue-step" onclick="handleNextStep()" type="button">
+<span id="btn-continue-label">Next Question</span>
+<svg class="w-5 h-5 fill-current" viewbox="0 0 20 20"><path clip-rule="evenodd" d="M12.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-2.293-2.293a1 1 0 010-1.414z" fill-rule="evenodd"></path></svg>
+</button>
+<!-- Secondary Login Link -->
+<div class="mt-2.5 text-center">
+<p class="text-xs font-bold text-zinc-600 font-sans">
+        Already finished your reflections? 
+        <a class="text-black font-extrabold underline underline-offset-2 decoration-2 hover:text-brand-purple font-grotesk" href="#login">Log In</a>
+</p>
+</div>
+<!-- Home Bar Indicator -->
+<div class="w-32 h-1 bg-black rounded-full mt-2.5"></div>
+</footer>
+<!-- END: BottomNavigation -->
+</main>
+<!-- END: MobileContainer -->
+<!-- BEGIN: Interactive Stack & Swipe Controller -->
+<script data-purpose="stack-swipe-engine">
+  (function() {
+    const cardElements = [
+      document.getElementById('step-card-1'),
+      document.getElementById('step-card-2'),
+      document.getElementById('step-card-3'),
+      document.getElementById('step-card-4')
+    ];
+    const totalCards = cardElements.length;
+    let activeIndex = 0;
+    const underlayColors = ['#A855F7', '#38BDF8', '#F59E0B', '#A3E635'];
+
+    const counterDisplay = document.getElementById('card-counter-display');
+    const continueBtnLabel = document.getElementById('btn-continue-label');
+    const deckUnderlay = document.getElementById('deck-shadow-underlay');
+    const xpContainer = document.getElementById('xp-toast-container');
+
+    // Layout configuration for cards in stack behind the active card
+    const stackConfig = [
+      { scale: 1, translateY: 0, rotate: 0, opacity: 1, zIndex: 40 },
+      { scale: 0.95, translateY: 14, rotate: -2, opacity: 0.95, zIndex: 30 },
+      { scale: 0.90, translateY: 26, rotate: 2, opacity: 0.88, zIndex: 20 },
+      { scale: 0.85, translateY: 36, rotate: -3, opacity: 0.70, zIndex: 10 }
+    ];
+
+    function updateDeckTransforms(animate = true) {
+      cardElements.forEach((card, idx) => {
+        if (!card) return;
+        const diff = idx - activeIndex;
+
+        if (diff < 0) {
+          // Already swiped away
+          card.style.transition = animate ? 'transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease' : 'none';
+          card.style.pointerEvents = 'none';
+          card.style.opacity = '0';
+          card.style.transform = 'translateY(-120px) scale(0.85) rotate(-15deg)';
+          card.style.zIndex = '0';
+        } else if (diff === 0) {
+          // Top active card
+          card.style.transition = animate ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2), opacity 0.25s ease' : 'none';
+          card.style.transform = 'scale(1) translate(0px, 0px) rotate(0deg)';
+          card.style.opacity = '1';
+          card.style.zIndex = '40';
+          card.style.pointerEvents = 'auto';
+        } else if (diff < stackConfig.length) {
+          // Layered underneath
+          const cfg = stackConfig[diff];
+          card.style.transition = animate ? 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2), opacity 0.25s ease' : 'none';
+          card.style.transform = `scale(${cfg.scale}) translateY(${cfg.translateY}px) rotate(${cfg.rotate}deg)`;
+          card.style.opacity = cfg.opacity;
+          card.style.zIndex = cfg.zIndex;
+          card.style.pointerEvents = 'none';
+        } else {
+          // Hidden beyond view
+          card.style.opacity = '0';
+          card.style.pointerEvents = 'none';
+          card.style.zIndex = '0';
+        }
+      });
+
+      // Update counters & UI
+      if (counterDisplay) {
+        counterDisplay.textContent = Math.min(activeIndex + 1, 3);
+      }
+      if (continueBtnLabel) {
+        if (activeIndex >= 2) {
+          continueBtnLabel.textContent = (activeIndex === 3) ? 'Review Insights & Finish' : 'Complete 3/3 Questions';
+        } else {
+          continueBtnLabel.textContent = 'Next Question';
+        }
+      }
+      if (deckUnderlay) {
+        deckUnderlay.style.backgroundColor = underlayColors[activeIndex % underlayColors.length];
+      }
+
+      // Update 3 pagination dots (for 3 questions)
+      for (let i = 0; i < 3; i++) {
+        const dot = document.getElementById('dot-' + i);
+        if (dot) {
+          if (i === Math.min(activeIndex, 2)) {
+            dot.className = 'w-8 h-2.5 bg-black rounded-full transition-all duration-300 shadow-xs';
+          } else {
+            dot.className = 'w-2.5 h-2.5 bg-zinc-300 border border-black rounded-full transition-all duration-300';
+          }
+        }
+      }
+    }
+
+    function showXpToast() {
+      if (!xpContainer) return;
+      const toast = document.createElement('div');
+      toast.className = 'xp-float bg-brand-lime text-black border-2 border-black font-black text-sm px-4 py-1.5 rounded-full shadow-brutal-sm font-grotesk tracking-wide mb-1 flex items-center gap-1.5';
+      toast.innerHTML = '<span>⚡</span> <span>+150 XP INSIGHT SCORE</span>';
+      xpContainer.appendChild(toast);
+      setTimeout(() => {
+        if (toast.parentNode) toast.parentNode.removeChild(toast);
+      }, 950);
+    }
+
+    // Touch & Pointer Gesture Engine
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let dragTarget = null;
+
+    function getTopCard() {
+      return cardElements[activeIndex];
+    }
+
+    function handlePointerDown(e) {
+      if (activeIndex >= totalCards) return;
+      const topCard = getTopCard();
+      if (!topCard || (e.target.closest('button') && !e.target.closest('button').classList.contains('deck-card'))) {
+        return; // Don't interrupt direct button taps
+      }
+
+      isDragging = true;
+      dragTarget = topCard;
+      startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+      startY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+      currentX = 0;
+      currentY = 0;
+
+      dragTarget.style.transition = 'none';
+    }
+
+    function handlePointerMove(e) {
+      if (!isDragging || !dragTarget) return;
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+
+      currentX = clientX - startX;
+      currentY = clientY - startY;
+
+      // Realistic hinge rotation based on drag
+      const rotation = currentX * 0.08;
+      dragTarget.style.transform = `translate(${currentX}px, ${currentY * 0.4}px) rotate(${rotation}deg)`;
+
+      // Subtle reactive preview styling
+      if (currentX > 50) {
+        dragTarget.style.filter = 'brightness(1.05)';
+      } else if (currentX < -50) {
+        dragTarget.style.filter = 'brightness(0.95)';
+      } else {
+        dragTarget.style.filter = 'none';
+      }
+    }
+
+    function handlePointerEnd() {
+      if (!isDragging || !dragTarget) return;
+      isDragging = false;
+      const threshold = 75;
+
+      dragTarget.style.filter = 'none';
+
+      if (currentX > threshold) {
+        swipeCard(activeIndex, 'right');
+      } else if (currentX < -threshold) {
+        swipeCard(activeIndex, 'left');
+      } else {
+        // Spring return hinge release animation
+        dragTarget.style.transition = 'transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        dragTarget.style.transform = 'translate(0px, 0px) rotate(0deg)';
+      }
+      dragTarget = null;
+    }
+
+    function swipeCard(cardIdx, direction) {
+      const card = cardElements[cardIdx];
+      if (!card) return;
+
+      const isRight = direction === 'right';
+      const exitX = isRight ? 420 : -420;
+      const exitRot = isRight ? 26 : -26;
+
+      if (isRight) {
+        showXpToast();
+      }
+
+      card.style.transition = 'transform 0.38s cubic-bezier(0.2, 0.9, 0.3, 1), opacity 0.3s ease';
+      card.style.transform = `translate(${exitX}px, 60px) rotate(${exitRot}deg)`;
+      card.style.opacity = '0';
+      card.style.pointerEvents = 'none';
+
+      setTimeout(() => {
+        if (activeIndex < totalCards - 1) {
+          activeIndex++;
+        } else {
+          // Loop back smoothly for preview satisfaction
+          activeIndex = 0;
+        }
+        updateDeckTransforms(true);
+      }, 220);
+    }
+
+    // Window helper bindings for in-card action buttons
+    window.triggerCardAction = function(cardIdx, direction) {
+      const card = cardElements[cardIdx];
+      if (!card) return;
+
+      // Small bounce preparatory tick
+      card.style.transition = 'transform 0.15s ease-out';
+      const prepX = direction === 'right' ? 25 : -25;
+      const prepRot = direction === 'right' ? 4 : -4;
+      card.style.transform = `translate(${prepX}px, -10px) rotate(${prepRot}deg)`;
+
+      setTimeout(() => {
+        swipeCard(cardIdx, direction);
+      }, 120);
+    };
+
+    window.handleNextStep = function() {
+      // Dynamic flip to next question
+      if (activeIndex < totalCards - 1) {
+        swipeCard(activeIndex, 'right');
+      } else {
+        // Reset to first card
+        activeIndex = 0;
+        updateDeckTransforms(true);
+      }
+    };
+
+    window.jumpToCard = function(targetIdx) {
+      if (targetIdx < 0 || targetIdx >= totalCards) return;
+      activeIndex = targetIdx;
+      updateDeckTransforms(true);
+    };
+
+    // Attach gestures to the interactive deck wrapper
+    const deckWrapper = document.getElementById('deck-wrapper');
+    if (deckWrapper) {
+      deckWrapper.addEventListener('mousedown', handlePointerDown);
+      window.addEventListener('mousemove', handlePointerMove);
+      window.addEventListener('mouseup', handlePointerEnd);
+
+      deckWrapper.addEventListener('touchstart', handlePointerDown, { passive: true });
+      window.addEventListener('touchmove', handlePointerMove, { passive: true });
+      window.addEventListener('touchend', handlePointerEnd);
+    }
+
+    // Initial Layout setup
+    updateDeckTransforms(false);
+  })();
+</script>
+<!-- END: Interactive Stack & Swipe Controller -->
+</body></html>
